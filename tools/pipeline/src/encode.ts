@@ -1,3 +1,4 @@
+import type { Sharp } from "sharp";
 import sharp from 'sharp';
 
 import { averageColorHex } from './color.ts';
@@ -96,7 +97,7 @@ export async function normalise(
   };
 }
 
-function openNormalised(base: NormalisedImage): sharp.Sharp {
+function openNormalised(base: NormalisedImage): Sharp {
   return sharp(base.pixels, {
     raw: { width: base.width, height: base.height, channels: base.channels as 1 | 2 | 3 | 4 },
   });
@@ -106,7 +107,7 @@ function openNormalised(base: NormalisedImage): sharp.Sharp {
  * Only ever constructs an EXIF block; never copies one. This is the reason
  * there is no path by which a GPS tag can reach a published file.
  */
-function applyMetadata(image: sharp.Sharp, config: PipelineConfig): sharp.Sharp {
+function applyMetadata(image: Sharp, config: PipelineConfig): Sharp {
   if (config.copyright === null) return image;
   return image.withExif({
     IFD0: { Copyright: config.copyright.notice, Artist: config.copyright.artist },

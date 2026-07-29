@@ -12,8 +12,12 @@ import type { VariantFormat } from './recipe.ts';
  * anything they do not recognise rather than guessing, and the pipeline that
  * wrote a file is always the one that can rewrite it: `pnpm ingest` regenerates
  * every manifest from the originals, so there is no migration to run.
+ *
+ * 2: `file` became a path relative to the album directory instead of a bare
+ * filename (needed once an album can hold more than one roll, since filenames
+ * are only unique within a roll), and every photo gained a `roll` field.
  */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export interface VariantRecord {
   readonly format: VariantFormat;
@@ -29,8 +33,16 @@ export interface VariantRecord {
 }
 
 export interface PhotoRecord {
-  /** Filename within the album's originals directory. The join key. */
+  /**
+   * Path to the photograph relative to the album's originals directory,
+   * forward-slash separated (e.g. "0827/001.tif", or "001.tif" for a roll that
+   * sits directly in the album directory). The join key with `photos.yaml`.
+   * A bare filename is not unique across rolls, which is why this is a path
+   * rather than just `file` split from `roll`.
+   */
   readonly file: string;
+  /** The roll this photograph belongs to — `file`'s directory part, `.` for the album root. Matches a `RollRecord.id`. */
+  readonly roll: string;
   readonly sourceId: string;
   readonly width: number;
   readonly height: number;
@@ -42,10 +54,24 @@ export interface PhotoRecord {
   readonly og: VariantRecord;
 }
 
+export interface RollRecord {
+  /** Path from the album directory to this roll. Matches `PhotoRecord.roll`. */
+  readonly id: string;
+  readonly photoCount: number;
+}
+
 export interface AlbumManifest {
   readonly schemaVersion: number;
   readonly slug: string;
   readonly photos: readonly PhotoRecord[];
+  /**
+   * Rolls are first-class data — every photo knows which one it belongs to,
+   * and this is the roll list with its automatically derived metadata (right
+   * now just a frame count). Nothing in the site renders a roll as its own
+   * page yet; that's a presentation decision, not a data-model one, and this
+   * is the data it would need.
+   */
+  readonly rolls: readonly RollRecord[];
 }
 
 export interface RepositoryIndex {
@@ -164,6 +190,7 @@ function validatePhoto(value: unknown, source: string, path: string): PhotoRecor
   }
   return {
     file: nonEmptyString(record['file'], source, `${path}.file`),
+    roll: nonEmptyString(record['roll'], source, `${path}.roll`),
     sourceId: nonEmptyString(record['sourceId'], source, `${path}.sourceId`),
     width: positiveInteger(record['width'], source, `${path}.width`),
     height: positiveInteger(record['height'], source, `${path}.height`),
@@ -175,6 +202,14 @@ function validatePhoto(value: unknown, source: string, path: string): PhotoRecor
   };
 }
 
+function validateRoll(value: unknown, source: string, path: string): RollRecord {
+  const record = object(value, source, path);
+  return {
+    id: nonEmptyString(record['id'], source, `${path}.id`),
+    photoCount: positiveInteger(record['photoCount'], source, `${path}.photoCount`),
+  };
+}
+
 export function validateAlbumManifest(value: unknown, source: string): AlbumManifest {
   const root = object(value, source, 'the manifest');
   checkSchemaVersion(root['schemaVersion'], source);
@@ -182,10 +217,13 @@ export function validateAlbumManifest(value: unknown, source: string): AlbumMani
   assertSlug(slug, source);
   const photos = root['photos'];
   if (!Array.isArray(photos)) invalid(source, 'photos', 'must be an array', photos);
+  const rolls = root['rolls'];
+  if (!Array.isArray(rolls)) invalid(source, 'rolls', 'must be an array', rolls);
   return {
     schemaVersion: SCHEMA_VERSION,
     slug,
     photos: photos.map((photo, index) => validatePhoto(photo, source, `photos[${index.toString()}]`)),
+    rolls: rolls.map((roll, index) => validateRoll(roll, source, `rolls[${index.toString()}]`)),
   };
 }
 

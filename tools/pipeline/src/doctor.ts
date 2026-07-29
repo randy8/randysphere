@@ -7,7 +7,7 @@ import type { PipelineConfig } from './config.ts';
 import { pathExists } from './files.ts';
 import { albumKeyDigest, albumKeys, readPublishedRecord } from './manifest.ts';
 import type { Paths } from './paths.ts';
-import { listSourceFiles } from './sources.ts';
+import { flattenRolls, listRolls } from './sources.ts';
 import { readAllManifests } from './publish.ts';
 
 export type Severity = 'error' | 'warning';
@@ -77,7 +77,7 @@ export async function doctor(paths: Paths, config: PipelineConfig): Promise<Find
           'delete it if the album is gone.',
       });
     } else {
-      const onDisk = await listSourceFiles(albumOriginals);
+      const onDisk = flattenRolls(await listRolls(albumOriginals)).map((photo) => photo.relPath);
       const inManifest = manifest.photos.map((photo) => photo.file);
       for (const file of onDisk) {
         if (!inManifest.includes(file)) {

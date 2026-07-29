@@ -62,6 +62,42 @@ function hasAltText(item: unknown): boolean {
   return typeof alt === 'string' && alt.trim().length > 0;
 }
 
+export interface PhotosFileEntry {
+  readonly file: string;
+  readonly alt: string;
+  readonly caption: string | null;
+}
+
+/** Read-only. Used by `pnpm describe` to see what's already written before deciding whether to generate anything. */
+export async function readPhotosFile(albumDirectory: string): Promise<PhotosFileEntry[]> {
+  const path = join(albumDirectory, PHOTOS_FILE);
+  const source = path;
+  let original: string;
+  try {
+    original = await readFile(path, 'utf8');
+  } catch {
+    return [];
+  }
+  const document = parseDocument(original);
+  if (document.errors.length > 0) {
+    const [first] = document.errors;
+    throw new PipelineError(`${source}: ${first?.message ?? 'could not be parsed as YAML'}`);
+  }
+  const sequence = readPhotosSequence(document, source);
+  const items = sequence?.items ?? [];
+  return items.map((item, index) => {
+    const file = entryFilename(item, source, index);
+    const map = item as YAMLMap;
+    const alt = map.get('alt');
+    const caption = map.get('caption');
+    return {
+      file,
+      alt: typeof alt === 'string' ? alt : '',
+      caption: typeof caption === 'string' && caption.length > 0 ? caption : null,
+    };
+  });
+}
+
 /**
  * Bring the list of entries into line with what is actually in originals/,
  * changing nothing else.
@@ -111,7 +147,7 @@ export async function syncPhotosFile(
     return { created: false, added: [], removed: [], missingAlt };
   }
 
-  if (document.toString() !== original) {
+  if (document.toString({ lineWidth: 0 }) !== original) {
     throw new PipelineError(
       `${source} needs updating, but rewriting it would also reformat it, so nothing was changed.\n` +
         'Please edit it by hand:\n' +
@@ -137,7 +173,7 @@ export async function syncPhotosFile(
     target.add(document.createNode({ file, alt: '' }));
   }
 
-  await writeFileAtomic(path, document.toString());
+  await writeFileAtomic(path, document.toString({ lineWidth: 0 }));
 
   const refreshed = parseDocument(await readFile(path, 'utf8'));
   const refreshedItems = readPhotosSequence(refreshed, source)?.items ?? [];
@@ -147,6 +183,158 @@ export async function syncPhotosFile(
     .map((entry) => entry.file);
 
   return { created: false, added, removed, missingAlt };
+}
+
+const ROLLS_FILE = 'rolls.yaml';
+
+const ROLLS_HEADER = [
+  '# Roll-level notes.',
+  '#',
+  '# `pnpm ingest` maintains which roll ids are listed here and nothing else.',
+  '# The order, the fields, and every comment are yours; re-running ingest',
+  '# will not touch them.',
+  '',
+].join('\n');
+
+export interface RollsFileResult {
+  readonly created: boolean;
+  readonly added: readonly string[];
+  readonly removed: readonly string[];
+}
+
+function renderNewRollsFile(ids: readonly string[]): string {
+  const rolls = ids.map((id) => ({ id, filmStock: '', notes: '' }));
+  return `${ROLLS_HEADER}${stringify({ rolls }, { lineWidth: 0 })}`;
+}
+
+function readRollsSequence(document: Document, source: string): YAMLSeq | null {
+  const node = document.get('rolls', true);
+  if (node === undefined || node === null) return null;
+  if (!isSeq(node)) {
+    throw new PipelineError(`${source}: "rolls" must be a list of entries.`);
+  }
+  return node;
+}
+
+function entryRollId(item: unknown, source: string, index: number): string {
+  if (!isMap(item)) {
+    throw new PipelineError(
+      `${source}: rolls[${index.toString()}] must be a mapping with an "id" key, for example:\n` +
+        '  - id: 0827\n    filmStock: Kodak Portra 400',
+    );
+  }
+  const id = (item as YAMLMap).get('id');
+  if (typeof id !== 'string' || id.length === 0) {
+    throw new PipelineError(`${source}: rolls[${index.toString()}] has no "id" value.`);
+  }
+  return id;
+}
+
+/**
+ * Same shape and the same round-trip safety as `syncPhotosFile`, one level up:
+ * keeps `rolls.yaml`'s list of roll ids in line with what ingest found,
+ * leaving film stock, notes, and comments exactly as the photographer left
+ * them.
+ */
+export async function syncRollsFile(albumDirectory: string, ids: readonly string[]): Promise<RollsFileResult> {
+  const path = join(albumDirectory, ROLLS_FILE);
+  const source = path;
+
+  let original: string;
+  try {
+    original = await readFile(path, 'utf8');
+  } catch {
+    await writeFileAtomic(path, renderNewRollsFile(ids));
+    return { created: true, added: [...ids], removed: [] };
+  }
+
+  const document = parseDocument(original);
+  if (document.errors.length > 0) {
+    const [first] = document.errors;
+    throw new PipelineError(`${source}: ${first?.message ?? 'could not be parsed as YAML'}`);
+  }
+
+  const sequence = readRollsSequence(document, source);
+  const items = sequence?.items ?? [];
+  const listed = items.map((item, index) => entryRollId(item, source, index));
+  const wanted = new Set(ids);
+
+  const removed = listed.filter((id) => !wanted.has(id));
+  const added = ids.filter((id) => !listed.includes(id));
+
+  if (removed.length === 0 && added.length === 0) {
+    return { created: false, added: [], removed: [] };
+  }
+
+  if (document.toString({ lineWidth: 0 }) !== original) {
+    throw new PipelineError(
+      `${source} needs updating, but rewriting it would also reformat it, so nothing was changed.\n` +
+        'Please edit it by hand:\n' +
+        (added.length > 0 ? `  add:    ${added.join(', ')}\n` : '') +
+        (removed.length > 0 ? `  remove: ${removed.join(', ')}\n` : '') +
+        'Then run ingest again.',
+    );
+  }
+
+  const target =
+    sequence ??
+    (() => {
+      document.set('rolls', document.createNode([]));
+      const created = readRollsSequence(document, source);
+      if (created === null) throw new PipelineError(`${source}: could not create a "rolls" list.`);
+      return created;
+    })();
+
+  for (let index = target.items.length - 1; index >= 0; index -= 1) {
+    if (removed.includes(listed[index] ?? '')) target.delete(index);
+  }
+  for (const id of added) {
+    target.add(document.createNode({ id, filmStock: '', notes: '' }));
+  }
+
+  await writeFileAtomic(path, document.toString({ lineWidth: 0 }));
+
+  return { created: false, added, removed };
+}
+
+export interface Description {
+  readonly alt: string;
+  readonly caption: string | null;
+}
+
+/**
+ * Fills in `alt` (and `caption`, if given) for one existing `photos.yaml`
+ * entry, in place. Used only by `pnpm describe`, and only ever called by a
+ * caller that has already decided it's safe to write — this function does not
+ * itself check whether the entry already has a description. Every other
+ * entry, and every comment, is left exactly as it was.
+ */
+export async function setPhotoDescription(
+  albumDirectory: string,
+  file: string,
+  description: Description,
+): Promise<void> {
+  const path = join(albumDirectory, PHOTOS_FILE);
+  const source = path;
+  const original = await readFile(path, 'utf8');
+
+  const document = parseDocument(original);
+  if (document.errors.length > 0) {
+    const [first] = document.errors;
+    throw new PipelineError(`${source}: ${first?.message ?? 'could not be parsed as YAML'}`);
+  }
+  const sequence = readPhotosSequence(document, source);
+  const items = sequence?.items ?? [];
+  const index = items.findIndex((item, i) => entryFilename(item, source, i) === file);
+  if (index === -1) {
+    throw new PipelineError(`${source}: no entry for ${JSON.stringify(file)}.`);
+  }
+  const item = items[index];
+  if (!isMap(item)) throw new PipelineError(`${source}: photos[${index.toString()}] is not a mapping.`);
+  item.set('alt', description.alt);
+  if (description.caption !== null) item.set('caption', description.caption);
+
+  await writeFileAtomic(path, document.toString({ lineWidth: 0 }));
 }
 
 function titleFromSlug(slug: string): string {
