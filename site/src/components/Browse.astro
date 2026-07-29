@@ -1,0 +1,27 @@
+---
+import Photo from './Photo.astro';
+import type { Album } from '../lib/albums.ts';
+
+interface Props {
+  album: Album;
+}
+
+const { album } = Astro.props;
+---
+
+<div class="browse" data-browse role="region" aria-label="Photo browser">
+  <div class="browse-bar">
+    <button type="button" class="browse-close" data-browse-close>← Back to grid</button>
+    <span class="browse-position" data-browse-position aria-hidden="true"></span>
+  </div>
+  <div class="browse-stack" data-browse-stack>
+    {
+      album.photos.map((entry) => (
+        <figure class="browse-item" id={`photo-${entry.photo.sourceId}`} data-photo-id={entry.photo.sourceId}>
+          <Photo entry={entry} sizes="100vw" linked={false} />
+          {entry.caption && <figcaption>{entry.caption}</figcaption>}
+        </figure>
+      ))
+    }
+  </div>
+</div>

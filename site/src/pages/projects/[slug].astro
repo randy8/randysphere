@@ -1,4 +1,5 @@
 ---
+import Browse from '../../components/Browse.astro';
 import Photo from '../../components/Photo.astro';
 import Base from '../../layouts/Base.astro';
 import { loadAlbums } from '../../lib/albums.ts';
@@ -17,16 +18,30 @@ const meta = [album.meta.location, album.meta.date].filter(Boolean).join(' · ')
 ---
 
 <Base title={album.meta.title} description={album.meta.description || album.meta.title}>
+  {
+    /*
+      Applied before the browse script loads, so a reload or a shared link
+      landing on #photo-<id> shows the browse view immediately instead of
+      flashing the grid first. `document.body` already exists once this runs,
+      regardless of where in the body the tag sits.
+    */
+  }
+  <script is:inline>
+    if (location.hash.indexOf('#photo-') === 0) {
+      document.body.classList.add('is-browsing');
+    }
+  </script>
+
   <header class="album-header">
     <p class="eyebrow">{meta}</p>
     <h1>{album.meta.title}</h1>
     {album.meta.description && <p class="lede">{album.meta.description}</p>}
   </header>
 
-  <div class="grid">
+  <div class="grid" data-grid>
     {
       album.photos.map((entry, index) => (
-        <figure>
+        <figure data-photo-id={entry.photo.sourceId}>
           <Photo
             entry={entry}
             sizes="(min-width: 64rem) 23rem, (min-width: 40rem) 45vw, 92vw"
@@ -37,4 +52,10 @@ const meta = [album.meta.location, album.meta.date].filter(Boolean).join(' · ')
       ))
     }
   </div>
+
+  <Browse album={album} />
+
+  <script>
+    import '../../scripts/browse.ts';
+  </script>
 </Base>

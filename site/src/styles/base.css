@@ -116,3 +116,103 @@ a:focus-visible, .photo:focus-visible { outline: 2px solid currentColor; outline
   letter-spacing: 0.06em;
   color: var(--muted);
 }
+
+/* ---------------------------------------------------------------------------
+   Browse mode — a full-viewport overlay, not a modal: no dialog role, no
+   focus trap. Everything behind it is hidden via body.is-browsing so it can't
+   be tabbed to while covered, and the overlay owns its own scroll, so the
+   grid's scroll position is untouched underneath and needs no bookkeeping.
+   --------------------------------------------------------------------------- */
+
+body.is-browsing .masthead,
+body.is-browsing .album-header,
+body.is-browsing .grid,
+body.is-browsing .site-footer {
+  display: none;
+}
+body.is-browsing {
+  overflow: hidden;
+}
+
+.browse {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: var(--paper);
+  overflow-y: auto;
+}
+body.is-browsing .browse {
+  display: block;
+}
+
+.browse-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+}
+.browse-close {
+  appearance: none;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.5rem;
+  margin: -0.5rem;
+}
+.browse-close:hover {
+  opacity: 0.7;
+}
+.browse-position {
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.browse-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rem;
+  padding: 2rem 1.5rem 8rem;
+  scroll-snap-type: y proximity;
+}
+.browse-item {
+  margin: 0;
+  scroll-snap-align: start;
+  max-width: 100%;
+}
+.browse-item .photo {
+  display: flex;
+  justify-content: center;
+}
+.browse-item .photo img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 86vh;
+  margin: 0 auto;
+  background-size: contain;
+  background-position: center;
+}
+.browse-item figcaption {
+  margin-top: 0.875rem;
+  max-width: var(--measure);
+  margin-inline: auto;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
