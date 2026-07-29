@@ -9,6 +9,7 @@
     ".": "./src/manifest.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.0",
     "aws4fetch": "^1.0.20",
     "exif-reader": "^2.0.2",
     "sharp": "^0.35.3",

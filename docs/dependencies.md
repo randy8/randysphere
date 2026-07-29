@@ -71,8 +71,24 @@ Formatting, so that formatting is never discussed again. No plugins.
 
 ## `tools/pipeline`
 
-Four runtime dependencies. Each one does something that would be irresponsible
+Five runtime dependencies. Each one does something that would be irresponsible
 to write by hand.
+
+### `@anthropic-ai/sdk` — `^0.70.0`
+
+Calls the Claude API from `pnpm describe`, the optional command that drafts
+alt text and captions for photographs missing one. Used only by that command:
+`pnpm ingest` never imports it and has no network dependency of its own.
+
+Chosen over hand-rolling the HTTP call (the way `storage/r2.ts` hand-rolls S3
+signing with `aws4fetch`) because that pattern is for a signing scheme with no
+official client, not a reason to avoid an official SDK when one exists.
+Anthropic publishes and maintains this one; there is no equivalent argument
+for reimplementing it.
+
+**Removal cost:** `pnpm describe` stops working. Nothing else changes — the
+provider it wraps is one implementation of `describe/provider.ts`'s
+`DescriptionProvider` interface, and `pnpm ingest` was never able to reach it.
 
 ### `sharp` — `^0.35.3`
 

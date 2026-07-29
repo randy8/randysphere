@@ -154,3 +154,53 @@ exclusion, key determinism, publish integrity — are now testable with nothing
 installed, which means they are covered on any machine and in any CI job
 regardless of whether a native binary built. It also makes each dependency
 genuinely replaceable, because its surface is one file.
+
+---
+
+## 2026-07-29 — A photo's identity is a path, not a filename
+
+**Decision.** `PhotoRecord.file` changed from a bare filename to a path
+relative to the album directory (`0827/001.tif`, or `001.tif` for a roll at
+the album root). Every photo also gained a `roll` field, and the manifest
+gained a top-level `rolls` list with automatically derived metadata.
+
+**Why.** `originals/<slug>/` stopped being reliably flat the moment a real
+archive organised itself as a trip split into rolls. A bare filename is not
+unique once an album can hold more than one roll; a relative path is, without
+inventing a separate id scheme. Rolls being real manifest data — not just a
+prefix baked into `file` — is what lets the site (or anything else) query
+"every photo in this roll" later without re-deriving it from a string split.
+
+**Cost.** This is an incompatible manifest shape, so `SCHEMA_VERSION` moved
+from 1 to 2. Every existing manifest is rejected until re-ingested, which is
+by design — `pnpm ingest` regenerates from `originals/` in full, so there is
+no migration to write, only a full re-encode to wait out once.
+
+**Revisit if.** A roll ever needs its own URL. That is a routing change, not a
+manifest change — the data this decision added is already what such a route
+would read from.
+
+---
+
+## 2026-07-29 — Description generation is a separate command, not an ingest step
+
+**Decision.** `pnpm describe` is its own CLI command, wired to nothing
+`pnpm ingest` calls. It depends on `@anthropic-ai/sdk` and network access;
+`ingest` depends on neither, and nothing changed about that.
+
+**Why.** "`pnpm ingest` runs fully offline" is a property this project states
+outright and tests rely on. Automatic captioning needs a network call to an
+LLM, which cannot be true of a step inside `ingest` without breaking that
+property for everyone, including people who never want the feature. Keeping
+it a separate, optional command is the whole fix: the offline guarantee stays
+absolute rather than becoming "offline, except."
+
+**Cost.** Two entry points instead of one for the full "photo in, described
+photo out" path. Considered acceptable because the two paths have genuinely
+different failure modes and dependencies — one should never be able to break
+the other.
+
+**Revisit if.** A second description provider is added. `describe/provider.ts`
+is a one-method interface for exactly this; a new provider is an
+implementation of it, not a change to `describe.ts`'s caching, manual-edit
+preservation, or resumability logic.
