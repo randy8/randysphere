@@ -29,7 +29,15 @@ export default defineConfig([
     extends: [tseslint.configs.recommendedTypeChecked],
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        projectService: {
+          // pipeline.config.ts sits at the repo root, outside every
+          // directory a tsconfig.json lives in. tools/pipeline/tsconfig.json
+          // already lists it under `include` (so `tsc -p tools/pipeline`
+          // type-checks it), but the project service's directory-based
+          // discovery never looks there — it needs the file named
+          // explicitly here instead.
+          allowDefaultProject: ['pipeline.config.ts'],
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -42,6 +50,18 @@ export default defineConfig([
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+    },
+  },
+
+  {
+    // node:test's test() returns a promise that resolves when the test
+    // finishes, but the idiomatic pattern is a bare top-level call per test —
+    // `node --test` itself drives completion and failure reporting, not the
+    // return value. Awaiting each call would only serialize tests within a
+    // file for no benefit.
+    files: ['**/*.test.ts'],
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'off',
     },
   },
 

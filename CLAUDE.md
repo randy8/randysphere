@@ -15,6 +15,13 @@ a web app: photographs are shown large and unhurried, and the site disappears
 in favor of the pictures. No engagement mechanics, no feeds, no chrome that
 isn't earned.
 
+The visual model to design against is an independent magazine, a museum
+archive, or a photobook publisher — not a photography portfolio. Prioritize
+navigation, sequencing, and the photographs themselves over large
+marketing-style headlines or self-introduction. Every element on a page
+should justify its presence by helping someone browse the archive; if it
+doesn't, it's decoration and it's out.
+
 The site is **one canonical archive with query-driven views**, not a
 collection of trip pages. A visitor browses tagged views — a trip like
 `paris-2025`, eventually a place or a subject — but "trip" is not a
@@ -193,13 +200,21 @@ pnpm typecheck / test / lint / format
 pnpm verify                    # format:check && lint && typecheck && test && build
 ```
 
-`pnpm lint` currently reports pre-existing failures unrelated to any of this
-session's work (confirmed via `git stash` against a clean `main`) — a
-`no-floating-promises` rule flags `node:test`'s `test()` calls across most
-`*.test.ts` files, plus a `pipeline.config.ts` project-service parsing error.
-Not caused by this session; not yet fixed. `docs/verification.md` predates
-this and says lint had never actually been run with real dependencies
-installed before — this may be the first real run surfacing it.
+`pnpm lint` is clean. It previously reported pre-existing failures — a
+`no-floating-promises` rule flagging `node:test`'s `test()` calls across most
+`*.test.ts` files, plus a `pipeline.config.ts` project-service parsing
+error — first surfaced when lint was actually run with real dependencies
+installed (`docs/verification.md` predates that run). Both were config
+issues, not code bugs: `eslint.config.js` now turns
+`no-floating-promises` off for `**/*.test.ts` (the idiomatic node:test
+pattern is a bare top-level `test()` call; `node --test` drives completion
+and failure reporting, not the return value), and `pipeline.config.ts` is
+listed under `projectService.allowDefaultProject` (it's in
+`tools/pipeline/tsconfig.json`'s `include`, but the project service's
+directory-based discovery never looks there since the file lives outside
+every tsconfig's own directory). A handful of genuine
+`no-unnecessary-type-assertion` / `require-await` errors in
+`album-files.ts` and `concurrency.test.ts` were fixed directly.
 
 ## Constraints and invariants — do not break these
 
@@ -288,7 +303,7 @@ installed before — this may be the first real run surfacing it.
   entries tagged with each new batch's own directory name (`0827`, `0828`,
   etc). The site currently renders these as four disconnected trip views
   instead of one `paris-2025` view. Retagging all 150 entries back to a
-  shared trip tag (item 4 below) is the fix; cross-batch identity matching
+  shared trip tag (item 1 below) is the fix; cross-batch identity matching
   is a real gap this surfaced, not yet addressed in code. The one
   hand-written caption (`0830/000008300011.tif`, the Paris Métro photo) was
   already lost earlier in this project's history, during the bare-filename →
@@ -298,8 +313,6 @@ installed before — this may be the first real run surfacing it.
   against the real Anthropic API in this environment (no `ANTHROPIC_API_KEY`
   configured here) — the live HTTP round-trip, real JSON-shape handling, and
   refusal handling are unverified.
-- `pnpm lint` has pre-existing failures unrelated to recent work (see
-  Commands section above). Not yet triaged or fixed.
 - No dedicated roll-level UI exists yet (see film-roll section) — this is
   intentional, not an oversight.
 - `album.md` is scaffolded per batch but no longer read by the site (see
@@ -337,8 +350,7 @@ installed before — this may be the first real run surfacing it.
 3. Smoke-test `pnpm describe` against the real Claude API once
    `ANTHROPIC_API_KEY` is available, and fix whatever the fake-provider tests
    couldn't catch (real response shape, rate limits, refusals).
-4. Triage the pre-existing `pnpm lint` failures (not urgent, but real).
-5. Decide whether cross-batch sourceId matching (surfaced by the batch-split
+4. Decide whether cross-batch sourceId matching (surfaced by the batch-split
    limitation above) is worth building, or whether restructuring
    `originals/` across batch boundaries is simply expected to require a
    manual retag going forward.
