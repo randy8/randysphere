@@ -2,7 +2,7 @@ import { mkdir, readdir, readFile } from 'node:fs/promises';
 import { availableParallelism } from 'node:os';
 import { join } from 'node:path';
 
-import { scaffoldAlbumMarkdown, syncPhotosFile } from './album-files.ts';
+import { scaffoldAlbumMarkdown, syncPhotosFile, syncRollsFile } from './album-files.ts';
 import { mapWithConcurrency } from './concurrency.ts';
 import type { PipelineConfig } from './config.ts';
 import { pathExists, writeFileAtomic } from './files.ts';
@@ -10,7 +10,7 @@ import { configureSharp, encodeLqip, encodeVariant, inspectSource, normalise } f
 import { PipelineError } from './errors.ts';
 import { parseExif, selectCameraMetadata } from './exif.ts';
 import { sha256File } from './hash.ts';
-import type { AlbumManifest, PhotoRecord, VariantRecord } from './manifest.ts';
+import type { AlbumManifest, PhotoRecord, RollRecord, VariantRecord } from './manifest.ts';
 import {
   readAlbumManifest,
   SCHEMA_VERSION,
@@ -21,7 +21,14 @@ import { derivativePath } from './paths.ts';
 import type { Paths } from './paths.ts';
 import { planOpenGraph, planVariants, SOURCE_ID_LENGTH } from './recipe.ts';
 import type { VariantPlan } from './recipe.ts';
-import { listAlbumSlugs, listSourceFiles, SOURCE_EXTENSIONS } from './sources.ts';
+import { flattenRolls, listAlbumSlugs, listRolls, SOURCE_EXTENSIONS } from './sources.ts';
+
+/** A photograph located during the roll walk, before anything is decoded. */
+interface SourcePhoto {
+  /** Path relative to the album directory, e.g. "0827/001.tif" or "001.tif" for a root-level roll. */
+  readonly relPath: string;
+  readonly roll: string;
+}
 
 export interface AlbumReport {
   readonly slug: string;
@@ -64,10 +71,10 @@ async function ingestPhoto(
   paths: Paths,
   config: PipelineConfig,
   albumDirectory: string,
-  file: string,
+  photo: SourcePhoto,
   previous: PhotoRecord | undefined,
 ): Promise<PhotoOutcome> {
-  const sourcePath = join(albumDirectory, file);
+  const sourcePath = join(albumDirectory, photo.relPath);
   const sourceId = (await sha256File(sourcePath)).slice(0, SOURCE_ID_LENGTH);
   const { displayed, exif } = await inspectSource(sourcePath);
 
@@ -132,7 +139,8 @@ async function ingestPhoto(
             ));
 
   const record: PhotoRecord = {
-    file,
+    file: photo.relPath,
+    roll: photo.roll,
     sourceId,
     width: displayed.width,
     height: displayed.height,
@@ -187,8 +195,9 @@ export async function ingest(options: IngestOptions): Promise<IngestReport> {
 
   for (const slug of slugs) {
     const albumOriginals = join(paths.originals, slug);
-    const files = await listSourceFiles(albumOriginals);
-    if (files.length === 0) {
+    const rolls = await listRolls(albumOriginals);
+    const photos = flattenRolls(rolls);
+    if (photos.length === 0) {
       throw new PipelineError(
         `${albumOriginals} has no photographs in it. Add some, or remove the directory.\n` +
           `Recognised extensions: ${SOURCE_EXTENSIONS.join(', ')}.`,
@@ -198,20 +207,24 @@ export async function ingest(options: IngestOptions): Promise<IngestReport> {
     const manifestPath = join(paths.manifests, `${slug}.json`);
     const previous = await readPreviousRecords(manifestPath);
 
-    const outcomes = await mapWithConcurrency(files, concurrency, (file) =>
-      ingestPhoto(paths, config, albumOriginals, file, previous.get(file)),
+    const outcomes = await mapWithConcurrency(photos, concurrency, (photo) =>
+      ingestPhoto(paths, config, albumOriginals, photo, previous.get(photo.relPath)),
     );
 
+    const rollRecords: RollRecord[] = rolls.map((roll) => ({ id: roll.id, photoCount: roll.files.length }));
     const manifest: AlbumManifest = {
       schemaVersion: SCHEMA_VERSION,
       slug,
       photos: outcomes.map((outcome) => outcome.record),
+      rolls: rollRecords,
     };
     await writeAlbumManifest(manifestPath, manifest);
 
     const albumDirectory = join(paths.albums, slug);
     await mkdir(albumDirectory, { recursive: true });
+    const files = photos.map((photo) => photo.relPath);
     const photosFile = await syncPhotosFile(albumDirectory, files);
+    await syncRollsFile(albumDirectory, rolls.map((roll) => roll.id));
     const earliest = outcomes
       .map((outcome) => outcome.record.camera?.takenAt ?? null)
       .filter((value): value is string => value !== null)

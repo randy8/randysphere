@@ -23,6 +23,7 @@ const manifest: AlbumManifest = {
   photos: [
     {
       file: '001.jpg',
+      roll: '.',
       sourceId: '0123456789abcdef',
       width: 6000,
       height: 4000,
@@ -33,6 +34,7 @@ const manifest: AlbumManifest = {
       og: { format: 'jpeg', width: 1200, height: 630, bytes: 90_000, key: OG_KEY },
     },
   ],
+  rolls: [{ id: '.', photoCount: 1 }],
 };
 
 test('a valid manifest round-trips through disk unchanged', async () => {
@@ -43,7 +45,7 @@ test('a valid manifest round-trips through disk unchanged', async () => {
 });
 
 test('validation names the exact path of the problem', () => {
-  const broken = structuredClone(manifest) as { photos: { variants: { key: string }[] }[] };
+  const broken = structuredClone(manifest) as unknown as { photos: { variants: { key: string }[] }[] };
   broken.photos[0]!.variants[0]!.key = 'p/nope/1200.avif';
   assert.throws(
     () => validateAlbumManifest(broken, 'generated/albums/hokkaido-winter.json'),
@@ -70,7 +72,7 @@ test('a slug that would not survive a URL is refused', () => {
 test('key digests cover every variant and the open graph crop', () => {
   assert.deepEqual(albumKeys(manifest).sort(), [KEY, OG_KEY].sort());
 
-  const changed = structuredClone(manifest) as { photos: { og: { key: string } }[] };
+  const changed = structuredClone(manifest) as unknown as { photos: { og: { key: string } }[] };
   changed.photos[0]!.og.key = 'p/0123456789abcdef/og-11111111.jpg';
   assert.notEqual(albumKeyDigest(manifest), albumKeyDigest(changed as unknown as AlbumManifest));
 });
@@ -78,4 +80,18 @@ test('key digests cover every variant and the open graph crop', () => {
 test('the digest ignores the order photographs happen to be in', () => {
   const reversed: AlbumManifest = { ...manifest, photos: [...manifest.photos].reverse() };
   assert.equal(albumKeyDigest(manifest), albumKeyDigest(reversed));
+});
+
+test('a photo naming a roll that is not in the top-level roll list still validates (rolls are metadata, not a foreign key)', () => {
+  assert.doesNotThrow(() => validateAlbumManifest(manifest, 'x.json'));
+});
+
+test('rolls must be an array', () => {
+  const broken = { ...manifest, rolls: undefined };
+  assert.throws(() => validateAlbumManifest(broken, 'x.json'), /rolls must be an array/);
+});
+
+test('a roll missing photoCount names the exact path', () => {
+  const broken = { ...manifest, rolls: [{ id: '.' }] };
+  assert.throws(() => validateAlbumManifest(broken, 'x.json'), /rolls\[0\]\.photoCount/);
 });

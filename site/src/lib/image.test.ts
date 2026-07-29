@@ -12,6 +12,7 @@ function variant(format: Variant['format'], width: number, key: string): Variant
 
 const photo: Photo = {
   file: '001.jpg',
+  roll: '.',
   sourceId: '0123456789abcdef',
   width: 1800,
   height: 1200,

@@ -7,7 +7,7 @@
  * describes what it needs. The duplication is small, and it is what makes the
  * manifest a contract rather than somebody else's internal structure.
  */
-export const SUPPORTED_SCHEMA_VERSION = 1;
+export const SUPPORTED_SCHEMA_VERSION = 2;
 
 export type VariantFormat = 'avif' | 'webp' | 'jpeg';
 
@@ -32,6 +32,8 @@ export interface Camera {
 
 export interface Photo {
   readonly file: string;
+  /** Which roll this photo belongs to — soft metadata, not yet used to render anything. */
+  readonly roll: string;
   readonly sourceId: string;
   readonly width: number;
   readonly height: number;
@@ -42,10 +44,16 @@ export interface Photo {
   readonly og: Variant;
 }
 
+export interface Roll {
+  readonly id: string;
+  readonly photoCount: number;
+}
+
 export interface AlbumManifest {
   readonly schemaVersion: number;
   readonly slug: string;
   readonly photos: readonly Photo[];
+  readonly rolls: readonly Roll[];
 }
 
 function fail(source: string, message: string): never {
@@ -69,10 +77,12 @@ export function readManifest(value: unknown, source: string): AlbumManifest {
   }
   if (typeof root['slug'] !== 'string') fail(source, 'has no slug');
   if (!Array.isArray(root['photos'])) fail(source, 'has no photos array');
+  if (!Array.isArray(root['rolls'])) fail(source, 'has no rolls array');
 
   const photos = root['photos'].map((entry, index) => {
     const photo = entry as Partial<Photo>;
     if (typeof photo.file !== 'string') fail(source, `photos[${String(index)}] has no file`);
+    if (typeof photo.roll !== 'string') fail(source, `photos[${String(index)}] (${photo.file}) has no roll`);
     if (typeof photo.width !== 'number' || typeof photo.height !== 'number') {
       fail(source, `photos[${String(index)}] (${photo.file}) has no dimensions`);
     }
@@ -82,5 +92,12 @@ export function readManifest(value: unknown, source: string): AlbumManifest {
     return photo as Photo;
   });
 
-  return { schemaVersion: SUPPORTED_SCHEMA_VERSION, slug: root['slug'], photos };
+  const rolls = root['rolls'].map((entry, index) => {
+    const roll = entry as Partial<Roll>;
+    if (typeof roll.id !== 'string') fail(source, `rolls[${String(index)}] has no id`);
+    if (typeof roll.photoCount !== 'number') fail(source, `rolls[${String(index)}] (${roll.id}) has no photoCount`);
+    return roll as Roll;
+  });
+
+  return { schemaVersion: SUPPORTED_SCHEMA_VERSION, slug: root['slug'], photos, rolls };
 }

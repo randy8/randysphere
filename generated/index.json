@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "recipe": {
     "recipeVersion": 1,
     "widths": [
@@ -43,6 +43,6 @@
     "localPublishDir": "site/public"
   },
   "albums": [
-    "sample-album"
+    "paris-2025"
   ]
 }

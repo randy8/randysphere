@@ -18,6 +18,7 @@ const BYTES = 64;
 function photo(sourceId: string): PhotoRecord {
   return {
     file: `${sourceId.slice(0, 3)}.jpg`,
+    roll: '.',
     sourceId,
     width: 6000,
     height: 4000,
@@ -33,7 +34,7 @@ function photo(sourceId: string): PhotoRecord {
 }
 
 function manifestFor(slug: string, sourceIds: readonly string[]): AlbumManifest {
-  return { schemaVersion: SCHEMA_VERSION, slug, photos: sourceIds.map(photo) };
+  return { schemaVersion: SCHEMA_VERSION, slug, photos: sourceIds.map(photo), rolls: [{ id: '.', photoCount: sourceIds.length }] };
 }
 
 function keysOf(manifest: AlbumManifest): string[] {
