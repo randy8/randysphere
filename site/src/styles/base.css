@@ -1,0 +1,118 @@
+/*
+ * Deliberately small. The design system arrives with its own change; this is
+ * only what the photographs need in order not to be embarrassed.
+ */
+:root {
+  --paper: #fafaf8;
+  --ink: #141414;
+  --muted: #6b6b66;
+  --rule: #e2e2dd;
+  --measure: 64ch;
+  --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --sans: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0b0b0b;
+    --ink: #ededea;
+    --muted: #8f8f89;
+    --rule: #232320;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+}
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 10;
+  padding: 0.5rem 0.75rem;
+  background: var(--paper);
+  outline: 2px solid var(--ink);
+}
+
+.wrap { max-width: 76rem; margin: 0 auto; padding: 0 1.5rem; }
+
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1.5rem;
+  padding: 2rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+.masthead a { color: inherit; text-decoration: none; }
+.wordmark { font-size: 1rem; letter-spacing: 0.02em; }
+.masthead nav {
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.eyebrow {
+  font-family: var(--sans);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+}
+
+h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 400; line-height: 1.1; margin: 0 0 0.75rem; letter-spacing: -0.015em; }
+h2 { font-size: 1.375rem; font-weight: 400; margin: 0; letter-spacing: -0.01em; }
+.lede { max-width: var(--measure); color: var(--muted); margin: 0; }
+
+main { padding: 3rem 0 6rem; }
+.album-header { margin-bottom: 3.5rem; }
+
+.albums { display: grid; gap: 3.5rem; margin: 0; padding: 0; list-style: none; }
+.album-card a { color: inherit; text-decoration: none; display: block; }
+.album-card figcaption { margin-top: 0.875rem; display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
+.album-card .meta { font-family: var(--sans); font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+
+.grid { display: grid; grid-template-columns: 1fr; gap: 2.5rem; }
+@media (min-width: 40rem) { .grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 64rem) { .grid { grid-template-columns: repeat(3, 1fr); } }
+
+figure { margin: 0; }
+figure figcaption { margin-top: 0.625rem; font-size: 0.875rem; color: var(--muted); max-width: var(--measure); }
+
+picture.photo { display: block; }
+a.photo { display: block; }
+.photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* The manifest's dimensions become an aspect-ratio box, so the space is
+     reserved before a single byte of the photograph arrives. */
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+a:focus-visible, .photo:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+
+.site-footer {
+  border-top: 1px solid var(--rule);
+  padding: 1.5rem 0 3rem;
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}

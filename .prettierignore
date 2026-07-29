@@ -1,0 +1,10 @@
+pnpm-lock.yaml
+
+# Written by the ingest pipeline in a canonical form. Reformatting it here
+# would produce a diff on every run for no reason.
+generated/
+
+originals/
+dist/
+.astro/
+.wrangler/

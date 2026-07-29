@@ -1,0 +1,40 @@
+{
+  // Shared TypeScript settings for the Node packages under tools/.
+  //
+  // The site has its own tsconfig extending Astro's preset instead of this one.
+  // Astro's needs (JSX, bundler resolution, DOM types) and Node's needs are
+  // different enough that a single shared base would be mostly overrides.
+  //
+  // Nothing here emits. `tsc` is only a type checker in this repository and
+  // `node` runs the .ts source directly, which is why there is no build step.
+  "compilerOptions": {
+    "target": "esnext",
+    "lib": ["esnext"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+
+    // Node strips types; it never transforms them. These three settings are
+    // what Node's own documentation recommends for that mode. The important
+    // one is erasableSyntaxOnly: it makes tsc reject the syntax Node cannot
+    // run (enums, parameter properties, namespaces) during a type check rather
+    // than at runtime, halfway through encoding somebody's album.
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "rewriteRelativeImportExtensions": true,
+
+    "noEmit": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+
+    "strict": true,
+    // Indexing an array returns `T | undefined`, because it does. This one flag
+    // catches more real bugs in file-and-path code than the rest combined.
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  }
+}

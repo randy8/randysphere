@@ -1,0 +1,20 @@
+# Captions and alt text.
+#
+# `pnpm ingest` maintains which files are listed here and nothing else.
+# The order, the fields, and every comment are yours; re-running ingest will
+# not touch them. Renaming a photograph in originals/ is a rename, and the
+# entry below will be replaced rather than followed.
+
+photos:
+  - file: 001.jpg
+    alt: A dark blue-grey field lightening toward the top, scattered with soft pale discs.
+    caption: The first frame, and the one the homepage leads with.
+  - file: 002.jpg
+    alt: An upright warm brown gradient running from near-black at the base to sand at the top.
+    caption: Portrait, so the grid has to hold two shapes at once.
+  - file: 003.jpg
+    alt: A teal field with pale circles, recorded sideways by the camera and shown upright.
+    caption: Stored landscape, tagged to be seen portrait. If it looks wrong, orientation handling is broken.
+  - file: 004.jpg
+    alt: A muted violet gradient with rose-coloured discs drifting across it.
+    caption: This one arrived carrying coordinates. Nothing published from it does.

@@ -1,0 +1,18 @@
+# Workspace members.
+#
+# `site` is the Astro application. `tools/*` holds programs that must keep
+# working if the site is ever rewritten in something other than Astro, which is
+# why they are separate packages rather than scripts living inside site/.
+packages:
+  - site
+  - tools/*
+
+allowBuilds:
+  esbuild: false
+
+# pnpm refuses to run dependency install scripts unless they are listed here.
+#
+# Every entry is a decision to execute somebody else's code on your machine at
+# install time, so each one needs a comment saying why it is unavoidable. An
+# empty list is the correct state until a dependency proves otherwise.
+onlyBuiltDependencies: []

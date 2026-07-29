@@ -1,0 +1,40 @@
+---
+import Photo from '../../components/Photo.astro';
+import Base from '../../layouts/Base.astro';
+import { loadAlbums } from '../../lib/albums.ts';
+import type { Album } from '../../lib/albums.ts';
+
+export function getStaticPaths() {
+  return loadAlbums().map((album) => ({ params: { slug: album.slug }, props: { album } }));
+}
+
+interface Props {
+  album: Album;
+}
+
+const { album } = Astro.props;
+const meta = [album.meta.location, album.meta.date].filter(Boolean).join(' · ');
+---
+
+<Base title={album.meta.title} description={album.meta.description || album.meta.title}>
+  <header class="album-header">
+    <p class="eyebrow">{meta}</p>
+    <h1>{album.meta.title}</h1>
+    {album.meta.description && <p class="lede">{album.meta.description}</p>}
+  </header>
+
+  <div class="grid">
+    {
+      album.photos.map((entry, index) => (
+        <figure>
+          <Photo
+            entry={entry}
+            sizes="(min-width: 64rem) 23rem, (min-width: 40rem) 45vw, 92vw"
+            priority={index === 0}
+          />
+          {entry.caption && <figcaption>{entry.caption}</figcaption>}
+        </figure>
+      ))
+    }
+  </div>
+</Base>

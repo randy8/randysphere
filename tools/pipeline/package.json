@@ -1,0 +1,20 @@
+{
+  "name": "@photo/pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Turns original photographs into web derivatives and a manifest. Knows nothing about Astro.",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/manifest.ts"
+  },
+  "dependencies": {
+    "aws4fetch": "^1.0.20",
+    "exif-reader": "^2.0.2",
+    "sharp": "^0.35.3",
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0"
+  }
+}

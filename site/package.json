@@ -1,0 +1,21 @@
+{
+  "name": "@photo/site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The website. Renders HTML from the manifests; never touches a photograph.",
+  "scripts": {
+    "dev": "astro dev",
+    "dev:host": "astro dev --host 0.0.0.0",
+    "build": "astro build",
+    "preview": "astro preview",
+    "preview:host": "astro preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "astro": "^7.1.4",
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0"
+  }
+}

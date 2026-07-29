@@ -1,0 +1,29 @@
+node_modules/
+
+dist/
+.astro/
+.wrangler/
+
+# Your master photographs. They stay on this machine and in your own backups,
+# and nothing in this repository ever uploads them. The README inside is
+# tracked so the directory arrives with an explanation in it.
+/originals/*
+!/originals/README.md
+
+# Encoded derivatives. Rebuildable from originals/ at any time, so there is no
+# reason to carry them in git history forever. Note that this ignores only the
+# encoded images: the manifests under generated/albums/ are tracked, because
+# they are the contract between the pipeline and the site.
+/generated/derivatives/
+
+# Derivatives written by `pnpm run publish --local`. Rebuildable, and large.
+/site/public/p/
+
+# Credentials for Cloudflare R2 live here.
+.env
+.env.*
+!.env.example
+
+.DS_Store
+Thumbs.db
+*.log

@@ -1,0 +1,366 @@
+{
+  "schemaVersion": 1,
+  "slug": "sample-album",
+  "photos": [
+    {
+      "file": "001.jpg",
+      "sourceId": "08dc9fdd07420ca3",
+      "width": 1800,
+      "height": 1200,
+      "color": "#58676f",
+      "lqip": "data:image/webp;base64,UklGRlgAAABXRUJQVlA4IEwAAACwAwCdASoUAA0APwFqrU8rJiQiMAgBYCAJZQCdAB6QAcOxGFpf4AD+rFft15x+iSXe39hFO+QFeyVN9t3lyOutABy0JX47MoA2LgAA",
+      "camera": {
+        "make": "Fujifilm",
+        "model": "X-Pro3",
+        "lens": "XF35mmF2 R WR",
+        "focalLength": null,
+        "aperture": 2,
+        "shutterSpeed": "1s",
+        "iso": 160,
+        "takenAt": "2024-02-11T08:14:23"
+      },
+      "variants": [
+        {
+          "format": "avif",
+          "width": 400,
+          "height": 267,
+          "bytes": 1681,
+          "key": "p/08dc9fdd07420ca3/400-d19ef955.avif"
+        },
+        {
+          "format": "avif",
+          "width": 800,
+          "height": 533,
+          "bytes": 3224,
+          "key": "p/08dc9fdd07420ca3/800-ffab035c.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1200,
+          "height": 800,
+          "bytes": 4848,
+          "key": "p/08dc9fdd07420ca3/1200-6b0fb60d.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1600,
+          "height": 1067,
+          "bytes": 6784,
+          "key": "p/08dc9fdd07420ca3/1600-14284eea.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1800,
+          "height": 1200,
+          "bytes": 5910,
+          "key": "p/08dc9fdd07420ca3/1800-c415cbc3.avif"
+        },
+        {
+          "format": "webp",
+          "width": 400,
+          "height": 267,
+          "bytes": 1642,
+          "key": "p/08dc9fdd07420ca3/400-f7051998.webp"
+        },
+        {
+          "format": "webp",
+          "width": 800,
+          "height": 533,
+          "bytes": 3732,
+          "key": "p/08dc9fdd07420ca3/800-7e0d8996.webp"
+        },
+        {
+          "format": "webp",
+          "width": 1200,
+          "height": 800,
+          "bytes": 6336,
+          "key": "p/08dc9fdd07420ca3/1200-37b96538.webp"
+        },
+        {
+          "format": "webp",
+          "width": 1600,
+          "height": 1067,
+          "bytes": 9374,
+          "key": "p/08dc9fdd07420ca3/1600-070cff2f.webp"
+        },
+        {
+          "format": "webp",
+          "width": 1800,
+          "height": 1200,
+          "bytes": 11660,
+          "key": "p/08dc9fdd07420ca3/1800-81dc38b5.webp"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 800,
+          "bytes": 13166,
+          "key": "p/08dc9fdd07420ca3/1200-42e85731.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 1800,
+          "height": 1200,
+          "bytes": 26733,
+          "key": "p/08dc9fdd07420ca3/1800-e6e06194.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 11006,
+        "key": "p/08dc9fdd07420ca3/og-a7ecc69c.jpg"
+      }
+    },
+    {
+      "file": "002.jpg",
+      "sourceId": "dd39916dd8723ca1",
+      "width": 1200,
+      "height": 1800,
+      "color": "#967c67",
+      "lqip": "data:image/webp;base64,UklGRoAAAABXRUJQVlA4IHQAAADwBACdASoUAB4APwFyrFGrJqQiqA1RYCAJZQDImBEaEGsGsgQJH6QCV9pBbdabVgAA9kH56Z5mGIh51IHEOHNoQnZjJPAWVCrjsuFTmDU2lq2k3LVr0DN1VYZfB81kNKHOWi0y1m2gfuPIXdN8jMia7gAAAA==",
+      "camera": {
+        "make": "Fujifilm",
+        "model": "X-Pro3",
+        "lens": "XF35mmF2 R WR",
+        "focalLength": null,
+        "aperture": 2,
+        "shutterSpeed": "1s",
+        "iso": 160,
+        "takenAt": "2024-02-11T08:14:23"
+      },
+      "variants": [
+        {
+          "format": "avif",
+          "width": 400,
+          "height": 600,
+          "bytes": 2609,
+          "key": "p/dd39916dd8723ca1/400-9911f34b.avif"
+        },
+        {
+          "format": "avif",
+          "width": 800,
+          "height": 1200,
+          "bytes": 5338,
+          "key": "p/dd39916dd8723ca1/800-5f4d6cba.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1200,
+          "height": 1800,
+          "bytes": 6590,
+          "key": "p/dd39916dd8723ca1/1200-129960c9.avif"
+        },
+        {
+          "format": "webp",
+          "width": 400,
+          "height": 600,
+          "bytes": 3012,
+          "key": "p/dd39916dd8723ca1/400-8ff91bac.webp"
+        },
+        {
+          "format": "webp",
+          "width": 800,
+          "height": 1200,
+          "bytes": 7208,
+          "key": "p/dd39916dd8723ca1/800-f524a2ef.webp"
+        },
+        {
+          "format": "webp",
+          "width": 1200,
+          "height": 1800,
+          "bytes": 13174,
+          "key": "p/dd39916dd8723ca1/1200-12670f97.webp"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 1800,
+          "bytes": 28733,
+          "key": "p/dd39916dd8723ca1/1200-8390628f.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 11899,
+        "key": "p/dd39916dd8723ca1/og-2f71fc46.jpg"
+      }
+    },
+    {
+      "file": "003.jpg",
+      "sourceId": "d687fd8267cdedfa",
+      "width": 1200,
+      "height": 1800,
+      "color": "#688b8c",
+      "lqip": "data:image/webp;base64,UklGRowAAABXRUJQVlA4IIAAAACwBACdASoUAB4APwFurlArJqQiqA1RYCAJZQDMHAwVzk2oYm1h5kdgd4wYxQo4APyd9/4FQ5fsfiduRydYINpJ7o9XX4hUYjDRprA31hP1B7nMZIinjelCAtMdhcbB3IHImoq8smv/Z7AFsfoDvMvxK4jI01scrqzdhXsLTaKAAA==",
+      "camera": {
+        "make": "Fujifilm",
+        "model": "X-Pro3",
+        "lens": "XF35mmF2 R WR",
+        "focalLength": null,
+        "aperture": 2,
+        "shutterSpeed": "1s",
+        "iso": 160,
+        "takenAt": "2024-02-11T08:14:23"
+      },
+      "variants": [
+        {
+          "format": "avif",
+          "width": 400,
+          "height": 600,
+          "bytes": 2712,
+          "key": "p/d687fd8267cdedfa/400-0f3e6e13.avif"
+        },
+        {
+          "format": "avif",
+          "width": 800,
+          "height": 1200,
+          "bytes": 5577,
+          "key": "p/d687fd8267cdedfa/800-84d2d1a1.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1200,
+          "height": 1800,
+          "bytes": 5947,
+          "key": "p/d687fd8267cdedfa/1200-49446345.avif"
+        },
+        {
+          "format": "webp",
+          "width": 400,
+          "height": 600,
+          "bytes": 3050,
+          "key": "p/d687fd8267cdedfa/400-816cbd46.webp"
+        },
+        {
+          "format": "webp",
+          "width": 800,
+          "height": 1200,
+          "bytes": 7118,
+          "key": "p/d687fd8267cdedfa/800-3fc14076.webp"
+        },
+        {
+          "format": "webp",
+          "width": 1200,
+          "height": 1800,
+          "bytes": 12734,
+          "key": "p/d687fd8267cdedfa/1200-ea01c336.webp"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 1800,
+          "bytes": 34812,
+          "key": "p/d687fd8267cdedfa/1200-7d7dc9d5.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 14403,
+        "key": "p/d687fd8267cdedfa/og-d0cb8b19.jpg"
+      }
+    },
+    {
+      "file": "004.jpg",
+      "sourceId": "d3b0f7b3eb052bfe",
+      "width": 1600,
+      "height": 1067,
+      "color": "#917285",
+      "lqip": "data:image/webp;base64,UklGRl4AAABXRUJQVlA4IFIAAABQAwCdASoUAA0APwFqrU6rJiQiMAgBYCAJYwAAKDNv7zS/8AD+TKTF4ezQTRbVPbXEmP+CfH3l6Y5ggIk50MPwvNbHN4LZ/m2bkDbNSzME/fQA",
+      "camera": {
+        "make": "Fujifilm",
+        "model": "X-Pro3",
+        "lens": "XF35mmF2 R WR",
+        "focalLength": null,
+        "aperture": 2,
+        "shutterSpeed": "1s",
+        "iso": 160,
+        "takenAt": "2024-02-11T08:14:23"
+      },
+      "variants": [
+        {
+          "format": "avif",
+          "width": 400,
+          "height": 267,
+          "bytes": 2022,
+          "key": "p/d3b0f7b3eb052bfe/400-5a4071b9.avif"
+        },
+        {
+          "format": "avif",
+          "width": 800,
+          "height": 534,
+          "bytes": 3794,
+          "key": "p/d3b0f7b3eb052bfe/800-e640d5d2.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1200,
+          "height": 800,
+          "bytes": 6002,
+          "key": "p/d3b0f7b3eb052bfe/1200-6eaaf94b.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1600,
+          "height": 1067,
+          "bytes": 6560,
+          "key": "p/d3b0f7b3eb052bfe/1600-e6806fd4.avif"
+        },
+        {
+          "format": "webp",
+          "width": 400,
+          "height": 267,
+          "bytes": 1996,
+          "key": "p/d3b0f7b3eb052bfe/400-605071a2.webp"
+        },
+        {
+          "format": "webp",
+          "width": 800,
+          "height": 534,
+          "bytes": 4394,
+          "key": "p/d3b0f7b3eb052bfe/800-a957a7ae.webp"
+        },
+        {
+          "format": "webp",
+          "width": 1200,
+          "height": 800,
+          "bytes": 7590,
+          "key": "p/d3b0f7b3eb052bfe/1200-073feb1c.webp"
+        },
+        {
+          "format": "webp",
+          "width": 1600,
+          "height": 1067,
+          "bytes": 11728,
+          "key": "p/d3b0f7b3eb052bfe/1600-c1da52af.webp"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 800,
+          "bytes": 16101,
+          "key": "p/d3b0f7b3eb052bfe/1200-59fd6d8e.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 1600,
+          "height": 1067,
+          "bytes": 25875,
+          "key": "p/d3b0f7b3eb052bfe/1600-38740b36.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 13467,
+        "key": "p/d3b0f7b3eb052bfe/og-6cf27209.jpg"
+      }
+    }
+  ]
+}

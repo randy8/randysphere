@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "recipe": {
+    "recipeVersion": 1,
+    "widths": [
+      400,
+      800,
+      1200,
+      1600,
+      2000,
+      2400
+    ],
+    "kernel": "lanczos3",
+    "avif": {
+      "quality": 55,
+      "effort": 4
+    },
+    "webp": {
+      "quality": 76,
+      "effort": 5
+    },
+    "jpeg": {
+      "quality": 80,
+      "widths": [
+        1200,
+        2400
+      ]
+    },
+    "og": {
+      "width": 1200,
+      "height": 630,
+      "quality": 82
+    },
+    "lqip": {
+      "width": 20,
+      "quality": 35
+    },
+    "cameraMetadata": true,
+    "copyright": null,
+    "r2": {
+      "bucket": "photographs"
+    },
+    "localPublishDir": "site/public"
+  },
+  "albums": [
+    "sample-album"
+  ]
+}

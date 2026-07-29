@@ -1,0 +1,79 @@
+---
+import { site } from '../config.ts';
+import { assetUrl, largest, smallest, srcset, variantsOf } from '../lib/image.ts';
+import type { AlbumPhoto } from '../lib/albums.ts';
+
+interface Props {
+  entry: AlbumPhoto;
+  sizes: string;
+  /** True for the one image a page treats as its largest paint. */
+  priority?: boolean;
+  /**
+   * Wrap the photograph in a link to its full-size JPEG. This is what makes the
+   * gallery usable without JavaScript, but it has to be off wherever the caller
+   * has already provided a link, because nested anchors are invalid HTML.
+   */
+  linked?: boolean;
+}
+
+const { entry, sizes, priority = false, linked = true } = Astro.props;
+const { photo, alt } = entry;
+const base = site.imageBaseUrl;
+
+const avif = variantsOf(photo, 'avif');
+const webp = variantsOf(photo, 'webp');
+const jpeg = variantsOf(photo, 'jpeg');
+
+const fallback = smallest(photo, 'jpeg') ?? photo.variants[0];
+const full = largest(photo, 'jpeg') ?? fallback;
+
+if (fallback === undefined || full === undefined) {
+  throw new Error(`${photo.file} has no usable variants. Run \`pnpm ingest\`.`);
+}
+
+// A flat colour until the bytes arrive. The inline placeholder is spent only on
+// the image that is the largest paint, where it is worth the markup.
+const placeholder = priority
+  ? `background-color:${photo.color};background-image:url(${photo.lqip})`
+  : `background-color:${photo.color}`;
+---
+
+<Fragment>
+  {linked ? (
+    <a class="photo" href={assetUrl(base, full.key)}>
+      <picture>
+        {avif.length > 0 && <source type="image/avif" srcset={srcset(base, avif)} sizes={sizes} />}
+        {webp.length > 0 && <source type="image/webp" srcset={srcset(base, webp)} sizes={sizes} />}
+        <img
+          src={assetUrl(base, fallback.key)}
+          srcset={jpeg.length > 1 ? srcset(base, jpeg) : undefined}
+          sizes={jpeg.length > 1 ? sizes : undefined}
+          width={photo.width}
+          height={photo.height}
+          alt={alt}
+          loading={priority ? 'eager' : 'lazy'}
+          decoding={priority ? 'sync' : 'async'}
+          fetchpriority={priority ? 'high' : undefined}
+          style={placeholder}
+        />
+      </picture>
+    </a>
+  ) : (
+    <picture class="photo">
+      {avif.length > 0 && <source type="image/avif" srcset={srcset(base, avif)} sizes={sizes} />}
+      {webp.length > 0 && <source type="image/webp" srcset={srcset(base, webp)} sizes={sizes} />}
+      <img
+        src={assetUrl(base, fallback.key)}
+        srcset={jpeg.length > 1 ? srcset(base, jpeg) : undefined}
+        sizes={jpeg.length > 1 ? sizes : undefined}
+        width={photo.width}
+        height={photo.height}
+        alt={alt}
+        loading={priority ? 'eager' : 'lazy'}
+        decoding={priority ? 'sync' : 'async'}
+        fetchpriority={priority ? 'high' : undefined}
+        style={placeholder}
+      />
+    </picture>
+  )}
+</Fragment>

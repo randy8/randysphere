@@ -1,0 +1,28 @@
+{
+  // Self-contained rather than extending astro/tsconfigs/*, so that a change to
+  // a preset path cannot break the type check. Only .ts files are included:
+  // tsc cannot parse .astro, and the templates are checked by the build.
+  "compilerOptions": {
+    "target": "esnext",
+    "lib": ["esnext", "dom"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+
+    "noEmit": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", ".astro"]
+}

@@ -1,0 +1,41 @@
+---
+import Photo from '../components/Photo.astro';
+import Base from '../layouts/Base.astro';
+import { coverPhoto, loadAlbums } from '../lib/albums.ts';
+import { site } from '../config.ts';
+
+const albums = loadAlbums();
+---
+
+<Base title={site.title}>
+  <header class="album-header">
+    <p class="eyebrow">Projects</p>
+    <h1>{site.title}</h1>
+    <p class="lede">{site.description}</p>
+  </header>
+
+  <ul class="albums">
+    {
+      albums.map((album, index) => (
+        <li class="album-card">
+          <a href={`/projects/${album.slug}/`}>
+            <figure>
+              <Photo
+                entry={coverPhoto(album)}
+                sizes="(min-width: 76rem) 72rem, 100vw"
+                priority={index === 0}
+                linked={false}
+              />
+              <figcaption>
+                <h2>{album.meta.title}</h2>
+                <span class="meta">
+                  {[album.meta.location, album.meta.date].filter(Boolean).join(' · ')}
+                </span>
+              </figcaption>
+            </figure>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</Base>

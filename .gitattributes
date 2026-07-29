@@ -1,0 +1,7 @@
+# Normalise line endings on the way in, so a checkout on Windows does not turn
+# into a whole-repository diff.
+* text=auto eol=lf
+
+# Collapse the lockfile in pull request diffs. Deliberately not marked as
+# binary: lockfile changes are worth reading when you are looking for them.
+pnpm-lock.yaml linguist-generated=true
