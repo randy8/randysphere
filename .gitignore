@@ -19,6 +19,13 @@ dist/
 # Derivatives written by `pnpm run publish --local`. Rebuildable, and large.
 /site/public/p/
 
+# Cache of AI-generated descriptions, keyed by sourceId. Rebuildable by running
+# `pnpm describe` again — at the cost of calling the provider again, which is
+# the entire reason it's cached. The contract is albums/*/photos.yaml, which is
+# committed; this is bookkeeping so a repeat run doesn't re-analyse a photo it
+# already has a description for.
+/generated/descriptions.json
+
 # Credentials for Cloudflare R2 live here.
 .env
 .env.*

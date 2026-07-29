@@ -3,6 +3,8 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { loadConfig } from './config.ts';
+import { createClaudeDescriptionProvider } from './describe/claude-provider.ts';
+import { describe } from './describe/describe.ts';
 import { doctor } from './doctor.ts';
 import { PipelineError } from './errors.ts';
 import { defaultConcurrency, ingest } from './ingest.ts';
@@ -18,12 +20,21 @@ Usage: pnpm <command> [options]
   pnpm ingest              Encode derivatives and rewrite the manifests.
   pnpm run publish         Upload derivatives to Cloudflare R2.
   pnpm doctor              Report drift without changing anything.
+  pnpm describe            Generate alt text and captions for photos missing one.
 
 Options:
   --album <slug>           Restrict to one album. Repeatable.
   --local                  Publish into a directory instead of R2.
   --concurrency <n>        Photographs or uploads in flight. Default: half your cores.
+  --regenerate             describe: re-generate photos already described, unless hand-edited since.
+  --model <id>             describe: override the Claude model (default claude-opus-5).
   --help                   This.
+
+\`pnpm describe\` needs ANTHROPIC_API_KEY in .env. It never touches originals/
+or generated/albums/*.json; it only fills in empty alt/caption fields in
+albums/<slug>/photos.yaml and caches what it generated in
+generated/descriptions.json. \`pnpm ingest\` never calls it and never needs
+network access.
 
 Note: pnpm has a built-in \`publish\` command, so the image publisher is
 \`pnpm run publish\`. \`pnpm publish:images\` does the same thing unambiguously.
@@ -101,6 +112,37 @@ async function runPublish(local: boolean, concurrency: number): Promise<void> {
   console.log(`Recorded ${plural(report.albumsRecorded.length, 'album')} as published.`);
 }
 
+async function runDescribe(onlyAlbums: string[] | null, regenerate: boolean, model: string | undefined): Promise<number> {
+  const paths = resolvePaths(repositoryRoot());
+  const provider = createClaudeDescriptionProvider(model === undefined ? {} : { model });
+
+  const report = await describe({
+    paths,
+    onlyAlbums,
+    provider,
+    regenerate,
+    onProgress: (event) => {
+      if (event.outcome === 'generated' || event.outcome === 'filled-from-cache' || event.outcome === 'failed') {
+        console.log(`  [${event.album}] ${event.file}: ${event.outcome}${event.message ? ` (${event.message})` : ''}`);
+      }
+    },
+  });
+
+  console.log(
+    `${plural(report.generated, 'description')} generated, ` +
+      `${report.filledFromCache.toString()} filled from cache, ` +
+      `${report.skipped.toString()} left alone (already described).`,
+  );
+  if (report.failures.length > 0) {
+    console.log(`${plural(report.failures.length, 'failure')}:`);
+    for (const failure of report.failures) {
+      console.log(`  [${failure.album}] ${failure.file}: ${failure.message}`);
+    }
+    return 1;
+  }
+  return 0;
+}
+
 async function runDoctor(): Promise<number> {
   const paths = resolvePaths(repositoryRoot());
   const config = await loadConfig(paths.configFile);
@@ -124,6 +166,8 @@ export async function main(argv: readonly string[]): Promise<number> {
       album: { type: 'string', multiple: true },
       local: { type: 'boolean', default: false },
       concurrency: { type: 'string' },
+      regenerate: { type: 'boolean', default: false },
+      model: { type: 'string' },
       help: { type: 'boolean', default: false },
     },
   });
@@ -150,6 +194,8 @@ export async function main(argv: readonly string[]): Promise<number> {
       return 0;
     case 'doctor':
       return runDoctor();
+    case 'describe':
+      return runDescribe(onlyAlbums, values.regenerate, values.model);
     default:
       throw new PipelineError(`Unknown command "${command}".\n\n${USAGE}`);
   }

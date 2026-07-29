@@ -10,6 +10,8 @@ export interface Paths {
   readonly indexFile: string;
   readonly publishedFile: string;
   readonly configFile: string;
+  /** Cache of generated descriptions, keyed by sourceId. Git-ignored; rebuildable, at the cost of calling the provider again. */
+  readonly descriptionsFile: string;
 }
 
 export function resolvePaths(root: string): Paths {
@@ -24,6 +26,7 @@ export function resolvePaths(root: string): Paths {
     indexFile: join(generated, 'index.json'),
     publishedFile: join(generated, 'published.json'),
     configFile: join(root, 'pipeline.config.ts'),
+    descriptionsFile: join(generated, 'descriptions.json'),
   };
 }
 

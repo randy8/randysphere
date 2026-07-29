@@ -5,7 +5,7 @@
   "type": "module",
   "description": "A static photography portfolio: an Astro site and a framework-independent image pipeline.",
   "license": "MIT",
-  "packageManager": "pnpm@11.12.0",
+  "packageManager": "pnpm@11.17.0",
   "engines": {
     "node": ">=24.3.0"
   },
@@ -19,6 +19,8 @@
     "publish": "node tools/pipeline/src/cli.ts publish",
     "publish:images": "node tools/pipeline/src/cli.ts publish",
     "publish:local": "node tools/pipeline/src/cli.ts publish --local",
+    "sync": "pnpm ingest && pnpm publish:local",
+    "describe": "node tools/pipeline/src/cli.ts describe",
     "doctor": "node tools/pipeline/src/cli.ts doctor",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
