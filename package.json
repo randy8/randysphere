@@ -22,6 +22,7 @@
     "sync": "pnpm ingest && pnpm publish:local",
     "describe": "node tools/pipeline/src/cli.ts describe",
     "doctor": "node tools/pipeline/src/cli.ts doctor",
+    "edit": "node tools/pipeline/src/cli.ts edit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

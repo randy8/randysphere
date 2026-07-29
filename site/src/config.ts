@@ -3,9 +3,9 @@
  * site is derived from the albums.
  */
 export const site = {
-  title: 'Photography',
-  description: 'Photographs.',
-  author: 'Your Name',
+  title: 'A collection of analog photos.',
+  description: '',
+  author: 'Randy Liang',
 
   /**
    * Where derivatives are served from.

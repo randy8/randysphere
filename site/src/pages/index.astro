@@ -1,10 +1,11 @@
 ---
 import Photo from '../components/Photo.astro';
 import Base from '../layouts/Base.astro';
-import { coverPhoto, loadAlbums } from '../lib/albums.ts';
+import { allTags, coverPhoto, loadArchive, viewForTag } from '../lib/archive.ts';
 import { site } from '../config.ts';
 
-const albums = loadAlbums();
+const archive = loadArchive();
+const views = allTags(archive).map((tag) => viewForTag(archive, tag));
 ---
 
 <Base title={site.title}>
@@ -16,21 +17,19 @@ const albums = loadAlbums();
 
   <ul class="albums">
     {
-      albums.map((album, index) => (
+      views.map((view, index) => (
         <li class="album-card">
-          <a href={`/projects/${album.slug}/`}>
+          <a href={`/projects/${view.tag}/`}>
             <figure>
               <Photo
-                entry={coverPhoto(album)}
+                entry={coverPhoto(view.photos)}
                 sizes="(min-width: 76rem) 72rem, 100vw"
                 priority={index === 0}
                 linked={false}
               />
               <figcaption>
-                <h2>{album.meta.title}</h2>
-                <span class="meta">
-                  {[album.meta.location, album.meta.date].filter(Boolean).join(' · ')}
-                </span>
+                <h2>{view.title}</h2>
+                {view.date && <span class="meta">{view.date}</span>}
               </figcaption>
             </figure>
           </a>

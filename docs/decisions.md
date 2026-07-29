@@ -58,7 +58,7 @@ once, which is a single lockfile change.
 
 ## 2026-07-28 — The pipeline↔site boundary is type-only
 
-**Decision.** `site/` may import *types* from `tools/pipeline` and must not
+**Decision.** `site/` may import _types_ from `tools/pipeline` and must not
 import any value from it. Runtime validation of the manifest is written
 explicitly in the site rather than sharing a schema object across the boundary.
 
@@ -204,3 +204,212 @@ the other.
 is a one-method interface for exactly this; a new provider is an
 implementation of it, not a change to `describe.ts`'s caching, manual-edit
 preservation, or resumability logic.
+
+---
+
+## 2026-07-29 — Trips become a tag, not a structural concept; the site reads one canonical archive
+
+**Decision.** The site no longer has a notion of "albums," each owning a
+manifest and a route. It reads one canonical `Archive` (`site/src/lib/archive.ts`,
+replacing `albums.ts`) — every photograph from every `generated/albums/*.json`
+merged into a single flat list. A trip like `paris-2025` is now a **tag**, held
+in `photos.yaml` per photo, exactly like any other tag a place or a subject
+would use. A page is the result of a query over the archive (`viewForTag`), not
+a record that owns a set of photographs. `/projects/<tag>/` still exists and
+still resolves for `paris-2025`, but the code path is identical for any tag —
+there is no special case for "trip" anywhere in the site.
+
+Two things are explicitly **not** part of this change, both deferred rather
+than built: per-tag authored metadata (title, description, cover, location) —
+there is no `tags/<slug>.md`; a view's title is the tag string humanised
+(`paris-2025` → "Paris 2025") and its date is derived as the earliest EXIF
+capture time among its photos. And per-photo `location` — deferred entirely,
+so a photo's only free-text field remains its caption. Both are real gaps, not
+oversights: they are missing because nothing yet needs them, not because they
+were forgotten.
+
+**Why.** The previous design assumed one directory under `originals/` is one
+trip is one manifest is one route — true for a single, cleanly-organised trip
+archive, but wrong the moment two directories should show up in the same view,
+or one photograph belongs in more than one. Rather than build a second
+structural concept ("collections" or "multi-trip albums") alongside the
+existing one, tags collapse trip, place, and subject into the same mechanism:
+a photograph can carry any number of them, and a view is just a filter.
+"Preserve deterministic ordering... do not duplicate photo records" falls out
+for free from "filter, don't copy" — two views sharing a photograph reference
+the same object, never a second record.
+
+**What did not change.** `PhotoRecord`'s shape in the pipeline manifest is
+untouched — no `tags` field there, no `SCHEMA_VERSION` bump, no re-encode.
+Tags are exclusively photographer-authored data in `photos.yaml`, joined at
+site-read time, the same boundary `alt`/`caption` already crossed. `frame` (a
+photo's 1-based position within its roll) is not stored anywhere either — it
+is derived at site-read time from the manifest's already-deterministic order
+(rolls sorted by id, files sorted by name within each). `sources.ts`,
+`encode.ts`, `recipe.ts`, `hash.ts`, `exif.ts`, every `storage/*` module, and
+`publish.ts`/`doctor.ts` needed no changes: derivative keys were already
+content-addressed and slug-agnostic, and `readAllManifests()` already treated
+"the manifests" as a generic set of files, not a fixed roster of known trips.
+
+**Migration.** Every `originals/<X>/` directory keeps its role as a physical
+_scan batch_ for ingest's own bookkeeping — that is unchanged and still needed
+for roll discovery — but it no longer carries public meaning on its own. To
+keep every existing archive working with zero manual retagging, `pnpm ingest`
+seeds each newly-created `photos.yaml` entry's `tags` with `[<batch-directory-name>]`,
+and — the one-time part — backfills the same default tag onto any existing
+entry that has no `tags` key at all (an entry with a `tags` key, even `[]`,
+is never touched again; that key's presence means a person or a prior ingest
+has already spoken for it). Running this against the real `paris-2025` archive
+tagged all 150 existing entries `paris-2025` in one pass, with `git diff`
+showing only the added `tags:` blocks — same alt/caption content, same file
+order, same comments.
+
+**Cost.** `albums/<slug>/album.md`'s hand-set values (for `paris-2025`:
+`location: "Paris, France"`) are no longer read by the site — there is
+nowhere for them to go until tag metadata is built. `scaffoldAlbumMarkdown`
+still runs and still writes `album.md` per batch; nothing reads the result
+today. This is dead weight worth revisiting, not something removed as part of
+this change, since removing the scaffolding is a separate, smaller decision.
+
+**Revisit if.** A tag genuinely needs authored presentation data (a written
+description, a chosen cover, a real date) — add `tags/<tag>.md`, scaffolded
+the same way `album.md` was, the first time a specific tag needs one. Do not
+add it speculatively for every tag. Revisit the per-photo `location` deferral
+the same way: add it to `photos.yaml`'s schema the first time a photograph
+actually needs one written down.
+
+---
+
+## 2026-07-29 — A local metadata editor, living inside `tools/pipeline`
+
+**Decision.** Added `pnpm edit`: a loopback-only (`127.0.0.1`) HTTP server
+(`tools/pipeline/src/editor/`) serving a small, unbundled HTML/CSS/JS
+frontend for batch-tagging and captioning hundreds of photos at once, backed
+by a JSON API that reads the merged archive (every `generated/albums/*.json`
+joined with its `albums/<slug>/photos.yaml`) and writes edits straight back
+through a new `applyPhotoEdits` function in `album-files.ts`. It lives inside
+the `tools/pipeline` package itself — not as a new sibling `tools/editor`
+package — and adds zero new dependencies: bare `node:http` for the server,
+plain JS for the frontend.
+
+**Why it lives inside `tools/pipeline`, not beside it.** The "pipeline↔site
+boundary is type-only" entry above established that a workspace package can
+only `import type` from `tools/pipeline`, never runtime values, because a
+workspace dependency is a symlink into `node_modules`, and Node's native TS
+type-stripping (this project's whole reason for having no build step) refuses
+to strip types from anything under `node_modules`. The editor needs runtime
+pipeline code — `album-files.ts`'s YAML read/write, the manifest reader — not
+just types, so a new `tools/editor` package would hit exactly the wall that
+decision described. Living inside `tools/pipeline/src/editor/` sidesteps it
+entirely: every import is an ordinary relative path within the same package.
+
+**Why no new dependency.** The API surface is five routes plus three static
+files; bare `node:http` (routing, `node:stream/consumers`'s `json()` for
+bodies, a hand-rolled static file handler) covers all of it without a web
+framework. The frontend is deliberately plain DOM/`fetch` code, not a
+component framework — there is no bundler anywhere in this project to feed
+one into, and introducing the first one for an internal tool this small
+would be a much bigger cost than the code it saves. `docs/dependencies.md`
+gains no new entry because nothing was added.
+
+**A new staleness guard, layered on the existing round-trip guard.**
+`applyPhotoEdits` keeps `syncPhotosFile`'s existing round-trip safety check
+(refuse to write if re-serializing the untouched document wouldn't reproduce
+it byte-for-byte) and adds an orthogonal one: the caller passes a
+`sha256Hex` of the `photos.yaml` content it last saw, which is re-hashed at
+write time; a mismatch throws rather than silently overwriting whatever
+changed it (`pnpm ingest` running concurrently, or a hand-edit). This is new
+specifically because the editor is the first long-lived, stateful consumer
+of `photos.yaml` — a browser tab can sit open holding stale state for
+minutes, unlike the one-shot CLI commands (`ingest`, `describe`) that
+motivated the round-trip check alone and that never overlap with themselves.
+A mismatch surfaces to the UI as a 409 the user is told to reload for.
+
+**What did not change.** No `photos.yaml` field is new — `alt`, `caption`,
+and `tags` already existed (see the tags entry above); the editor is a
+faster way to write the same fields `pnpm ingest`/`pnpm describe` already
+read and write, not a new one. No manifest/`SCHEMA_VERSION` change — the
+editor never touches `generated/albums/*.json`.
+
+**Deferred, not built.** No `rolls.yaml` editing (per-photo tags/alt/caption
+only). No numbered quick-tag hotkey slots (1–9 bound to a tag, Photo
+Mechanic's defining feature) — autocomplete-driven tagging ships first; add
+these once that's validated in real use. No automated test for the frontend
+JS — no browser test runner exists in this repo, and `docs/dependencies.md`
+has already rejected `vitest`/`jest` for reasons that would apply equally to
+a DOM-testing dependency like `jsdom`; the pure logic that most benefits from
+a test (tag-list merging, the batch bar's all/some tri-state computation) is
+kept in small standalone functions instead, reviewable by eye. Deleting a tag
+archive-wide has no in-app undo — renaming a tag and ordinary batch tag
+edits do, through an in-memory inverse-edit stack — because the delete
+route doesn't report which files it touched; `git` is the recovery path for
+that one action specifically, and the UI says so.
+
+**Revisit if.** The frontend's pure logic grows past what's comfortably
+reviewable by eye — that's when a browser-less test target (not a full
+`jsdom` suite) becomes worth reconsidering. Revisit quick-tag hotkey slots
+once ordinary batch tagging has seen real use and specific repeated tags
+would benefit from a single keystroke.
+
+---
+
+## 2026-07-29 — A photo's identity survives a move, not just its path
+
+**Decision.** `albums/<slug>/photos.yaml` entries and `ingest`'s own
+previous-manifest lookup both now correlate a photo by `sourceId` first,
+falling back to `file` (path) — never `sourceId` alone. Moving or renaming a
+file under `originals/`, into a different roll or out of one entirely, no
+longer drops its `photos.yaml` entry: `syncPhotosFile`
+(`tools/pipeline/src/album-files.ts`) matches the old entry to wherever its
+content now lives and updates `file` in place, reporting it as `moved`
+rather than one `removed` and one blank `added`. `ingest.ts`'s
+`readPreviousRecords`/`resolvePriorRecord` apply the same fallback to the
+JSON manifest's own previous-record lookup, so a moved-but-unchanged photo
+also gets the cheap "reused" derivative path instead of being needlessly
+re-normalised.
+
+**Why.** This refines, rather than reverses, both entries above. "The
+source digest covers file bytes, not pixels" already made `sourceId` stable
+across a move for free — nothing needed to change there, it just was never
+consulted for this. "A photo's identity is a path, not a filename" is still
+true of the JSON manifest's own uniqueness guarantee (two different rolls
+can't share a bare filename) — this decision only changes how
+`photos.yaml`, a _separate_ file with its own join key, correlates an entry
+to a photo. Path stays the tiebreaker exactly where content can't
+disambiguate: a same-path re-export (docs/decisions.md, 2026-07-28) still
+gets a new `sourceId` and new derivatives on purpose, but must still keep
+its caption — matching purely by content would have regressed that into a
+false "removed + added," which is why the fallback order is path-first for
+resolving the JSON manifest's prior record and content-first for
+`photos.yaml`'s entry, in each case checked in whichever order preserves
+what already worked before adding what didn't.
+
+**What did not change.** No `SCHEMA_VERSION` bump — `PhotoRecord.sourceId`
+already existed in the JSON manifest; only `photos.yaml`'s own shape (never
+version-gated) gained a field. No change to `tools/pipeline/src/editor/*` —
+the editor reads the current manifest and current `photos.yaml` fresh on
+every request and writes back by the `(album, file)` it just read; as long
+as `syncPhotosFile` keeps `file` correct for wherever content currently
+lives, the editor needed no changes at all.
+
+**Cost.** A one-time backfill against the real `paris-2025` archive: running
+`pnpm ingest` once (with nothing moved) gave all 150 existing entries a
+`sourceId` field, reported as `sourceIdBackfilled`, with `moved`/`added`/
+`removed` all empty and every existing caption, tag, and comment untouched —
+confirmed against the real file, not just the fixture tests. A `sourceId`
+shared by more than one current photo (byte-identical duplicate content)
+can't disambiguate a move, so it's excluded from content matching entirely
+and falls back to path, same as a legacy entry with no `sourceId` yet.
+
+**Deferred, not fixed.** `albums/<slug>/rolls.yaml` (`syncRollsFile`) has the
+identical path-matching problem one level up — renaming or merging roll
+directories still loses `filmStock`/`notes`. Left alone for now: a roll has
+no single hashable identity to correlate by (it's a grouping of many files,
+not one), and rolls.yaml has far fewer entries to redo by hand than 150
+photos' worth of tags would be.
+
+**Revisit if.** `rolls.yaml`'s analogous loss becomes a real cost — at that
+point a plausible fix is correlating a roll by the _set_ of its photos'
+`sourceId`s (a roll surviving a rename if enough of its photos' content is
+still present), not a single hash, which is a meaningfully different and
+larger design than this one.

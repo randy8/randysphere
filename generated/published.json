@@ -1,7 +1,11 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "target": "local:/Users/vera/Downloads/photography/site/public",
   "albums": {
-    "paris-2025": "69ee795a4928df338c04b5fe098ebdee656bd51c89a8ef81175bf098f420f82d"
+    "0827": "e4c9936391e049c5da4ba12183e0c666e732e9830432ea2feeba571f58d348c9",
+    "0828": "a2bf86d9ae5be80ad11ee77981b1d9037f27c1d3d0de1b6923a455f847459ab5",
+    "0829": "6599f86e60651ab2db03449789e94ec1f19086e3aa61bea1584cd1ec451fd2ed",
+    "0830": "69ee795a4928df338c04b5fe098ebdee656bd51c89a8ef81175bf098f420f82d",
+    "paris-2025": "2361cfb7211382aa760ebc553b725107f481d922951a749dfefc68b42304c359"
   }
 }

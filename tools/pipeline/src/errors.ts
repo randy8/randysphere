@@ -6,7 +6,7 @@
  * Anything else that escapes is a bug in the pipeline and gets a full stack.
  */
 export class PipelineError extends Error {
-  override readonly name = 'PipelineError';
+  override readonly name: string = 'PipelineError';
 
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, options);

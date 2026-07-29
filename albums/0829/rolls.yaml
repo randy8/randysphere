@@ -4,15 +4,6 @@
 # The order, the fields, and every comment are yours; re-running ingest
 # will not touch them.
 rolls:
-  - id: "0827"
-    filmStock: ""
-    notes: ""
-  - id: "0828"
-    filmStock: ""
-    notes: ""
-  - id: "0829"
-    filmStock: ""
-    notes: ""
-  - id: "0830"
-    filmStock: ""
-    notes: ""
+  - id: .
+    filmStock: "ektar100"
+    notes: "My least favorite so far."

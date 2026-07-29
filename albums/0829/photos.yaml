@@ -1,0 +1,199 @@
+# Captions and alt text.
+#
+# `pnpm ingest` maintains which files are listed here and nothing else.
+# The order, the fields, and every comment are yours; re-running ingest will
+# not touch them. A photo is identified by its content (`sourceId`) first,
+# so moving or renaming a file in originals/ — even into a different roll —
+# keeps its entry below, alt text, caption, and tags intact. Only a photo
+# actually deleted from originals/ loses its entry.
+photos:
+  - file: 000008290001.tif
+    sourceId: 1386312803b9b37e
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290002.tif
+    sourceId: 21bef6e12246c6d3
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290003.tif
+    sourceId: f87ca44043db47e1
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290004.tif
+    sourceId: 61b0a89ac89db7a0
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290005.tif
+    sourceId: e4a70917a08ad705
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290006.tif
+    sourceId: 8f75a458f75b4efb
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290007.tif
+    sourceId: 76520481ea42a39a
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290008.tif
+    sourceId: 4edd2b43362171b7
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290009.tif
+    sourceId: 2ea833b9d1637200
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290010.tif
+    sourceId: 8ec7e61789ba86a0
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290011.tif
+    sourceId: 3bb3f93d406776c0
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290012.tif
+    sourceId: 509d73eca922c679
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290013.tif
+    sourceId: 9d24aa911aabb660
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290014.tif
+    sourceId: e0b11e942e9de8ca
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290015.tif
+    sourceId: 3a26b5bd2b4cc1e0
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290016.tif
+    sourceId: 639a72939e5bce85
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290017.tif
+    sourceId: b03db3b4b093333f
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290018.tif
+    sourceId: 69eec27809e9eadd
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290019.tif
+    sourceId: 999f6d74baa42ee9
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290020.tif
+    sourceId: 673b4deaef1bdcbf
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290021.tif
+    sourceId: e32631106d21d2f6
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290022.tif
+    sourceId: 53cd2e83767c17a1
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290023.tif
+    sourceId: d40128430494bd9b
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290024.tif
+    sourceId: b9ad2b3583905bcc
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290025.tif
+    sourceId: 503a9368b6436fad
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290026.tif
+    sourceId: e6837e0a15e76ee2
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290027.tif
+    sourceId: d0b9765a5cdc066f
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290028.tif
+    sourceId: 2dfe5deca4f4c59f
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290029.tif
+    sourceId: 08382907ca2cd5c8
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290030.tif
+    sourceId: 96ac6de757c9638a
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290031.tif
+    sourceId: 94f8428ac394d346
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290032.tif
+    sourceId: 733d89dc3da94a97
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290033.tif
+    sourceId: abc07c04309662d5
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290034.tif
+    sourceId: 8831a89b81123d9e
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290035.tif
+    sourceId: c8beba39c05c2ca1
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290036.tif
+    sourceId: d7379909384dde0c
+    alt: ""
+    tags:
+      - "0829"
+  - file: 000008290037.tif
+    sourceId: a360cbe58692b075
+    alt: ""
+    tags:
+      - "0829"
+  - file: _heads_up_xray.jpg
+    sourceId: 5a3a10db85321f6b
+    alt: ""
+    tags:
+      - "0829"

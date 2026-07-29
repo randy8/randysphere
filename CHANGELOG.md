@@ -8,6 +8,44 @@ chronologically and are never rewritten, except to correct a factual error.
 
 ---
 
+## 2026-07-29 — The archive becomes canonical; trips become a tag
+
+The site stopped treating a trip as a structural thing with its own manifest
+and route, and started treating it as one tag among many on a photograph.
+There is now a single canonical `Archive` — every photograph from every
+scanned batch merged into one flat list — and every page (a trip, eventually
+a place or a subject) is a _query_ over it: filter by tag, sort by roll and
+frame. `/projects/paris-2025/` still works, still shows the same 150
+photographs in the same order, but it is now the output of `viewForTag(archive,
+"paris-2025")` rather than a page bound to its own manifest file.
+
+This followed directly from the roll/hierarchy work two entries back: once a
+trip could hold multiple rolls, the next question was whether a roll — or a
+photograph — should ever have been assumed to belong to exactly one trip in
+the first place. It shouldn't. A photograph tagged `paris-2025` today might
+reasonably also be tagged `street` or `film` tomorrow, and forcing that through
+one owning manifest would have meant inventing a second structural concept
+("collections") to hold multi-trip or multi-place cases, sitting awkwardly
+next to the first. Tags avoid that split: trip, place, and subject are the
+same mechanism, a photograph can carry any number of them, and nothing is
+duplicated when it appears in two views — both reference the same record.
+
+Two things this deliberately does not do yet: there is no authored metadata
+per tag (`tags/<slug>.md` doesn't exist) — a view's title is its tag string
+humanised, and its date is derived from EXIF, not written by a photographer.
+And there is no per-photo location field. Both were real, closed decisions to
+defer, not gaps that were missed: build them the first time a specific tag or
+photograph actually needs one, not speculatively for all of them.
+
+Migrating the real archive needed no schema change and no re-encode. Tags are
+photographer-authored data living in `photos.yaml`, the same file `alt` and
+`caption` already lived in — never the pipeline's manifest. `pnpm ingest` now
+seeds a new photo's tags with its batch directory's name, and, once, backfills
+that same default onto any existing `photos.yaml` entry that predates tags
+entirely (no `tags` key at all). Run against `paris-2025`, that tagged all 150
+existing entries `paris-2025` in a single pass with no other change to the
+file — same captions, same order, same comments intact.
+
 ## 2026-07-29 — Reading View replaces the traditional lightbox
 
 The gallery gained a continuous-scroll "browse mode": clicking a thumbnail no
@@ -99,3 +137,78 @@ was written to survive interruption (a rate limit, a crashed process) without
 discarding completed work, and to report a failure on one photo without
 stopping the rest of the run — properties that matter more as the archive
 this runs against gets larger.
+
+---
+
+## 2026-07-29 — A local metadata editor for batch tagging
+
+`pnpm edit` starts a small local web app for editing the archive's tags, alt
+text, and captions — built for speed at the hundreds-of-photos scale, closer
+to Lightroom or Photo Mechanic than a form-based CMS. A dense,
+keyboard-navigable grid supports click/shift-click/cmd-click
+multi-selection; a batch bar shows which tags are on every selected photo
+versus only some, and applies an add or remove across the whole selection in
+one write; a tag-autocomplete input keeps new tags consistent with what's
+already in use instead of accumulating near-duplicate spellings; and a
+tag-maintenance view can rename or delete a tag across the entire archive at
+once. Every edit writes straight back to the relevant
+`albums/<slug>/photos.yaml`, immediately, with no separate "Save" step and no
+draft state held only in the browser — the archive stays exactly as
+file-backed and git-diffable as it already was.
+
+This exists because hand-editing YAML sequence entries one at a time does
+not scale once tagging is the primary way trips, places, and subjects get
+organized (see "trips become a tag" above) — the 150-plus photos already in
+the archive need real tags beyond the one auto-backfilled trip tag, and that
+job needed to be fast enough to actually get done. A hosted or
+database-backed tagging tool was rejected outright: the whole point of this
+project is that the archive is a set of files, not a service with its own
+state to keep in sync. Reusing the Astro site itself as an editing surface
+was also rejected — the site is deliberately read-only and static, and
+giving it a write path would undermine that boundary for a workflow that's
+entirely local and pre-publish anyway.
+
+The editor lives inside `tools/pipeline` rather than as a new top-level
+tool, and its frontend is plain, unbundled JavaScript rather than a
+framework — both follow directly from constraints this project already
+committed to (no build step for the pipeline, no bundler anywhere; see
+today's `docs/decisions.md` entry for the specifics). No new dependency was
+needed for either half. Left for later: per-roll metadata editing, and
+numbered quick-tag hotkey slots in the style of Photo Mechanic's keyboard
+shortcuts, once ordinary batch tagging has seen enough real use to know
+which tags would benefit from one.
+
+---
+
+## 2026-07-29 — A photo's identity survives a move, not just its path
+
+Moving or renaming a file under `originals/` — into a different roll, or
+out of one entirely — used to destroy its caption, alt text, and tags:
+`photos.yaml` matched an entry to a photo purely by path, so a moved file
+looked exactly like "one file deleted, one unrelated file added." Now a
+photo's content (`sourceId`, already computed from its raw bytes for every
+photo) is checked first, falling back to path only when content can't
+disambiguate; a move is matched and reported as a move, its entry's `file`
+updated in place, everything else about it left untouched.
+
+This was a direct prerequisite for reorganizing `originals/paris-2025/` —
+the 150 photos there had just been given real tags by hand (via `pnpm
+edit`), and flattening the trip's roll subdirectories, as intended, would
+have silently wiped all of it under the old behavior. Rather than work
+around that (caption/tag everything again after the move) or postpone the
+reorganization indefinitely, the underlying assumption — that a
+`photos.yaml` entry's identity was its path — got fixed instead, since the
+tool to fix it (content hashing) already existed and just wasn't being used
+for this.
+
+A same-path re-export is still deliberately a new identity (new
+derivatives, new URLs — unchanged from the source-digest decision), and
+still keeps its caption, matched by path exactly as before; only genuine
+moves are what's newly recognized. Migrating the real archive needed no
+schema version bump and cost one silent, one-time backfill: running `pnpm
+ingest` with nothing moved gave every one of the 150 existing entries a
+`sourceId`, with the rest of the file — captions, tags, comments, order —
+untouched. `rolls.yaml`'s identical problem one level up (renaming a roll
+directory still loses its film-stock notes) is a known, smaller gap left
+for later, not fixed here: a roll has no single hashable identity the way
+one photo does.

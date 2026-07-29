@@ -1,0 +1,204 @@
+# Captions and alt text.
+#
+# `pnpm ingest` maintains which files are listed here and nothing else.
+# The order, the fields, and every comment are yours; re-running ingest will
+# not touch them. A photo is identified by its content (`sourceId`) first,
+# so moving or renaming a file in originals/ — even into a different roll —
+# keeps its entry below, alt text, caption, and tags intact. Only a photo
+# actually deleted from originals/ loses its entry.
+photos:
+  - file: 000008280001.tif
+    sourceId: b52a055b1c5ab4d2
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280002.tif
+    sourceId: 5d5ba1b2672121de
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280003.tif
+    sourceId: 47e99dd8dbd78a1d
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280004.tif
+    sourceId: 2e71e8846b155edc
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280005.tif
+    sourceId: 143e8f74010cf778
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280006.tif
+    sourceId: 9d69329b7c805d5b
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280007.tif
+    sourceId: f0ddf57261765d73
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280008.tif
+    sourceId: 0c29e12734039edb
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280009.tif
+    sourceId: d14b8aa589243974
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280010.tif
+    sourceId: 60c083f05b252204
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280011.tif
+    sourceId: beac61ff955ad851
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280012.tif
+    sourceId: d0721d3e23b5549b
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280013.tif
+    sourceId: a668bbda89849b10
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280014.tif
+    sourceId: f76218620407a194
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280015.tif
+    sourceId: 3f9e5c1d23b3c5a9
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280016.tif
+    sourceId: 67c7d5504d06d90d
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280017.tif
+    sourceId: e2f689b9c407ff28
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280018.tif
+    sourceId: af9f4a602d713b33
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280019.tif
+    sourceId: d69c366b181e3a59
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280020.tif
+    sourceId: 134ac23c821a0dba
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280021.tif
+    sourceId: 17532bba242da240
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280022.tif
+    sourceId: cb7e53fbad06649f
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280023.tif
+    sourceId: 545f877ba6a3f976
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280024.tif
+    sourceId: c10013ea4ca0ee24
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280025.tif
+    sourceId: ff62c1ac12f89c3b
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280026.tif
+    sourceId: 95b89677a6b415cf
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280027.tif
+    sourceId: d66247e7477ca928
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280028.tif
+    sourceId: f75a8e7ac548f604
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280029.tif
+    sourceId: 534223c44c49f955
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280030.tif
+    sourceId: 2628017b2ff10397
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280031.tif
+    sourceId: e5f64c9161d697f4
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280032.tif
+    sourceId: 910074255f19ab9c
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280033.tif
+    sourceId: 8ea774a292048398
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280034.tif
+    sourceId: e46e28fe8f88dc1a
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280035.tif
+    sourceId: dc8c544f2b570203
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280036.tif
+    sourceId: ded54397741e9465
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280037.tif
+    sourceId: 2394b5cdb17e34e7
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280038.tif
+    sourceId: eb7e27aeda494881
+    alt: ""
+    tags:
+      - "0828"
+  - file: 000008280039.tif
+    sourceId: 18c454b1cbaa77a2
+    alt: ""
+    tags:
+      - "0828"
