@@ -39,7 +39,12 @@ export interface AlbumReport {
   readonly photosFileCreated: boolean;
   readonly added: readonly string[];
   readonly removed: readonly string[];
+  /** An existing photos.yaml entry matched to its content at a new path — a real move/rename, not an add+remove. */
+  readonly moved: readonly { readonly from: string; readonly to: string }[];
   readonly missingAlt: readonly string[];
+  readonly tagsBackfilled: readonly string[];
+  /** Entries that predated the `sourceId` field and were given one, once. */
+  readonly sourceIdBackfilled: readonly string[];
   readonly albumFileCreated: boolean;
 }
 
@@ -48,11 +53,21 @@ export interface IngestReport {
   readonly orphanManifests: readonly string[];
 }
 
-function toVariantRecord(plan: VariantPlan, width: number, height: number, bytes: number): VariantRecord {
+function toVariantRecord(
+  plan: VariantPlan,
+  width: number,
+  height: number,
+  bytes: number,
+): VariantRecord {
   return { format: plan.format, width, height, bytes, key: plan.key };
 }
 
-function recordMatchesPlan(record: PhotoRecord, sourceId: string, plans: readonly VariantPlan[], ogKey: string): boolean {
+function recordMatchesPlan(
+  record: PhotoRecord,
+  sourceId: string,
+  plans: readonly VariantPlan[],
+  ogKey: string,
+): boolean {
   if (record.sourceId !== sourceId) return false;
   if (record.og.key !== ogKey) return false;
   if (record.variants.length !== plans.length) return false;
@@ -67,15 +82,41 @@ interface PhotoOutcome {
   readonly newIdentity: boolean;
 }
 
+/** The previous manifest, indexed two ways so a moved-but-unchanged photo can still be found. */
+export interface PreviousRecords {
+  readonly byPath: ReadonlyMap<string, PhotoRecord>;
+  readonly bySourceId: ReadonlyMap<string, PhotoRecord>;
+}
+
+/**
+ * Path first, `sourceId` as fallback. Path first is what makes a same-path
+ * re-export keep behaving exactly as it always has (a new `sourceId` at an
+ * unchanged path is still `newIdentity`, per "the source digest covers file
+ * bytes, not pixels" — this function isn't what decides that, it just
+ * shouldn't accidentally undo it). The `sourceId` fallback is what's new: a
+ * file moved to a different path (a different roll, or flattened out of one
+ * entirely) has unchanged bytes, so its previous record is still found, its
+ * derivatives are recognised as already on disk, and it never gets flagged as
+ * a new identity just because it moved.
+ */
+export function resolvePriorRecord(
+  previous: PreviousRecords,
+  relPath: string,
+  sourceId: string,
+): PhotoRecord | undefined {
+  return previous.byPath.get(relPath) ?? previous.bySourceId.get(sourceId);
+}
+
 async function ingestPhoto(
   paths: Paths,
   config: PipelineConfig,
   albumDirectory: string,
   photo: SourcePhoto,
-  previous: PhotoRecord | undefined,
+  previous: PreviousRecords,
 ): Promise<PhotoOutcome> {
   const sourcePath = join(albumDirectory, photo.relPath);
   const sourceId = (await sha256File(sourcePath)).slice(0, SOURCE_ID_LENGTH);
+  const priorRecord = resolvePriorRecord(previous, photo.relPath, sourceId);
   const { displayed, exif } = await inspectSource(sourcePath);
 
   const plans = planVariants(sourceId, displayed, config);
@@ -87,13 +128,24 @@ async function ingestPhoto(
     if (!(await pathExists(derivativePath(paths, plan.key)))) missing.push(plan);
   }
 
-  const newIdentity = previous !== undefined && previous.sourceId !== sourceId;
+  const newIdentity = priorRecord !== undefined && priorRecord.sourceId !== sourceId;
 
   // Nothing to encode and the previous record still describes exactly these
   // derivatives, so the photograph never has to be decoded at all. This is the
-  // path a rerun over an unchanged collection takes for every single file.
-  if (missing.length === 0 && previous !== undefined && recordMatchesPlan(previous, sourceId, plans, openGraph.key)) {
-    return { record: previous, encoded: 0, reused: true, newIdentity: false };
+  // path a rerun over an unchanged collection takes for every single file,
+  // and — since `priorRecord` is found by content as well as path — the path
+  // a moved-but-unchanged photograph takes too.
+  if (
+    missing.length === 0 &&
+    priorRecord !== undefined &&
+    recordMatchesPlan(priorRecord, sourceId, plans, openGraph.key)
+  ) {
+    return {
+      record: { ...priorRecord, file: photo.relPath, roll: photo.roll },
+      encoded: 0,
+      reused: true,
+      newIdentity: false,
+    };
   }
 
   const widest = plans.reduce((maximum, plan) => Math.max(maximum, plan.width), 0);
@@ -116,7 +168,7 @@ async function ingestPhoto(
       variants.push(toVariantRecord(plan, encoded.width, encoded.height, encoded.bytes));
       continue;
     }
-    const recorded = previous?.variants.find((variant) => variant.key === plan.key);
+    const recorded = priorRecord?.variants.find((variant) => variant.key === plan.key);
     if (recorded !== undefined) {
       variants.push(recorded);
       continue;
@@ -129,14 +181,14 @@ async function ingestPhoto(
   const og =
     ogEncoded !== undefined
       ? toVariantRecord(openGraph, ogEncoded.width, ogEncoded.height, ogEncoded.bytes)
-      : (previous?.og.key === openGraph.key
-          ? previous.og
-          : toVariantRecord(
-              openGraph,
-              openGraph.width,
-              openGraph.height,
-              (await readFile(derivativePath(paths, openGraph.key))).byteLength,
-            ));
+      : priorRecord?.og.key === openGraph.key
+        ? priorRecord.og
+        : toVariantRecord(
+            openGraph,
+            openGraph.width,
+            openGraph.height,
+            (await readFile(derivativePath(paths, openGraph.key))).byteLength,
+          );
 
   const record: PhotoRecord = {
     file: photo.relPath,
@@ -154,16 +206,24 @@ async function ingestPhoto(
   return { record, encoded: missing.length, reused: false, newIdentity };
 }
 
-async function readPreviousRecords(manifestPath: string): Promise<Map<string, PhotoRecord>> {
-  if (!(await pathExists(manifestPath))) return new Map();
+export async function readPreviousRecords(manifestPath: string): Promise<PreviousRecords> {
+  const empty: PreviousRecords = { byPath: new Map(), bySourceId: new Map() };
+  if (!(await pathExists(manifestPath))) return empty;
   try {
     const manifest = await readAlbumManifest(manifestPath);
-    return new Map(manifest.photos.map((photo) => [photo.file, photo]));
+    return {
+      byPath: new Map(manifest.photos.map((photo) => [photo.file, photo])),
+      // A `sourceId` shared by two previous records (byte-identical content at
+      // two paths) collapses to "last one wins" here — harmless, since
+      // derivatives are content-addressed by `sourceId`, so either duplicate's
+      // record describes the same already-on-disk derivatives correctly.
+      bySourceId: new Map(manifest.photos.map((photo) => [photo.sourceId, photo])),
+    };
   } catch {
     // An unreadable manifest is not a reason to refuse to rebuild one. It is
     // regenerated from originals/ in full, which is the whole point of keeping
     // originals/ authoritative.
-    return new Map();
+    return empty;
   }
 }
 
@@ -188,7 +248,8 @@ export async function ingest(options: IngestOptions): Promise<IngestReport> {
       }
     }
   }
-  const slugs = onlyAlbums === null ? allSlugs : allSlugs.filter((slug) => onlyAlbums.includes(slug));
+  const slugs =
+    onlyAlbums === null ? allSlugs : allSlugs.filter((slug) => onlyAlbums.includes(slug));
 
   await mkdir(paths.manifests, { recursive: true });
   const reports: AlbumReport[] = [];
@@ -208,10 +269,13 @@ export async function ingest(options: IngestOptions): Promise<IngestReport> {
     const previous = await readPreviousRecords(manifestPath);
 
     const outcomes = await mapWithConcurrency(photos, concurrency, (photo) =>
-      ingestPhoto(paths, config, albumOriginals, photo, previous.get(photo.relPath)),
+      ingestPhoto(paths, config, albumOriginals, photo, previous),
     );
 
-    const rollRecords: RollRecord[] = rolls.map((roll) => ({ id: roll.id, photoCount: roll.files.length }));
+    const rollRecords: RollRecord[] = rolls.map((roll) => ({
+      id: roll.id,
+      photoCount: roll.files.length,
+    }));
     const manifest: AlbumManifest = {
       schemaVersion: SCHEMA_VERSION,
       slug,
@@ -223,8 +287,15 @@ export async function ingest(options: IngestOptions): Promise<IngestReport> {
     const albumDirectory = join(paths.albums, slug);
     await mkdir(albumDirectory, { recursive: true });
     const files = photos.map((photo) => photo.relPath);
-    const photosFile = await syncPhotosFile(albumDirectory, files);
-    await syncRollsFile(albumDirectory, rolls.map((roll) => roll.id));
+    const photoRefs = outcomes.map((outcome) => ({
+      file: outcome.record.file,
+      sourceId: outcome.record.sourceId,
+    }));
+    const photosFile = await syncPhotosFile(albumDirectory, photoRefs, slug);
+    await syncRollsFile(
+      albumDirectory,
+      rolls.map((roll) => roll.id),
+    );
     const earliest = outcomes
       .map((outcome) => outcome.record.camera?.takenAt ?? null)
       .filter((value): value is string => value !== null)
@@ -245,7 +316,10 @@ export async function ingest(options: IngestOptions): Promise<IngestReport> {
       photosFileCreated: photosFile.created,
       added: photosFile.added,
       removed: photosFile.removed,
+      moved: photosFile.moved,
       missingAlt: photosFile.missingAlt,
+      tagsBackfilled: photosFile.tagsBackfilled,
+      sourceIdBackfilled: photosFile.sourceIdBackfilled,
       albumFileCreated,
     });
   }
@@ -271,4 +345,3 @@ export function defaultConcurrency(): number {
   // buys little and can cost a lot of memory.
   return Math.max(1, Math.floor(availableParallelism() / 2));
 }
-

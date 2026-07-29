@@ -1,0 +1,9 @@
+# Roll-level notes.
+#
+# `pnpm ingest` maintains which roll ids are listed here and nothing else.
+# The order, the fields, and every comment are yours; re-running ingest
+# will not touch them.
+rolls:
+  - id: .
+    filmStock: "portra400"
+    notes: "GOAT, of course."

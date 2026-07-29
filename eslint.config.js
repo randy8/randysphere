@@ -8,13 +8,7 @@ import tseslint from 'typescript-eslint';
 // Support for .astro files is added in the same change that introduces the
 // first .astro file, not before it.
 export default defineConfig([
-  globalIgnores([
-    'originals/',
-    'generated/',
-    '**/dist/',
-    '**/.astro/',
-    '**/.wrangler/',
-  ]),
+  globalIgnores(['originals/', 'generated/', '**/dist/', '**/.astro/', '**/.wrangler/']),
 
   {
     files: ['**/*.{js,mjs,ts}'],
@@ -48,6 +42,26 @@ export default defineConfig([
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+    },
+  },
+
+  {
+    // The editor's frontend is plain, unbundled browser JS — no build step,
+    // so no bundler-provided globals either. Listed by hand rather than
+    // pulling in the `globals` package for a handful of DOM/fetch names (see
+    // docs/dependencies.md's bar for adding a dependency).
+    files: ['tools/pipeline/src/editor/static/**/*.js'],
+    languageOptions: {
+      globals: {
+        document: 'readonly',
+        window: 'readonly',
+        fetch: 'readonly',
+        confirm: 'readonly',
+        CSS: 'readonly',
+        getComputedStyle: 'readonly',
+        setTimeout: 'readonly',
+        console: 'readonly',
+      },
     },
   },
 

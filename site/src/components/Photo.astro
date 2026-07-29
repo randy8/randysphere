@@ -1,10 +1,10 @@
 ---
 import { site } from '../config.ts';
 import { assetUrl, largest, smallest, srcset, variantsOf } from '../lib/image.ts';
-import type { AlbumPhoto } from '../lib/albums.ts';
+import type { ArchivePhoto } from '../lib/archive.ts';
 
 interface Props {
-  entry: AlbumPhoto;
+  entry: ArchivePhoto;
   sizes: string;
   /** True for the one image a page treats as its largest paint. */
   priority?: boolean;

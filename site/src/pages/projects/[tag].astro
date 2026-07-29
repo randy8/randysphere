@@ -2,22 +2,22 @@
 import Browse from '../../components/Browse.astro';
 import Photo from '../../components/Photo.astro';
 import Base from '../../layouts/Base.astro';
-import { loadAlbums } from '../../lib/albums.ts';
-import type { Album } from '../../lib/albums.ts';
+import { allTags, loadArchive, viewForTag } from '../../lib/archive.ts';
+import type { View } from '../../lib/archive.ts';
 
 export function getStaticPaths() {
-  return loadAlbums().map((album) => ({ params: { slug: album.slug }, props: { album } }));
+  const archive = loadArchive();
+  return allTags(archive).map((tag) => ({ params: { tag }, props: { view: viewForTag(archive, tag) } }));
 }
 
 interface Props {
-  album: Album;
+  view: View;
 }
 
-const { album } = Astro.props;
-const meta = [album.meta.location, album.meta.date].filter(Boolean).join(' · ');
+const { view } = Astro.props;
 ---
 
-<Base title={album.meta.title} description={album.meta.description || album.meta.title}>
+<Base title={view.title} description={view.title}>
   {
     /*
       Applied before the browse script loads, so a reload or a shared link
@@ -33,14 +33,13 @@ const meta = [album.meta.location, album.meta.date].filter(Boolean).join(' · ')
   </script>
 
   <header class="album-header">
-    <p class="eyebrow">{meta}</p>
-    <h1>{album.meta.title}</h1>
-    {album.meta.description && <p class="lede">{album.meta.description}</p>}
+    {view.date && <p class="eyebrow">{view.date}</p>}
+    <h1>{view.title}</h1>
   </header>
 
   <div class="grid" data-grid>
     {
-      album.photos.map((entry, index) => (
+      view.photos.map((entry, index) => (
         <figure data-photo-id={entry.photo.sourceId}>
           <Photo
             entry={entry}
@@ -53,7 +52,7 @@ const meta = [album.meta.location, album.meta.date].filter(Boolean).join(' · ')
     }
   </div>
 
-  <Browse album={album} />
+  <Browse view={view} />
 
   <script>
     import '../../scripts/browse.ts';

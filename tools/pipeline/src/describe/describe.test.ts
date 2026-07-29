@@ -23,8 +23,22 @@ function photo(sourceId: string, file: string, roll = '.'): PhotoRecord {
     color: '#6b7a82',
     lqip: 'data:image/webp;base64,AAAA',
     camera: null,
-    variants: [{ format: 'jpeg', width: 1200, height: 800, bytes: 1000, key: `p/${sourceId}/1200-aaaaaaaa.jpg` }],
-    og: { format: 'jpeg', width: 1200, height: 630, bytes: 1000, key: `p/${sourceId}/og-99887766.jpg` },
+    variants: [
+      {
+        format: 'jpeg',
+        width: 1200,
+        height: 800,
+        bytes: 1000,
+        key: `p/${sourceId}/1200-aaaaaaaa.jpg`,
+      },
+    ],
+    og: {
+      format: 'jpeg',
+      width: 1200,
+      height: 630,
+      bytes: 1000,
+      key: `p/${sourceId}/og-99887766.jpg`,
+    },
   };
 }
 
@@ -44,7 +58,8 @@ async function repositoryWith(slug: string, photos: readonly PhotoRecord[]): Pro
   await mkdir(albumDirectory, { recursive: true });
   await syncPhotosFile(
     albumDirectory,
-    photos.map((p) => p.file),
+    photos.map((p) => ({ file: p.file, sourceId: p.sourceId })),
+    slug,
   );
 
   return paths;
@@ -54,7 +69,9 @@ interface FakeProvider extends DescriptionProvider {
   readonly calls: DescriptionRequest[];
 }
 
-function fakeProvider(respond: (request: DescriptionRequest) => { alt: string; caption: string }): FakeProvider {
+function fakeProvider(
+  respond: (request: DescriptionRequest) => { alt: string; caption: string },
+): FakeProvider {
   const calls: DescriptionRequest[] = [];
   return {
     name: 'fake',
@@ -81,7 +98,10 @@ function failingProvider(shouldFail: (request: DescriptionRequest) => boolean): 
 
 test('a photo with no alt text and nothing cached gets a description generated and cached', async () => {
   const paths = await repositoryWith('trip', [photo('0000000000000001', '001.jpg')]);
-  const provider = fakeProvider(() => ({ alt: 'A generated alt.', caption: 'A generated caption.' }));
+  const provider = fakeProvider(() => ({
+    alt: 'A generated alt.',
+    caption: 'A generated caption.',
+  }));
 
   const report = await describe({ paths, onlyAlbums: null, provider, regenerate: false });
 
@@ -109,7 +129,14 @@ test('a second photo sharing a cached sourceId is filled in without calling the 
   // export) joins the album. Its photos.yaml entry starts with empty alt, but
   // the cache already has an answer for that sourceId from the first run.
   const albumDirectory = join(paths.albums, 'trip');
-  await syncPhotosFile(albumDirectory, ['001.jpg', '002.jpg']);
+  await syncPhotosFile(
+    albumDirectory,
+    [
+      { file: '001.jpg', sourceId: '0000000000000002' },
+      { file: '002.jpg', sourceId: '0000000000000002' },
+    ],
+    'trip',
+  );
   const manifestPath = join(paths.manifests, 'trip.json');
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as AlbumManifest;
   await writeAlbumManifest(manifestPath, {
@@ -117,13 +144,21 @@ test('a second photo sharing a cached sourceId is filled in without calling the 
     photos: [...manifest.photos, photo('0000000000000002', '002.jpg')],
   });
 
-  const secondProvider = fakeProvider(() => ({ alt: 'Should not be called.', caption: 'Should not be called.' }));
-  const report = await describe({ paths, onlyAlbums: null, provider: secondProvider, regenerate: false });
+  const secondProvider = fakeProvider(() => ({
+    alt: 'Should not be called.',
+    caption: 'Should not be called.',
+  }));
+  const report = await describe({
+    paths,
+    onlyAlbums: null,
+    provider: secondProvider,
+    regenerate: false,
+  });
 
   assert.equal(secondProvider.calls.length, 0);
   assert.equal(report.filledFromCache, 1);
   const photosYaml = await readFile(join(albumDirectory, 'photos.yaml'), 'utf8');
-  assert.match(photosYaml, /file: 002\.jpg\n\s+alt: "?Cached alt\.?"?/);
+  assert.match(photosYaml, /file: 002\.jpg\n\s+sourceId: \S+\n\s+alt: "?Cached alt\.?"?/);
 });
 
 test('a hand-written alt text is never overwritten and the provider is never called for it', async () => {
@@ -133,9 +168,14 @@ test('a hand-written alt text is never overwritten and the provider is never cal
     'alt: ""',
     'alt: Written by the photographer, not a machine.',
   );
-  await import('node:fs/promises').then(({ writeFile }) => writeFile(join(albumDirectory, 'photos.yaml'), handWritten));
+  await import('node:fs/promises').then(({ writeFile }) =>
+    writeFile(join(albumDirectory, 'photos.yaml'), handWritten),
+  );
 
-  const provider = fakeProvider(() => ({ alt: 'Should never appear.', caption: 'Should never appear.' }));
+  const provider = fakeProvider(() => ({
+    alt: 'Should never appear.',
+    caption: 'Should never appear.',
+  }));
   const report = await describe({ paths, onlyAlbums: null, provider, regenerate: false });
 
   assert.equal(provider.calls.length, 0);
@@ -162,10 +202,20 @@ test('--regenerate refreshes a description that still matches what we generated,
     'alt: "Original alt number 2."',
     'alt: Edited by hand after generation.',
   );
-  await import('node:fs/promises').then(({ writeFile }) => writeFile(join(albumDirectory, 'photos.yaml'), withHandEdit));
+  await import('node:fs/promises').then(({ writeFile }) =>
+    writeFile(join(albumDirectory, 'photos.yaml'), withHandEdit),
+  );
 
-  const regenerating = fakeProvider(() => ({ alt: 'Freshly regenerated.', caption: 'Freshly regenerated.' }));
-  const report = await describe({ paths, onlyAlbums: null, provider: regenerating, regenerate: true });
+  const regenerating = fakeProvider(() => ({
+    alt: 'Freshly regenerated.',
+    caption: 'Freshly regenerated.',
+  }));
+  const report = await describe({
+    paths,
+    onlyAlbums: null,
+    provider: regenerating,
+    regenerate: true,
+  });
 
   assert.equal(regenerating.calls.length, 1);
   assert.equal(report.generated, 1);
@@ -191,7 +241,7 @@ test('a failed generation is reported but does not stop the rest of the album fr
   assert.match(report.failures[0]?.message ?? '', /provider unavailable/);
 
   const photosYaml = await readFile(join(paths.albums, 'trip', 'photos.yaml'), 'utf8');
-  assert.match(photosYaml, /file: 002\.jpg\n\s+alt: "?Generated alt text\.?"?/);
+  assert.match(photosYaml, /file: 002\.jpg\n\s+sourceId: \S+\n\s+alt: "?Generated alt text\.?"?/);
 });
 
 test('a failure on one photo does not prevent a later successful run from resuming (interruption is resumable)', async () => {
@@ -204,8 +254,16 @@ test('a failure on one photo does not prevent a later successful run from resumi
   assert.equal(first.failures.length, 1);
   assert.equal(first.generated, 1);
 
-  const recovered = fakeProvider(() => ({ alt: 'Recovered on retry.', caption: 'Recovered on retry.' }));
-  const second = await describe({ paths, onlyAlbums: null, provider: recovered, regenerate: false });
+  const recovered = fakeProvider(() => ({
+    alt: 'Recovered on retry.',
+    caption: 'Recovered on retry.',
+  }));
+  const second = await describe({
+    paths,
+    onlyAlbums: null,
+    provider: recovered,
+    regenerate: false,
+  });
 
   // Only the previously-failed photo needed a call; the one that already
   // succeeded is left alone (its alt text is no longer empty).

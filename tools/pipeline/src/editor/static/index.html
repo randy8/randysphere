@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Archive metadata editor</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header id="toolbar">
+        <input
+          id="filter"
+          type="text"
+          placeholder="Filter by filename, tag, or album ( / )"
+          autocomplete="off"
+        />
+        <span id="count"></span>
+        <span id="status" aria-live="polite"></span>
+        <button id="manage-tags" type="button">Manage tags…</button>
+      </header>
+
+      <main id="grid" tabindex="0" aria-label="Photo grid"></main>
+
+      <aside id="side-panel" hidden>
+        <div id="inspector" hidden></div>
+        <div id="batch-bar" hidden></div>
+      </aside>
+    </div>
+
+    <div id="tag-manager" hidden>
+      <div id="tag-manager-backdrop"></div>
+      <div id="tag-manager-dialog" role="dialog" aria-label="Manage tags">
+        <header>
+          <h2>Manage tags</h2>
+          <button id="tag-manager-close" type="button" aria-label="Close">×</button>
+        </header>
+        <p class="hint">
+          Renaming or deleting a tag applies to every photo in the archive that carries it, not just
+          the current selection or filter. Deleting has no in-app undo — recover it with
+          <code>git</code> if needed.
+        </p>
+        <div id="tag-manager-list"></div>
+      </div>
+    </div>
+
+    <div id="help" hidden>
+      <div id="help-backdrop"></div>
+      <div id="help-dialog" role="dialog" aria-label="Keyboard shortcuts">
+        <header>
+          <h2>Keyboard shortcuts</h2>
+          <button id="help-close" type="button" aria-label="Close">×</button>
+        </header>
+        <dl>
+          <dt>Arrows / h j k l</dt>
+          <dd>Move focus</dd>
+          <dt>Click</dt>
+          <dd>Select one</dd>
+          <dt>Shift+click / Shift+arrow</dt>
+          <dd>Extend selection</dd>
+          <dt>Cmd/Ctrl+click</dt>
+          <dd>Toggle one in/out</dd>
+          <dt>Space / Enter</dt>
+          <dd>Toggle the focused photo</dd>
+          <dt>Cmd/Ctrl+A</dt>
+          <dd>Select all (filtered)</dd>
+          <dt>Esc</dt>
+          <dd>Clear selection / close panel</dd>
+          <dt>/</dt>
+          <dd>Focus the filter</dd>
+          <dt>T</dt>
+          <dd>Focus the tag input</dd>
+          <dt>Cmd/Ctrl+Z</dt>
+          <dd>Undo the last batch tag action</dd>
+          <dt>?</dt>
+          <dd>Toggle this help</dd>
+        </dl>
+      </div>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
