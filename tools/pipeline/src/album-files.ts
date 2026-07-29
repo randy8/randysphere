@@ -70,7 +70,7 @@ function entryFilename(item: unknown, source: string, index: number): string {
         '  - file: 001.jpg\n    alt: Snow settling on a shrine roof',
     );
   }
-  const file = (item as YAMLMap).get('file');
+  const file = item.get('file');
   if (typeof file !== 'string' || file.length === 0) {
     throw new PipelineError(`${source}: photos[${index.toString()}] has no "file" value.`);
   }
@@ -79,20 +79,20 @@ function entryFilename(item: unknown, source: string, index: number): string {
 
 function hasAltText(item: unknown): boolean {
   if (!isMap(item)) return false;
-  const alt = (item as YAMLMap).get('alt');
+  const alt = item.get('alt');
   return typeof alt === 'string' && alt.trim().length > 0;
 }
 
 /** True once a photo has any `tags` key at all, even an empty list — that means a person (or a prior ingest) has already spoken for it, so the default-tag backfill leaves it alone. */
 function hasTagsKey(item: unknown): boolean {
   if (!isMap(item)) return false;
-  return (item as YAMLMap).get('tags') !== undefined;
+  return item.get('tags') !== undefined;
 }
 
 /** `null` for a legacy entry written before this field existed — never thrown for, unlike `file`, since its absence is an expected, handled state rather than a malformed file. */
 function entrySourceId(item: unknown): string | null {
   if (!isMap(item)) return null;
-  const value = (item as YAMLMap).get('sourceId');
+  const value = item.get('sourceId');
   return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
@@ -435,7 +435,7 @@ function entryRollId(item: unknown, source: string, index: number): string {
         '  - id: 0827\n    filmStock: Kodak Portra 400',
     );
   }
-  const id = (item as YAMLMap).get('id');
+  const id = item.get('id');
   if (typeof id !== 'string' || id.length === 0) {
     throw new PipelineError(`${source}: rolls[${index.toString()}] has no "id" value.`);
   }
