@@ -149,7 +149,9 @@ pnpm build             # static site into site/dist/
 pnpm preview           # serve the built site
 pnpm ingest            # encode derivatives, rewrite manifests
 pnpm publish:local     # publish into site/public/ instead of a bucket
+pnpm sync              # ingest + publish:local, one command
 pnpm run publish       # publish to Cloudflare R2 (needs .env)
+pnpm describe          # draft alt text/captions for photos missing one (needs .env)
 pnpm doctor            # report drift, change nothing
 pnpm typecheck         # tsc, both packages
 pnpm test              # node:test
@@ -169,10 +171,14 @@ pnpm verify            # all of the above, in the order CI runs them
 site/                  Astro application
 tools/pipeline/        Image pipeline. No Astro, no Vite, no Tailwind.
 originals/             Your master files. Git-ignored, never uploaded.
+                       One directory per album; rolls are any subdirectory
+                       (at any depth) that holds images directly — a flat
+                       album with files straight inside still works too.
 generated/
   albums/*.json        Manifests. Committed: this is the contract.
   derivatives/         Encoded output. Git-ignored, rebuildable.
-albums/                Album text and per-photo captions.
+  descriptions.json    Cache for `pnpm describe`. Git-ignored, rebuildable.
+albums/                Album text, per-roll notes, and per-photo captions.
 samples/               Four small photographs, so a fresh clone runs.
 docs/                  Architecture, decisions, dependencies, verification.
 ```
