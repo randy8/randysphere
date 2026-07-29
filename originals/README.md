@@ -3,20 +3,31 @@
 Your master photographs. Nothing in this repository modifies, commits, or
 uploads them.
 
-Organise them one directory per album, named with the slug you want in the URL:
+Organise them one directory per album, named with the slug you want in the URL.
+Inside an album, files can sit directly in the album directory, or be split
+into rolls — any subdirectory that directly holds images, at any depth:
 
 ```
 originals/
   hokkaido-winter/
     001.jpg
     002.jpg
-  lisbon-in-august/
-    001.jpg
+  paris-2025/
+    0827/
+      001.tif
+    0828/
+      001.tif
+      002.tif
 ```
 
-Files sort by name, and that order becomes the default sequence of the album,
-so numbering them is how you edit the sequence. You can override it per photo
-later without renaming anything.
+Nothing is hardcoded about how deep a roll sits or what it's named — `paris-2025`
+above is a trip with two rolls; `hokkaido-winter` is a single roll with no
+subdirectory at all, and both work the same way.
+
+Files sort by name within a roll, and rolls sort by path; together that order
+becomes the default sequence of the album, so numbering files is how you edit
+the sequence within a roll. You can override it per photo later without
+renaming anything.
 
 `pnpm ingest` reads this directory, writes derivatives into
 `generated/derivatives/`, and records what it found in `generated/albums/`.
