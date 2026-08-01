@@ -122,7 +122,9 @@ export function albumKeyDigest(manifest: AlbumManifest): string {
 // ---------------------------------------------------------------------------
 
 function invalid(source: string, path: string, expectation: string, actual: unknown): never {
-  throw new PipelineError(`${source}: ${path} ${expectation}, got ${JSON.stringify(actual) ?? 'undefined'}`);
+  throw new PipelineError(
+    `${source}: ${path} ${expectation}, got ${JSON.stringify(actual) ?? 'undefined'}`,
+  );
 }
 
 function object(value: unknown, source: string, path: string): Record<string, unknown> {
@@ -171,7 +173,12 @@ function validateVariant(value: unknown, source: string, path: string): VariantR
   }
   const key = nonEmptyString(record['key'], source, `${path}.key`);
   if (!isDerivativeKey(key)) {
-    invalid(source, `${path}.key`, 'is not a valid derivative key (expected p/<16 hex>/<width>-<8 hex>.<ext>)', key);
+    invalid(
+      source,
+      `${path}.key`,
+      'is not a valid derivative key (expected p/<16 hex>/<width>-<8 hex>.<ext>)',
+      key,
+    );
   }
   return {
     format,
@@ -197,7 +204,9 @@ function validatePhoto(value: unknown, source: string, path: string): PhotoRecor
     color: nonEmptyString(record['color'], source, `${path}.color`),
     lqip: nonEmptyString(record['lqip'], source, `${path}.lqip`),
     camera: (record['camera'] ?? null) as CameraMetadata | null,
-    variants: variants.map((variant, index) => validateVariant(variant, source, `${path}.variants[${index.toString()}]`)),
+    variants: variants.map((variant, index) =>
+      validateVariant(variant, source, `${path}.variants[${index.toString()}]`),
+    ),
     og: validateVariant(record['og'], source, `${path}.og`),
   };
 }
@@ -222,7 +231,9 @@ export function validateAlbumManifest(value: unknown, source: string): AlbumMani
   return {
     schemaVersion: SCHEMA_VERSION,
     slug,
-    photos: photos.map((photo, index) => validatePhoto(photo, source, `photos[${index.toString()}]`)),
+    photos: photos.map((photo, index) =>
+      validatePhoto(photo, source, `photos[${index.toString()}]`),
+    ),
     rolls: rolls.map((roll, index) => validateRoll(roll, source, `rolls[${index.toString()}]`)),
   };
 }
@@ -251,12 +262,16 @@ async function readJson(path: string): Promise<unknown> {
   try {
     text = await readFile(path, 'utf8');
   } catch (cause) {
-    throw new PipelineError(`Could not read ${path}. Run \`pnpm ingest\` to generate it.`, { cause });
+    throw new PipelineError(`Could not read ${path}. Run \`pnpm ingest\` to generate it.`, {
+      cause,
+    });
   }
   try {
     return JSON.parse(text);
   } catch (cause) {
-    throw new PipelineError(`${path} is not valid JSON. Delete it and run \`pnpm ingest\`.`, { cause });
+    throw new PipelineError(`${path} is not valid JSON. Delete it and run \`pnpm ingest\`.`, {
+      cause,
+    });
   }
 }
 

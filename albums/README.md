@@ -11,7 +11,7 @@ albums/<slug>/rolls.yaml    one entry per roll: film stock, notes
 
 `pnpm ingest` creates all three files when an album first appears and never
 edits `album.md` again. In `photos.yaml` and `rolls.yaml` it maintains only
-*which entries are listed*: new photographs and rolls are appended, entries
+_which entries are listed_: new photographs and rolls are appended, entries
 that no longer exist under `originals/` are removed, and your ordering, your
 fields, and your comments are left exactly as they are.
 

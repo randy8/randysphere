@@ -292,7 +292,7 @@ every tsconfig's own directory). A handful of genuine
 ## Known limitations right now
 
 - The Paris trip's 150 photographs still have **empty alt text**, and as of
-  this session are no longer one tagged view. `originals/paris-2025/` (one
+  2026-07-29 are no longer one tagged view. `originals/paris-2025/` (one
   batch, four rolls) was restructured into four top-level batches —
   `originals/0827/`, `0828/`, `0829/`, `0830/` — each now its own `albums/*`
   and manifest. The sourceId "identity survives a move" matching
@@ -308,6 +308,20 @@ every tsconfig's own directory). A handful of genuine
   hand-written caption (`0830/000008300011.tif`, the Paris Métro photo) was
   already lost earlier in this project's history, during the bare-filename →
   roll-relative-path change from the hierarchy work, and remains lost.
+  A fifth batch, `llfl01` (37 photographs, a film lab scan added
+  2026-07-30), is real and ingested but also untagged and without alt text —
+  see item 1 below, which now covers all 181 photographs, not just the
+  original 150.
+- `pnpm ingest` now deletes a batch's manifest and `albums/<slug>/` (captions,
+  tags, everything) the moment `originals/<slug>/` no longer exists
+  (`docs/decisions.md`, 2026-07-30, `removeOrphanAlbums`) — no confirmation,
+  every run. This is what keeps a rename in `originals/` (like the
+  `littlelightfilmlab-01` → `llfl01` one that happened live this session)
+  from leaving a stale duplicate manifest behind, but it means renaming or
+  temporarily unmounting a batch directory is destructive to anything
+  hand-written in its `albums/<slug>/` if `pnpm ingest` runs while it's
+  "gone." No grace period exists yet — see `docs/decisions.md`'s "Revisit
+  if" for that entry.
 - `pnpm describe`'s Claude provider (`tools/pipeline/src/describe/claude-provider.ts`)
   is unit-tested against a fake provider only. It has never been exercised
   against the real Anthropic API in this environment (no `ANTHROPIC_API_KEY`
@@ -321,8 +335,8 @@ every tsconfig's own directory). A handful of genuine
   of `0827`–`0830`'s `album.md` was scaffolded fresh with an empty
   `location`. Nothing currently displays this field regardless, but it is
   real lost data, not just unused surface area.
-- Four tags exist in the real archive right now (`0827`, `0828`, `0829`,
-  `0830` — see the batch-split bullet above), all auto-seeded, none
+- Five tags exist in the real archive right now (`0827`, `0828`, `0829`,
+  `0830`, `llfl01` — see the batch-split bullet above), all auto-seeded, none
   authored. The multi-tag, cross-batch case (a photo tagged into two
   different views) is covered by unit tests but not yet exercised against
   real photographs.
@@ -344,9 +358,11 @@ every tsconfig's own directory). A handful of genuine
    batch-split limitation above. This is also the first real multi-tag
    exercise against actual photographs (a place or subject tag added
    alongside the trip tag), confirming the resulting view renders correctly.
-2. Re-run `pnpm describe` (or write by hand) alt text/captions for all 150
-   photos; decide per-photo whether Claude's draft is good enough or needs
-   hand editing.
+   `llfl01`'s 37 photos need a real tag of their own too (not necessarily
+   `paris-2025` — confirm what that roll actually is before tagging it).
+2. Re-run `pnpm describe` (or write by hand) alt text/captions for all 181
+   photos across all five batches; decide per-photo whether Claude's draft
+   is good enough or needs hand editing.
 3. Smoke-test `pnpm describe` against the real Claude API once
    `ANTHROPIC_API_KEY` is available, and fix whatever the fake-provider tests
    couldn't catch (real response shape, rate limits, refusals).

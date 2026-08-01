@@ -51,7 +51,7 @@ function renderNewFile(photos: readonly PhotoRef[], defaultTag: string): string 
     alt: '',
     tags: [defaultTag],
   }));
-  return `${HEADER}${stringify({ photos: entries }, { lineWidth: 0 })}`;
+  return `${HEADER}${stringify({ photos: entries }, { lineWidth: 0, singleQuote: true })}`;
 }
 
 function readPhotosSequence(document: Document, source: string): YAMLSeq | null {
@@ -323,7 +323,7 @@ export async function syncPhotosFile(
     };
   }
 
-  if (document.toString({ lineWidth: 0 }) !== original) {
+  if (document.toString({ lineWidth: 0, singleQuote: true }) !== original) {
     throw new PipelineError(
       `${source} needs updating, but rewriting it would also reformat it, so nothing was changed.\n` +
         'Please edit it by hand:\n' +
@@ -377,7 +377,7 @@ export async function syncPhotosFile(
     }
   }
 
-  await writeFileAtomic(path, document.toString({ lineWidth: 0 }));
+  await writeFileAtomic(path, document.toString({ lineWidth: 0, singleQuote: true }));
 
   const refreshed = parseDocument(await readFile(path, 'utf8'));
   const refreshedItems = readPhotosSequence(refreshed, source)?.items ?? [];
@@ -416,7 +416,7 @@ export interface RollsFileResult {
 
 function renderNewRollsFile(ids: readonly string[]): string {
   const rolls = ids.map((id) => ({ id, filmStock: '', notes: '' }));
-  return `${ROLLS_HEADER}${stringify({ rolls }, { lineWidth: 0 })}`;
+  return `${ROLLS_HEADER}${stringify({ rolls }, { lineWidth: 0, singleQuote: true })}`;
 }
 
 function readRollsSequence(document: Document, source: string): YAMLSeq | null {
@@ -481,7 +481,7 @@ export async function syncRollsFile(
     return { created: false, added: [], removed: [] };
   }
 
-  if (document.toString({ lineWidth: 0 }) !== original) {
+  if (document.toString({ lineWidth: 0, singleQuote: true }) !== original) {
     throw new PipelineError(
       `${source} needs updating, but rewriting it would also reformat it, so nothing was changed.\n` +
         'Please edit it by hand:\n' +
@@ -507,7 +507,7 @@ export async function syncRollsFile(
     target.add(document.createNode({ id, filmStock: '', notes: '' }));
   }
 
-  await writeFileAtomic(path, document.toString({ lineWidth: 0 }));
+  await writeFileAtomic(path, document.toString({ lineWidth: 0, singleQuote: true }));
 
   return { created: false, added, removed };
 }
@@ -550,7 +550,7 @@ export async function setPhotoDescription(
   item.set('alt', description.alt);
   if (description.caption !== null) item.set('caption', description.caption);
 
-  await writeFileAtomic(path, document.toString({ lineWidth: 0 }));
+  await writeFileAtomic(path, document.toString({ lineWidth: 0, singleQuote: true }));
 }
 
 /** Thrown by `applyPhotoEdits` when `photos.yaml` changed on disk since the caller last read it. */
@@ -615,7 +615,7 @@ export async function applyPhotoEdits(
     throw new PipelineError(`${source}: ${first?.message ?? 'could not be parsed as YAML'}`);
   }
 
-  if (document.toString({ lineWidth: 0 }) !== original) {
+  if (document.toString({ lineWidth: 0, singleQuote: true }) !== original) {
     throw new PipelineError(
       `${source} needs updating, but rewriting it would also reformat it. Edit it by hand.`,
     );
@@ -649,7 +649,7 @@ export async function applyPhotoEdits(
     }
   }
 
-  const rendered = document.toString({ lineWidth: 0 });
+  const rendered = document.toString({ lineWidth: 0, singleQuote: true });
   await writeFileAtomic(path, rendered);
   return { version: sha256Hex(rendered) };
 }
@@ -691,7 +691,7 @@ export async function scaffoldAlbumMarkdown(
       featured: false,
       cover: coverFile,
     },
-    { lineWidth: 0 },
+    { lineWidth: 0, singleQuote: true },
   );
 
   await writeFileAtomic(path, `---\n${frontmatter}---\n`);

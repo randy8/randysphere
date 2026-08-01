@@ -413,3 +413,44 @@ point a plausible fix is correlating a roll by the _set_ of its photos'
 `sourceId`s (a roll surviving a rename if enough of its photos' content is
 still present), not a single hash, which is a meaningfully different and
 larger design than this one.
+
+## 2026-07-30 — `pnpm ingest` deletes a batch's manifest and `albums/<slug>/` once its `originals/` directory is gone
+
+**Decision.** `ingest.ts` already computed which `generated/albums/*.json`
+files had no matching `originals/<slug>/` any more (`orphanManifests`), but
+only printed a suggestion to delete them by hand. It now actually deletes
+both the manifest and `albums/<slug>/` (captions, tags, roll notes — all of
+it) for every such slug, every run, with no flag to opt out. The logic moved
+into its own exported function, `removeOrphanAlbums(paths, currentSlugs)`,
+so it's unit-testable against plain fixture directories instead of needing
+a full image-encoding `ingest()` run.
+
+**Why.** Discovered live, not speculatively: renaming a batch directory in
+`originals/` (e.g. `littlelightfilmlab-01` → `llfl01`, done outside git,
+mid-session) leaves the old slug's manifest and `albums/` directory
+orphaned — `sourceId` matching already re-associates the photos' captions
+and tags under the new slug (docs/decisions.md, 2026-07-29, "A photo's
+identity survives a move"), so the old manifest is pure dead weight
+duplicating content that lives on under the new slug. The batch-split
+episode in CLAUDE.md's known limitations (`paris-2025` → `0827`–`0830`) hit
+the same gap from the other direction. A warning nobody reads doesn't
+prevent `generated/albums/paris-2025.json`-style clutter; deleting it does.
+
+**What did not change.** `generated/derivatives/` is untouched — it's
+content-addressed by `sourceId`, not batch, so a photo's derivatives stay
+valid and reused regardless of which batch (if any) currently references
+them. `pnpm doctor`'s equivalent check is unchanged in kind (still read-only,
+per its one job) but its message now says to run `pnpm ingest` rather than
+"delete it if the album is gone," since ingest does that now.
+
+**Cost.** None observed: the one real orphan this surfaced
+(`littlelightfilmlab-01`) was confirmed to be a pure rename of `llfl01` —
+identical `sourceId`s throughout — before this shipped, not assumed.
+
+**Revisit if.** A batch directory is ever removed from `originals/`
+temporarily on purpose (an unmounted external drive, say) rather than
+permanently — right now a single `pnpm ingest` run in that state silently
+destroys the manifest and hand-written captions/tags for a batch that was
+never actually retired. No confirmation step exists today because nothing
+like this has happened yet; if it does, the fix is probably a grace period
+or an explicit `--prune` flag rather than deleting unconditionally.

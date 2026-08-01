@@ -36,7 +36,10 @@ test('errors name the setting, the expectation, and what was actually there', ()
 });
 
 test('a duplicated width is caught, because it would mean two identical variants', () => {
-  assert.throws(() => validateConfig({ ...valid, widths: [400, 800, 400] }), /lists 400 more than once/);
+  assert.throws(
+    () => validateConfig({ ...valid, widths: [400, 800, 400] }),
+    /lists 400 more than once/,
+  );
 });
 
 test('a JPEG width wider than every responsive width is caught', () => {
@@ -52,10 +55,13 @@ test('copyright is either absent or complete', () => {
     () => validateConfig({ ...valid, copyright: { artist: 'A' } }),
     /copyright\.notice must be a non-empty string/,
   );
-  assert.deepEqual(validateConfig({ ...valid, copyright: { artist: 'A', notice: 'N' } }).copyright, {
-    artist: 'A',
-    notice: 'N',
-  });
+  assert.deepEqual(
+    validateConfig({ ...valid, copyright: { artist: 'A', notice: 'N' } }).copyright,
+    {
+      artist: 'A',
+      notice: 'N',
+    },
+  );
 });
 
 test("this repository's own pipeline.config.ts is valid", async () => {

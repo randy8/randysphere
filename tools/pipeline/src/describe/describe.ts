@@ -19,7 +19,8 @@ export interface DescribeOptions {
   readonly onProgress?: (event: DescribeEvent) => void;
 }
 
-export type DescribeOutcome = 'generated' | 'filled-from-cache' | 'skipped-manual' | 'skipped-current' | 'failed';
+export type DescribeOutcome =
+  'generated' | 'filled-from-cache' | 'skipped-manual' | 'skipped-current' | 'failed';
 
 export interface DescribeEvent {
   readonly album: string;
@@ -32,12 +33,18 @@ export interface DescribeReport {
   readonly generated: number;
   readonly filledFromCache: number;
   readonly skipped: number;
-  readonly failures: readonly { readonly album: string; readonly file: string; readonly message: string }[];
+  readonly failures: readonly {
+    readonly album: string;
+    readonly file: string;
+    readonly message: string;
+  }[];
 }
 
 /** The widest JPEG at or above 1000px, or the widest JPEG available — big enough to describe, small enough to keep the request cheap. */
 function pickDescriptionImage(photo: PhotoRecord): string | null {
-  const jpegs = photo.variants.filter((variant) => variant.format === 'jpeg').sort((a, b) => a.width - b.width);
+  const jpegs = photo.variants
+    .filter((variant) => variant.format === 'jpeg')
+    .sort((a, b) => a.width - b.width);
   const target = jpegs.find((variant) => variant.width >= 1000) ?? jpegs.at(-1);
   return target?.key ?? null;
 }
@@ -77,7 +84,10 @@ async function describeAlbum(
     }
 
     if (shouldFillFromCache && cached !== undefined) {
-      await setPhotoDescription(albumDirectory, photo.file, { alt: cached.alt, caption: cached.caption });
+      await setPhotoDescription(albumDirectory, photo.file, {
+        alt: cached.alt,
+        caption: cached.caption,
+      });
       filledFromCache += 1;
       onProgress?.({ album: manifest.slug, file: photo.file, outcome: 'filled-from-cache' });
       continue;
@@ -85,8 +95,17 @@ async function describeAlbum(
 
     const key = pickDescriptionImage(photo);
     if (key === null) {
-      failures.push({ album: manifest.slug, file: photo.file, message: 'has no JPEG variant to send. Run `pnpm ingest`.' });
-      onProgress?.({ album: manifest.slug, file: photo.file, outcome: 'failed', message: 'no JPEG variant' });
+      failures.push({
+        album: manifest.slug,
+        file: photo.file,
+        message: 'has no JPEG variant to send. Run `pnpm ingest`.',
+      });
+      onProgress?.({
+        album: manifest.slug,
+        file: photo.file,
+        outcome: 'failed',
+        message: 'no JPEG variant',
+      });
       continue;
     }
 
@@ -95,7 +114,11 @@ async function describeAlbum(
         imagePath: derivativePath(paths, key),
         context: { album: manifest.slug, roll: photo.roll },
       });
-      cache[photo.sourceId] = { alt: description.alt, caption: description.caption, provider: provider.name };
+      cache[photo.sourceId] = {
+        alt: description.alt,
+        caption: description.caption,
+        provider: provider.name,
+      };
       await writeDescriptionCache(paths.descriptionsFile, cache);
       await setPhotoDescription(albumDirectory, photo.file, description);
       generated += 1;
@@ -123,7 +146,9 @@ export async function describe(options: DescribeOptions): Promise<DescribeReport
     const found = new Set(scoped.map((manifest) => manifest.slug));
     for (const slug of onlyAlbums) {
       if (!found.has(slug)) {
-        throw new PipelineError(`No album called "${slug}" has a manifest. Run \`pnpm ingest\` first.`);
+        throw new PipelineError(
+          `No album called "${slug}" has a manifest. Run \`pnpm ingest\` first.`,
+        );
       }
     }
   }
@@ -136,7 +161,14 @@ export async function describe(options: DescribeOptions): Promise<DescribeReport
   const failures: { album: string; file: string; message: string }[] = [];
 
   for (const manifest of scoped) {
-    const albumReport = await describeAlbum(paths, manifest, provider, regenerate, cache, onProgress);
+    const albumReport = await describeAlbum(
+      paths,
+      manifest,
+      provider,
+      regenerate,
+      cache,
+      onProgress,
+    );
     generated += albumReport.generated;
     filledFromCache += albumReport.filledFromCache;
     skipped += albumReport.skipped;

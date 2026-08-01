@@ -82,7 +82,8 @@ export function readManifest(value: unknown, source: string): AlbumManifest {
   const photos = root['photos'].map((entry, index) => {
     const photo = entry as Partial<Photo>;
     if (typeof photo.file !== 'string') fail(source, `photos[${String(index)}] has no file`);
-    if (typeof photo.roll !== 'string') fail(source, `photos[${String(index)}] (${photo.file}) has no roll`);
+    if (typeof photo.roll !== 'string')
+      fail(source, `photos[${String(index)}] (${photo.file}) has no roll`);
     if (typeof photo.width !== 'number' || typeof photo.height !== 'number') {
       fail(source, `photos[${String(index)}] (${photo.file}) has no dimensions`);
     }
@@ -95,7 +96,8 @@ export function readManifest(value: unknown, source: string): AlbumManifest {
   const rolls = root['rolls'].map((entry, index) => {
     const roll = entry as Partial<Roll>;
     if (typeof roll.id !== 'string') fail(source, `rolls[${String(index)}] has no id`);
-    if (typeof roll.photoCount !== 'number') fail(source, `rolls[${String(index)}] (${roll.id}) has no photoCount`);
+    if (typeof roll.photoCount !== 'number')
+      fail(source, `rolls[${String(index)}] (${roll.id}) has no photoCount`);
     return roll as Roll;
   });
 

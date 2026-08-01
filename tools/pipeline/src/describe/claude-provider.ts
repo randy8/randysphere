@@ -25,7 +25,8 @@ const DESCRIPTION_SCHEMA = {
   properties: {
     alt: {
       type: 'string',
-      description: 'One objective sentence for a screen reader: visible subjects, setting, composition.',
+      description:
+        'One objective sentence for a screen reader: visible subjects, setting, composition.',
     },
     caption: {
       type: 'string',
@@ -77,7 +78,9 @@ export interface ClaudeProviderOptions {
   readonly client?: Anthropic;
 }
 
-export function createClaudeDescriptionProvider(options: ClaudeProviderOptions = {}): DescriptionProvider {
+export function createClaudeDescriptionProvider(
+  options: ClaudeProviderOptions = {},
+): DescriptionProvider {
   const model = options.model ?? DEFAULT_MODEL;
   const client = options.client ?? new Anthropic();
 
@@ -86,7 +89,9 @@ export function createClaudeDescriptionProvider(options: ClaudeProviderOptions =
     async describe(request: DescriptionRequest): Promise<Description> {
       const mediaType = MEDIA_TYPE[extname(request.imagePath).toLowerCase()];
       if (mediaType === undefined) {
-        throw new PipelineError(`${request.imagePath}: not a format this provider can send as an image (need jpg/png/webp).`);
+        throw new PipelineError(
+          `${request.imagePath}: not a format this provider can send as an image (need jpg/png/webp).`,
+        );
       }
       const data = (await readFile(request.imagePath)).toString('base64');
 
@@ -118,14 +123,20 @@ export function createClaudeDescriptionProvider(options: ClaudeProviderOptions =
       try {
         parsed = JSON.parse(stripCodeFence(block.text));
       } catch (cause) {
-        throw new PipelineError(`${request.imagePath}: the model's response was not valid JSON.`, { cause });
+        throw new PipelineError(`${request.imagePath}: the model's response was not valid JSON.`, {
+          cause,
+        });
       }
       const record = parsed as Partial<Description>;
       if (typeof record.alt !== 'string' || record.alt.length === 0) {
-        throw new PipelineError(`${request.imagePath}: the model's response had no usable "alt" text.`);
+        throw new PipelineError(
+          `${request.imagePath}: the model's response had no usable "alt" text.`,
+        );
       }
       if (typeof record.caption !== 'string' || record.caption.length === 0) {
-        throw new PipelineError(`${request.imagePath}: the model's response had no usable "caption" text.`);
+        throw new PipelineError(
+          `${request.imagePath}: the model's response had no usable "caption" text.`,
+        );
       }
       return { alt: record.alt, caption: record.caption };
     },

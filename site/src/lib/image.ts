@@ -14,11 +14,15 @@ export function assetUrl(base: string, key: string): string {
 }
 
 export function variantsOf(photo: Photo, format: VariantFormat): Variant[] {
-  return photo.variants.filter((variant) => variant.format === format).sort((a, b) => a.width - b.width);
+  return photo.variants
+    .filter((variant) => variant.format === format)
+    .sort((a, b) => a.width - b.width);
 }
 
 export function srcset(base: string, variants: readonly Variant[]): string {
-  return variants.map((variant) => `${assetUrl(base, variant.key)} ${String(variant.width)}w`).join(', ');
+  return variants
+    .map((variant) => `${assetUrl(base, variant.key)} ${String(variant.width)}w`)
+    .join(', ');
 }
 
 /** The largest variant of a format, which is what the no-JavaScript link opens. */

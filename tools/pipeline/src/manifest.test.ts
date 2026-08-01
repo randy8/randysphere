@@ -45,7 +45,9 @@ test('a valid manifest round-trips through disk unchanged', async () => {
 });
 
 test('validation names the exact path of the problem', () => {
-  const broken = structuredClone(manifest) as unknown as { photos: { variants: { key: string }[] }[] };
+  const broken = structuredClone(manifest) as unknown as {
+    photos: { variants: { key: string }[] }[];
+  };
   broken.photos[0]!.variants[0]!.key = 'p/nope/1200.avif';
   assert.throws(
     () => validateAlbumManifest(broken, 'generated/albums/hokkaido-winter.json'),
@@ -61,11 +63,17 @@ test('a manifest from a newer pipeline is refused rather than guessed at', () =>
 });
 
 test('a manifest from an older schema is refused with instructions', () => {
-  assert.throws(() => validateAlbumManifest({ ...manifest, schemaVersion: 0 }, 'x.json'), /must be a positive/);
+  assert.throws(
+    () => validateAlbumManifest({ ...manifest, schemaVersion: 0 }, 'x.json'),
+    /must be a positive/,
+  );
 });
 
 test('a slug that would not survive a URL is refused', () => {
-  assert.throws(() => validateAlbumManifest({ ...manifest, slug: 'Hokkaido Winter' }, 'x.json'), /URL slug/);
+  assert.throws(
+    () => validateAlbumManifest({ ...manifest, slug: 'Hokkaido Winter' }, 'x.json'),
+    /URL slug/,
+  );
   assert.throws(() => validateAlbumManifest({ ...manifest, slug: '../etc' }, 'x.json'), /URL slug/);
 });
 

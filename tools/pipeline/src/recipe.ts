@@ -107,9 +107,24 @@ export function planVariants(
 ): VariantPlan[] {
   const plans: VariantPlan[] = [];
 
-  const formats: { format: VariantFormat; widths: readonly number[]; quality: number; effort: number | null }[] = [
-    { format: 'avif', widths: config.widths, quality: config.avif.quality, effort: config.avif.effort },
-    { format: 'webp', widths: config.widths, quality: config.webp.quality, effort: config.webp.effort },
+  const formats: {
+    format: VariantFormat;
+    widths: readonly number[];
+    quality: number;
+    effort: number | null;
+  }[] = [
+    {
+      format: 'avif',
+      widths: config.widths,
+      quality: config.avif.quality,
+      effort: config.avif.effort,
+    },
+    {
+      format: 'webp',
+      widths: config.widths,
+      quality: config.webp.quality,
+      effort: config.webp.effort,
+    },
     { format: 'jpeg', widths: config.jpeg.widths, quality: config.jpeg.quality, effort: null },
   ];
 

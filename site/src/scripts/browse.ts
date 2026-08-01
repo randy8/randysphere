@@ -26,7 +26,9 @@ function photoIdFromHash(hash: string): string | null {
 }
 
 function isBrowseState(state: unknown): state is BrowseHistoryState {
-  return typeof state === 'object' && state !== null && (state as BrowseHistoryState).browse === true;
+  return (
+    typeof state === 'object' && state !== null && (state as BrowseHistoryState).browse === true
+  );
 }
 
 function init(): void {
@@ -60,7 +62,8 @@ function init(): void {
   };
 
   const updatePosition = (index: number): void => {
-    if (position !== null) position.textContent = `${(index + 1).toString()} / ${items.length.toString()}`;
+    if (position !== null)
+      position.textContent = `${(index + 1).toString()} / ${items.length.toString()}`;
   };
 
   const focusItem = (index: number, behavior: ScrollBehavior): void => {
@@ -94,7 +97,11 @@ function init(): void {
   };
 
   const replaceHash = (id: string): void => {
-    history.replaceState({ browse: true } satisfies BrowseHistoryState, '', `${PHOTO_HASH_PREFIX}${id}`);
+    history.replaceState(
+      { browse: true } satisfies BrowseHistoryState,
+      '',
+      `${PHOTO_HASH_PREFIX}${id}`,
+    );
   };
 
   // A reload or a link landing directly on #photo-<id> opens straight there,
@@ -102,7 +109,8 @@ function init(): void {
   syncFromHash('instant');
 
   grid.addEventListener('click', (event) => {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+      return;
     if (!(event.target instanceof Element)) return;
     const link = event.target.closest('a.photo');
     if (link === null) return;
@@ -112,7 +120,11 @@ function init(): void {
 
     event.preventDefault();
     lastTrigger = link instanceof HTMLElement ? link : null;
-    history.pushState({ browse: true } satisfies BrowseHistoryState, '', `${PHOTO_HASH_PREFIX}${id}`);
+    history.pushState(
+      { browse: true } satisfies BrowseHistoryState,
+      '',
+      `${PHOTO_HASH_PREFIX}${id}`,
+    );
     show(id, 'instant');
   });
 
@@ -154,7 +166,8 @@ function init(): void {
       for (const entry of entries) {
         const index = items.indexOf(entry.target as HTMLElement);
         if (index === -1) continue;
-        if (best === null || entry.intersectionRatio > best.ratio) best = { index, ratio: entry.intersectionRatio };
+        if (best === null || entry.intersectionRatio > best.ratio)
+          best = { index, ratio: entry.intersectionRatio };
       }
       if (best === null || best.index === currentIndex || best.ratio < CURRENT_MARK) return;
       currentIndex = best.index;

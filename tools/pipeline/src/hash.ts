@@ -2,12 +2,7 @@ import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 
 export type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | readonly JsonValue[]
-  | { readonly [key: string]: JsonValue };
+  string | number | boolean | null | readonly JsonValue[] | { readonly [key: string]: JsonValue };
 
 export function sha256Hex(input: string | Uint8Array): string {
   return createHash('sha256').update(input).digest('hex');

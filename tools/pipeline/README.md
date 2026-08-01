@@ -44,18 +44,36 @@ and stores complete object keys rather than fragments the reader must assemble.
     {
       "file": "003.jpg",
       "sourceId": "9f2c41a7be03d5e8",
-      "width": 6240, "height": 4160,
+      "width": 6240,
+      "height": 4160,
       "color": "#6b7a82",
       "lqip": "data:image/webp;base64,...",
-      "camera": { "make": "Fujifilm", "model": "X-Pro3", "lens": "XF35mmF2 R WR",
-                  "focalLength": 35, "aperture": 2, "shutterSpeed": "1/500",
-                  "iso": 160, "takenAt": "2024-02-11T08:14:23" },
+      "camera": {
+        "make": "Fujifilm",
+        "model": "X-Pro3",
+        "lens": "XF35mmF2 R WR",
+        "focalLength": 35,
+        "aperture": 2,
+        "shutterSpeed": "1/500",
+        "iso": 160,
+        "takenAt": "2024-02-11T08:14:23"
+      },
       "variants": [
-        { "format": "avif", "width": 400, "height": 267, "bytes": 9812,
-          "key": "p/9f2c41a7be03d5e8/400-1a2b3c4d.avif" }
+        {
+          "format": "avif",
+          "width": 400,
+          "height": 267,
+          "bytes": 9812,
+          "key": "p/9f2c41a7be03d5e8/400-1a2b3c4d.avif"
+        }
       ],
-      "og": { "format": "jpeg", "width": 1200, "height": 630, "bytes": 96122,
-              "key": "p/9f2c41a7be03d5e8/og-4d5e6f70.jpg" }
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 96122,
+        "key": "p/9f2c41a7be03d5e8/og-4d5e6f70.jpg"
+      }
     }
   ]
 }
@@ -92,13 +110,13 @@ Keys are content-addressed and therefore immutable, so they are uploaded with
 
 ## Who owns what
 
-| Path | Owner |
-| --- | --- |
-| `originals/**` | You. Opened read-only, never written. |
-| `pipeline.config.ts` | You. |
-| `albums/<slug>/album.md` | You. Created if absent, never edited after. |
+| Path                        | Owner                                                                                                    |
+| --------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `originals/**`              | You. Opened read-only, never written.                                                                    |
+| `pipeline.config.ts`        | You.                                                                                                     |
+| `albums/<slug>/album.md`    | You. Created if absent, never edited after.                                                              |
 | `albums/<slug>/photos.yaml` | Split: the pipeline decides which files are listed, you own every field, the ordering, and the comments. |
-| `generated/**` | The pipeline. Hand edits are overwritten. |
+| `generated/**`              | The pipeline. Hand edits are overwritten.                                                                |
 
 Ingest appends new entries to `photos.yaml` and removes entries whose source is
 gone. Before modifying it, it re-serialises the file unchanged and compares: if

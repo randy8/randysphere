@@ -33,7 +33,9 @@ export async function readAllManifests(paths: Paths): Promise<AlbumManifest[]> {
   try {
     names = (await readdir(paths.manifests)).filter((name) => name.endsWith('.json'));
   } catch (cause) {
-    throw new PipelineError(`No manifests in ${paths.manifests}. Run \`pnpm ingest\` first.`, { cause });
+    throw new PipelineError(`No manifests in ${paths.manifests}. Run \`pnpm ingest\` first.`, {
+      cause,
+    });
   }
   if (names.length === 0) {
     throw new PipelineError(`No manifests in ${paths.manifests}. Run \`pnpm ingest\` first.`);

@@ -134,7 +134,7 @@ test('a photo moved to a different roll is matched by content, preserving its ca
   assert.doesNotMatch(contents, /0827\/001\.jpg/);
   assert.match(
     contents,
-    /file: 0828\/001\.jpg\n\s+sourceId: aaaaaaaaaaaaaaaa\n\s+alt: "?A street scene\.?"?\n\s+tags:\n\s+- paris-2025\n\s+- street/,
+    /file: 0828\/001\.jpg\n\s+sourceId: aaaaaaaaaaaaaaaa\n\s+alt: ["']?A street scene\.?["']?\n\s+tags:\n\s+- paris-2025\n\s+- street/,
   );
 });
 
@@ -153,7 +153,7 @@ test('a photo flattened out of its roll into the album root is still matched by 
   const contents = await readFile(join(directory, 'photos.yaml'), 'utf8');
   assert.match(
     contents,
-    /file: 001\.jpg\n\s+sourceId: aaaaaaaaaaaaaaaa\n\s+alt: "?A street scene\.?"?/,
+    /file: 001\.jpg\n\s+sourceId: aaaaaaaaaaaaaaaa\n\s+alt: ["']?A street scene\.?["']?/,
   );
 });
 
@@ -195,7 +195,7 @@ test('a same-path re-export keeps its caption via the path fallback, and refresh
   assert.deepEqual(result.added, []);
   assert.deepEqual(result.removed, []);
   const contents = await readFile(join(directory, 'photos.yaml'), 'utf8');
-  assert.match(contents, /alt: "?A hand-written caption\.?"?/);
+  assert.match(contents, /alt: ["']?A hand-written caption\.?["']?/);
   assert.match(contents, /sourceId: cccccccccccccccc/);
   assert.doesNotMatch(contents, /aaaaaaaaaaaaaaaa/);
 });
@@ -279,7 +279,7 @@ test('a long alt text line does not trip the round-trip guard when a photo is ad
     'A black-and-white photograph of a Paris Métro train stopped at a platform, ' +
     'beneath a riveted, porthole-windowed tunnel ceiling, easily past eighty characters.';
   const withAltText = (await readFile(join(directory, 'photos.yaml'), 'utf8')).replace(
-    'alt: ""',
+    "alt: ''",
     `alt: ${longAlt}`,
   );
   await import('node:fs/promises').then(({ writeFile }) =>
@@ -300,15 +300,15 @@ test('a new rolls.yaml is created with the given ids', async () => {
   assert.equal(result.created, true);
   assert.deepEqual(result.added, ['0827', '0828']);
   const contents = await readFile(join(directory, 'rolls.yaml'), 'utf8');
-  assert.match(contents, /id: "?0827"?/);
-  assert.match(contents, /id: "?0828"?/);
+  assert.match(contents, /id: ["']?0827["']?/);
+  assert.match(contents, /id: ["']?0828["']?/);
 });
 
 test('rolls.yaml gains new roll ids and preserves hand-written fields on existing ones', async () => {
   const directory = await emptyAlbumDirectory();
   await syncRollsFile(directory, ['0827']);
   const withFilmStock = (await readFile(join(directory, 'rolls.yaml'), 'utf8')).replace(
-    'filmStock: ""',
+    "filmStock: ''",
     'filmStock: Kodak Portra 400',
   );
   await import('node:fs/promises').then(({ writeFile }) =>
@@ -321,7 +321,7 @@ test('rolls.yaml gains new roll ids and preserves hand-written fields on existin
   assert.deepEqual(result.removed, []);
   const updated = await readFile(join(directory, 'rolls.yaml'), 'utf8');
   assert.match(updated, /filmStock: Kodak Portra 400/);
-  assert.match(updated, /id: "?0828"?/);
+  assert.match(updated, /id: ["']?0828["']?/);
 });
 
 test('rolls.yaml drops a roll id that no longer exists in originals/', async () => {
@@ -339,8 +339,8 @@ test('setPhotoDescription fills in alt and caption for one entry without disturb
   const directory = await emptyAlbumDirectory();
   await syncPhotosFile(directory, refs(['001.jpg', '002.jpg']), 'paris-2025');
   const withHandwrittenCaption = (await readFile(join(directory, 'photos.yaml'), 'utf8')).replace(
-    '  - file: 002.jpg\n    sourceId: 002.jpg000000000\n    alt: ""',
-    '  - file: 002.jpg\n    sourceId: 002.jpg000000000\n    alt: ""\n    caption: A note the photographer wrote by hand.',
+    "  - file: 002.jpg\n    sourceId: 002.jpg000000000\n    alt: ''",
+    "  - file: 002.jpg\n    sourceId: 002.jpg000000000\n    alt: ''\n    caption: A note the photographer wrote by hand.",
   );
   await import('node:fs/promises').then(({ writeFile }) =>
     writeFile(join(directory, 'photos.yaml'), withHandwrittenCaption),
@@ -352,7 +352,10 @@ test('setPhotoDescription fills in alt and caption for one entry without disturb
   });
 
   const updated = await readFile(join(directory, 'photos.yaml'), 'utf8');
-  assert.match(updated, /file: 001\.jpg\n\s+sourceId: \S+\n\s+alt: "?A generated description\.?"?/);
+  assert.match(
+    updated,
+    /file: 001\.jpg\n\s+sourceId: \S+\n\s+alt: ["']?A generated description\.?["']?/,
+  );
   assert.match(updated, /A note the photographer wrote by hand\./);
 });
 
@@ -372,9 +375,9 @@ test('applyPhotoEdits adds and removes tags across multiple files in a single pa
   const contents = await readFile(join(directory, 'photos.yaml'), 'utf8');
   assert.match(
     contents,
-    /file: 001\.jpg\n\s+sourceId: \S+\n\s+alt: ""\n\s+tags:\n\s+- paris-2025\n\s+- street\n\s+- night/,
+    /file: 001\.jpg\n\s+sourceId: \S+\n\s+alt: ''\n\s+tags:\n\s+- paris-2025\n\s+- street\n\s+- night/,
   );
-  assert.match(contents, /file: 002\.jpg\n\s+sourceId: \S+\n\s+alt: ""\n\s+tags: \[\]/);
+  assert.match(contents, /file: 002\.jpg\n\s+sourceId: \S+\n\s+alt: ''\n\s+tags: \[\]/);
   assert.equal(result.version, sha256Hex(contents));
 
   // Adding a tag that's already present does not duplicate it or reorder existing tags.
@@ -392,8 +395,8 @@ test('applyPhotoEdits sets alt and clears caption via null without disturbing ot
   const directory = await emptyAlbumDirectory();
   await syncPhotosFile(directory, refs(['001.jpg', '002.jpg']), 'paris-2025');
   const withHandwrittenCaption = (await readFile(join(directory, 'photos.yaml'), 'utf8')).replace(
-    '  - file: 002.jpg\n    sourceId: 002.jpg000000000\n    alt: ""',
-    '  - file: 002.jpg\n    sourceId: 002.jpg000000000\n    alt: ""\n    caption: A note the photographer wrote by hand.',
+    "  - file: 002.jpg\n    sourceId: 002.jpg000000000\n    alt: ''",
+    "  - file: 002.jpg\n    sourceId: 002.jpg000000000\n    alt: ''\n    caption: A note the photographer wrote by hand.",
   );
   await writeFileAtomic(join(directory, 'photos.yaml'), withHandwrittenCaption);
 
@@ -401,7 +404,7 @@ test('applyPhotoEdits sets alt and clears caption via null without disturbing ot
   await applyPhotoEdits(directory, [{ file: '002.jpg', caption: null }], null);
 
   const updated = await readFile(join(directory, 'photos.yaml'), 'utf8');
-  assert.match(updated, /file: 001\.jpg\n\s+sourceId: \S+\n\s+alt: "?A street at dusk\.?"?/);
+  assert.match(updated, /file: 001\.jpg\n\s+sourceId: \S+\n\s+alt: ["']?A street at dusk\.?["']?/);
   assert.doesNotMatch(updated, /caption:/);
 });
 

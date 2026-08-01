@@ -66,7 +66,10 @@ export async function listRolls(albumDirectory: string): Promise<Roll[]> {
       .sort();
     if (files.length > 0) rolls.push({ id, files });
 
-    const subdirectories = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+    const subdirectories = entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort();
     for (const name of subdirectories) {
       await walk(join(directory, name), id === '.' ? name : `${id}/${name}`);
     }

@@ -37,6 +37,9 @@ test('writing the same key twice is harmless', async () => {
 test('a key that is not a derivative key is refused', async () => {
   const { storage } = await storageInTempDirectory();
   for (const key of ['../../etc/passwd', 'p/0123456789abcdef/../../x.avif', 'notes.txt', '']) {
-    await assert.rejects(() => storage.put(key, new Uint8Array([1]), 'image/avif'), /not a valid derivative key/);
+    await assert.rejects(
+      () => storage.put(key, new Uint8Array([1]), 'image/avif'),
+      /not a valid derivative key/,
+    );
   }
 });

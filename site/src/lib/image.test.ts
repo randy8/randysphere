@@ -34,7 +34,15 @@ test('an empty base produces a root-relative URL with exactly one slash', () => 
 });
 
 test('a trailing slash on the base never becomes a double slash', () => {
-  for (const base of ['', '/', '//', '/images', '/images/', 'https://img.example.com', 'https://img.example.com/']) {
+  for (const base of [
+    '',
+    '/',
+    '//',
+    '/images',
+    '/images/',
+    'https://img.example.com',
+    'https://img.example.com/',
+  ]) {
     const url = assetUrl(base, KEY);
     const withoutScheme = url.replace(/^https?:\/\//, '');
     assert.equal(withoutScheme.includes('//'), false, `${base} -> ${url}`);
