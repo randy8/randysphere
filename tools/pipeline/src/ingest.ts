@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import { availableParallelism } from 'node:os';
 import { join } from 'node:path';
 
@@ -50,7 +50,8 @@ export interface AlbumReport {
 
 export interface IngestReport {
   readonly albums: readonly AlbumReport[];
-  readonly orphanManifests: readonly string[];
+  /** A batch that no longer has an originals/<slug>/ directory — its manifest and albums/<slug>/ (including hand-written captions and tags) were deleted this run. */
+  readonly removedAlbums: readonly string[];
 }
 
 function toVariantRecord(
@@ -227,6 +228,33 @@ export async function readPreviousRecords(manifestPath: string): Promise<Previou
   }
 }
 
+/**
+ * A batch's manifest and `albums/<slug>/` are only ever written while
+ * `originals/<slug>/` exists (see `ingest`'s main loop) — so any manifest
+ * file left in `paths.manifests` for a slug outside `currentSlugs` names a
+ * batch that has since been renamed or deleted from `originals/`. Its
+ * content lives on under whatever slug it moved to (matched by `sourceId`,
+ * see `resolvePriorRecord`), or is genuinely gone — either way, nothing
+ * currently reads this manifest or album directory, so both are deleted.
+ */
+export async function removeOrphanAlbums(
+  paths: Paths,
+  currentSlugs: readonly string[],
+): Promise<readonly string[]> {
+  const manifestFiles = await readdir(paths.manifests).catch(() => []);
+  const orphanSlugs = manifestFiles
+    .filter((name) => name.endsWith('.json'))
+    .map((name) => name.slice(0, -'.json'.length))
+    .filter((slug) => !currentSlugs.includes(slug));
+
+  for (const slug of orphanSlugs) {
+    await rm(join(paths.manifests, `${slug}.json`), { force: true });
+    await rm(join(paths.albums, slug), { recursive: true, force: true });
+  }
+
+  return orphanSlugs;
+}
+
 export interface IngestOptions {
   readonly paths: Paths;
   readonly config: PipelineConfig;
@@ -330,13 +358,9 @@ export async function ingest(options: IngestOptions): Promise<IngestReport> {
     albums: allSlugs,
   });
 
-  const manifestFiles = await readdir(paths.manifests).catch(() => []);
-  const orphanManifests = manifestFiles
-    .filter((name) => name.endsWith('.json'))
-    .map((name) => name.slice(0, -'.json'.length))
-    .filter((slug) => !allSlugs.includes(slug));
+  const removedAlbums = await removeOrphanAlbums(paths, allSlugs);
 
-  return { albums: reports, orphanManifests };
+  return { albums: reports, removedAlbums };
 }
 
 export function defaultConcurrency(): number {

@@ -158,14 +158,14 @@ test('a second photo sharing a cached sourceId is filled in without calling the 
   assert.equal(secondProvider.calls.length, 0);
   assert.equal(report.filledFromCache, 1);
   const photosYaml = await readFile(join(albumDirectory, 'photos.yaml'), 'utf8');
-  assert.match(photosYaml, /file: 002\.jpg\n\s+sourceId: \S+\n\s+alt: "?Cached alt\.?"?/);
+  assert.match(photosYaml, /file: 002\.jpg\n\s+sourceId: \S+\n\s+alt: ["']?Cached alt\.?["']?/);
 });
 
 test('a hand-written alt text is never overwritten and the provider is never called for it', async () => {
   const paths = await repositoryWith('trip', [photo('0000000000000003', '001.jpg')]);
   const albumDirectory = join(paths.albums, 'trip');
   const handWritten = (await readFile(join(albumDirectory, 'photos.yaml'), 'utf8')).replace(
-    'alt: ""',
+    "alt: ''",
     'alt: Written by the photographer, not a machine.',
   );
   await import('node:fs/promises').then(({ writeFile }) =>
@@ -199,7 +199,7 @@ test('--regenerate refreshes a description that still matches what we generated,
   // Hand-edit only photo 002's alt text after the first run (002 was seeded second).
   const albumDirectory = join(paths.albums, 'trip');
   const withHandEdit = (await readFile(join(albumDirectory, 'photos.yaml'), 'utf8')).replace(
-    'alt: "Original alt number 2."',
+    "alt: 'Original alt number 2.'",
     'alt: Edited by hand after generation.',
   );
   await import('node:fs/promises').then(({ writeFile }) =>
@@ -241,7 +241,10 @@ test('a failed generation is reported but does not stop the rest of the album fr
   assert.match(report.failures[0]?.message ?? '', /provider unavailable/);
 
   const photosYaml = await readFile(join(paths.albums, 'trip', 'photos.yaml'), 'utf8');
-  assert.match(photosYaml, /file: 002\.jpg\n\s+sourceId: \S+\n\s+alt: "?Generated alt text\.?"?/);
+  assert.match(
+    photosYaml,
+    /file: 002\.jpg\n\s+sourceId: \S+\n\s+alt: ["']?Generated alt text\.?["']?/,
+  );
 });
 
 test('a failure on one photo does not prevent a later successful run from resuming (interruption is resumable)', async () => {

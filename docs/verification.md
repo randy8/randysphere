@@ -19,13 +19,13 @@ pnpm test
 
 ## What each one proves
 
-| Command | Proves |
-| --- | --- |
-| `pnpm install` | Every version range in `package.json` resolves, and the peer dependencies between ESLint 10, typescript-eslint 8, and TypeScript 6 are compatible. |
-| `pnpm lint` | The flat config loads, `projectService` finds the tsconfigs, and the `tools/` import boundary rule is active. |
-| `pnpm format:check` | Prettier agrees with the checked-in formatting, including the `jsonc` override for `tsconfig*.json`. |
-| `pnpm typecheck` | `erasableSyntaxOnly` accepts the source, meaning Node can run it without a build step. |
-| `pnpm test` | The pipeline's behaviour is what the tests say it is. Already passing (63 tests); this confirms it still does with real packages present. |
+| Command             | Proves                                                                                                                                             |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install`      | Every version range in `package.json` resolves, and the peer dependencies between ESLint 10, typescript-eslint 8, and TypeScript 6 are compatible. |
+| `pnpm lint`         | The flat config loads, `projectService` finds the tsconfigs, and the `tools/` import boundary rule is active.                                      |
+| `pnpm format:check` | Prettier agrees with the checked-in formatting, including the `jsonc` override for `tsconfig*.json`.                                               |
+| `pnpm typecheck`    | `erasableSyntaxOnly` accepts the source, meaning Node can run it without a build step.                                                             |
+| `pnpm test`         | The pipeline's behaviour is what the tests say it is. Already passing (63 tests); this confirms it still does with real packages present.          |
 
 ## Then, once, with real photographs
 

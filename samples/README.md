@@ -6,12 +6,12 @@ copy them across as the first step of the Quick Start.
 
 They are synthetic, and each one is here to exercise a specific path:
 
-| File | Size | Why it exists |
-| --- | --- | --- |
-| `001.jpg` | 1800 × 1200 | An ordinary landscape frame. |
-| `002.jpg` | 1200 × 1800 | Portrait, so the grid has to cope with both shapes. |
+| File      | Size                                | Why it exists                                                                                                                |
+| --------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `001.jpg` | 1800 × 1200                         | An ordinary landscape frame.                                                                                                 |
+| `002.jpg` | 1200 × 1800                         | Portrait, so the grid has to cope with both shapes.                                                                          |
 | `003.jpg` | 1800 × 1200, **EXIF orientation 6** | Stored landscape but meant to be seen portrait. If the manifest reports this as 1800 × 1200, orientation handling is broken. |
-| `004.jpg` | 1600 × 1067, **carries GPS** | Tagged with coordinates in Sapporo. After ingest, neither the manifest nor any derivative may contain them. |
+| `004.jpg` | 1600 × 1067, **carries GPS**        | Tagged with coordinates in Sapporo. After ingest, neither the manifest nor any derivative may contain them.                  |
 
 Two checks worth running once, after your first `pnpm ingest`:
 

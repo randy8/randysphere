@@ -93,9 +93,9 @@ async function runIngest(onlyAlbums: string[] | null, concurrency: number): Prom
     }
   }
 
-  for (const slug of report.orphanManifests) {
+  for (const slug of report.removedAlbums) {
     console.log(
-      `generated/albums/${slug}.json has no originals/${slug}/ any more; delete it if the album is gone.`,
+      `removed ${slug}: no originals/${slug}/ any more (its manifest and albums/${slug}/ are gone)`,
     );
   }
 }

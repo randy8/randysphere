@@ -18,7 +18,11 @@ export interface Finding {
   readonly message: string;
 }
 
-async function collectDerivativeKeys(root: string, prefix: string, into: Set<string>): Promise<void> {
+async function collectDerivativeKeys(
+  root: string,
+  prefix: string,
+  into: Set<string>,
+): Promise<void> {
   let entries;
   try {
     entries = await readdir(root, { withFileTypes: true });
@@ -74,7 +78,9 @@ export async function doctor(paths: Paths, config: PipelineConfig): Promise<Find
         where,
         message:
           `there is no originals/${manifest.slug}/ any more. The manifest is stale; ` +
-          'delete it if the album is gone.',
+          'run `pnpm ingest` to remove it and albums/' +
+          manifest.slug +
+          '/ (this deletes any hand-written captions and tags in it).',
       });
     } else {
       const onDisk = flattenRolls(await listRolls(albumOriginals)).map((photo) => photo.relPath);

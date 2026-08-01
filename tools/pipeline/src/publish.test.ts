@@ -6,7 +6,12 @@ import { test } from 'node:test';
 
 import { writeFileAtomic } from './files.ts';
 import type { AlbumManifest, PhotoRecord } from './manifest.ts';
-import { albumKeyDigest, SCHEMA_VERSION, writeAlbumManifest, writePublishedRecord } from './manifest.ts';
+import {
+  albumKeyDigest,
+  SCHEMA_VERSION,
+  writeAlbumManifest,
+  writePublishedRecord,
+} from './manifest.ts';
 import { derivativePath, resolvePaths } from './paths.ts';
 import type { Paths } from './paths.ts';
 import { publish } from './publish.ts';
@@ -26,15 +31,38 @@ function photo(sourceId: string): PhotoRecord {
     lqip: 'data:image/webp;base64,AAAA',
     camera: null,
     variants: [
-      { format: 'avif', width: 400, height: 267, bytes: BYTES, key: `p/${sourceId}/400-1a2b3c4d.avif` },
-      { format: 'webp', width: 400, height: 267, bytes: BYTES, key: `p/${sourceId}/400-5e6f7a8b.webp` },
+      {
+        format: 'avif',
+        width: 400,
+        height: 267,
+        bytes: BYTES,
+        key: `p/${sourceId}/400-1a2b3c4d.avif`,
+      },
+      {
+        format: 'webp',
+        width: 400,
+        height: 267,
+        bytes: BYTES,
+        key: `p/${sourceId}/400-5e6f7a8b.webp`,
+      },
     ],
-    og: { format: 'jpeg', width: 1200, height: 630, bytes: BYTES, key: `p/${sourceId}/og-99887766.jpg` },
+    og: {
+      format: 'jpeg',
+      width: 1200,
+      height: 630,
+      bytes: BYTES,
+      key: `p/${sourceId}/og-99887766.jpg`,
+    },
   };
 }
 
 function manifestFor(slug: string, sourceIds: readonly string[]): AlbumManifest {
-  return { schemaVersion: SCHEMA_VERSION, slug, photos: sourceIds.map(photo), rolls: [{ id: '.', photoCount: sourceIds.length }] };
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    slug,
+    photos: sourceIds.map(photo),
+    rolls: [{ id: '.', photoCount: sourceIds.length }],
+  };
 }
 
 function keysOf(manifest: AlbumManifest): string[] {

@@ -81,7 +81,11 @@ test('a small source never yields two variants of the same width', () => {
   const plans = planVariants(SOURCE_ID, { width: 900, height: 600 }, base);
   for (const format of ['avif', 'webp', 'jpeg'] as const) {
     const widths = plans.filter((plan) => plan.format === format).map((plan) => plan.width);
-    assert.equal(new Set(widths).size, widths.length, `duplicate ${format} widths: ${widths.join()}`);
+    assert.equal(
+      new Set(widths).size,
+      widths.length,
+      `duplicate ${format} widths: ${widths.join()}`,
+    );
   }
 });
 

@@ -103,9 +103,15 @@ function readRollNotes(path: string): RollEntry[] {
  * time among its own photographs, computed here rather than by the pipeline,
  * since it is derived data rather than anything a photographer writes.
  */
-export function joinRolls(manifest: AlbumManifest, entries: readonly RollEntry[], batch: string): ArchiveRoll[] {
+export function joinRolls(
+  manifest: AlbumManifest,
+  entries: readonly RollEntry[],
+  batch: string,
+): ArchiveRoll[] {
   const notesById = new Map(
-    entries.filter((entry): entry is RollEntry & { id: string } => entry.id !== undefined).map((entry) => [entry.id, entry]),
+    entries
+      .filter((entry): entry is RollEntry & { id: string } => entry.id !== undefined)
+      .map((entry) => [entry.id, entry]),
   );
 
   const earliestByRoll = new Map<string, string>();
@@ -131,7 +137,9 @@ export function joinRolls(manifest: AlbumManifest, entries: readonly RollEntry[]
 
   const [orphan] = notesById.keys();
   if (orphan !== undefined) {
-    throw new Error(`albums/${batch}/rolls.yaml lists roll "${orphan}", which is not in the manifest. Run \`pnpm ingest\`.`);
+    throw new Error(
+      `albums/${batch}/rolls.yaml lists roll "${orphan}", which is not in the manifest. Run \`pnpm ingest\`.`,
+    );
   }
 
   return rolls;
@@ -164,10 +172,17 @@ export function joinBatch(
     frameByFile.set(photo.file, frame);
   }
 
-  function toArchivePhoto(photo: Photo, alt: string, caption: string | null, tags: readonly string[]): ArchivePhoto {
+  function toArchivePhoto(
+    photo: Photo,
+    alt: string,
+    caption: string | null,
+    tags: readonly string[],
+  ): ArchivePhoto {
     const roll = rollsById.get(photo.roll);
     if (roll === undefined) {
-      throw new Error(`${batch}: ${photo.file} belongs to roll "${photo.roll}", which is not in the manifest's rolls list.`);
+      throw new Error(
+        `${batch}: ${photo.file} belongs to roll "${photo.roll}", which is not in the manifest's rolls list.`,
+      );
     }
     const frame = frameByFile.get(photo.file);
     if (frame === undefined) throw new Error(`${batch}: ${photo.file} has no frame position.`);
@@ -181,11 +196,18 @@ export function joinBatch(
     if (entry.file === undefined) continue;
     const photo = byFile.get(entry.file);
     if (photo === undefined) {
-      throw new Error(`albums/${batch}/photos.yaml lists ${entry.file}, which is not in the manifest. Run \`pnpm ingest\`.`);
+      throw new Error(
+        `albums/${batch}/photos.yaml lists ${entry.file}, which is not in the manifest. Run \`pnpm ingest\`.`,
+      );
     }
     byFile.delete(entry.file);
     ordered.push(
-      toArchivePhoto(photo, entry.alt?.trim() ?? '', entry.caption?.trim() ? entry.caption.trim() : null, entry.tags ?? []),
+      toArchivePhoto(
+        photo,
+        entry.alt?.trim() ?? '',
+        entry.caption?.trim() ? entry.caption.trim() : null,
+        entry.tags ?? [],
+      ),
     );
   }
 
@@ -220,7 +242,9 @@ export function loadArchive(): Archive {
     .sort();
 
   if (slugs.length === 0) {
-    throw new Error(`No manifests in ${MANIFEST_DIRECTORY}.\nPut photographs in originals/<batch>/ and run \`pnpm ingest\`.`);
+    throw new Error(
+      `No manifests in ${MANIFEST_DIRECTORY}.\nPut photographs in originals/<batch>/ and run \`pnpm ingest\`.`,
+    );
   }
   return { photos: slugs.flatMap(loadBatch) };
 }
@@ -231,7 +255,10 @@ function byRollAndFrame(a: ArchivePhoto, b: ArchivePhoto): number {
 }
 
 /** Every view — a trip, a place, a subject — is this same query, just with a different predicate. Nothing about a tag is special-cased. */
-export function query(archive: Archive, predicate: (photo: ArchivePhoto) => boolean): ArchivePhoto[] {
+export function query(
+  archive: Archive,
+  predicate: (photo: ArchivePhoto) => boolean,
+): ArchivePhoto[] {
   return archive.photos.filter(predicate).sort(byRollAndFrame);
 }
 

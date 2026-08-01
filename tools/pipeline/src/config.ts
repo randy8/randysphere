@@ -32,7 +32,9 @@ export interface PipelineConfig {
 const SOURCE = 'pipeline.config.ts';
 
 function fail(path: string, expectation: string, actual: unknown): never {
-  throw new PipelineError(`${SOURCE}: ${path} ${expectation}, got ${JSON.stringify(actual) ?? 'undefined'}`);
+  throw new PipelineError(
+    `${SOURCE}: ${path} ${expectation}, got ${JSON.stringify(actual) ?? 'undefined'}`,
+  );
 }
 
 function readObject(value: unknown, path: string): Record<string, unknown> {
@@ -55,7 +57,8 @@ function readBoolean(value: unknown, path: string): boolean {
 }
 
 function readString(value: unknown, path: string): string {
-  if (typeof value !== 'string' || value.length === 0) fail(path, 'must be a non-empty string', value);
+  if (typeof value !== 'string' || value.length === 0)
+    fail(path, 'must be a non-empty string', value);
   return value;
 }
 

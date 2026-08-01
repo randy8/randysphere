@@ -47,7 +47,9 @@ export function createLocalStorage(directory: string): Storage {
       // The key alphabet excludes every character that could escape the
       // directory, but publishing writes files and the check is one line.
       if (!isDerivativeKey(key)) {
-        throw new PipelineError(`Refusing to write ${JSON.stringify(key)}: not a valid derivative key.`);
+        throw new PipelineError(
+          `Refusing to write ${JSON.stringify(key)}: not a valid derivative key.`,
+        );
       }
       const destination = join(directory, ...key.split('/'));
       if (!destination.startsWith(directory + sep)) {

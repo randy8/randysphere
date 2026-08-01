@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
 import { formatJson, writeFileAtomic } from './files.ts';
-import { readPreviousRecords, resolvePriorRecord } from './ingest.ts';
+import { readPreviousRecords, removeOrphanAlbums, resolvePriorRecord } from './ingest.ts';
 import type { PreviousRecords } from './ingest.ts';
 import type { AlbumManifest, PhotoRecord, VariantRecord } from './manifest.ts';
+import { resolvePaths } from './paths.ts';
 
 function variant(width: number): VariantRecord {
   return {
@@ -123,6 +124,45 @@ test('resolvePriorRecord treats a same-path re-export as a new identity, not a m
   const resolved = resolvePriorRecord(previous, '001.jpg', 'cccccccccccccccc');
 
   assert.equal(resolved?.sourceId, 'aaaaaaaaaaaaaaaa');
+});
+
+test('removeOrphanAlbums deletes the manifest and albums/<slug>/ for a batch no longer in originals/', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'photo-repo-'));
+  const paths = resolvePaths(root);
+  await mkdir(paths.manifests, { recursive: true });
+  await mkdir(join(paths.albums, 'renamed-trip'), { recursive: true });
+  await writeFileAtomic(
+    join(paths.manifests, 'renamed-trip.json'),
+    formatJson({ schemaVersion: 2, slug: 'renamed-trip', photos: [], rolls: [] }),
+  );
+  await writeFileAtomic(join(paths.albums, 'renamed-trip', 'photos.yaml'), 'photos: []\n');
+  await mkdir(join(paths.albums, 'current-trip'), { recursive: true });
+  await writeFileAtomic(
+    join(paths.manifests, 'current-trip.json'),
+    formatJson({ schemaVersion: 2, slug: 'current-trip', photos: [], rolls: [] }),
+  );
+
+  const removed = await removeOrphanAlbums(paths, ['current-trip']);
+
+  assert.deepEqual(removed, ['renamed-trip']);
+  const manifestFiles = await readdir(paths.manifests);
+  assert.deepEqual(manifestFiles.sort(), ['current-trip.json']);
+  await assert.rejects(readFile(join(paths.albums, 'renamed-trip', 'photos.yaml')));
+  await assert.doesNotReject(readFile(join(paths.manifests, 'current-trip.json')));
+});
+
+test('removeOrphanAlbums does nothing when every manifest still has a matching batch', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'photo-repo-'));
+  const paths = resolvePaths(root);
+  await mkdir(paths.manifests, { recursive: true });
+  await writeFileAtomic(
+    join(paths.manifests, 'current-trip.json'),
+    formatJson({ schemaVersion: 2, slug: 'current-trip', photos: [], rolls: [] }),
+  );
+
+  const removed = await removeOrphanAlbums(paths, ['current-trip']);
+
+  assert.deepEqual(removed, []);
 });
 
 test('a duplicate sourceId across two previous records collapses to one in the sourceId index, harmlessly', async () => {

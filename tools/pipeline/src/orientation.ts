@@ -17,7 +17,10 @@ export function isQuarterTurn(orientation: number | undefined): boolean {
   return orientation !== undefined && orientation >= 5 && orientation <= 8;
 }
 
-export function displayedDimensions(stored: Dimensions, orientation: number | undefined): Dimensions {
+export function displayedDimensions(
+  stored: Dimensions,
+  orientation: number | undefined,
+): Dimensions {
   return isQuarterTurn(orientation)
     ? { width: stored.height, height: stored.width }
     : { width: stored.width, height: stored.height };
