@@ -5,5 +5,5 @@
 # will not touch them.
 rolls:
   - id: .
-    filmStock: "ektar100"
-    notes: "My least favorite so far."
+    filmStock: 'ektar100'
+    notes: 'My least favorite so far.'

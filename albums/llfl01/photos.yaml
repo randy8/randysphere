@@ -1,0 +1,194 @@
+# Captions and alt text.
+#
+# `pnpm ingest` maintains which files are listed here and nothing else.
+# The order, the fields, and every comment are yours; re-running ingest will
+# not touch them. A photo is identified by its content (`sourceId`) first,
+# so moving or renaming a file in originals/ — even into a different roll —
+# keeps its entry below, alt text, caption, and tags intact. Only a photo
+# actually deleted from originals/ loses its entry.
+photos:
+  - file: RLiang0708261.tif
+    sourceId: 4a7ab2c6195adfa7
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082610.tif
+    sourceId: 9916b6ea5fb5cad3
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082611.tif
+    sourceId: cd7319faa166eca9
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082612.tif
+    sourceId: bfca84aabeaccdc4
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082613.tif
+    sourceId: 956dc0656354cd82
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082614.tif
+    sourceId: a200fc8f7b38b98e
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082615.tif
+    sourceId: 1f46881cc741d62c
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082616.tif
+    sourceId: 0092dbf93ac35da8
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082617.tif
+    sourceId: 8cb9e924e871c2eb
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082618.tif
+    sourceId: 11c7773077866214
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082619.tif
+    sourceId: 538784049805dfe7
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang0708262.tif
+    sourceId: e40abfd51c8dc5b3
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082620.tif
+    sourceId: db11dbc2484cc5c2
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082621.tif
+    sourceId: 2bd7e6a196efdc81
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082622.tif
+    sourceId: 961a4c2f4fa69f4c
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082623.tif
+    sourceId: 4780c18b7fa425a9
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082624.tif
+    sourceId: 0f8da39c52bf9383
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082625.tif
+    sourceId: c71f9f95fda9a984
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082626.tif
+    sourceId: cf79ce4ae1219990
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082627.tif
+    sourceId: 90829336fd81cbc1
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082628.tif
+    sourceId: e881413eb2dbbf44
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082629.tif
+    sourceId: 68959dbb27916723
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang0708263.tif
+    sourceId: f272b78a6e40b152
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082630.tif
+    sourceId: f7002f669f8c41ae
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082631.tif
+    sourceId: 94ca797c55c38387
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082632.tif
+    sourceId: 0953ba2e01c6d3fc
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082633.tif
+    sourceId: 3f96cdb4d27398b4
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082634.tif
+    sourceId: be3cc231a97b8182
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082635.tif
+    sourceId: 5a35878555bf9d0f
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082636.tif
+    sourceId: cdb5617f895acb46
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang07082637.tif
+    sourceId: 227f24789722d62f
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang0708264.tif
+    sourceId: 3df240c2e8bb8707
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang0708265.tif
+    sourceId: b2fdaf3b6653918b
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang0708266.tif
+    sourceId: 94f38fe47b09262c
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang0708267.tif
+    sourceId: 60abfdeebc75b4a0
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang0708268.tif
+    sourceId: 236edad2b0f9837c
+    alt: ''
+    tags:
+      - llfl01
+  - file: RLiang0708269.tif
+    sourceId: a9bda98c3316596a
+    alt: ''
+    tags:
+      - llfl01

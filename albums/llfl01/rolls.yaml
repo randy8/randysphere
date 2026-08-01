@@ -5,5 +5,5 @@
 # will not touch them.
 rolls:
   - id: .
-    filmStock: 'cinestill400d'
-    notes: 'Mixed results, but I do like the halation a lot. Need to try the 800d.'
+    filmStock: ''
+    notes: ''

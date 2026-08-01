@@ -5,5 +5,5 @@
 # will not touch them.
 rolls:
   - id: .
-    filmStock: "kodaktrix400"
-    notes: "Will be returning to this film stock a lot."
+    filmStock: 'kodaktrix400'
+    notes: 'Will be returning to this film stock a lot.'
