@@ -1,8 +1,8 @@
 ---
-title: "0830"
+title: '0830'
 date: 2026-07-29
-location: ""
-description: ""
+location: ''
+description: ''
 featured: false
-cover: 000008300001.tif
+cover: 000008300021.tif
 ---
