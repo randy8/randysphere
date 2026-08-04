@@ -11,6 +11,7 @@ import {
   StaleAlbumFileError,
   syncPhotosFile,
   syncRollsFile,
+  updateAlbumCover,
 } from './album-files.ts';
 import type { PhotoRef } from './album-files.ts';
 import { writeFileAtomic } from './files.ts';
@@ -408,6 +409,24 @@ test('applyPhotoEdits sets alt and clears caption via null without disturbing ot
   assert.doesNotMatch(updated, /caption:/);
 });
 
+test('applyPhotoEdits sets featured and featuredOrder, and null clears featuredOrder', async () => {
+  const directory = await emptyAlbumDirectory();
+  await syncPhotosFile(directory, refs(['001.jpg', '002.jpg']), 'paris-2025');
+
+  await applyPhotoEdits(directory, [{ file: '001.jpg', featured: true, featuredOrder: 2 }], null);
+  let updated = await readFile(join(directory, 'photos.yaml'), 'utf8');
+  assert.match(updated, /file: 001\.jpg[\s\S]*?featured: true[\s\S]*?featuredOrder: 2/);
+
+  await applyPhotoEdits(directory, [{ file: '001.jpg', featuredOrder: null }], null);
+  updated = await readFile(join(directory, 'photos.yaml'), 'utf8');
+  assert.match(updated, /file: 001\.jpg[\s\S]*?featured: true/);
+  assert.doesNotMatch(updated, /featuredOrder/);
+
+  await applyPhotoEdits(directory, [{ file: '001.jpg', featured: false }], null);
+  updated = await readFile(join(directory, 'photos.yaml'), 'utf8');
+  assert.match(updated, /file: 001\.jpg[\s\S]*?featured: false/);
+});
+
 test('applyPhotoEdits throws StaleAlbumFileError when the file changed since expectedVersion was captured', async () => {
   const directory = await emptyAlbumDirectory();
   await syncPhotosFile(directory, refs(['001.jpg']), 'paris-2025');
@@ -458,4 +477,44 @@ test('album.md is scaffolded once and never touched again', async () => {
   );
   assert.equal(createdAgain, false);
   assert.equal(await readFile(join(directory, 'album.md'), 'utf8'), first);
+});
+
+test('updateAlbumCover changes only cover, leaving every hand-written field untouched', async () => {
+  const directory = await emptyAlbumDirectory();
+  await scaffoldAlbumMarkdown(directory, 'sample-album', '2024-02-11T00:00:00', '001.jpg');
+  await writeFileAtomic(
+    join(directory, 'album.md'),
+    (await readFile(join(directory, 'album.md'), 'utf8')).replace(
+      "location: ''",
+      "location: 'Richmond, Virginia'",
+    ),
+  );
+
+  await updateAlbumCover(directory, '002.jpg');
+
+  const content = await readFile(join(directory, 'album.md'), 'utf8');
+  assert.match(content, /cover: 002\.jpg/);
+  assert.match(content, /location: 'Richmond, Virginia'/);
+  assert.match(content, /title: Sample Album/);
+});
+
+test('updateAlbumCover throws rather than reformat a file our own writer would not produce faithfully', async () => {
+  const directory = await emptyAlbumDirectory();
+  await writeFileAtomic(
+    join(directory, 'album.md'),
+    '---\ntitle:   Sample Album   # extra spacing\ncover: 001.jpg\n---\n',
+  );
+  await assert.rejects(
+    () => updateAlbumCover(directory, '002.jpg'),
+    /needs updating, but rewriting it would also reformat it/,
+  );
+});
+
+test('updateAlbumCover throws when the file has no frontmatter block', async () => {
+  const directory = await emptyAlbumDirectory();
+  await writeFileAtomic(join(directory, 'album.md'), 'Just some notes, no frontmatter.\n');
+  await assert.rejects(
+    () => updateAlbumCover(directory, '002.jpg'),
+    /expected to start with a "---" YAML frontmatter block/,
+  );
 });

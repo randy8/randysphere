@@ -118,6 +118,8 @@ export interface PhotosFileEntry {
   readonly alt: string;
   readonly caption: string | null;
   readonly tags: readonly string[];
+  readonly featured: boolean;
+  readonly featuredOrder: number | null;
 }
 
 /** Read-only. Used by `pnpm describe` to see what's already written before deciding whether to generate anything. */
@@ -142,12 +144,15 @@ export async function readPhotosFile(albumDirectory: string): Promise<PhotosFile
     const map = item as YAMLMap;
     const alt = map.get('alt');
     const caption = map.get('caption');
+    const featuredOrder = map.get('featuredOrder');
     return {
       file,
       sourceId: entrySourceId(map),
       alt: typeof alt === 'string' ? alt : '',
       caption: typeof caption === 'string' && caption.length > 0 ? caption : null,
       tags: readTags(map),
+      featured: map.get('featured') === true,
+      featuredOrder: typeof featuredOrder === 'number' ? featuredOrder : null,
     };
   });
 }
@@ -566,6 +571,10 @@ export interface PhotoEdit {
   readonly alt?: string;
   /** Present & string => replace. Present & null => delete the key entirely. Absent => leave untouched. */
   readonly caption?: string | null;
+  /** Present => replace. Absent => leave untouched. Selected Work — see archive.ts's selectedWork(). */
+  readonly featured?: boolean;
+  /** Present & number => replace. Present & null => delete the key entirely (unordered, sorts after every ordered photo). Absent => leave untouched. */
+  readonly featuredOrder?: number | null;
 }
 
 export interface ApplyPhotoEditsResult {
@@ -647,6 +656,11 @@ export async function applyPhotoEdits(
       }
       item.set('tags', document.createNode(kept));
     }
+    if (edit.featured !== undefined) item.set('featured', edit.featured);
+    if (edit.featuredOrder !== undefined) {
+      if (edit.featuredOrder === null) item.delete('featuredOrder');
+      else item.set('featuredOrder', edit.featuredOrder);
+    }
   }
 
   const rendered = document.toString({ lineWidth: 0, singleQuote: true });
@@ -696,4 +710,64 @@ export async function scaffoldAlbumMarkdown(
 
   await writeFileAtomic(path, `---\n${frontmatter}---\n`);
   return true;
+}
+
+const FRONTMATTER_PATTERN = /^---\n([\s\S]*?)\n---\n?/;
+
+/**
+ * Read-only. The pipeline's own equivalent of the site's
+ * `site/src/photography/archive.ts#readAlbumCover` — duplicated rather than
+ * shared, same as the rest of this file's relationship to the site (see
+ * docs/decisions.md, "type-only boundary"). Used by the editor to show which
+ * photo is currently the album's cover. Never throws on a missing or
+ * malformed file: a cover that can't be determined just means "none set"
+ * to a read-only caller, the same tolerant behaviour the site's reader has.
+ */
+export async function readAlbumCover(albumDirectory: string): Promise<string | null> {
+  let original: string;
+  try {
+    original = await readFile(join(albumDirectory, ALBUM_FILE), 'utf8');
+  } catch {
+    return null;
+  }
+  const match = FRONTMATTER_PATTERN.exec(original);
+  if (match?.[1] === undefined) return null;
+  const document = parseDocument(match[1]);
+  if (document.errors.length > 0) return null;
+  const cover = document.get('cover');
+  return typeof cover === 'string' && cover.length > 0 ? cover : null;
+}
+
+/**
+ * Sets `cover` in an *existing* album.md's frontmatter — the one field on
+ * that file with a real caller (the editor's "set as cover" action) other
+ * than the human who wrote the rest of it by hand. Everything else in the
+ * file (title, date, location, description, featured, any comments) is
+ * left exactly as it was: parsed, one key changed, re-serialized, same
+ * round-trip guard `applyPhotoEdits` uses, so a shape our own writer
+ * wouldn't produce faithfully is refused rather than silently reformatted.
+ */
+export async function updateAlbumCover(albumDirectory: string, coverFile: string): Promise<void> {
+  const path = join(albumDirectory, ALBUM_FILE);
+  const original = await readFile(path, 'utf8');
+  const match = FRONTMATTER_PATTERN.exec(original);
+  if (match?.[1] === undefined) {
+    throw new PipelineError(`${path}: expected to start with a "---" YAML frontmatter block.`);
+  }
+
+  const document = parseDocument(match[1]);
+  if (document.errors.length > 0) {
+    const [first] = document.errors;
+    throw new PipelineError(`${path}: ${first?.message ?? 'could not be parsed as YAML'}`);
+  }
+  if (`${document.toString({ lineWidth: 0, singleQuote: true })}` !== `${match[1]}\n`) {
+    throw new PipelineError(
+      `${path} needs updating, but rewriting it would also reformat it. Edit it by hand.`,
+    );
+  }
+
+  document.set('cover', coverFile);
+  const rendered = document.toString({ lineWidth: 0, singleQuote: true });
+  const rest = original.slice(match[0].length);
+  await writeFileAtomic(path, `---\n${rendered}---\n${rest}`);
 }

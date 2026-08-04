@@ -37,6 +37,21 @@ export interface ArchivePhoto {
   readonly tags: readonly string[];
   readonly alt: string;
   readonly caption: string | null;
+  /**
+   * Hand-picked for Selected Work, from photos.yaml — a photographer's
+   * editorial choice, per photo, not derived. See `selectedWork()`.
+   */
+  readonly featured: boolean;
+  /** Manual sequence position within Selected Work; null if unset. See `selectedWork()`. */
+  readonly featuredOrder: number | null;
+  /**
+   * True if this is the photo album.md's `cover:` field names for this
+   * batch — presentation order, not archival order. `coverPhoto()` prefers
+   * it; the archive's own chronological order (`frame`, `byRollAndFrame`)
+   * is untouched either way. See docs/decisions.md, "presentation order is
+   * independent from archival order."
+   */
+  readonly cover: boolean;
 }
 
 export interface Archive {
@@ -74,6 +89,10 @@ interface PhotoEntry {
   readonly alt?: string;
   readonly caption?: string;
   readonly tags?: string[];
+  /** Hand-picked for Selected Work — a photographer's editorial choice, per photo, not derived. */
+  readonly featured?: boolean;
+  /** Manual sequence position within Selected Work; lower sorts first. Photos without one sort after those with one, by archival order. */
+  readonly featuredOrder?: number;
 }
 
 function readCaptions(path: string): PhotoEntry[] {
@@ -157,6 +176,7 @@ export function joinBatch(
   entries: readonly PhotoEntry[],
   rolls: readonly ArchiveRoll[],
   batch: string,
+  coverFile: string | null,
 ): ArchivePhoto[] {
   const rollsById = new Map(rolls.map((roll) => [roll.id, roll]));
 
@@ -177,6 +197,8 @@ export function joinBatch(
     alt: string,
     caption: string | null,
     tags: readonly string[],
+    featured: boolean,
+    featuredOrder: number | null,
   ): ArchivePhoto {
     const roll = rollsById.get(photo.roll);
     if (roll === undefined) {
@@ -186,7 +208,18 @@ export function joinBatch(
     }
     const frame = frameByFile.get(photo.file);
     if (frame === undefined) throw new Error(`${batch}: ${photo.file} has no frame position.`);
-    return { photo, batch, roll, frame, tags, alt, caption };
+    return {
+      photo,
+      batch,
+      roll,
+      frame,
+      tags,
+      alt,
+      caption,
+      featured,
+      featuredOrder,
+      cover: photo.file === coverFile,
+    };
   }
 
   const byFile = new Map(manifest.photos.map((photo) => [photo.file, photo]));
@@ -207,6 +240,8 @@ export function joinBatch(
         entry.alt?.trim() ?? '',
         entry.caption?.trim() ? entry.caption.trim() : null,
         entry.tags ?? [],
+        entry.featured === true,
+        typeof entry.featuredOrder === 'number' ? entry.featuredOrder : null,
       ),
     );
   }
@@ -214,9 +249,28 @@ export function joinBatch(
   // Anything ingested but not yet listed still appears, at the end, rather
   // than silently vanishing from the archive.
   for (const photo of byFile.values()) {
-    ordered.push(toArchivePhoto(photo, '', null, []));
+    ordered.push(toArchivePhoto(photo, '', null, [], false, null));
   }
   return ordered;
+}
+
+/**
+ * `album.md`'s frontmatter, YAML between the opening and closing `---`
+ * lines. A hand-set editorial choice, not derived — `pnpm ingest` only ever
+ * scaffolds this file once (with `cover` defaulted to whatever photo was
+ * first at scaffold time) and never touches it again (see docs/decisions.md).
+ * `cover` is presentation order, deliberately independent of the archive's
+ * chronological order: a stale or malformed value (renamed file, typo) just
+ * falls back to `coverPhoto`'s chronological default rather than failing the
+ * build — unlike photos.yaml/rolls.yaml, album.md is never validated against
+ * the manifest.
+ */
+function readAlbumCover(path: string): string | null {
+  if (!existsSync(path)) return null;
+  const match = /^---\n([\s\S]*?)\n---/.exec(readFileSync(path, 'utf8'));
+  if (match?.[1] === undefined) return null;
+  const data = (parse(match[1]) ?? {}) as { cover?: string };
+  return typeof data.cover === 'string' && data.cover.length > 0 ? data.cover : null;
 }
 
 function loadBatch(slug: string): ArchivePhoto[] {
@@ -224,8 +278,9 @@ function loadBatch(slug: string): ArchivePhoto[] {
   const manifest = readManifest(JSON.parse(readFileSync(manifestPath, 'utf8')), manifestPath);
   const captions = readCaptions(join(ALBUM_DIRECTORY, slug, 'photos.yaml'));
   const rollNotes = readRollNotes(join(ALBUM_DIRECTORY, slug, 'rolls.yaml'));
+  const cover = readAlbumCover(join(ALBUM_DIRECTORY, slug, 'album.md'));
   const rolls = joinRolls(manifest, rollNotes, slug);
-  return joinBatch(manifest, captions, rolls, slug);
+  return joinBatch(manifest, captions, rolls, slug, cover);
 }
 
 /** Reads every batch's manifest and merges them into one canonical, flat archive. */
@@ -271,7 +326,33 @@ export function allTags(archive: Archive): string[] {
   return [...new Set(archive.photos.flatMap((photo) => photo.tags))].sort();
 }
 
+/**
+ * Film stock is roll-level data (rolls.yaml), not a tag — physically, a roll
+ * is loaded with one stock at a time. `byFilmStock` queries it the same way
+ * `byTag` queries tags: same `query()`, a different predicate.
+ */
+export function byFilmStock(archive: Archive, filmStock: string): ArchivePhoto[] {
+  return query(archive, (photo) => photo.roll.filmStock === filmStock);
+}
+
+/** Every distinct film stock actually in use — rolls with no filmStock noted yet are excluded, not shown as "". */
+export function allFilmStocks(archive: Archive): string[] {
+  return [
+    ...new Set(
+      archive.photos.map((photo) => photo.roll.filmStock).filter((stock) => stock.length > 0),
+    ),
+  ].sort();
+}
+
+/**
+ * A tag like `paris-2025` is already a name and is humanised as one. A tag
+ * that's still a raw batch id (`0827`, all digits — see CLAUDE.md's known
+ * limitations) isn't a name yet, so it's labelled honestly as what it
+ * actually is — a roll — rather than presented bare, as if "0827" were a
+ * considered title.
+ */
 function titleFromTag(tag: string): string {
+  if (/^\d+$/.test(tag)) return `Roll ${tag}`;
   return tag
     .split('-')
     .map((word) => (word.length > 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word))
@@ -284,21 +365,67 @@ export interface View {
   /** Earliest EXIF capture date across the view's photos, or null if none carry one. There is no authored title/description yet — see docs/decisions.md. */
   readonly date: string | null;
   readonly photos: readonly ArchivePhoto[];
+  /** The roll every photo in the view shares, or null if the view spans more than one — a view isn't always one roll, so this is never assumed. */
+  readonly roll: ArchiveRoll | null;
+}
+
+function buildView(key: string, title: string, photos: readonly ArchivePhoto[]): View {
+  const dates = photos
+    .map((photo) => photo.photo.camera?.takenAt)
+    .filter((value): value is string => value !== null && value !== undefined)
+    .sort();
+  const [firstRoll] = photos;
+  const roll =
+    firstRoll !== undefined && photos.every((photo) => photo.roll.id === firstRoll.roll.id)
+      ? firstRoll.roll
+      : null;
+  return { tag: key, title, date: dates[0]?.slice(0, 10) ?? null, photos, roll };
 }
 
 /** A trip page is `viewForTag(archive, "paris-2025")` — the exact same function a place or subject page would call. */
 export function viewForTag(archive: Archive, tag: string): View {
   const photos = byTag(archive, tag);
   if (photos.length === 0) throw new Error(`No photographs are tagged "${tag}".`);
-  const dates = photos
-    .map((photo) => photo.photo.camera?.takenAt)
-    .filter((value): value is string => value !== null && value !== undefined)
-    .sort();
-  return { tag, title: titleFromTag(tag), date: dates[0]?.slice(0, 10) ?? null, photos };
+  return buildView(tag, titleFromTag(tag), photos);
 }
 
+/** A film stock page is the same query and the same View shape as a tag page — see byFilmStock. */
+export function viewForFilmStock(archive: Archive, filmStock: string): View {
+  const photos = byFilmStock(archive, filmStock);
+  if (photos.length === 0) throw new Error(`No photographs are shot on "${filmStock}".`);
+  return buildView(filmStock, filmStock, photos);
+}
+
+/**
+ * Selected Work: a hand-picked, hand-ordered sequence across the whole
+ * archive — deliberately not chronological. A photo is included by
+ * `photos.yaml`'s per-photo `featured: true`; its position comes from
+ * `featuredOrder` (lower first). A photo with `featured: true` but no
+ * `featuredOrder` set yet still appears, after every ordered one, in the
+ * archive's own chronological order — so marking a photo Selected Work is
+ * never blocked on also deciding exactly where it goes.
+ */
+export function selectedWork(archive: Archive): ArchivePhoto[] {
+  return archive.photos
+    .filter((photo) => photo.featured)
+    .sort((a, b) => {
+      if (a.featuredOrder !== null && b.featuredOrder !== null) {
+        return a.featuredOrder - b.featuredOrder || byRollAndFrame(a, b);
+      }
+      if (a.featuredOrder !== null) return -1;
+      if (b.featuredOrder !== null) return 1;
+      return byRollAndFrame(a, b);
+    });
+}
+
+/**
+ * Presentation order, not archival order: a manually chosen cover
+ * (album.md's `cover:`) wins if the view includes one, falling back to the
+ * chronologically first photo otherwise. `photos` is expected pre-sorted
+ * chronologically (`byRollAndFrame`) — this never reorders it.
+ */
 export function coverPhoto(photos: readonly ArchivePhoto[]): ArchivePhoto {
   const first = photos[0];
   if (first === undefined) throw new Error('This view has no photographs.');
-  return first;
+  return photos.find((photo) => photo.cover) ?? first;
 }

@@ -1,0 +1,36 @@
+---
+import '../../recipes/recipes.css';
+import Base from '../../layouts/Base.astro';
+import { loadRecipes } from '../../recipes/recipes.ts';
+import { recipes as config } from '../../recipes/config.ts';
+
+const items = loadRecipes();
+---
+
+<Base title={config.title} description={config.description}>
+  <div class="recipe-scope">
+    <header class="album-header">
+      <h1>{config.title}</h1>
+      <p class="lede">{config.description}</p>
+    </header>
+
+    <ul class="recipe-index">
+      {
+        items.map((recipe) => (
+          <li>
+            <a href={`/recipes/${recipe.slug}/`}>
+              <h2>{recipe.title}</h2>
+              <p class="recipe-index-description">{recipe.description}</p>
+              <p class="recipe-index-meta">
+                <span>Prep {recipe.prepTime}</span>
+                <span>Cook {recipe.cookTime}</span>
+                <span>Serves {recipe.servings}</span>
+                <span>{recipe.difficulty}</span>
+              </p>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</Base>

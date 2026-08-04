@@ -212,3 +212,51 @@ untouched. `rolls.yaml`'s identical problem one level up (renaming a roll
 directory still loses its film-stock notes) is a known, smaller gap left
 for later, not fixed here: a roll has no single hashable identity the way
 one photo does.
+
+---
+
+## 2026-08-03 — The site becomes multi-collection, and photography gets a front of house
+
+The homepage stopped being the photography archive. `/` is now a short table
+of contents introducing **collections**, and photography — still the flagship,
+still the only one with a pipeline behind it — moved to `/photography/`
+alongside a second collection, recipes, at `/recipes/`. Everything specific to
+photographs moved with it, out of the shared `src/components/`, `src/lib/`, and
+`src/scripts/` and into `src/photography/`. What stayed shared is what is
+genuinely site-wide: the page shell, the type and colour tokens, the author's
+name.
+
+This is the archive-model argument from July 29th one level up. That entry
+refused to invent a second structural concept next to the first, and collapsed
+trip, place, and subject into tags. The same question arrived again from
+outside: photographs are not the only thing worth archiving carefully, and the
+alternatives were a second site or a homepage that grows a branch per content
+type. A registry (`site/src/collections.ts`) makes a collection a piece of
+data instead — adding one is an entry there plus its own pages directory,
+never an edit to the homepage or to another collection. The homepage's counts
+are computed by asking each collection to count its own things, so they can't
+drift the way a hand-typed number does.
+
+Recipes deliberately arrived with none of photography's machinery: one
+hand-written YAML file per recipe, read straight off disk, no ingest step, no
+manifest, no images. That asymmetry is the proof the seam is real. A
+collection brings only what its content actually needs, which is the whole
+reason adding one is supposed to be cheap.
+
+Photography also gained a front of house it didn't have: a **Selected Work**
+sequence, an **Archive** index, an **About** page, and film-stock views at
+`/photography/film/<stock>/` built from the roll notes that were already being
+recorded and, until now, never shown. Selected Work is the interesting one,
+because it is explicitly *not* a tag — `featured` and `featuredOrder` in
+`photos.yaml` let a photographer pick and order a run of photographs by hand,
+which is a claim about presentation that a tag has no way to make. The same
+distinction gave `album.md` a working `cover:` field. Both sit on top of the
+archive's chronological order without disturbing it: a photograph being
+featured changes nothing about where it appears in its own tag's view.
+
+What this does not yet fix is the thing that most needs fixing. All 289
+photographs across eight batches still carry only their auto-seeded batch-id
+tags, and all 289 still have empty alt text. The new pages make that more
+visible, not less: Selected Work currently holds four photographs, and the
+archive index lists eight views named after directories. Tagging and
+describing the real archive remains the next real work.

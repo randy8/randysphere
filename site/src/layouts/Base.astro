@@ -21,11 +21,10 @@ const fullTitle = title === site.title ? title : `${title} — ${site.title}`;
     <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site).href} />
   </head>
   <body>
-    <a class="skip-link" href="#content">Skip to the photographs</a>
+    <a class="skip-link" href="#content">Skip to content</a>
     <div class="wrap">
       <header class="masthead">
         <a class="wordmark" href="/">{site.title}</a>
-        <nav><a href="/">Projects</a></nav>
       </header>
       <main id="content">
         <slot />

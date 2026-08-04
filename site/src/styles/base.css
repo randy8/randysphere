@@ -1,23 +1,57 @@
 /*
+ * Newsreader (SIL Open Font License), self-hosted under public/fonts/ —
+ * chosen for exactly the editorial-book register the rest of this stylesheet
+ * is going for: a serif built for long-form reading with real optical weight
+ * range and a genuine designed italic, not a system-font approximation of
+ * one. Latin subset only (this site is English-only); a single variable
+ * file per style covers weight 200–800, so every heading weight below draws
+ * from the same two files rather than needing one download per weight.
+ * Falls back to the previous system stack if it fails to load or an older
+ * browser doesn't support variable fonts.
+ */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/newsreader-variable.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2122,
+    U+2191, U+2193, U+2212, U+2215;
+}
+@font-face {
+  font-family: 'Newsreader';
+  font-style: italic;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/newsreader-variable-italic.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2122,
+    U+2191, U+2193, U+2212, U+2215;
+}
+
+/*
  * Deliberately small. The design system arrives with its own change; this is
  * only what the photographs need in order not to be embarrassed.
  */
 :root {
-  --paper: #fafaf8;
-  --ink: #141414;
-  --muted: #6b6b66;
-  --rule: #e2e2dd;
+  /* A warm, uncoated-paper palette rather than a neutral UI gray scale —
+     closer to a printed page than a screen. */
+  --paper: #f6f1e6;
+  --ink: #16130f;
+  --muted: #7c7364;
+  --rule: #ddd3c0;
   --measure: 64ch;
-  --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --serif: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
   --sans: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #0b0b0b;
-    --ink: #ededea;
-    --muted: #8f8f89;
-    --rule: #232320;
+    --paper: #0d0c09;
+    --ink: #ece6d8;
+    --muted: #948a76;
+    --rule: #262219;
   }
 }
 
@@ -72,21 +106,28 @@ body {
   font-size: 1rem;
   letter-spacing: 0.02em;
 }
-.masthead nav {
-  font-family: var(--sans);
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
 
+/*
+ * The archive's one recurring "label" voice — a wall label or a colophon
+ * line, not an app affordance. Small caps in the body serif, not an
+ * uppercase sans grabbing attention it hasn't earned. Every metadata line
+ * in the site (dates, film stock, position markers) shares this.
+ */
 .eyebrow {
-  font-family: var(--sans);
-  font-size: 0.6875rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-family: var(--serif);
+  font-variant-caps: small-caps;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
   color: var(--muted);
   margin: 0 0 0.5rem;
+}
+.eyebrow a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+}
+.eyebrow a:hover {
+  border-color: var(--ink);
 }
 
 h1 {
@@ -114,48 +155,154 @@ main {
 .album-header {
   margin-bottom: 3.5rem;
 }
-
-.albums {
-  display: grid;
-  gap: 3.5rem;
+/*
+ * The Archive index: every cover gets the same column width and no other
+ * imposed size — the only variation is each photograph's own height, from
+ * its real aspect ratio. That is the entire source of rhythm on this page:
+ * not a size assigned by position, which read as generated because it was.
+ * A CSS multi-column flow (not a grid) lets each cover sit at its natural
+ * height and the next one start immediately below it, the way a printed
+ * page of plates flows, rather than being locked to a shared row height.
+ * No cards, no borders, no shadows — a photograph and a caption under it.
+ */
+.archive-composition {
+  columns: 1;
+  column-gap: 3rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.album-card a {
-  color: inherit;
-  text-decoration: none;
-  display: block;
-}
-.album-card figcaption {
-  margin-top: 0.875rem;
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: baseline;
-}
-.album-card .meta {
-  font-family: var(--sans);
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2.5rem;
-}
 @media (min-width: 40rem) {
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
+  .archive-composition {
+    columns: 2;
   }
 }
 @media (min-width: 64rem) {
-  .grid {
-    grid-template-columns: repeat(3, 1fr);
+  .archive-composition {
+    columns: 3;
   }
+}
+.archive-entry {
+  break-inside: avoid;
+  margin-bottom: 3.5rem;
+}
+.archive-entry a {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+/* Quiet editorial captions, not headlines: the photograph is the point.
+   Film stock keeps the priority position (before the date) that makes it
+   findable, but none of the weight it had before — supporting information,
+   never competing with the title above it. */
+.archive-entry figcaption {
+  margin-top: 0.875rem;
+}
+.archive-entry h2 {
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: -0.005em;
+}
+.archive-entry .meta {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0;
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.archive-entry .meta span:not(:last-child)::after {
+  content: '·';
+  margin-left: 0.5rem;
+  color: var(--rule);
+}
+
+/*
+ * The homepage is a table of contents, not a set of landing-page cards —
+ * one collection per row, a real computed stat line instead of a picture,
+ * ranked in collections.ts's own order. No image ever appears here: the
+ * homepage introduces the archive, it never shows what's inside it.
+ */
+.archive-label {
+  margin: 2.5rem 0 0.75rem;
+}
+.archive-index {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--rule);
+}
+.archive-index li {
+  border-bottom: 1px solid var(--rule);
+}
+.archive-index a {
+  display: block;
+  padding: 1.75rem 0;
+  color: inherit;
+  text-decoration: none;
+}
+.archive-index h2 {
+  font-size: 1.375rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.archive-index .lede {
+  margin: 0.375rem 0 0.625rem;
+}
+.archive-index-stats {
+  margin: 0;
+  font-family: var(--serif);
+  font-variant-caps: small-caps;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+/*
+ * The grid is a contact sheet, not a gallery — an index to consult, not the
+ * reading experience. Small, dense, numbered by frame, uncaptioned: the
+ * photographs themselves only get shown at size in scroll mode.
+ *
+ * A shared row height, not a shared column width: an equal-width grid gives
+ * every photograph the same footprint on the short edge and lets the long
+ * edge run free, so a portrait frame — same width, taller — ends up
+ * spanning two row-heights and reading as roughly twice the print size of
+ * its landscape neighbours. Flush-left flex-wrap at a fixed height inverts
+ * that: the long edge (a landscape's width, a portrait's height) is what's
+ * held equal, exactly the way prints of different aspect ratios hang at the
+ * same size in an exhibition. Nothing is cropped or upscaled — each photo's
+ * own aspect ratio still decides its width at that height.
+ */
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.grid figure {
+  flex: 0 0 auto;
+  height: clamp(7.5rem, 3rem + 13vw, 12rem);
+}
+.grid .photo,
+.grid picture {
+  display: block;
+  height: 100%;
+}
+.grid .photo img {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+}
+.frame-mark {
+  display: block;
+  margin-top: 0.25rem;
+  font-family: var(--serif);
+  font-variant-numeric: oldstyle-nums tabular-nums;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: right;
 }
 
 figure {
@@ -193,9 +340,10 @@ a:focus-visible,
 .site-footer {
   border-top: 1px solid var(--rule);
   padding: 1.5rem 0 3rem;
-  font-family: var(--sans);
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
+  font-family: var(--serif);
+  font-variant-caps: small-caps;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
   color: var(--muted);
 }
 
@@ -209,7 +357,8 @@ a:focus-visible,
 body.is-browsing .masthead,
 body.is-browsing .album-header,
 body.is-browsing .grid,
-body.is-browsing .site-footer {
+body.is-browsing .site-footer,
+body.is-browsing .photography-nav {
   display: none;
 }
 body.is-browsing {
@@ -228,64 +377,152 @@ body.is-browsing .browse {
   display: block;
 }
 
-.browse-bar {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.5rem;
-  background: var(--paper);
-  border-bottom: 1px solid var(--rule);
-}
+/*
+ * No bar, no position counter — a book doesn't tell you "page 12 of 37"
+ * while you're reading it. The one way out is a single quiet mark, fixed
+ * in a corner, present but not competing with the photograph on screen.
+ * mix-blend-mode keeps it legible against whatever tone the current image
+ * happens to be, without a background chip behind it.
+ */
 .browse-close {
+  position: fixed;
+  left: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 2;
   appearance: none;
   background: none;
   border: 0;
-  color: inherit;
   cursor: pointer;
-  font-family: var(--sans);
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-family: var(--serif);
+  font-variant-caps: small-caps;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  color: #fff;
+  mix-blend-mode: difference;
+  opacity: 0.5;
   padding: 0.5rem;
   margin: -0.5rem;
+  transition: opacity 0.2s ease;
 }
-.browse-close:hover {
-  opacity: 0.7;
-}
-.browse-position {
-  font-family: var(--sans);
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
+.browse-close:hover,
+.browse-close:focus-visible {
+  opacity: 1;
 }
 
 .browse-stack {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4rem;
-  padding: 2rem 1.5rem 8rem;
+  gap: 5rem;
+  /* A small gutter, not a margin — the photograph is meant to nearly span
+     this, not sit inside it as a framed inset. */
+  padding: 2rem 1.5rem 12rem;
   scroll-snap-type: y proximity;
 }
+@media (min-width: 40rem) {
+  .browse-stack {
+    padding-inline: 2rem;
+  }
+}
+@media (min-width: 64rem) {
+  .browse-stack {
+    padding-inline: 2.5rem;
+  }
+}
+@media (min-width: 48rem) {
+  .browse-stack {
+    gap: 8rem;
+  }
+}
+.browse-intro {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.5rem;
+  scroll-snap-align: start;
+}
+.browse-intro h2 {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.browse-intro-meta {
+  margin: 0.5rem 0 0;
+  display: flex;
+  gap: 0.75rem;
+  font-family: var(--serif);
+  font-variant-caps: small-caps;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.browse-intro-meta span:not(:last-child)::after {
+  content: '·';
+  margin-left: 0.75rem;
+  color: var(--rule);
+}
+.browse-intro-meta .film-stock {
+  font-weight: 600;
+}
+.browse-intro-meta .film-stock a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+}
+.browse-intro-meta .film-stock a:hover {
+  border-color: var(--ink);
+}
+.browse-intro-cue {
+  margin: 3rem 0 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+  animation: browse-intro-cue-fade 3s ease-in-out infinite;
+}
+@keyframes browse-intro-cue-fade {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .browse-intro-cue {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
 .browse-item {
   margin: 0;
   scroll-snap-align: start;
-  max-width: 100%;
+  width: 100%;
+  /* Elegantly constrained by the site's own content width (matches .wrap),
+     not truly edge-to-edge — a ceiling for large screens, not a target. */
+  max-width: 76rem;
+}
+/* A held breath every few frames — pacing, not a metronome. */
+.browse-item:nth-of-type(5n) {
+  margin-top: 3rem;
 }
 .browse-item .photo {
   display: flex;
   justify-content: center;
 }
 .browse-item .photo img {
-  width: auto;
+  /* Width-driven, not height-driven: the photograph fills the gutter
+     instead of being boxed to a viewport-height fraction and floating in
+     whatever cream space that leaves on either side. No card, no frame —
+     just the image and the small gutter around it. */
+  width: 100%;
   height: auto;
   max-width: 100%;
-  max-height: 86vh;
   margin: 0 auto;
   background-size: contain;
   background-position: center;
@@ -297,4 +534,23 @@ body.is-browsing .browse {
   text-align: center;
   color: var(--muted);
   font-size: 0.9375rem;
+}
+/* Per-photo film stock, shown only in views that span more than one roll
+   (see Browse.astro) — as quiet as the single-roll intro panel's version. */
+.browse-item-meta {
+  margin: 0.875rem 0 0;
+  text-align: center;
+  font-family: var(--serif);
+  font-variant-caps: small-caps;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+}
+.browse-item-meta a {
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+}
+.browse-item-meta a:hover {
+  color: var(--ink);
+  border-color: var(--ink);
 }

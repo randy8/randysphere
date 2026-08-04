@@ -1,37 +1,31 @@
 ---
-import Photo from '../components/Photo.astro';
 import Base from '../layouts/Base.astro';
-import { allTags, coverPhoto, loadArchive, viewForTag } from '../lib/archive.ts';
+import { collections } from '../collections.ts';
 import { site } from '../config.ts';
-
-const archive = loadArchive();
-const views = allTags(archive).map((tag) => viewForTag(archive, tag));
 ---
 
+{
+  /*
+    The masthead (Base.astro) already carries the site identity on every
+    page — repeating "Randy Liang" as this page's own h1 right underneath it
+    said the same thing twice within a few lines. The h1 here introduces the
+    page instead of re-announcing who it belongs to.
+  */
+}
 <Base title={site.title}>
   <header class="album-header">
-    <p class="eyebrow">Projects</p>
-    <h1>{site.title}</h1>
-    <p class="lede">{site.description}</p>
+    <h1>{site.description}</h1>
   </header>
 
-  <ul class="albums">
+  <p class="eyebrow archive-label">Archive</p>
+  <ul class="archive-index">
     {
-      views.map((view, index) => (
-        <li class="album-card">
-          <a href={`/projects/${view.tag}/`}>
-            <figure>
-              <Photo
-                entry={coverPhoto(view.photos)}
-                sizes="(min-width: 76rem) 72rem, 100vw"
-                priority={index === 0}
-                linked={false}
-              />
-              <figcaption>
-                <h2>{view.title}</h2>
-                {view.date && <span class="meta">{view.date}</span>}
-              </figcaption>
-            </figure>
+      collections.map((collection) => (
+        <li>
+          <a href={collection.href}>
+            <h2>{collection.title}</h2>
+            <p class="lede">{collection.description}</p>
+            <p class="archive-index-stats">{collection.stats()}</p>
           </a>
         </li>
       ))

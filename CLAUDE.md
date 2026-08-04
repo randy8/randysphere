@@ -8,25 +8,39 @@ behind each one, `docs/dependencies.md` for why each dependency exists, and
 
 ## What this project is
 
-A personal, long-term photography archive and photojournal — not a
-conventional portfolio, not a social-media-style gallery. The experience
-should feel closer to reading a well-designed photography book than operating
-a web app: photographs are shown large and unhurried, and the site disappears
-in favor of the pictures. No engagement mechanics, no feeds, no chrome that
-isn't earned.
+A personal, long-term archive, not a conventional portfolio or a
+social-media-style gallery. `/` is a homepage that introduces **collections**
+(`site/src/collections.ts`) — photography is the first and flagship one,
+recipes is the second, and more (running, films, writing) are added the same
+way: a new entry plus its own `src/pages/<slug>/`. The homepage introduces
+collections; it never shows individual photographs or other content directly.
 
-The visual model to design against is an independent magazine, a museum
-archive, or a photobook publisher — not a photography portfolio. Prioritize
-navigation, sequencing, and the photographs themselves over large
-marketing-style headlines or self-introduction. Every element on a page
-should justify its presence by helping someone browse the archive; if it
-doesn't, it's decoration and it's out.
+A collection brings **only the machinery its own content needs**. Photography
+has a pipeline, a manifest, and object storage because photographs are large
+binaries; recipes are hand-written YAML read straight off disk, with no
+pipeline, no manifest, and no images. That asymmetry is the design, not a
+gap to be closed — resist hoisting one collection's shape onto another.
 
-The site is **one canonical archive with query-driven views**, not a
-collection of trip pages. A visitor browses tagged views — a trip like
-`paris-2025`, eventually a place or a subject — but "trip" is not a
-structural concept: it is a tag, exactly like any other. See "Archive model"
-below before assuming anything is trip-owned.
+**Photography** (`site/src/photography/`, routed at `/photography/`) is
+where everything below about "the archive," "a tag," "a view" applies — those
+are photography-collection concepts, not site-wide ones. It should feel
+closer to reading a well-designed photography book than operating a web app:
+photographs are shown large and unhurried, and the site disappears in favor
+of the pictures. No engagement mechanics, no feeds, no chrome that isn't
+earned.
+
+The visual model to design against, site-wide, is an independent magazine, a
+museum archive, or a photobook publisher — not a portfolio. Prioritize
+navigation, sequencing, and the content itself over large marketing-style
+headlines or self-introduction. Every element on a page should justify its
+presence by helping someone browse; if it doesn't, it's decoration and it's
+out.
+
+Within photography, the collection is **one canonical archive with
+query-driven views**, not a collection of trip pages. A visitor browses
+tagged views — a trip like `paris-2025`, eventually a place or a subject —
+but "trip" is not a structural concept: it is a tag, exactly like any other.
+See "Archive model" below before assuming anything is trip-owned.
 
 Two independent halves, connected only by a committed JSON manifest:
 
@@ -49,7 +63,7 @@ generated/derivatives/p/<hash>/...   (git-ignored, rebuildable cache)
         │  pnpm publish:local  or  pnpm run publish
         ▼
 site/public/p/...  (local dev/build)   or   R2 bucket (production)
-        │  site/src/lib/archive.ts merges every manifest into one Archive
+        │  site/src/photography/archive.ts merges every manifest into one Archive
         │  astro build / astro dev
         ▼
 site/dist/ or http://localhost:4321
@@ -109,10 +123,10 @@ or `originals/x/europe/paris/0827/` are found the same way.
   per-roll view would need (`ArchivePhoto.roll`, `ArchivePhoto.frame`) — but
   nothing renders one today. Don't add roll pages speculatively.
 
-## Archive model (site side) — read this before assuming anything is trip-owned
+## Archive model (photography collection) — read this before assuming anything is trip-owned
 
 The site has no concept of an "album" that owns a manifest and a route. It
-reads one canonical `Archive` (`site/src/lib/archive.ts`) — every photograph
+reads one canonical `Archive` (`site/src/photography/archive.ts`) — every photograph
 from every batch's manifest, merged into a single flat list. A page is a
 **query** over that list, never a record that owns photographs:
 
@@ -138,21 +152,76 @@ from every batch's manifest, merged into a single flat list. A page is a
   photo genuinely needs it — see `docs/decisions.md`, 2026-07-29, "Trips
   become a tag."
 
+Three things query the archive **without** being tags. None of them is an
+exception to the model above — each is still a query, just not one keyed on
+`tags`:
+
+- **Film stock** is roll-level archival fact, read from `rolls.yaml`, not
+  photographer-authored per photo. `byFilmStock`/`viewForFilmStock` power
+  `/photography/film/<stock>/`. `allFilmStocks()` excludes rolls with no
+  stock noted rather than showing an empty one.
+- **Selected Work** (`featured` / `featuredOrder` in `photos.yaml` →
+  `selectedWork()`) is a hand-picked, hand-ordered sequence across the whole
+  archive. Deliberately not a tag: a tag says what a photograph *is* and
+  carries no ordering, while this is a claim about presentation that needs
+  one. Ordered photos sort first; unordered ones fall back to `(roll, frame)`.
+- **Cover** (`cover:` in `albums/<slug>/album.md` → `coverPhoto()`) names one
+  photo per batch, falling back to the chronological first.
+
+**Presentation order never disturbs archival order.** `frame`,
+`byRollAndFrame`, and every tag view still sort chronologically; `cover` and
+`featuredOrder` are read on top of that by the two callers that want a
+sequence. A photograph being featured changes nothing about where it appears
+in its own tag's view. Both live in the hand-edited site-layer files, same
+boundary as `alt`/`caption`/`tags` — no manifest field, no `SCHEMA_VERSION`
+bump. See `docs/decisions.md`, 2026-08-03, "Selected Work is editorial."
+
 ## Directory map
 
 ```
 site/                       Astro application
-  src/pages/                index + /projects/<tag>/ (one route per tag, not per trip)
-  src/components/           Photo.astro, Browse.astro (continuous-scroll
-                             reading view — not a modal lightbox)
-  src/scripts/browse.ts     client-side browse-mode logic, progressive
+  src/pages/index.astro     site-wide homepage — introduces collections,
+                             shows no photographs or other content directly
+  src/collections.ts        the collection registry the homepage reads;
+                             adding a collection is one entry here plus its
+                             own src/pages/<slug>/ and (if needed) src/<slug>/
+  src/config.ts             site-wide identity only (title, author) — a
+                             collection's own settings live in its own
+                             config.ts, e.g. src/photography/config.ts
+  src/layouts/Base.astro    shared shell (masthead, footer, typography) —
+                             collection-agnostic on purpose; never learns
+                             about a specific collection
+  src/styles/base.css       shared design tokens/typography, all collections
+  src/pages/photography/    index + /photography/<tag>/ (one route per tag,
+                             not per trip), plus selected/, archive/,
+                             about/, and film/<stock>/
+  src/pages/recipes/        index + /recipes/<slug>/, reading recipes/*.yaml
+  src/photography/          everything specific to the photography
+                             collection — not shared, not reusable by a
+                             future collection with a different content shape
+    Photo.astro, Browse.astro   continuous-scroll reading view — not a
+                             modal lightbox
+    PhotographyNav.astro     Home/Selected Work/Archive/About — photography's
+                             own nav, NOT in Base.astro, which stays
+                             collection-agnostic
+    browse.ts                client-side browse-mode logic, progressive
                              enhancement over plain <a> links
-  src/lib/manifest.ts       the site's OWN manifest reader/validator —
+    manifest.ts               the site's OWN manifest reader/validator —
                              deliberately not shared with the pipeline
                              (see docs/decisions.md, "type-only boundary")
-  src/lib/archive.ts        loadArchive, query/byTag/allTags/viewForTag —
+    archive.ts                loadArchive, query/byTag/allTags/viewForTag,
+                             plus byFilmStock/selectedWork/coverPhoto —
                              merges every batch manifest into one Archive;
                              "trip" is a tag here, not a type
+    config.ts                  photography-only settings (imageBaseUrl, its
+                             own title/description)
+  src/recipes/              the recipes collection's own layer — no pipeline,
+                             no manifest, no images by design
+    recipes.ts               reads recipes/*.yaml straight off disk; every
+                             field optional, a half-written recipe renders
+    markup.ts                 the one inline form recipes use (**bold**),
+                             not a Markdown parser
+    recipes.css               styles scoped to this collection
 tools/pipeline/
   src/sources.ts            listAlbumSlugs, listRolls, flattenRolls
   src/ingest.ts              encode + write manifests + sync albums/*
@@ -167,9 +236,13 @@ tools/pipeline/
 originals/<batch>/[<roll>/]  master files — git-ignored, immutable, never
                              uploaded, not a backup; a batch has no public
                              meaning, see "Archive model" above
-albums/<slug>/               album.md (scaffolded, currently unread by the
-                             site), photos.yaml (alt, caption, tags),
-                             rolls.yaml — human-edited
+albums/<slug>/               album.md (scaffolded; only its `cover:` field is
+                             read by the site — see coverPhoto()),
+                             photos.yaml (alt, caption, tags, featured,
+                             featuredOrder), rolls.yaml (filmStock, notes)
+                             — human-edited
+recipes/<slug>.yaml          the recipes collection's entire content layer —
+                             hand-written, committed, read straight off disk
 generated/
   albums/*.json              per-batch manifests — committed, the
                              pipeline↔site contract; the site merges all of
@@ -229,7 +302,7 @@ every tsconfig's own directory). A handful of genuine
 3. **`tools/pipeline` must not import Astro, Vite, or Tailwind.** Enforced by
    an ESLint `no-restricted-imports` rule, not just convention.
 4. **The site never touches a photograph's bytes.** It only builds URLs from
-   manifest data (`site/src/lib/image.ts`).
+   manifest data (`site/src/photography/image.ts`).
 5. **No symlinks between `generated/derivatives/` and `site/public/p/`.** Real
    copies only, through the `Storage` interface.
 6. **Originals are immutable and never committed.** `originals/` is
@@ -253,7 +326,7 @@ every tsconfig's own directory). A handful of genuine
   only thing that makes a photo show up in a view. A trip (`paris-2025`) is
   one tag among many; there is no separate "trip" type anywhere in the site.
 - **Archive** — the full, canonical, flat list of every photograph across
-  every batch, merged at site-read time (`site/src/lib/archive.ts`).
+  every batch, merged at site-read time (`site/src/photography/archive.ts`).
 - **View** — the result of querying the archive (`viewForTag`): an ordered
   list of photos plus a derived title/date. Not stored; recomputed from the
   archive every time.
@@ -269,6 +342,16 @@ every tsconfig's own directory). A handful of genuine
   view (`Browse.astro` + `browse.ts`), reached from the grid. Explicitly not a
   modal lightbox: no dialog role, no focus trap, state lives in the URL
   (`#photo-<sourceId>`) so back/reload/share behave like real navigation.
+- **Collection** — a top-level content area with its own pages, its own data
+  layer, and its own config (`site/src/collections.ts`). Photography is the
+  first; recipes is the second and deliberately shares none of photography's
+  machinery. The homepage introduces collections and shows no content itself.
+- **Selected Work** — the hand-picked, hand-ordered sequence across the whole
+  archive (`featured`/`featuredOrder` → `selectedWork()`). Editorial, not a
+  tag. See "Archive model."
+- **Presentation order vs archival order** — `cover` and `featuredOrder` are
+  chosen; `frame`/`byRollAndFrame` are chronological. The first never
+  rewrites the second.
 - Performance, simplicity, and maintainability are applied literally (see
   README "Principles") — boring and explicit beats clever.
 
@@ -291,27 +374,24 @@ every tsconfig's own directory). A handful of genuine
 
 ## Known limitations right now
 
-- The Paris trip's 150 photographs still have **empty alt text**, and as of
-  2026-07-29 are no longer one tagged view. `originals/paris-2025/` (one
-  batch, four rolls) was restructured into four top-level batches —
-  `originals/0827/`, `0828/`, `0829/`, `0830/` — each now its own `albums/*`
-  and manifest. The sourceId "identity survives a move" matching
-  (`docs/decisions.md`, 2026-07-29) is scoped **per batch slug**: it matches a
-  batch's new scan against that same slug's previous manifest, not against
-  every other batch. Splitting one batch into four gave each a blank
-  history, so instead of preserving `tags: [paris-2025]`, ingest seeded fresh
-  entries tagged with each new batch's own directory name (`0827`, `0828`,
-  etc). The site currently renders these as four disconnected trip views
-  instead of one `paris-2025` view. Retagging all 150 entries back to a
-  shared trip tag (item 1 below) is the fix; cross-batch identity matching
-  is a real gap this surfaced, not yet addressed in code. The one
-  hand-written caption (`0830/000008300011.tif`, the Paris Métro photo) was
-  already lost earlier in this project's history, during the bare-filename →
-  roll-relative-path change from the hierarchy work, and remains lost.
-  A fifth batch, `llfl01` (37 photographs, a film lab scan added
-  2026-07-30), is real and ingested but also untagged and without alt text —
-  see item 1 below, which now covers all 181 photographs, not just the
-  original 150.
+- **All 289 photographs, across all eight batches, still have empty alt text
+  and no authored tag.** This is the single largest gap in the project and
+  both of the top two priorities below. The batches are `0271`, `0425`,
+  `0462`, `0827`, `0828`, `0829`, `0830`, and `llfl01`; every photo carries
+  exactly one tag, auto-seeded from its batch directory name, so the site
+  renders eight disconnected views named after directories.
+
+  The Paris origin of four of them: `originals/paris-2025/` (one batch, four
+  rolls) was restructured on 2026-07-29 into `0827`/`0828`/`0829`/`0830`. The
+  sourceId "identity survives a move" matching (`docs/decisions.md`,
+  2026-07-29) is scoped **per batch slug** — it matches a batch's new scan
+  against that same slug's previous manifest, not against every other batch —
+  so splitting one batch into four gave each a blank history and ingest
+  seeded fresh batch-name tags instead of preserving `tags: [paris-2025]`.
+  Retagging (item 1) is the fix; cross-batch identity matching remains a real
+  gap in code (item 4). The one hand-written caption
+  (`0830/000008300011.tif`, the Paris Métro photo) was lost earlier still,
+  during the bare-filename → roll-relative-path change, and remains lost.
 - `pnpm ingest` now deletes a batch's manifest and `albums/<slug>/` (captions,
   tags, everything) the moment `originals/<slug>/` no longer exists
   (`docs/decisions.md`, 2026-07-30, `removeOrphanAlbums`) — no confirmation,
@@ -321,25 +401,35 @@ every tsconfig's own directory). A handful of genuine
   temporarily unmounting a batch directory is destructive to anything
   hand-written in its `albums/<slug>/` if `pnpm ingest` runs while it's
   "gone." No grace period exists yet — see `docs/decisions.md`'s "Revisit
-  if" for that entry.
+  if" for that entry. Two sharp edges worth knowing: `--album <slug>` does
+  **not** scope the orphan sweep (it always runs against every slug in
+  `originals/`), and a fresh clone — where `originals/` is git-ignored and
+  therefore empty while all eight manifests are committed — is exactly the
+  state that triggers it for every batch at once.
 - `pnpm describe`'s Claude provider (`tools/pipeline/src/describe/claude-provider.ts`)
   is unit-tested against a fake provider only. It has never been exercised
   against the real Anthropic API in this environment (no `ANTHROPIC_API_KEY`
   configured here) — the live HTTP round-trip, real JSON-shape handling, and
   refusal handling are unverified.
-- No dedicated roll-level UI exists yet (see film-roll section) — this is
-  intentional, not an oversight.
-- `album.md` is scaffolded per batch but no longer read by the site (see
-  "Archive model"). The former `paris-2025/album.md`'s hand-set
-  `location: "Paris, France"` did not survive the batch split above — each
-  of `0827`–`0830`'s `album.md` was scaffolded fresh with an empty
-  `location`. Nothing currently displays this field regardless, but it is
-  real lost data, not just unused surface area.
-- Five tags exist in the real archive right now (`0827`, `0828`, `0829`,
-  `0830`, `llfl01` — see the batch-split bullet above), all auto-seeded, none
-  authored. The multi-tag, cross-batch case (a photo tagged into two
-  different views) is covered by unit tests but not yet exercised against
-  real photographs.
+- No dedicated roll *route* exists (see film-roll section) — intentional. Film
+  stock, which is roll-level data, does now have one at
+  `/photography/film/<stock>/`; only `llfl01`'s roll has a `filmStock` noted
+  so far, so most of the archive is absent from those views.
+- Selected Work currently holds **four** photographs, chosen as a smoke test
+  of `featured`/`featuredOrder` rather than as a real edit. It needs a real
+  pass once the archive is tagged and described.
+- `album.md` is scaffolded per batch and only its `cover:` field is read (all
+  eight batches have one set). `title`, `date`, `location`, and `description`
+  are still written and still displayed nowhere. The former
+  `paris-2025/album.md`'s hand-set `location: "Paris, France"` did not
+  survive the batch split above — real lost data, not just unused surface.
+- The multi-tag, cross-batch case (a photo tagged into two different views) is
+  covered by unit tests but still not exercised against real photographs,
+  because no photograph yet carries a second tag.
+- The recipes collection has no images, no pipeline, and no validation beyond
+  "every field is optional" (`site/src/recipes/recipes.ts`). A malformed YAML
+  file will throw at build time; a half-written one renders as far as it
+  goes, on purpose.
 - `pnpm edit`'s frontend (`tools/pipeline/src/editor/static/app.js`) has no
   automated test — no browser test runner exists in this repo. The pure
   logic (tag-list merging, the batch bar's tri-state computation) is kept in
@@ -352,16 +442,16 @@ every tsconfig's own directory). A handful of genuine
 
 ## Immediate next priorities
 
-1. Use `pnpm edit` to retag all 150 photos across `0827`, `0828`, `0829`,
-   `0830` with a shared trip tag (e.g. `paris-2025`) so the site shows one
-   trip view again instead of four disconnected batch-id views — see the
-   batch-split limitation above. This is also the first real multi-tag
-   exercise against actual photographs (a place or subject tag added
+1. Use `pnpm edit` to give all 289 photographs across all eight batches real
+   tags, replacing the auto-seeded batch-name ones. The four Paris batches
+   (`0827`–`0830`) want a shared trip tag (e.g. `paris-2025`) so the site
+   shows one trip view instead of four; `0271`, `0425`, `0462`, and `llfl01`
+   each need a tag that reflects what they actually are — confirm before
+   tagging, don't guess from the directory name. This is also the first real
+   multi-tag exercise against actual photographs (a place or subject tag
    alongside the trip tag), confirming the resulting view renders correctly.
-   `llfl01`'s 37 photos need a real tag of their own too (not necessarily
-   `paris-2025` — confirm what that roll actually is before tagging it).
-2. Re-run `pnpm describe` (or write by hand) alt text/captions for all 181
-   photos across all five batches; decide per-photo whether Claude's draft
+2. Re-run `pnpm describe` (or write by hand) alt text/captions for all 289
+   photos across all eight batches; decide per-photo whether Claude's draft
    is good enough or needs hand editing.
 3. Smoke-test `pnpm describe` against the real Claude API once
    `ANTHROPIC_API_KEY` is available, and fix whatever the fake-provider tests
@@ -370,6 +460,12 @@ every tsconfig's own directory). A handful of genuine
    limitation above) is worth building, or whether restructuring
    `originals/` across batch boundaries is simply expected to require a
    manual retag going forward.
+5. Note `filmStock` in each batch's `rolls.yaml` — only `llfl01`'s roll has
+   one, so `/photography/film/<stock>/` currently covers 37 of 289
+   photographs. The data is roll-level and hand-authored; nothing derives it
+   from EXIF.
+6. Make a real Selected Work pass (currently four photographs) once the
+   archive is tagged and described.
 
 ## Explicit non-goals
 
@@ -381,6 +477,13 @@ every tsconfig's own directory). A handful of genuine
   until a specific tag genuinely needs one. A view's title/date are derived,
   not authored, until then — see `docs/decisions.md`, 2026-07-29.
 - No per-photo `location` field until a specific photograph needs one.
+- No pipeline, manifest, or ingest step for recipes — they are hand-written
+  YAML, read directly. Revisit only if recipes get photographs, and then by
+  teaching the existing pipeline a second content type, not by building a
+  parallel one (see `docs/decisions.md`, 2026-08-03).
+- No shared `src/lib/` for "things more than one collection might want." Each
+  collection reads its own data its own way; duplication between two
+  collections is cheaper than a wrong abstraction.
 - No structural "trip" type, ever, by design — trips are tags. Do not
   reintroduce a manifest-per-route or an `Album` type that owns photographs.
 - No build step for `tools/pipeline` (Node's native TS type-stripping is the

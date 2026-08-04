@@ -1,20 +1,10 @@
 /**
- * The handful of values that are specific to you. Everything else about the
- * site is derived from the albums.
+ * Site-wide identity, shared by every collection. A collection with its own
+ * settings (e.g. photography's `imageBaseUrl`) keeps them in its own
+ * `config.ts`, colocated with the rest of that collection's code.
  */
 export const site = {
-  title: 'A collection of analog photos.',
-  description: '',
+  title: 'Randy Liang',
+  description: 'A personal archive.',
   author: 'Randy Liang',
-
-  /**
-   * Where derivatives are served from.
-   *
-   * Empty means same-origin, which is what `pnpm run publish --local` produces:
-   * files land in site/public/p/ and are served at /p/... . Point this at an R2
-   * custom domain when you publish for real, with no trailing slash:
-   *
-   *   imageBaseUrl: 'https://img.example.com'
-   */
-  imageBaseUrl: '',
 } as const;

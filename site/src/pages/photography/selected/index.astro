@@ -1,0 +1,66 @@
+---
+import Browse from '../../../photography/Browse.astro';
+import Photo from '../../../photography/Photo.astro';
+import Base from '../../../layouts/Base.astro';
+import PhotographyNav from '../../../photography/PhotographyNav.astro';
+import { loadArchive, selectedWork } from '../../../photography/archive.ts';
+import type { View } from '../../../photography/archive.ts';
+
+const archive = loadArchive();
+const photos = selectedWork(archive);
+
+// Selected Work is a hand-picked, hand-ordered sequence across the whole
+// archive — not a tag, so it is never built through viewForTag. This is the
+// same View shape Browse.astro already reads, built directly instead.
+const view: View = { tag: 'selected', title: 'Selected Work', date: null, photos, roll: null };
+---
+
+<Base title="Selected Work — Photography" description="A curated sequence of photographs.">
+  {
+    photos.length > 0 && (
+      <script is:inline>
+        if (location.hash !== '#grid') {
+          document.body.classList.add('is-browsing');
+        }
+      </script>
+    )
+  }
+
+  <PhotographyNav current="selected" />
+
+  {
+    photos.length === 0 ? (
+      <header class="album-header">
+        <h1>Selected Work</h1>
+        <p class="lede">
+          Nothing is marked as Selected Work yet — mark a photo <code>featured: true</code> in its
+          batch's photos.yaml to have it appear here.
+        </p>
+      </header>
+    ) : (
+      <Fragment>
+        <header class="album-header">
+          <h1>Selected Work</h1>
+        </header>
+
+        <div class="grid" data-grid>
+          {photos.map((entry, index) => (
+            <figure data-photo-id={entry.photo.sourceId}>
+              <Photo
+                entry={entry}
+                sizes="(min-width: 64rem) 15vw, (min-width: 40rem) 23vw, 46vw"
+                priority={index === 0}
+              />
+            </figure>
+          ))}
+        </div>
+
+        <Browse view={view} />
+
+        <script>
+          import '../../../photography/browse.ts';
+        </script>
+      </Fragment>
+    )
+  }
+</Base>

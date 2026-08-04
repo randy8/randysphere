@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { PHOTOS_FILE, readPhotosFile } from '../album-files.ts';
+import { PHOTOS_FILE, readAlbumCover, readPhotosFile } from '../album-files.ts';
 import { sha256Hex } from '../hash.ts';
 import type { PhotoRecord, VariantRecord } from '../manifest.ts';
 import type { Paths } from '../paths.ts';
@@ -28,6 +28,10 @@ export interface EditorPhoto {
   readonly alt: string;
   readonly caption: string | null;
   readonly tags: readonly string[];
+  readonly featured: boolean;
+  readonly featuredOrder: number | null;
+  /** True if this photo is its album's current cover (album.md's `cover:`). */
+  readonly cover: boolean;
 }
 
 export interface EditorArchive {
@@ -67,6 +71,7 @@ export async function loadEditorArchive(paths: Paths): Promise<EditorArchive> {
     const albumDirectory = join(paths.albums, manifest.slug);
     const entries = await readPhotosFile(albumDirectory);
     const byFile = new Map(entries.map((entry) => [entry.file, entry]));
+    const cover = await readAlbumCover(albumDirectory);
 
     const photosYaml = await readFile(join(albumDirectory, PHOTOS_FILE), 'utf8');
     albumVersions[manifest.slug] = sha256Hex(photosYaml);
@@ -85,6 +90,9 @@ export async function loadEditorArchive(paths: Paths): Promise<EditorArchive> {
         alt: entry?.alt ?? '',
         caption: entry?.caption ?? null,
         tags: entry?.tags ?? [],
+        featured: entry?.featured ?? false,
+        featuredOrder: entry?.featuredOrder ?? null,
+        cover: cover === photo.file,
       });
     }
   }

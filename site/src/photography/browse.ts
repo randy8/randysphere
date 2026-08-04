@@ -1,16 +1,18 @@
 /**
- * Continuous-scroll browse mode, layered on top of the plain grid.
+ * Continuous-scroll browse mode is the default reading experience, not an
+ * alternative layout — the grid is the explicit opt-out (`#grid`) and the
+ * no-JS fallback: every grid thumbnail is still a real link to its full-size
+ * JPEG (see Photo.astro), so without this script, or if it fails, a visitor
+ * gets the plain grid and those links work exactly as before.
  *
- * Progressive enhancement: every grid thumbnail is a real link to its
- * full-size JPEG (see Photo.astro). This script intercepts plain left-clicks
- * on those links and opens the in-page browse view instead; without it, or if
- * it fails, the links still work exactly as before.
- *
- * State lives in the URL (`#photo-<sourceId>`) rather than only in memory, so
- * the back button closes browse mode, and a reload or a shared link reopens
- * at the same photograph. Only the click that *opens* browse mode pushes a
- * history entry — scrolling or using the keyboard replaces it, so browsing
- * through the whole album doesn't fill up history with one entry per photo.
+ * State lives in the URL rather than only in memory: `#photo-<sourceId>`
+ * opens at a specific photograph, `#grid` opts out to the grid, and no hash
+ * at all is the default landing in browse mode, at the title panel rather
+ * than any specific photograph. A reload or a shared link reopens at the
+ * same state. Only the transition that *opens* a specific photograph (a grid
+ * click) pushes a history entry — scrolling or using the keyboard replaces
+ * it, so browsing through the whole album doesn't fill up history with one
+ * entry per photo.
  */
 
 const PHOTO_HASH_PREFIX = '#photo-';
@@ -87,12 +89,22 @@ function init(): void {
     lastTrigger = null;
   };
 
+  // No specific photo focused — the title panel at the top of the stack is
+  // whatever's on screen, same as any other scroll position, and the usual
+  // scroll-driven IntersectionObserver picks up currentIndex once the
+  // visitor scrolls into the sequence.
+  const showIntro = (): void => {
+    document.body.classList.add('is-browsing');
+  };
+
   const syncFromHash = (behavior: ScrollBehavior): void => {
     const id = photoIdFromHash(location.hash);
     if (id !== null && ids.includes(id)) {
       show(id, behavior);
-    } else if (isOpen()) {
+    } else if (location.hash === '#grid') {
       hide();
+    } else {
+      showIntro();
     }
   };
 
@@ -102,6 +114,16 @@ function init(): void {
       '',
       `${PHOTO_HASH_PREFIX}${id}`,
     );
+  };
+
+  const open = (id: string, trigger: HTMLElement | null): void => {
+    lastTrigger = trigger;
+    history.pushState(
+      { browse: true } satisfies BrowseHistoryState,
+      '',
+      `${PHOTO_HASH_PREFIX}${id}`,
+    );
+    show(id, 'instant');
   };
 
   // A reload or a link landing directly on #photo-<id> opens straight there,
@@ -119,20 +141,18 @@ function init(): void {
     if (id === undefined) return;
 
     event.preventDefault();
-    lastTrigger = link instanceof HTMLElement ? link : null;
-    history.pushState(
-      { browse: true } satisfies BrowseHistoryState,
-      '',
-      `${PHOTO_HASH_PREFIX}${id}`,
-    );
-    show(id, 'instant');
+    open(id, link instanceof HTMLElement ? link : null);
   });
 
   closeButton.addEventListener('click', () => {
+    // A specific photo was opened by a grid click, which pushed a history
+    // entry — going back lands exactly where that click happened (usually
+    // #grid). Landing directly in browse mode (the default, no entry pushed)
+    // has nothing to go back to, so opting out pushes #grid explicitly.
     if (isBrowseState(history.state)) {
       history.back();
     } else {
-      history.replaceState(null, '', location.pathname + location.search);
+      history.pushState(null, '', '#grid');
       hide();
     }
   });
@@ -178,7 +198,14 @@ function init(): void {
     },
     { root: stack, threshold: [0, 0.25, 0.5, 0.75, 1] },
   );
-  items.forEach((item) => observer.observe(item));
+  // Deferred a frame: observing immediately after `is-browsing` is added can
+  // fire against the pre-layout geometry (display:none's box, not the
+  // min-height:90vh title panel it's about to become), which was promoting
+  // photo 1 to "current" — and pushing #photo-<id> into the URL — before a
+  // single pixel had scrolled.
+  requestAnimationFrame(() => {
+    items.forEach((item) => observer.observe(item));
+  });
 }
 
 if (document.readyState === 'loading') {

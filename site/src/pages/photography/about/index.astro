@@ -1,0 +1,15 @@
+---
+import Base from '../../../layouts/Base.astro';
+import PhotographyNav from '../../../photography/PhotographyNav.astro';
+import { photography } from '../../../photography/config.ts';
+---
+
+<Base title={`About — ${photography.title}`} description={photography.description}>
+  <PhotographyNav current="about" />
+  <header class="album-header">
+    <h1>About</h1>
+    <p class="lede">
+      "Aspiring amateur photographer" has been a dream of mine since the first time I ever picked up a Canon DSLR. Getting there slowly and surely.
+    </p>
+  </header>
+</Base>

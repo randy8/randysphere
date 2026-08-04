@@ -1,0 +1,52 @@
+---
+/**
+ * Understated text navigation, specific to the photography collection —
+ * not shared with any other collection, and not part of Base.astro, which
+ * stays collection-agnostic. Hidden in browse/scroll mode along with the
+ * rest of the page chrome (see body.is-browsing in base.css).
+ */
+interface Props {
+  current: 'home' | 'selected' | 'archive' | 'about';
+}
+
+const { current } = Astro.props;
+
+const links = [
+  { key: 'home', label: 'Home', href: '/photography/' },
+  { key: 'selected', label: 'Selected Work', href: '/photography/selected/' },
+  { key: 'archive', label: 'Archive', href: '/photography/archive/' },
+  { key: 'about', label: 'About', href: '/photography/about/' },
+] as const;
+---
+
+<nav class="photography-nav" aria-label="Photography">
+  {
+    links.map((link) => (
+      <a href={link.href} aria-current={link.key === current ? 'page' : undefined}>
+        {link.label}
+      </a>
+    ))
+  }
+</nav>
+
+<style>
+  .photography-nav {
+    display: flex;
+    gap: 1.25rem;
+    margin: 0 0 3rem;
+    font-family: var(--serif);
+    font-variant-caps: small-caps;
+    font-size: 0.9375rem;
+    letter-spacing: 0.02em;
+  }
+  .photography-nav a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .photography-nav a:hover {
+    color: var(--ink);
+  }
+  .photography-nav a[aria-current='page'] {
+    color: var(--ink);
+  }
+</style>

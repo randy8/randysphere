@@ -1,0 +1,56 @@
+---
+import Photo from './Photo.astro';
+import type { View } from './archive.ts';
+
+interface Props {
+  view: View;
+}
+
+const { view } = Astro.props;
+---
+
+<div class="browse" data-browse role="region" aria-label="Photo browser">
+  <button type="button" class="browse-close" data-browse-close>Index</button>
+  <div class="browse-stack" data-browse-stack>
+    <div class="browse-intro">
+      {view.date && <p class="eyebrow">{view.date}</p>}
+      <h2>{view.title}</h2>
+      <p class="browse-intro-meta">
+        {
+          view.roll?.filmStock && (
+            <span class="film-stock">
+              <a href={`/photography/film/${view.roll.filmStock}/`}>{view.roll.filmStock}</a>
+            </span>
+          )
+        }
+        <span>
+          {view.photos.length} photograph{view.photos.length === 1 ? '' : 's'}
+        </span>
+      </p>
+      <p class="browse-intro-cue" aria-hidden="true">↓</p>
+    </div>
+    {
+      view.photos.map((entry, index) => (
+        <figure class="browse-item" id={`photo-${entry.photo.sourceId}`} data-photo-id={entry.photo.sourceId}>
+          <Photo entry={entry} sizes="100vw" linked={false} priority={index === 0} />
+          {
+            // The intro panel's film stock is a single value for the whole
+            // view, which only means something when every photo shares one
+            // roll (view.roll !== null). A view that spans rolls — Selected
+            // Work, hand-picked across trips — has no single answer up
+            // there, but each photo still reliably knows its own: a roll
+            // (one directory under originals/) is never a mix of stocks, so
+            // entry.roll.filmStock is exactly as trustworthy per photo as
+            // the intro panel's value is for a single-roll view.
+            view.roll === null && entry.roll.filmStock && (
+              <p class="browse-item-meta">
+                <a href={`/photography/film/${entry.roll.filmStock}/`}>{entry.roll.filmStock}</a>
+              </p>
+            )
+          }
+          {entry.caption && <figcaption>{entry.caption}</figcaption>}
+        </figure>
+      ))
+    }
+  </div>
+</div>

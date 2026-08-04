@@ -1,0 +1,82 @@
+---
+import '../../recipes/recipes.css';
+import Base from '../../layouts/Base.astro';
+import { loadRecipes } from '../../recipes/recipes.ts';
+import { renderInline, renderQuiet } from '../../recipes/markup.ts';
+import type { Recipe } from '../../recipes/recipes.ts';
+
+export function getStaticPaths() {
+  return loadRecipes().map((recipe) => ({ params: { slug: recipe.slug }, props: { recipe } }));
+}
+
+interface Props {
+  recipe: Recipe;
+}
+
+const { recipe } = Astro.props;
+---
+
+<Base title={recipe.title} description={recipe.description}>
+  <div class="recipe-scope">
+    <article class="recipe-doc">
+      <header class="album-header">
+        <h1>{recipe.title}</h1>
+        <p class="recipe-doc-description">{recipe.description}</p>
+        <p class="recipe-doc-meta">
+          <span><strong>Prep</strong> {recipe.prepTime}</span>
+          <span><strong>Cook</strong> {recipe.cookTime}</span>
+          <span><strong>Total</strong> {recipe.totalTime}</span>
+          <span><strong>Serves</strong> {recipe.servings}</span>
+          <span><strong>Difficulty</strong> {recipe.difficulty}</span>
+        </p>
+      </header>
+
+      <section class="recipe-doc-section">
+        <h2>Ingredients</h2>
+        <ul class="recipe-doc-list">
+          {recipe.ingredients.map((item) => <li set:html={renderInline(item)} />)}
+        </ul>
+      </section>
+
+      {
+        recipe.optionalIngredients.length > 0 && (
+          <section class="recipe-doc-section">
+            <h2>Optional</h2>
+            <ul class="recipe-doc-list">
+              {recipe.optionalIngredients.map((item) => (
+                <li set:html={renderInline(item)} />
+              ))}
+            </ul>
+          </section>
+        )
+      }
+
+      <section class="recipe-doc-section">
+        <h2>Instructions</h2>
+        <ol class="recipe-doc-steps">
+          {recipe.instructions.map((step) => <li set:html={renderQuiet(step)} />)}
+        </ol>
+      </section>
+
+      {
+        recipe.notes.length > 0 && (
+          <section class="recipe-doc-section">
+            <h2>Notes</h2>
+            <ul class="recipe-doc-list recipe-doc-notes">
+              {recipe.notes.map((note) => (
+                <li set:html={renderQuiet(note)} />
+              ))}
+            </ul>
+          </section>
+        )
+      }
+
+      <footer class="recipe-doc-footer">
+        <p class="recipe-doc-footer-label">Recipe Info</p>
+        <p>
+          Version {recipe.version} · Created {recipe.created} · Last Updated {recipe.updated}
+        </p>
+      </footer>
+    </article>
+  </div>
+</Base>

@@ -1,0 +1,59 @@
+---
+import Browse from '../../../photography/Browse.astro';
+import Photo from '../../../photography/Photo.astro';
+import Base from '../../../layouts/Base.astro';
+import PhotographyNav from '../../../photography/PhotographyNav.astro';
+import { allFilmStocks, loadArchive, viewForFilmStock } from '../../../photography/archive.ts';
+import type { View } from '../../../photography/archive.ts';
+
+export function getStaticPaths() {
+  const archive = loadArchive();
+  return allFilmStocks(archive).map((stock) => ({
+    params: { stock },
+    props: { view: viewForFilmStock(archive, stock) },
+  }));
+}
+
+interface Props {
+  view: View;
+}
+
+const { view } = Astro.props;
+---
+
+<Base title={`${view.title} — Photography`} description={`Photographs shot on ${view.title}.`}>
+  <script is:inline>
+    if (location.hash !== '#grid') {
+      document.body.classList.add('is-browsing');
+    }
+  </script>
+
+  <PhotographyNav current="archive" />
+  <header class="album-header">
+    <p class="eyebrow">Film Stock</p>
+    <h1>{view.title}</h1>
+  </header>
+
+  <div class="grid" data-grid>
+    {
+      view.photos.map((entry, index) => (
+        <figure data-photo-id={entry.photo.sourceId}>
+          <Photo
+            entry={entry}
+            sizes="(min-width: 64rem) 15vw, (min-width: 40rem) 23vw, 46vw"
+            priority={index === 0}
+          />
+          <span class="frame-mark" aria-hidden="true">
+            {String(entry.frame).padStart(2, '0')}
+          </span>
+        </figure>
+      ))
+    }
+  </div>
+
+  <Browse view={view} />
+
+  <script>
+    import '../../../photography/browse.ts';
+  </script>
+</Base>
