@@ -1,0 +1,194 @@
+# Captions and alt text.
+#
+# `pnpm ingest` maintains which files are listed here and nothing else.
+# The order, the fields, and every comment are yours; re-running ingest will
+# not touch them. A photo is identified by its content (`sourceId`) first,
+# so moving or renaming a file in originals/ — even into a different roll —
+# keeps its entry below, alt text, caption, and tags intact. Only a photo
+# actually deleted from originals/ loses its entry.
+photos:
+  - file: 000002710003.tif
+    sourceId: 0f727a5d51a84961
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710004.tif
+    sourceId: 86f0ee8ff7ecd233
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710005.tif
+    sourceId: 57199a0a9a7bb66c
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710006.tif
+    sourceId: cfd828618aeedb04
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710007.tif
+    sourceId: 719f2bb7fd16eb8b
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710008.tif
+    sourceId: 057865ec6cc58ce2
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710009.tif
+    sourceId: cdf8e2a3cf122e05
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710010.tif
+    sourceId: 4a4606fe3dbe4930
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710011.tif
+    sourceId: 1c3e58977b87331c
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710012.tif
+    sourceId: 123866416cd125b9
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710013.tif
+    sourceId: eaafe6e14d9ad52d
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710014.tif
+    sourceId: a57c48aea8bbdf4e
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710015.tif
+    sourceId: 04302c148f55d495
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710016.tif
+    sourceId: 967fd872e8f371d0
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710017.tif
+    sourceId: 78d97ede7e9d05f3
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710018.tif
+    sourceId: a911adeccc69bdd2
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710019.tif
+    sourceId: cf9bcee0d53bb341
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710020.tif
+    sourceId: 4fcdb2d84feebbfe
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710021.tif
+    sourceId: dfbd2b67ece24247
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710022.tif
+    sourceId: e875f4e348d63094
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710023.tif
+    sourceId: 80c8630135b2c7fb
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710024.tif
+    sourceId: 00e3dcbad1ca4250
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710025.tif
+    sourceId: 27da2c6b3616a4fe
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710026.tif
+    sourceId: 7b016a8e376692dc
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710027.tif
+    sourceId: ac294301361d8376
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710028.tif
+    sourceId: df268abc28fec8b4
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710029.tif
+    sourceId: b5aba733d0ac63c3
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710030.tif
+    sourceId: b13e225e030587d1
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710031.tif
+    sourceId: 120659384535f85f
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710032.tif
+    sourceId: 521cdaceccd8e95d
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710033.tif
+    sourceId: 0a58405759a41215
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710034.tif
+    sourceId: 611e3a32b18ad348
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710035.tif
+    sourceId: 0c49a54ffe0c2d87
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710036.tif
+    sourceId: aa8543e3c1e49cd9
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710037.tif
+    sourceId: 84bf5ecf59d90f10
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710038.tif
+    sourceId: 403da68ee12875cc
+    alt: ''
+    tags:
+      - '0271'
+  - file: 000002710039.tif
+    sourceId: 5186866185f9bea8
+    alt: ''
+    tags:
+      - '0271'
