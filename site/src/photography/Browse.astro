@@ -21,6 +21,7 @@ const { view } = Astro.props;
 <div class="browse" data-browse role="region" aria-label="Photo browser">
   <div class="browse-stack" data-browse-stack>
     <div class="browse-intro">
+      <p class="browse-intro-count" aria-hidden="true">{String(view.photos.length).padStart(2, '0')}</p>
       {view.date && <p class="eyebrow">{view.date}</p>}
       <h2>{view.title}</h2>
       <p class="browse-intro-meta">

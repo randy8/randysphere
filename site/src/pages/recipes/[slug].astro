@@ -54,7 +54,13 @@ const { recipe } = Astro.props;
       <section class="recipe-doc-section">
         <h2>Instructions</h2>
         <ol class="recipe-doc-steps">
-          {recipe.instructions.map((step) => <li set:html={renderQuiet(step)} />)}
+          {
+            recipe.instructions.map((step) => (
+              <li>
+                <span set:html={renderQuiet(step)} />
+              </li>
+            ))
+          }
         </ol>
       </section>
 

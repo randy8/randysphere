@@ -28,7 +28,12 @@ const views = allTags(archive).map((tag) => viewForTag(archive, tag));
               linked={false}
             />
             <figcaption>
-              <h2>{view.title}</h2>
+              <h2>
+                <span class="archive-entry-mark" aria-hidden="true">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                {view.title}
+              </h2>
               <p class="meta">
                 {view.roll?.filmStock && <span>{view.roll.filmStock}</span>}
                 {view.date && <span>{view.date}</span>}

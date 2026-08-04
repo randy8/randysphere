@@ -9,6 +9,17 @@
  * box, no border below this point.
  */
 
+/* Recipes are read for the task, not lingered over the way a photograph's
+   title page is — the site-wide h1 scale (built for a chapter-opener
+   moment) reads as dead air here. Capped back to a confident but working
+   headline size, NYT-Cooking-scale rather than photobook-scale. */
+.recipe-scope h1 {
+  font-size: clamp(2.25rem, 1rem + 3vw, 3.25rem);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+}
+
 .recipe-index {
   display: flex;
   flex-direction: column;
@@ -86,7 +97,7 @@
    already separates it from the first section, so that one gets no extra
    push, or the gap above Ingredients would double up. */
 .recipe-doc-section {
-  margin-top: clamp(3rem, 6vw, 4.5rem);
+  margin-top: clamp(2rem, 3vw, 2.75rem);
 }
 .recipe-doc-section:first-of-type {
   margin-top: 0;
@@ -126,25 +137,28 @@
   counter-reset: step;
   display: flex;
   flex-direction: column;
-  gap: clamp(2rem, 4vw, 3rem);
+  gap: 1.125rem;
 }
+/* A compact numeral gutter, not a full line spent announcing "step 6" before
+   step 6 even starts — the method reads as a dense, scannable list this way
+   instead of a dozen separate title pages. */
 .recipe-doc-steps li {
-  line-height: 1.75;
+  display: grid;
+  grid-template-columns: 1.5rem 1fr;
+  column-gap: 0.875rem;
+  line-height: 1.65;
   text-wrap: pretty;
 }
-/* The numeral sits on its own line above the paragraph rather than beside
-   it in a persistent gutter — it marks a step without ever reading as a
-   second column running down the page. */
 .recipe-doc-steps li::before {
   counter-increment: step;
   content: counter(step);
-  display: block;
   font-family: var(--serif);
   font-style: italic;
   font-variant-numeric: oldstyle-nums;
   color: var(--muted);
   font-size: 1.0625rem;
-  margin-bottom: 0.375rem;
+  line-height: 1.65;
+  text-align: right;
 }
 
 /*
@@ -158,20 +172,35 @@
   white-space: nowrap;
 }
 
+/* A chef's-note card, not another bulleted list — set apart from the
+   functional Ingredients/Instructions register by the one thing this whole
+   stylesheet otherwise withholds: a real accent rule and a larger, slower
+   italic, the way a menu sets its kitchen's own aside off from the dish
+   description above it. */
 .recipe-doc-notes {
   display: flex;
   flex-direction: column;
-  gap: 0.625rem;
+  gap: 1.125rem;
+  border-left: 2px solid var(--accent);
+  padding-left: 1.375rem;
 }
 .recipe-doc-notes li {
-  color: var(--muted);
-  font-size: 0.9375rem;
+  color: var(--ink);
+  font-size: 1.125rem;
   font-style: italic;
-  line-height: 1.7;
+  line-height: 1.65;
+}
+.recipe-doc-notes li::before {
+  content: '❧';
+  display: inline-block;
+  margin-right: 0.5rem;
+  color: var(--accent);
+  font-style: normal;
+  transform: translateY(0.0625em);
 }
 
 .recipe-doc-footer {
-  margin-top: clamp(3rem, 6vw, 4.5rem);
+  margin-top: clamp(2rem, 3vw, 2.75rem);
   font-family: var(--sans);
   font-size: 0.8125rem;
   color: var(--muted);
@@ -184,4 +213,47 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 600;
+}
+
+/* Printable in the way an actual recipe card should be: no masthead, no
+   nav, no accent flourishes that mean nothing on paper — just the dish,
+   scaled to read from a counter a foot away, in whatever ink the printer
+   has rather than assuming colour. */
+@media print {
+  .masthead,
+  .site-footer,
+  .skip-link {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .recipe-scope,
+  .recipe-doc,
+  .recipe-index {
+    max-width: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  .recipe-doc-notes {
+    border-left-color: #000 !important;
+  }
+  .recipe-doc-notes li::before {
+    color: #000 !important;
+  }
+  a {
+    color: #000 !important;
+    text-decoration: underline !important;
+  }
+  .recipe-doc-section,
+  .recipe-doc-list li,
+  .recipe-doc-steps li,
+  .recipe-doc-notes li {
+    break-inside: avoid;
+  }
+  .recipe-doc-section h2 {
+    break-after: avoid;
+  }
 }
