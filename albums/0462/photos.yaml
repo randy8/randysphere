@@ -1,0 +1,184 @@
+# Captions and alt text.
+#
+# `pnpm ingest` maintains which files are listed here and nothing else.
+# The order, the fields, and every comment are yours; re-running ingest will
+# not touch them. A photo is identified by its content (`sourceId`) first,
+# so moving or renaming a file in originals/ — even into a different roll —
+# keeps its entry below, alt text, caption, and tags intact. Only a photo
+# actually deleted from originals/ loses its entry.
+photos:
+  - file: 000004620003.tif
+    sourceId: 647e0af3b30c5e14
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620004.tif
+    sourceId: b25f78efb43d1959
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620005.tif
+    sourceId: 1315677ff23b2c6b
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620006.tif
+    sourceId: ebfce4278d46af3f
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620007.tif
+    sourceId: 81b0d93ae0116521
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620008.tif
+    sourceId: 9efee881f5bc825a
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620009.tif
+    sourceId: bb97e894805b92bc
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620010.tif
+    sourceId: fe5944174b11c912
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620011.tif
+    sourceId: 9db4266cf4c4ac84
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620012.tif
+    sourceId: 11371e8483f5d283
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620013.tif
+    sourceId: c3e315239f54fb39
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620014.tif
+    sourceId: f216bd565994b6ab
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620015.tif
+    sourceId: ac3804483941cc6a
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620016.tif
+    sourceId: 52fc27a4eb12c22f
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620017.tif
+    sourceId: 22bfa0ee80938826
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620018.tif
+    sourceId: b60272e779783253
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620019.tif
+    sourceId: ccad339be0635c1d
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620020.tif
+    sourceId: fea25c9fa0a5f5f5
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620021.tif
+    sourceId: 89e48ca9ef0cde6f
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620022.tif
+    sourceId: 6e31ca8e349718c8
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620023.tif
+    sourceId: 263b1baea7d14605
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620024.tif
+    sourceId: 9a95f1f2fea3ffb3
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620025.tif
+    sourceId: 6406a95099461972
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620026.tif
+    sourceId: ea879c6b28ced2a0
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620027.tif
+    sourceId: f585ebeffa7ff2b7
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620028.tif
+    sourceId: f315d357bbe83031
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620029.tif
+    sourceId: 6975c6dbb2bf5096
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620030.tif
+    sourceId: 95fc33d2bbe02c33
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620031.tif
+    sourceId: 6c8c5afd93594be5
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620032.tif
+    sourceId: ce9fffa668d2b54b
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620033.tif
+    sourceId: 1b0b1ad74962f083
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620034.tif
+    sourceId: 0da5b896db7309bc
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620035.tif
+    sourceId: 9caa41029076ad66
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620036.tif
+    sourceId: df7e43573a6c879b
+    alt: ''
+    tags:
+      - '0462'
+  - file: 000004620037.tif
+    sourceId: 147ada8e78439c8e
+    alt: ''
+    tags:
+      - '0462'

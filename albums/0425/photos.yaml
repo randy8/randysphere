@@ -1,0 +1,198 @@
+# Captions and alt text.
+#
+# `pnpm ingest` maintains which files are listed here and nothing else.
+# The order, the fields, and every comment are yours; re-running ingest will
+# not touch them. A photo is identified by its content (`sourceId`) first,
+# so moving or renaming a file in originals/ — even into a different roll —
+# keeps its entry below, alt text, caption, and tags intact. Only a photo
+# actually deleted from originals/ loses its entry.
+photos:
+  - file: 000004250003.tif
+    sourceId: 3686128df22f657a
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250004.tif
+    sourceId: ea82b133227dc19a
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250005.tif
+    featured: true
+    sourceId: 82f386e5e5085816
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250006.tif
+    sourceId: 24e27d8e0b842322
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250007.tif
+    sourceId: 381b787a59c1c52b
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250008.tif
+    sourceId: 24a1572d35b29a48
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250009.tif
+    featured: true
+    sourceId: 433509187946222e
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250010.tif
+    sourceId: b918d371323f2333
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250011.tif
+    sourceId: 7a713e87418fda30
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250012.tif
+    sourceId: 231e395362e6c948
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250013.tif
+    sourceId: 5ec5f8b62f82a152
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250014.tif
+    sourceId: 14266ef25f24190f
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250015.tif
+    sourceId: 5ece81f93a18c15d
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250016.tif
+    sourceId: e7d10f09a4687f95
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250017.tif
+    sourceId: a61a9b03cbd8578a
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250018.tif
+    sourceId: 20ba66b7a2d8476a
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250019.tif
+    sourceId: 05f6105d0bcf4d17
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250020.tif
+    sourceId: 808b6fc26103b5d5
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250021.tif
+    sourceId: 057ee3939242718b
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250022.tif
+    featured: true
+    sourceId: 148e497cbc93c4ad
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250023.tif
+    featured: true
+    sourceId: a404da7a83a5aae4
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250024.tif
+    featured: true
+    sourceId: 7d8fd5d3bc4b7b76
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250025.tif
+    sourceId: b798dd8387b45ebd
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250026.tif
+    sourceId: 8296823da9b72a43
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250027.tif
+    featured: true
+    sourceId: 5fc953c24f46a3c6
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250028.tif
+    sourceId: d78e9fcc56530452
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250029.tif
+    featured: true
+    sourceId: c848fdc67722b519
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250030.tif
+    sourceId: 483f9fc3f0dee347
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250031.tif
+    sourceId: 5aa80498e839866d
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250032.tif
+    sourceId: 7d706efa42fbe2c9
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250033.tif
+    sourceId: 2b1affc2da65c260
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250034.tif
+    featured: true
+    sourceId: 069193b2a3b8e5dd
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250035.tif
+    sourceId: e251bdf05f07243e
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250036.tif
+    sourceId: d6c69e657f1d6d69
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250037.tif
+    featured: true
+    sourceId: 118dbf84b353d879
+    alt: ''
+    tags:
+      - '0425'
+  - file: 000004250038.tif
+    sourceId: 07ccb506beb9fe9f
+    alt: ''
+    tags:
+      - '0425'
