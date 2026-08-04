@@ -6,7 +6,14 @@ import { scaffoldAlbumMarkdown, syncPhotosFile, syncRollsFile } from './album-fi
 import { mapWithConcurrency } from './concurrency.ts';
 import type { PipelineConfig } from './config.ts';
 import { pathExists, writeFileAtomic } from './files.ts';
-import { configureSharp, encodeLqip, encodeVariant, inspectSource, normalise } from './encode.ts';
+import {
+  configureSharp,
+  encodeLqip,
+  encodeVariant,
+  inspectDerivative,
+  inspectSource,
+  normalise,
+} from './encode.ts';
 import { PipelineError } from './errors.ts';
 import { parseExif, selectCameraMetadata } from './exif.ts';
 import { sha256File } from './hash.ts';
@@ -174,8 +181,16 @@ async function ingestPhoto(
       variants.push(recorded);
       continue;
     }
-    const bytes = (await readFile(derivativePath(paths, plan.key))).byteLength;
-    variants.push(toVariantRecord(plan, plan.width, plan.height, bytes));
+    // On disk already, but not from a decode we just did and not in the
+    // previous manifest either — plan.width/height is the encode's bounding
+    // box, not the real output size (a portrait's real width differs from a
+    // square box's side), so read the actual file rather than guess.
+    const path = derivativePath(paths, plan.key);
+    const [dimensions, bytes] = await Promise.all([
+      inspectDerivative(path),
+      readFile(path).then((buffer) => buffer.byteLength),
+    ]);
+    variants.push(toVariantRecord(plan, dimensions.width, dimensions.height, bytes));
   }
 
   const ogEncoded = encodedByKey.get(openGraph.key);
@@ -260,10 +275,12 @@ export interface IngestOptions {
   readonly config: PipelineConfig;
   readonly onlyAlbums: readonly string[] | null;
   readonly concurrency: number;
+  /** Called after each photograph in an album finishes, whether encoded or reused. */
+  readonly onProgress?: (slug: string, completed: number, total: number) => void;
 }
 
 export async function ingest(options: IngestOptions): Promise<IngestReport> {
-  const { paths, config, onlyAlbums, concurrency } = options;
+  const { paths, config, onlyAlbums, concurrency, onProgress } = options;
   configureSharp();
 
   const allSlugs = await listAlbumSlugs(paths.originals);
@@ -296,9 +313,13 @@ export async function ingest(options: IngestOptions): Promise<IngestReport> {
     const manifestPath = join(paths.manifests, `${slug}.json`);
     const previous = await readPreviousRecords(manifestPath);
 
-    const outcomes = await mapWithConcurrency(photos, concurrency, (photo) =>
-      ingestPhoto(paths, config, albumOriginals, photo, previous),
-    );
+    let completed = 0;
+    const outcomes = await mapWithConcurrency(photos, concurrency, async (photo) => {
+      const outcome = await ingestPhoto(paths, config, albumOriginals, photo, previous);
+      completed += 1;
+      onProgress?.(slug, completed, photos.length);
+      return outcome;
+    });
 
     const rollRecords: RollRecord[] = rolls.map((roll) => ({
       id: roll.id,

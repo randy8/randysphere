@@ -13,37 +13,55 @@ const config: PipelineConfig = {
    * Bump this to force a re-encode when nothing else here changed — for
    * example after a sharp upgrade you want to take advantage of. It is the one
    * deliberate escape hatch from content addressing.
+   *
+   * Bumped to 2: encodeVariant's scaled resize used to constrain only by
+   * width, so a portrait photograph's long edge (its height) was never
+   * capped by a size tier at all. The digest doesn't encode *how* a resize
+   * was computed, only the tier number, so this bump is the only way to
+   * invalidate the existing (incorrectly-sized) portrait derivatives.
    */
-  recipeVersion: 1,
+  recipeVersion: 2,
 
   /**
-   * Widths offered in srcset, in CSS pixels. Six covers phones through to a
-   * 2x desktop full-bleed; more would mean more encoding for differences no
-   * one can see. Widths larger than a given photograph are skipped
-   * automatically, so small scans do not produce upscaled files.
+   * Widths offered in srcset, in CSS pixels, up through a 2x-3840 desktop/
+   * Retina full-bleed — this is a fidelity-first archive, not a bandwidth-
+   * constrained feed, so the top end is sized for how large the browse view
+   * actually renders a photograph (`sizes="100vw"`) on a large or Retina
+   * display, not for the smallest acceptable download. Widths larger than a
+   * given photograph are skipped automatically, so small scans do not
+   * produce upscaled files.
    */
-  widths: [400, 800, 1200, 1600, 2000, 2400],
+  widths: [400, 800, 1200, 1600, 2000, 2400, 3200, 3840],
 
   /** Lanczos3 is the sharpest of the available resamplers and the usual choice for photographs. */
   kernel: 'lanczos3',
 
   /**
-   * AVIF is what almost every visitor will actually download. Quality 55 in
-   * AVIF is roughly comparable to JPEG 80 and lands far smaller. Effort 4 is
-   * sharp's default; 9 is perhaps 8% smaller for several times the encode
-   * time, which is a bad trade on a collection of a few thousand.
+   * AVIF is what almost every visitor will actually download, and image
+   * fidelity is the priority here over minimum file size: quality 82 is well
+   * into the range that holds up film grain, fine texture, and subtle
+   * gradients rather than smoothing them away.
+   *
+   * Effort stays at sharp's default of 4, not higher: effort trades encode
+   * time for a few percent off the file size at the *same* quality — it does
+   * not affect fidelity. Effort 6 was tried first and measured in practice
+   * at well over 3 hours for this collection's few hundred photographs
+   * without finishing, for a saving nobody would ever see; 4 is the actual
+   * bad trade 9 was already called out as being, just arrived at by
+   * measuring rather than assuming.
    */
-  avif: { quality: 55, effort: 4 },
+  avif: { quality: 82, effort: 4 },
 
-  /** The fallback for anything without AVIF. Effort 5 of 6 is nearly free. */
-  webp: { quality: 76, effort: 5 },
+  /** The fallback for anything without AVIF, held to a similarly high quality rather than a bandwidth-optimised one. */
+  webp: { quality: 90, effort: 5 },
 
   /**
    * A genuine legacy fallback, not a primary path, so only two widths: one for
    * normal viewing and one for the lightbox and the no-JavaScript "open the
-   * photograph" link.
+   * photograph" link — but that second one now matches the top of `widths`,
+   * since it is also what a non-AVIF/WebP browser's fullscreen view opens.
    */
-  jpeg: { quality: 80, widths: [1200, 2400] },
+  jpeg: { quality: 90, widths: [1200, 3840] },
 
   /**
    * Open Graph images are crops of the photograph with no text on them, which

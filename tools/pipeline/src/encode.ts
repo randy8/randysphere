@@ -46,6 +46,23 @@ export async function inspectSource(file: string): Promise<SourceInspection> {
   }
 }
 
+/**
+ * A derivative's real pixel dimensions, read off disk header-only. The one
+ * place this is needed is ingest.ts's fallback for a derivative that already
+ * exists but has no previous manifest record to copy dimensions from —
+ * everywhere else, real dimensions come back from the encoder itself
+ * (`EncodedVariant`) rather than being predicted, since a `fit: 'inside'`
+ * long-edge cap produces a different width for a portrait than for a
+ * landscape at the same tier.
+ */
+export async function inspectDerivative(file: string): Promise<Dimensions> {
+  const { width, height } = await sharp(file, { failOn: 'error' }).metadata();
+  if (width === undefined || height === undefined) {
+    throw new PipelineError(`${file}: no image dimensions. Is this actually an image?`);
+  }
+  return { width, height };
+}
+
 export interface NormalisedImage {
   readonly pixels: Buffer;
   readonly width: number;
@@ -128,6 +145,13 @@ export async function encodeVariant(
 ): Promise<EncodedVariant> {
   let image = openNormalised(base);
 
+  // Cropping (`fit: 'cover'`) exists in exactly one place: the Open Graph
+  // plan, which is deliberately a fixed-box social-preview crop and says so
+  // in its own name. Every other derivative uses `fit: 'inside'` against a
+  // square box (plan.width × plan.height, set equal in planVariants) —
+  // sharp fits the image entirely within that box on its long edge and
+  // never pads the short edge to fill it, so the aspect ratio is always
+  // exactly preserved and the output is never larger than the source.
   image =
     plan.kind === 'og'
       ? image.resize({
@@ -135,10 +159,12 @@ export async function encodeVariant(
           height: plan.height,
           fit: 'cover',
           position: 'attention',
+          withoutEnlargement: true,
           kernel: config.kernel,
         })
       : image.resize({
           width: plan.width,
+          height: plan.height,
           withoutEnlargement: true,
           fit: 'inside',
           kernel: config.kernel,

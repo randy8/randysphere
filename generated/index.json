@@ -1,29 +1,31 @@
 {
   "schemaVersion": 2,
   "recipe": {
-    "recipeVersion": 1,
+    "recipeVersion": 2,
     "widths": [
       400,
       800,
       1200,
       1600,
       2000,
-      2400
+      2400,
+      3200,
+      3840
     ],
     "kernel": "lanczos3",
     "avif": {
-      "quality": 55,
+      "quality": 82,
       "effort": 4
     },
     "webp": {
-      "quality": 76,
+      "quality": 90,
       "effort": 5
     },
     "jpeg": {
-      "quality": 80,
+      "quality": 90,
       "widths": [
         1200,
-        2400
+        3840
       ]
     },
     "og": {
@@ -43,6 +45,9 @@
     "localPublishDir": "site/public"
   },
   "albums": [
+    "0271",
+    "0425",
+    "0462",
     "0827",
     "0828",
     "0829",

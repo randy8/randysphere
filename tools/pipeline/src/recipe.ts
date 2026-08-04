@@ -1,7 +1,6 @@
 import type { PipelineConfig } from './config.ts';
 import { canonicalJson, sha256Hex } from './hash.ts';
 import type { Dimensions } from './orientation.ts';
-import { scaledHeight } from './orientation.ts';
 
 export type VariantFormat = 'avif' | 'webp' | 'jpeg';
 
@@ -77,25 +76,30 @@ function buildKey(sourceId: string, label: string, digest: string, format: Varia
 }
 
 /**
- * Widths worth encoding for a source of this size.
+ * Size tiers worth encoding for a source of this extent.
  *
- * Configured widths larger than the source are dropped, because enlarging a
- * photograph produces a file that is bigger in bytes and no better to look at,
- * and because two variants that resolve to the same pixel width make a
- * nonsense of a srcset. If the source is not already covered, its native width
- * is added so the largest offering is the best available.
+ * Each configured number is a cap on the long edge (see `planVariants`), so
+ * this has to compare against the source's long edge too — not literally its
+ * width, which for a portrait photograph is the *short* edge and would both
+ * wrongly exclude tiers the long edge easily supports and wrongly offer the
+ * short edge's value as if it were the native ceiling. Tiers larger than the
+ * source are dropped, because enlarging a photograph produces a file that is
+ * bigger in bytes and no better to look at, and because two variants that
+ * resolve to the same pixel size make a nonsense of a srcset. If the source
+ * is not already covered, its native long edge is added so the largest
+ * offering is the best available.
  */
-export function usableWidths(configured: readonly number[], sourceWidth: number): number[] {
+export function usableWidths(configured: readonly number[], sourceLongEdge: number): number[] {
   const widest = Math.max(...configured);
-  const widths = configured.filter((width) => width <= sourceWidth).sort((a, b) => a - b);
+  const widths = configured.filter((width) => width <= sourceLongEdge).sort((a, b) => a - b);
 
   // Only when the photograph is smaller than the largest size we would normally
-  // offer is its native width added, so that the best available is on offer.
-  // For a source larger than the configured range this must not fire: adding
-  // the native width there would publish a full resolution copy of every
-  // photograph, which is both enormous and precisely what we do not want.
-  if (sourceWidth < widest && !widths.includes(sourceWidth)) {
-    widths.push(sourceWidth);
+  // offer is its native long edge added, so that the best available is on
+  // offer. For a source larger than the configured range this must not fire:
+  // adding the native long edge there would publish a full resolution copy of
+  // every photograph, which is both enormous and precisely what we do not want.
+  if (sourceLongEdge < widest && !widths.includes(sourceLongEdge)) {
+    widths.push(sourceLongEdge);
   }
   return widths;
 }
@@ -128,9 +132,17 @@ export function planVariants(
     { format: 'jpeg', widths: config.jpeg.widths, quality: config.jpeg.quality, effort: null },
   ];
 
+  const sourceLongEdge = Math.max(source.width, source.height);
+
   for (const { format, widths, quality, effort } of formats) {
-    for (const width of usableWidths(widths, source.width)) {
-      const height = scaledHeight(source, width);
+    for (const width of usableWidths(widths, sourceLongEdge)) {
+      // A square width×width box, not scaledHeight(source, width): the tier
+      // is a cap on the long edge (see encodeVariant's `fit: 'inside'`), so
+      // the box has to be square to cap either orientation the same way.
+      // The real encoded width and height (which differ from this for a
+      // portrait) come back from the encoder itself — this pair is the box,
+      // not a prediction of the output.
+      const height = width;
       const spec: EncodeSpec = {
         recipeVersion: config.recipeVersion,
         sourceId,
