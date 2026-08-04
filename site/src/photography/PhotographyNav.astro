@@ -42,11 +42,21 @@ const links = [
   .photography-nav a {
     color: var(--muted);
     text-decoration: none;
+    padding-bottom: 0.1875rem;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    background-size: 0% 1px;
+    transition:
+      background-size 0.25s ease,
+      color 0.2s ease;
   }
   .photography-nav a:hover {
-    color: var(--ink);
+    color: var(--accent);
+    background-size: 100% 1px;
   }
   .photography-nav a[aria-current='page'] {
     color: var(--ink);
+    background-size: 100% 1px;
   }
 </style>
