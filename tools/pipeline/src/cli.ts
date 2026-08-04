@@ -47,10 +47,36 @@ function plural(count: number, singular: string, pluralForm = `${singular}s`): s
   return `${count.toString()} ${count === 1 ? singular : pluralForm}`;
 }
 
+const PROGRESS_BAR_WIDTH = 24;
+
+/**
+ * A single overwriting line, not scrolling log spam — `\r` with no trailing
+ * newline until the bar reaches 100%. Only when stdout is a real terminal:
+ * piped to a file or captured by another process, `\r` would just corrupt
+ * the log instead of animating, so this is silent there and the run is still
+ * fully observable from the final per-album summary either way.
+ */
+function renderProgressBar(label: string, completed: number, total: number): void {
+  if (!process.stdout.isTTY) return;
+  const filled = Math.round((completed / total) * PROGRESS_BAR_WIDTH);
+  const bar = '#'.repeat(filled) + '-'.repeat(PROGRESS_BAR_WIDTH - filled);
+  const line = `  [${bar}] ${label}: ${completed.toString()}/${total.toString()}`;
+  process.stdout.write(`\r${line.padEnd(72)}`);
+  if (completed === total) process.stdout.write('\n');
+}
+
 async function runIngest(onlyAlbums: string[] | null, concurrency: number): Promise<void> {
   const paths = resolvePaths(repositoryRoot());
   const config = await loadConfig(paths.configFile);
-  const report = await ingest({ paths, config, onlyAlbums, concurrency });
+  const report = await ingest({
+    paths,
+    config,
+    onlyAlbums,
+    concurrency,
+    onProgress: (slug, completed, total) => {
+      renderProgressBar(slug, completed, total);
+    },
+  });
 
   for (const album of report.albums) {
     const parts = [`${album.slug}: ${plural(album.photos, 'photograph')}`];
@@ -123,8 +149,7 @@ async function runPublish(local: boolean, concurrency: number): Promise<void> {
     storage,
     concurrency,
     onProgress: (done, total) => {
-      if (done % 50 === 0 || done === total)
-        console.log(`  ${done.toString()}/${total.toString()}`);
+      renderProgressBar('uploading', done, total);
     },
   });
 

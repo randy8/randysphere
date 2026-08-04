@@ -588,3 +588,52 @@ a bug, and a recipe is a hand-written note where it means "not typed yet."
 collections would genuinely share something (derivative encoding), and the
 honest move then is to let the pipeline take a second content type, not to
 give recipes their own parallel one.
+
+---
+
+## 2026-08-03 — Fidelity-first encoding: a long-edge cap, and a retune that re-encoded everything
+
+**Decision.** `recipeVersion` went to 2, which invalidated and re-encoded
+every derivative in the archive. Three changes together:
+
+- **A size tier is a cap on the long edge, not on the width.** `encodeVariant`
+  previously constrained a scaled resize by width only, so a *portrait*
+  photograph's long edge — its height — was never capped by a tier at all: a
+  "1200" variant of a portrait scan came out 1200 wide and far taller than
+  1200, many times the intended pixel count and file size. `planVariants` now
+  builds a square box and relies on sharp's `fit: 'inside'`, which caps
+  whichever edge is longer and never pads the other, so the aspect ratio is
+  exactly preserved for both orientations. `usableWidths` compares against
+  the source's long edge for the same reason — comparing against a portrait's
+  width meant excluding tiers it easily supports and offering its *short*
+  edge as the native ceiling.
+- **Quality went up, decisively.** AVIF 55 → 82, WebP 76 → 90, JPEG 80 → 90.
+  The old numbers were chosen as a bandwidth trade; this is a fidelity-first
+  archive of film scans, where grain and subtle gradients are the content and
+  smoothing them away is a real loss.
+- **Widths gained 3200 and 3840,** because the browse view renders a
+  photograph at `sizes="100vw"` and the previous 2400 ceiling was visibly
+  short of a large or Retina display. The legacy JPEG's upper width follows
+  to 3840, since it's what a non-AVIF/WebP browser opens fullscreen.
+
+**Why a version bump was unavoidable.** A derivative's key digests its
+`EncodeSpec` — the tier *number*, not how the resize was computed. Fixing the
+long-edge bug changed the output bytes without changing any field in the
+spec, so nothing would have re-keyed on its own. `recipeVersion` is the
+documented escape hatch for exactly this case and it was the only correct
+lever.
+
+**Effort stayed at 4.** AVIF effort 6 was tried first and measured, not
+assumed: over three hours on this collection's few hundred photographs
+without finishing. Effort trades encode time for a few percent of file size
+at the *same* quality — it does not affect fidelity — so it buys nothing a
+viewer could ever see. The existing comment already called effort 9 a bad
+trade; 6 turned out to be one too.
+
+**Cost.** A full re-encode and a full re-publish: every URL in every manifest
+changed. This is the designed behaviour of content-addressed derivatives, not
+a regression — no schema version bump, no migration, and `originals/`
+untouched. `inspectDerivative` was added to `encode.ts` for the one case that
+now needs it: a derivative already on disk with no previous manifest record
+to copy dimensions from, where the plan's box is not a prediction of the real
+output size and has to be read off the file instead.

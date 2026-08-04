@@ -260,3 +260,44 @@ tags, and all 289 still have empty alt text. The new pages make that more
 visible, not less: Selected Work currently holds four photographs, and the
 archive index lists eight views named after directories. Tagging and
 describing the real archive remains the next real work.
+
+---
+
+## 2026-08-03 — Every derivative re-encoded, for fidelity and for a portrait bug
+
+`recipeVersion` went to 2 and the entire archive was re-encoded. The
+triggering discovery was a genuine bug: a size tier was being applied as a cap
+on a derivative's *width*, which for a portrait photograph is its short edge.
+A portrait's long edge was therefore never capped by any tier — a "1200"
+variant of a portrait scan came out 1200 wide and far taller, at several times
+the intended pixel count and file weight. Landscapes were correct throughout,
+which is exactly why it went unnoticed. A tier is now a cap on whichever edge
+is longer, with the aspect ratio preserved for both orientations.
+
+Fixing it required the version bump rather than benefiting from content
+addressing. A derivative's key digests the encode spec — the tier number, the
+quality, the kernel — but not *how* the resize gets computed from them. The
+bug changed the output bytes while every field in the spec stayed identical,
+so nothing would have re-keyed on its own. `recipeVersion` exists as the
+deliberate escape hatch for precisely that case, and this is the first time it
+has been used.
+
+Since everything was being re-encoded anyway, the quality settings were
+revisited and moved decisively toward fidelity: AVIF 55 → 82, WebP 76 → 90,
+JPEG 80 → 90, and two new size tiers at 3200 and 3840. The old values were
+picked as a bandwidth trade-off, which is the wrong trade for an archive of
+film scans where grain and subtle gradients *are* the content. The browse view
+renders a photograph at full viewport width, and the previous 2400 ceiling was
+visibly short on a large or Retina display.
+
+One thing was measured rather than assumed, and the measurement said no: AVIF
+effort 6 ran for over three hours on a few hundred photographs without
+finishing. Effort buys a few percent of file size at the same quality and does
+not affect how a photograph looks, so it stayed at sharp's default of 4. The
+config comment had already called effort 9 a bad trade; 6 turned out to be one
+as well.
+
+The cost is that every image URL on the site changed and everything had to be
+re-published. That is the designed behaviour of content-addressed derivatives
+rather than a regression — no schema change, no migration, and nothing under
+`originals/` touched.

@@ -108,6 +108,7 @@ photos:
     tags:
       - '0830'
   - file: 000008300021.tif
+    featured: true
     sourceId: 12734aeec68f748f
     alt: ''
     tags:
