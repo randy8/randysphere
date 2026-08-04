@@ -454,3 +454,137 @@ destroys the manifest and hand-written captions/tags for a batch that was
 never actually retired. No confirmation step exists today because nothing
 like this has happened yet; if it does, the fix is probably a grace period
 or an explicit `--prune` flag rather than deleting unconditionally.
+
+---
+
+## 2026-08-03 — The site becomes multi-collection; photography is the first one, not the whole site
+
+**Decision.** `/` is no longer the photography archive. It is a homepage whose
+only job is to introduce **collections**, read from a registry
+(`site/src/collections.ts`). Photography moved wholesale to `/photography/`,
+and everything specific to it moved out of the shared `src/components/`,
+`src/lib/`, and `src/scripts/` into `src/photography/`. A second collection,
+recipes, exists at `/recipes/` to prove the seam is real. Adding a third is
+one entry in the registry plus its own `src/pages/<slug>/` and (if it needs
+one) `src/<slug>/` — never an edit to the homepage, to `Base.astro`, or to
+another collection's code.
+
+The split is by *content shape*, not by reusability. `src/photography/`
+holds things that only make sense for photographs — the archive reader, the
+manifest validator, the browse view, image URL building. `src/layouts/`,
+`src/styles/`, and `src/config.ts` hold what is genuinely site-wide: the
+shell, the design tokens, the author's name. `Base.astro` deliberately never
+learns that photography exists; the photography-specific navigation lives in
+`src/photography/PhotographyNav.astro` and is rendered by photography's own
+pages.
+
+**Why.** The archive model entry (2026-07-29) collapsed trip, place, and
+subject into one mechanism because inventing a second structural concept
+alongside the first was the wrong shape. This is the same argument one level
+up. Photographs are not the only thing worth keeping a long-term, well-made
+archive of, and the alternative to a collection registry was either a second
+site or a homepage that grows an `if` per content type. A registry makes the
+homepage's content a function of its data: its table of contents is built by
+calling each collection's own `stats()` against that collection's own data,
+so a count on the homepage cannot go stale the way a hand-typed number does.
+
+**What did not change.** Nothing in `tools/pipeline/`, no manifest schema
+change, and no change to the archive model itself — a trip is still a tag,
+a view is still a query, and `viewForTag` is untouched. The old
+`/projects/<tag>/` route became `/photography/<tag>/`; there is no redirect,
+because nothing links to the old URLs yet.
+
+**Rejected.** A shared `src/lib/` for "things more than one collection might
+want." Photography's manifest reader and a recipe reader have nothing in
+common but the word "read" — hoisting them together would produce an
+abstraction with one honest implementation and one contorted one. Each
+collection reads its own data its own way, and duplication between them is
+the cheaper mistake.
+
+**Revisit if.** A third and fourth collection genuinely share machinery (a
+common front-matter reader, say). Two collections is not enough evidence to
+abstract from; four might be.
+
+---
+
+## 2026-08-03 — Selected Work is editorial, not a tag; presentation order is independent from archival order
+
+**Decision.** Two things a photographer chooses by hand now exist alongside
+the archive's own chronological order, and neither is a tag:
+
+- **`featured` / `featuredOrder`** in `photos.yaml` drive `selectedWork()` —
+  a hand-picked, hand-sequenced run of photographs across the whole archive,
+  rendered at `/photography/selected/`. `featured` is a boolean, and
+  `featuredOrder` an optional number; ordered photos sort first by that
+  number, unordered ones fall back to the archive's own `(roll, frame)`.
+- **`cover`** in `albums/<slug>/album.md`'s frontmatter names one photo per
+  batch. `coverPhoto()` prefers it and otherwise falls back to the
+  chronological first.
+
+**Why not a tag.** A tag is a claim about what a photograph *is* — a place, a
+subject, a trip — and every photograph carrying it belongs in that view,
+unordered relative to each other beyond roll and frame. "This is one of my
+best, and it goes third" is a claim about *presentation*, and it has an
+ordering a tag has no way to express. Modelling it as a tag (`selected`)
+would have meant either accepting whatever order the archive happened to
+produce, or inventing a per-tag ordering mechanism that only one tag ever
+uses — which is a worse version of just saying so per photo.
+
+**Archival order is not touched by either.** `frame`, `byRollAndFrame`, and
+every tag view still sort chronologically, exactly as before. `cover` and
+`featuredOrder` are read *on top of* that order by the two callers that want
+a presentation sequence, never folded into it. A photograph being a cover or
+being featured changes nothing about where it appears in its own tag's view.
+
+**Where it's written.** Both live in the site-layer files a human already
+edits by hand (`photos.yaml`, `album.md`), not in the pipeline manifest —
+same boundary as `alt`, `caption`, and `tags`, and for the same reason. No
+`SCHEMA_VERSION` bump, no re-encode, and `pnpm ingest` preserves them the
+way it preserves every other hand-authored field. `pnpm edit` can set both,
+which is why `album-files.ts` grew `readAlbumCover`/`updateAlbumCover` —
+deliberately a second implementation of the site's own cover reader rather
+than a shared one, consistent with the type-only boundary between the two
+halves.
+
+**Deferred.** Nothing enforces that `featuredOrder` values are unique or
+contiguous — duplicates fall back to `(roll, frame)` and gaps are fine. A
+validator can come the first time a real sequence gets confusing; today
+there are four featured photographs.
+
+---
+
+## 2026-08-03 — Recipes are hand-written YAML with no pipeline at all
+
+**Decision.** The recipes collection reads one YAML file per recipe from a
+repo-root `recipes/` directory, straight off disk at build time
+(`site/src/recipes/recipes.ts`). There is no ingest step, no generated
+manifest, no cache, and no images — the photography pipeline's entire
+apparatus is absent here, on purpose.
+
+**Why.** That apparatus exists to solve problems recipes don't have:
+photographs are large binaries that need deriving, content-addressing,
+publishing to object storage, and a committed contract between an offline
+encoder and the site. A recipe is a few hundred bytes of text a human types.
+Running it through a pipeline would add a build step, a manifest to keep in
+sync, and a schema version to bump, in exchange for nothing. The asymmetry
+is the point: a collection brings only the machinery its content actually
+needs, which is what makes adding one cheap.
+
+**Shape.** Each file reads like documentation rather than a blog post — a
+metadata row (times, servings, difficulty), ingredients, instructions in the
+author's own words, notes, and a `version`/`created`/`updated` footer that
+treats a recipe as a living document. Ingredients may carry `**bold**` for
+quantities; `markup.ts` handles exactly that one inline form and nothing
+else, rather than pulling in a Markdown parser to render bold text.
+
+**Every field is optional at read time.** `readRecipe` defaults each missing
+key rather than throwing, because a half-written recipe should render as far
+as it goes instead of failing a build. This is the opposite of the manifest
+reader's strictness next door — and correct for the same reason it's correct
+there: a manifest is a machine-written contract where a missing field means
+a bug, and a recipe is a hand-written note where it means "not typed yet."
+
+**Revisit if.** Recipes get photographs. That is the point where the two
+collections would genuinely share something (derivative encoding), and the
+honest move then is to let the pipeline take a second content type, not to
+give recipes their own parallel one.

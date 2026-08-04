@@ -8,13 +8,14 @@ import { json } from 'node:stream/consumers';
 import { PipelineError } from '../errors.ts';
 import { derivativePath } from '../paths.ts';
 import type { Paths } from '../paths.ts';
-import type { ApplyEditsRequest } from './api.ts';
+import type { ApplyEditsRequest, SetCoverRequest } from './api.ts';
 import {
   applyEdits,
   deleteTagEverywhere,
   listPhotos,
   listTags,
   renameTagEverywhere,
+  setCover,
 } from './api.ts';
 
 const STATIC_DIRECTORY = join(import.meta.dirname, 'static');
@@ -92,6 +93,12 @@ async function route(paths: Paths, req: IncomingMessage, res: ServerResponse): P
     const body = (await readJsonBody(req)) as ApplyEditsRequest;
     const result = await applyEdits(paths, body);
     sendJson(res, result.ok ? 200 : 409, result);
+    return;
+  }
+  if (req.method === 'POST' && pathname === '/api/cover') {
+    const body = (await readJsonBody(req)) as SetCoverRequest;
+    await setCover(paths, body);
+    sendJson(res, 200, { ok: true });
     return;
   }
   if (req.method === 'POST' && pathname === '/api/tags/rename') {

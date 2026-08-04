@@ -1,0 +1,75 @@
+---
+import Browse from '../../photography/Browse.astro';
+import Photo from '../../photography/Photo.astro';
+import Base from '../../layouts/Base.astro';
+import PhotographyNav from '../../photography/PhotographyNav.astro';
+import { allTags, loadArchive, viewForTag } from '../../photography/archive.ts';
+import type { View } from '../../photography/archive.ts';
+
+export function getStaticPaths() {
+  const archive = loadArchive();
+  return allTags(archive).map((tag) => ({ params: { tag }, props: { view: viewForTag(archive, tag) } }));
+}
+
+interface Props {
+  view: View;
+}
+
+const { view } = Astro.props;
+---
+
+<Base title={view.title} description={view.title}>
+  {
+    /*
+      Scroll (the continuous-sequence photobook view) is the default reading
+      experience, not an alternative layout — this runs before the rest of
+      the page paints so there's no flash of the grid first. The grid is the
+      explicit opt-out (#grid) and the no-JS fallback: without this script
+      running at all, is-browsing never gets added and the plain grid of
+      real links is what renders. `document.body` already exists here
+      regardless of where in the body this tag sits.
+    */
+  }
+  <script is:inline>
+    if (location.hash !== '#grid') {
+      document.body.classList.add('is-browsing');
+    }
+  </script>
+
+  <PhotographyNav current="archive" />
+  <header class="album-header">
+    {
+      view.roll?.filmStock && (
+        <p class="eyebrow">
+          <a href={`/photography/film/${view.roll.filmStock}/`}>{view.roll.filmStock}</a>
+          {view.date && ` · ${view.date}`}
+        </p>
+      )
+    }
+    {!view.roll?.filmStock && view.date && <p class="eyebrow">{view.date}</p>}
+    <h1>{view.title}</h1>
+  </header>
+
+  <div class="grid" data-grid>
+    {
+      view.photos.map((entry, index) => (
+        <figure data-photo-id={entry.photo.sourceId}>
+          <Photo
+            entry={entry}
+            sizes="(min-width: 64rem) 15vw, (min-width: 40rem) 23vw, 46vw"
+            priority={index === 0}
+          />
+          <span class="frame-mark" aria-hidden="true">
+            {String(entry.frame).padStart(2, '0')}
+          </span>
+        </figure>
+      ))
+    }
+  </div>
+
+  <Browse view={view} />
+
+  <script>
+    import '../../photography/browse.ts';
+  </script>
+</Base>

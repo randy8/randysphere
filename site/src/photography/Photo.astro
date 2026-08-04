@@ -1,7 +1,7 @@
 ---
-import { site } from '../config.ts';
-import { assetUrl, largest, smallest, srcset, variantsOf } from '../lib/image.ts';
-import type { ArchivePhoto } from '../lib/archive.ts';
+import { photography } from './config.ts';
+import { assetUrl, largest, smallest, srcset, variantsOf } from './image.ts';
+import type { ArchivePhoto } from './archive.ts';
 
 interface Props {
   entry: ArchivePhoto;
@@ -18,7 +18,7 @@ interface Props {
 
 const { entry, sizes, priority = false, linked = true } = Astro.props;
 const { photo, alt } = entry;
-const base = site.imageBaseUrl;
+const base = photography.imageBaseUrl;
 
 const avif = variantsOf(photo, 'avif');
 const webp = variantsOf(photo, 'webp');

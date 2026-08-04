@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 
-import { applyPhotoEdits, StaleAlbumFileError } from '../album-files.ts';
+import { applyPhotoEdits, StaleAlbumFileError, updateAlbumCover } from '../album-files.ts';
 import type { PhotoEdit } from '../album-files.ts';
 import { PipelineError } from '../errors.ts';
 import type { Paths } from '../paths.ts';
@@ -23,6 +23,9 @@ export interface EditorPhotoView {
   readonly alt: string;
   readonly caption: string | null;
   readonly tags: readonly string[];
+  readonly featured: boolean;
+  readonly featuredOrder: number | null;
+  readonly cover: boolean;
 }
 
 export interface ListPhotosResponse {
@@ -46,6 +49,9 @@ export async function listPhotos(paths: Paths): Promise<ListPhotosResponse> {
       alt: photo.alt,
       caption: photo.caption,
       tags: photo.tags,
+      featured: photo.featured,
+      featuredOrder: photo.featuredOrder,
+      cover: photo.cover,
     })),
     albumVersions: archive.albumVersions,
   };
@@ -132,6 +138,17 @@ export async function applyEdits(
     request.expectedVersions,
   );
   return { ok: conflicts.length === 0, albumVersions, conflicts };
+}
+
+export interface SetCoverRequest {
+  readonly album: string;
+  readonly file: string;
+}
+
+/** Sets an album's cover photo (album.md's `cover:`) — a separate file from photos.yaml, so a separate write path from applyEdits, under the same per-album lock. */
+export async function setCover(paths: Paths, request: SetCoverRequest): Promise<void> {
+  const albumDirectory = join(paths.albums, request.album);
+  await withAlbumLock(albumDirectory, () => updateAlbumCover(albumDirectory, request.file));
 }
 
 export interface TagMaintenanceResponse {

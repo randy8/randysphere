@@ -1,0 +1,42 @@
+---
+import Photo from '../../../photography/Photo.astro';
+import Base from '../../../layouts/Base.astro';
+import PhotographyNav from '../../../photography/PhotographyNav.astro';
+import { allTags, coverPhoto, loadArchive, viewForTag } from '../../../photography/archive.ts';
+import { photography } from '../../../photography/config.ts';
+
+const archive = loadArchive();
+const views = allTags(archive).map((tag) => viewForTag(archive, tag));
+---
+
+<Base title={`Archive — ${photography.title}`} description={photography.description}>
+  <PhotographyNav current="archive" />
+  <header class="album-header">
+    <h1>Archive</h1>
+    <p class="lede">A digital archive of analog photos.</p>
+  </header>
+
+  <ul class="archive-composition">
+    {
+      views.map((view, index) => (
+        <li class="archive-entry">
+          <a href={`/photography/${view.tag}/`}>
+            <Photo
+              entry={coverPhoto(view.photos)}
+              sizes="(min-width: 64rem) 31vw, (min-width: 40rem) 47vw, 92vw"
+              priority={index === 0}
+              linked={false}
+            />
+            <figcaption>
+              <h2>{view.title}</h2>
+              <p class="meta">
+                {view.roll?.filmStock && <span>{view.roll.filmStock}</span>}
+                {view.date && <span>{view.date}</span>}
+              </p>
+            </figcaption>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</Base>

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-import { syncPhotosFile } from '../album-files.ts';
+import { scaffoldAlbumMarkdown, syncPhotosFile } from '../album-files.ts';
 import { formatJson, writeFileAtomic } from '../files.ts';
 import type { AlbumManifest, PhotoRecord, VariantRecord } from '../manifest.ts';
 import type { Paths } from '../paths.ts';
@@ -15,6 +15,7 @@ import {
   listPhotos,
   listTags,
   renameTagEverywhere,
+  setCover,
 } from './api.ts';
 
 function variant(width: number): VariantRecord {
@@ -159,4 +160,35 @@ test('deleteTagEverywhere removes a tag from every photo that carries it', async
   assert.equal(result.affected, 2);
   const after = await listPhotos(paths);
   for (const photo of after.photos) assert.deepEqual(photo.tags, []);
+});
+
+test('listPhotos reports featured and cover status from photos.yaml and album.md', async () => {
+  const paths = await fixtureAlbum('paris-2025', ['001.jpg', '002.jpg']);
+  await scaffoldAlbumMarkdown(join(paths.albums, 'paris-2025'), 'paris-2025', null, '001.jpg');
+  await applyEdits(paths, {
+    edits: [{ album: 'paris-2025', file: '002.jpg', featured: true, featuredOrder: 1 }],
+    expectedVersions: (await listPhotos(paths)).albumVersions,
+  });
+
+  const response = await listPhotos(paths);
+  const first = response.photos.find((p) => p.file === '001.jpg');
+  const second = response.photos.find((p) => p.file === '002.jpg');
+  assert.equal(first?.cover, true);
+  assert.equal(second?.cover, false);
+  assert.equal(first?.featured, false);
+  assert.equal(second?.featured, true);
+  assert.equal(second?.featuredOrder, 1);
+});
+
+test('setCover changes album.md without touching photos.yaml', async () => {
+  const paths = await fixtureAlbum('paris-2025', ['001.jpg', '002.jpg']);
+  await scaffoldAlbumMarkdown(join(paths.albums, 'paris-2025'), 'paris-2025', null, '001.jpg');
+
+  await setCover(paths, { album: 'paris-2025', file: '002.jpg' });
+
+  const response = await listPhotos(paths);
+  const first = response.photos.find((p) => p.file === '001.jpg');
+  const second = response.photos.find((p) => p.file === '002.jpg');
+  assert.equal(first?.cover, false);
+  assert.equal(second?.cover, true);
 });

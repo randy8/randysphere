@@ -97,6 +97,26 @@ test('GET /api/photos returns the joined photo list', async () => {
   assert.deepEqual(body.photos[0]?.tags, ['paris-2025']);
 });
 
+test('POST /api/cover sets the album cover and GET /api/photos reflects it', async () => {
+  await writeFileAtomic(
+    join(paths.albums, 'paris-2025', 'album.md'),
+    "---\ntitle: Paris 2025\ndate: '2025-01-01'\nlocation: ''\ndescription: ''\nfeatured: false\ncover: 001.jpg\n---\n",
+  );
+
+  const response = await fetch(`${baseUrl}/api/cover`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ album: 'paris-2025', file: '001.jpg' }),
+  });
+  assert.equal(response.status, 200);
+
+  const photosResponse = await fetch(`${baseUrl}/api/photos`);
+  const { photos } = (await photosResponse.json()) as {
+    photos: { file: string; cover: boolean }[];
+  };
+  assert.equal(photos.find((p) => p.file === '001.jpg')?.cover, true);
+});
+
 test('GET /api/tags returns the tag vocabulary', async () => {
   const response = await fetch(`${baseUrl}/api/tags`);
   assert.equal(response.status, 200);

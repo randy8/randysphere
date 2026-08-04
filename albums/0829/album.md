@@ -4,5 +4,5 @@ date: 2026-07-29
 location: ''
 description: ''
 featured: false
-cover: 000008290001.tif
+cover: 000008290025.tif
 ---

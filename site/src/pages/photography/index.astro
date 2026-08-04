@@ -1,0 +1,76 @@
+---
+import Photo from '../../photography/Photo.astro';
+import Base from '../../layouts/Base.astro';
+import PhotographyNav from '../../photography/PhotographyNav.astro';
+import { loadArchive, selectedWork } from '../../photography/archive.ts';
+import { photography } from '../../photography/config.ts';
+
+const archive = loadArchive();
+// A small taste, not a summary of the whole archive — Home's only job is to
+// hand off to Selected Work, Archive, or About. See docs/decisions.md.
+const preview = selectedWork(archive).slice(0, 3);
+---
+
+<Base title={photography.title} description={photography.description}>
+  <PhotographyNav current="home" />
+  <header class="photography-home-header">
+    <h1>{photography.title}</h1>
+    <p class="lede">{photography.description}</p>
+  </header>
+
+  {
+    preview.length > 0 && (
+      <ul class="photography-home-preview">
+        {preview.map((entry, index) => (
+          <li>
+            <a href={`/photography/selected/#photo-${entry.photo.sourceId}`}>
+              <Photo
+                entry={entry}
+                sizes="(min-width: 64rem) 30vw, 92vw"
+                priority={index === 0}
+                linked={false}
+              />
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  <p class="photography-home-cue">
+    <a href="/photography/selected/">View Selected Work →</a>
+  </p>
+</Base>
+
+<style>
+  .photography-home-header {
+    margin: 4rem 0 3.5rem;
+  }
+  .photography-home-preview {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin: 0 0 3rem;
+    padding: 0;
+    list-style: none;
+  }
+  @media (min-width: 48rem) {
+    .photography-home-preview {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  .photography-home-cue {
+    margin: 0 0 4rem;
+  }
+  .photography-home-cue a {
+    font-family: var(--serif);
+    font-variant-caps: small-caps;
+    font-size: 1.0625rem;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .photography-home-cue a:hover {
+    color: var(--ink);
+  }
+</style>

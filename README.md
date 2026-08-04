@@ -51,19 +51,32 @@ correctly — go back and run `fnm use`.
 Originals live in `originals/<album-slug>/`. That directory is git-ignored and
 nothing in this repository ever uploads it.
 
-To use the bundled samples:
-
-```sh
-mkdir -p originals/sample-album
-cp samples/*.jpg originals/sample-album/
-```
-
-To use your own instead, pick a URL-shaped slug (lower-case, hyphens):
+Pick a URL-shaped slug (lower-case, hyphens) and copy photographs into it:
 
 ```sh
 mkdir -p originals/kamakura-in-rain
 cp ~/Pictures/export/*.jpg originals/kamakura-in-rain/
 ```
+
+A batch may also hold rolls — any subdirectory containing images directly, at
+any depth — in which case each is scanned separately:
+
+```sh
+mkdir -p originals/kamakura-in-rain/0827
+cp ~/Pictures/export/roll-1/*.tif originals/kamakura-in-rain/0827/
+```
+
+The repository ships with no sample photographs: everything under
+`originals/` is git-ignored, so a fresh clone has an empty archive until you
+add one.
+
+> **Do this before running `pnpm ingest` on a fresh clone.** Ingest treats any
+> committed manifest whose batch is missing from `originals/` as an orphan and
+> deletes it, along with that batch's entire `albums/<slug>/` directory —
+> captions, tags, and all. On a clone with an empty `originals/`, that is
+> _every_ batch, on the first run, with no confirmation. `--album <slug>`
+> does not narrow it: the orphan sweep always considers every slug. Either
+> populate `originals/` first, or expect to `git restore` afterwards.
 
 Files sort by name and that becomes the album's default sequence, so number
 them if the order matters. JPEG, PNG, TIFF and WebP are read; HEIC is not.
@@ -179,7 +192,8 @@ generated/
   derivatives/         Encoded output. Git-ignored, rebuildable.
   descriptions.json    Cache for `pnpm describe`. Git-ignored, rebuildable.
 albums/                Album text, per-roll notes, and per-photo captions.
-samples/               Four small photographs, so a fresh clone runs.
+recipes/               The recipes collection: one hand-written YAML file
+                       per recipe, read straight off disk. No pipeline.
 docs/                  Architecture, decisions, dependencies, verification.
 ```
 
