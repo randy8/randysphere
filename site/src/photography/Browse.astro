@@ -9,8 +9,16 @@ interface Props {
 const { view } = Astro.props;
 ---
 
+<button type="button" class="view-toggle" data-view-toggle>
+  {
+    /* Which label shows is driven by body.is-browsing in CSS, not JS — the
+       inline script in each page that sets that class runs before paint, so
+       the button is never wrong for a single frame. */
+  }
+  <span class="view-toggle-index">Index</span>
+  <span class="view-toggle-enter">Read</span>
+</button>
 <div class="browse" data-browse role="region" aria-label="Photo browser">
-  <button type="button" class="browse-close" data-browse-close>Index</button>
   <div class="browse-stack" data-browse-stack>
     <div class="browse-intro">
       {view.date && <p class="eyebrow">{view.date}</p>}

@@ -39,9 +39,9 @@ function init(): void {
   if (root === null || grid === null) return;
 
   const stack = root.querySelector<HTMLElement>('[data-browse-stack]');
-  const closeButton = root.querySelector<HTMLButtonElement>('[data-browse-close]');
+  const toggleButton = document.querySelector<HTMLButtonElement>('[data-view-toggle]');
   const position = root.querySelector<HTMLElement>('[data-browse-position]');
-  if (stack === null || closeButton === null) return;
+  if (stack === null || toggleButton === null) return;
 
   const items = Array.from(stack.querySelectorAll<HTMLElement>('[data-photo-id]'));
   const ids = items.map((item) => item.dataset['photoId'] ?? '');
@@ -50,7 +50,7 @@ function init(): void {
   let currentIndex = -1;
   let lastTrigger: HTMLElement | null = null;
 
-  // Arrow functions, not declarations: TS only carries the `closeButton`/`stack`
+  // Arrow functions, not declarations: TS only carries the `toggleButton`/`stack`
   // non-null narrowing above into closures it can prove run after that check,
   // which excludes hoisted function declarations.
   const isOpen = (): boolean => document.body.classList.contains('is-browsing');
@@ -80,7 +80,7 @@ function init(): void {
     if (index === -1) return;
     document.body.classList.add('is-browsing');
     focusItem(index, behavior);
-    closeButton.focus();
+    toggleButton.focus();
   };
 
   const hide = (): void => {
@@ -144,7 +144,16 @@ function init(): void {
     open(id, link instanceof HTMLElement ? link : null);
   });
 
-  closeButton.addEventListener('click', () => {
+  toggleButton.addEventListener('click', () => {
+    if (!isOpen()) {
+      // Entering from the grid rather than a specific photo: clear any
+      // #grid left in the URL and land at the top of the stack, same as a
+      // fresh visit with no hash at all.
+      history.pushState(null, '', location.pathname + location.search);
+      stack.scrollTo({ top: 0, behavior: 'instant' });
+      showIntro();
+      return;
+    }
     // A specific photo was opened by a grid click, which pushed a history
     // entry — going back lands exactly where that click happened (usually
     // #grid). Landing directly in browse mode (the default, no entry pushed)
@@ -164,7 +173,7 @@ function init(): void {
   window.addEventListener('keydown', (event) => {
     if (!isOpen()) return;
     if (event.key === 'Escape') {
-      closeButton.click();
+      toggleButton.click();
       return;
     }
     const forward = event.key === 'ArrowDown' || event.key === 'PageDown' || event.key === 'j';

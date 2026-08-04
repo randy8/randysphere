@@ -26,6 +26,7 @@ const jpeg = variantsOf(photo, 'jpeg');
 
 const fallback = smallest(photo, 'jpeg') ?? photo.variants[0];
 const full = largest(photo, 'jpeg') ?? fallback;
+const orientation = photo.height > photo.width ? 'portrait' : 'landscape';
 
 if (fallback === undefined || full === undefined) {
   throw new Error(`${photo.file} has no usable variants. Run \`pnpm ingest\`.`);
@@ -40,7 +41,7 @@ const placeholder = priority
 
 <Fragment>
   {linked ? (
-    <a class="photo" href={assetUrl(base, full.key)}>
+    <a class="photo" data-orientation={orientation} href={assetUrl(base, full.key)}>
       <picture>
         {avif.length > 0 && <source type="image/avif" srcset={srcset(base, avif)} sizes={sizes} />}
         {webp.length > 0 && <source type="image/webp" srcset={srcset(base, webp)} sizes={sizes} />}
@@ -59,7 +60,7 @@ const placeholder = priority
       </picture>
     </a>
   ) : (
-    <picture class="photo">
+    <picture class="photo" data-orientation={orientation}>
       {avif.length > 0 && <source type="image/avif" srcset={srcset(base, avif)} sizes={sizes} />}
       {webp.length > 0 && <source type="image/webp" srcset={srcset(base, webp)} sizes={sizes} />}
       <img
