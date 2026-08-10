@@ -93,6 +93,40 @@
   color: var(--rule);
 }
 
+/* A serving scaler, not a calculator — three fixed multipliers rather than
+   an arbitrary number input, because the point is a recipe you can still
+   read off a measuring cup (see scale.ts's rounding), not an exact
+   fraction of anything. Buttons, not a dropdown: three is few enough that
+   choosing is faster than opening a menu. */
+.recipe-scale {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0 0 3rem;
+}
+.recipe-scale button {
+  appearance: none;
+  cursor: pointer;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  font-family: var(--serif);
+  font-variant-numeric: oldstyle-nums;
+  font-size: 0.9375rem;
+  color: var(--muted);
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+.recipe-scale button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.recipe-scale button[aria-pressed='true'] {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
 /* Vertical rhythm carries the section break; the header's own margin
    already separates it from the first section, so that one gets no extra
    push, or the gap above Ingredients would double up. */
@@ -103,6 +137,10 @@
   margin-top: 0;
 }
 .recipe-doc-section h2 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
   font-family: var(--sans);
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -110,6 +148,14 @@
   color: var(--muted);
   margin: 0 0 1.5rem;
   font-weight: 600;
+}
+/* Empty (no text content) until at least one box in that section is
+   checked — see checklist.ts. A "0/11 · 0%" nobody asked for is worse
+   than nothing here. */
+.recipe-progress {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--muted);
 }
 
 .recipe-doc-list {
@@ -159,6 +205,67 @@
   font-size: 1.0625rem;
   line-height: 1.65;
   text-align: right;
+}
+
+/*
+ * A real checkbox, not a decoration standing in for one — kept fully
+ * native (appearance, focus ring, keyboard toggling) except for the one
+ * thing worth restyling: the checked mark itself, drawn as a clipped
+ * inset rather than the browser's own blue tick, so it stays inside this
+ * stylesheet's own palette. Checking an item strikes it through and mutes
+ * it — pure CSS, `:checked` reacting to its own sibling, no JS involved in
+ * that part at all.
+ */
+.recipe-doc-checklist label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+.recipe-doc-steps.recipe-doc-checklist li {
+  grid-template-columns: 1.5rem 1fr;
+}
+.recipe-doc-steps.recipe-doc-checklist li label {
+  align-items: flex-start;
+}
+.recipe-check {
+  appearance: none;
+  flex: 0 0 auto;
+  width: 0.9375rem;
+  height: 0.9375rem;
+  margin: 0.3em 0 0;
+  border: 1px solid var(--muted);
+  border-radius: 0.1875rem;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.2s ease;
+}
+.recipe-check:hover {
+  border-color: var(--accent);
+}
+.recipe-check:checked {
+  border-color: var(--ink);
+  background: var(--ink);
+}
+.recipe-check:checked::after {
+  content: '';
+  position: absolute;
+  left: 0.25rem;
+  top: 0.0625rem;
+  width: 0.25rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--paper);
+  border-bottom: 2px solid var(--paper);
+  transform: rotate(45deg);
+}
+.recipe-check:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.recipe-doc-checklist .recipe-check:checked ~ span {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--rule);
 }
 
 /*
@@ -222,8 +329,18 @@
 @media print {
   .masthead,
   .site-footer,
-  .skip-link {
+  .skip-link,
+  .recipe-scale,
+  .recipe-progress {
     display: none !important;
+  }
+  /* A printed page has no "checked" state to show and no way to interact
+     with one — the checkbox itself would just be dead ink. */
+  .recipe-check {
+    display: none !important;
+  }
+  .recipe-doc-checklist label {
+    display: block !important;
   }
   body {
     background: #fff !important;

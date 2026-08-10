@@ -17,72 +17,88 @@ const { recipe } = Astro.props;
 ---
 
 <Base title={recipe.title} description={recipe.description}>
-  <div class="recipe-scope">
+  <div class="recipe-scope" data-recipe-slug={recipe.slug}>
     <article class="recipe-doc">
       <header class="album-header">
         <h1>{recipe.title}</h1>
         <p class="recipe-doc-description">{recipe.description}</p>
         <p class="recipe-doc-meta">
-          <span><strong>Prep</strong> {recipe.prepTime}</span>
-          <span><strong>Cook</strong> {recipe.cookTime}</span>
-          <span><strong>Total</strong> {recipe.totalTime}</span>
-          <span><strong>Serves</strong> {recipe.servings}</span>
-          <span><strong>Difficulty</strong> {recipe.difficulty}</span>
+          {recipe.prepTime && <span><strong>Prep</strong> {recipe.prepTime}</span>}
+          {recipe.cookTime && <span><strong>Cook</strong> {recipe.cookTime}</span>}
+          {recipe.totalTime && <span><strong>Total</strong> {recipe.totalTime}</span>}
+          {recipe.servings && (
+            <span>
+              <strong>Serves</strong> <span data-servings-value>{recipe.servings}</span>
+            </span>
+          )}
+          {recipe.difficulty && <span><strong>Difficulty</strong> {recipe.difficulty}</span>}
+        </p>
+        <p class="recipe-scale" role="group" aria-label="Scale ingredient quantities">
+          <button type="button" data-scale-factor="0.5">½×</button>
+          <button type="button" data-scale-factor="1" aria-pressed="true">1×</button>
+          <button type="button" data-scale-factor="2">2×</button>
         </p>
       </header>
 
-      <section class="recipe-doc-section">
-        <h2>Ingredients</h2>
-        <ul class="recipe-doc-list">
-          {recipe.ingredients.map((item) => <li set:html={renderInline(item)} />)}
+      <section class="recipe-doc-section" data-checklist="ingredients">
+        <h2>
+          Ingredients <span class="recipe-progress" data-recipe-progress />
+        </h2>
+        <ul class="recipe-doc-list recipe-doc-checklist">
+          {recipe.ingredients.map((item) => (
+            <li>
+              <label>
+                <input type="checkbox" class="recipe-check" />
+                <span set:html={renderInline(item)} />
+              </label>
+            </li>
+          ))}
         </ul>
       </section>
 
       {
         recipe.optionalIngredients.length > 0 && (
-          <section class="recipe-doc-section">
-            <h2>Optional</h2>
-            <ul class="recipe-doc-list">
+          <section class="recipe-doc-section" data-checklist="optional">
+            <h2>
+              Optional <span class="recipe-progress" data-recipe-progress />
+            </h2>
+            <ul class="recipe-doc-list recipe-doc-checklist">
               {recipe.optionalIngredients.map((item) => (
-                <li set:html={renderInline(item)} />
+                <li>
+                  <label>
+                    <input type="checkbox" class="recipe-check" />
+                    <span set:html={renderInline(item)} />
+                  </label>
+                </li>
               ))}
             </ul>
           </section>
         )
       }
 
-      <section class="recipe-doc-section">
-        <h2>Instructions</h2>
-        <ol class="recipe-doc-steps">
+      <section class="recipe-doc-section" data-checklist="instructions">
+        <h2>
+          Instructions <span class="recipe-progress" data-recipe-progress />
+        </h2>
+        <ol class="recipe-doc-steps recipe-doc-checklist">
           {
             recipe.instructions.map((step) => (
               <li>
-                <span set:html={renderQuiet(step)} />
+                <label>
+                  <input type="checkbox" class="recipe-check" />
+                  <span set:html={renderQuiet(step)} />
+                </label>
               </li>
             ))
           }
         </ol>
       </section>
 
-      {
-        recipe.notes.length > 0 && (
-          <section class="recipe-doc-section">
-            <h2>Notes</h2>
-            <ul class="recipe-doc-list recipe-doc-notes">
-              {recipe.notes.map((note) => (
-                <li set:html={renderQuiet(note)} />
-              ))}
-            </ul>
-          </section>
-        )
-      }
-
-      <footer class="recipe-doc-footer">
-        <p class="recipe-doc-footer-label">Recipe Info</p>
-        <p>
-          Version {recipe.version} · Created {recipe.created} · Last Updated {recipe.updated}
-        </p>
-      </footer>
     </article>
   </div>
+
+  <script>
+    import '../../recipes/serving-scale.ts';
+    import '../../recipes/checklist.ts';
+  </script>
 </Base>
