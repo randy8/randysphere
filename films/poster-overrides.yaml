@@ -1,0 +1,16 @@
+# A hand-maintained, optional correction for individual posters — not
+# generated, not synced. Most posters need nothing here: the card shows
+# the whole image (object-fit: contain, no cropping) by default. Add an
+# entry only for a poster that reads poorly at that default — one with a
+# lot of dead margin around a small central image, say — and it switches
+# that one card to a gentle cover crop centred on focalX/focalY, at the
+# given zoom. focalX/focalY are 0-100 (percent from the left/top, same
+# convention as CSS object-position); zoom is a multiplier, 1.0 = no
+# extra zoom beyond a normal cover crop.
+#
+# Keyed the same way films/tmdb.json is: "Title (Year)".
+overrides:
+  Body Heat (1981):
+    focalX: 48
+    focalY: 42
+    zoom: 1.05

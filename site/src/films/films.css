@@ -1,0 +1,257 @@
+/*
+ * A poster wall built to celebrate the artwork, not crop it into a
+ * decorative strip — closer to a shelf of printed film cards (A24, MUBI,
+ * a gallery's collectible-print counter) than a streaming service's grid.
+ * A poster's own composition is the point: the frame around it stays quiet
+ * (a hairline rule, a little matting) and gets out of the way rather than
+ * cropping in to fill a fixed box. Every card carries a plot excerpt too,
+ * so learning what a film is about never requires leaving the site —
+ * Letterboxd stays as a small reference link, not the only way to find out
+ * what something is. The oldstyle release-year numerals are the same
+ * motif as photography's frame-mark; the accent-on-hover convention is the
+ * same one base.css establishes everywhere else.
+ */
+
+/* Fixed, not inline with the header — 773 films across seven years makes
+   for a very long page, and a jump control that scrolls away with the
+   header it started next to stops helping the moment you've used it once.
+   Same "one quiet mark, fixed in a corner" convention as photography's
+   view-toggle, just in the opposite corner (this page has no toggle of
+   its own to collide with). */
+.film-year-jump {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 10;
+  display: flex;
+  align-items: baseline;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0.625rem 1rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 0.25rem;
+  box-shadow: 0 0.75rem 2rem -1rem rgb(0 0 0 / 0.25);
+}
+.film-year-jump label {
+  font-family: var(--serif);
+  font-variant-caps: small-caps;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.film-year-jump select {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  padding: 0.125rem 1.25rem 0.125rem 0;
+  font-family: var(--serif);
+  font-size: 0.9375rem;
+  color: var(--ink);
+  cursor: pointer;
+  /* A quiet down-caret drawn in CSS rather than the browser's own control
+     chrome, so it reads as the same understated voice as everything else. */
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    right 0.4rem center,
+    right 0.1rem center;
+  background-size:
+    0.3rem 0.3rem,
+    0.3rem 0.3rem;
+  background-repeat: no-repeat;
+  transition: border-color 0.2s ease;
+}
+.film-year-jump select:hover,
+.film-year-jump select:focus-visible {
+  border-color: var(--accent);
+}
+
+.film-year-group {
+  margin-top: clamp(4rem, 6vw, 6rem);
+}
+.film-year-group:first-of-type {
+  margin-top: 0;
+}
+.film-year-group:nth-of-type(1) {
+  animation: reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.film-year-group:nth-of-type(2) {
+  animation: reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+}
+.film-year-group:nth-of-type(3) {
+  animation: reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
+}
+.film-year-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.875rem;
+  margin: 0 0 2.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--rule);
+}
+.film-year-heading h2 {
+  font-size: clamp(1.75rem, 1rem + 3vw, 2.75rem);
+  font-weight: 340;
+  letter-spacing: -0.02em;
+}
+.film-year-count {
+  font-family: var(--serif);
+  font-variant-caps: small-caps;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+/* Two per row even on a phone — a poster needs real width to read as
+   artwork rather than a swatch; cramming in a third column on mobile is
+   exactly the "decorative thumbnail" feeling this is trying to avoid. */
+.film-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3rem 1.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 40rem) {
+  .film-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3.5rem 2rem;
+  }
+}
+@media (min-width: 64rem) {
+  .film-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (min-width: 80rem) {
+  .film-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/*
+ * The frame, not the image, owns the 2:3 box — a light mat around the
+ * poster (padding on .film-poster-frame) so it presents like a print under
+ * glass rather than bleeding to the card's own edge. object-fit: contain
+ * is the default for every poster: the whole composition is always shown,
+ * no cropping, no two posters treated identically. A hand-maintained
+ * override (films/poster-overrides.yaml) is the deliberate exception for
+ * one poster at a time that reads poorly at contain's default framing —
+ * data-cropped switches that single card to a gentle, focal-point-aware
+ * cover crop instead, via the CSS custom properties Astro writes inline.
+ */
+.film-poster-frame {
+  aspect-ratio: 2 / 3;
+  padding: 0.375rem;
+  background: var(--rule);
+  margin: 0 0 1rem;
+  transition:
+    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.35s ease;
+}
+.film-card:hover .film-poster-frame {
+  transform: translateY(-3px);
+  box-shadow: 0 1.25rem 2.5rem -1.25rem rgb(0 0 0 / 0.35);
+}
+.film-poster {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--paper);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.film-card:hover .film-poster {
+  transform: scale(1.02);
+}
+.film-poster[data-cropped='true'] {
+  object-fit: cover;
+  object-position: var(--focal-x, 50%) var(--focal-y, 50%);
+  transform: scale(var(--focal-zoom, 1));
+}
+.film-card:hover .film-poster[data-cropped='true'] {
+  transform: scale(calc(var(--focal-zoom, 1) * 1.02));
+}
+/* A film TMDB matched but has no poster for — a quiet placeholder within
+   the same mat, not a broken image icon and not silently skipped. */
+.film-poster-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: var(--paper);
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  text-align: center;
+  padding: 1rem;
+}
+
+.film-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.film-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+.film-release-year {
+  font-variant-numeric: oldstyle-nums tabular-nums;
+  color: var(--muted);
+}
+.film-meta {
+  margin: 0;
+  font-family: var(--serif);
+  font-variant-caps: small-caps;
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.film-overview {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.film-letterboxd-link {
+  margin-top: 0.25rem;
+  font-family: var(--serif);
+  font-variant-caps: small-caps;
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.film-letterboxd-link:hover {
+  color: var(--accent);
+}
+
+.film-attribution {
+  margin-top: clamp(4rem, 6vw, 6rem);
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.film-attribution a {
+  color: var(--muted);
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  transition: color 0.2s ease;
+}
+.film-attribution a:hover {
+  color: var(--accent);
+}

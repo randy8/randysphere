@@ -1,0 +1,20 @@
+# A hand-maintained override for a specific known-wrong TMDB match.
+#
+# tools/films/fetch-posters.ts matches a Letterboxd title+year against
+# TMDB's search results by preferring whichever result's release year
+# matches exactly. That heuristic has no idea what "close enough" means for
+# a *title* — it will happily prefer a completely unrelated film that
+# happens to carry the right year over the actually-correct one, if the
+# correct one is dated differently (a festival-year Letterboxd credits
+# against vs. TMDB's wider-release date, most commonly). Add an entry here
+# with the real TMDB id once you've confirmed one by hand
+# (themoviedb.org/movie/<id>) and re-run `pnpm films:posters --only "Title
+# (Year)"` — a correction always wins over the search heuristic.
+#
+# Keyed the same way films/tmdb.json is: "Title (Year)".
+corrections:
+  # Bertrand Bonello's "La Bête" — TMDB's own release_date for it is
+  # 2024-02-07 (a later wide release), which made the year-matching
+  # heuristic prefer an unrelated Filipino film that happened to be dated
+  # 2023 instead.
+  The Beast (2023): 914206

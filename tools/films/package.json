@@ -1,0 +1,14 @@
+{
+  "name": "@photo/films",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Enriches the films collection's committed ratings export with poster art and plot text from TMDB. Knows nothing about Astro.",
+  "license": "MIT",
+  "dependencies": {
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0"
+  }
+}
