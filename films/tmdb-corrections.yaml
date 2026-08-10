@@ -18,3 +18,7 @@ corrections:
   # heuristic prefer an unrelated Filipino film that happened to be dated
   # 2023 instead.
   The Beast (2023): 914206
+  # Atom Egoyan's "Chloe" — TIFF-premiered in September 2009 but TMDB's
+  # release_date is the wide release, 2010-02-25, so the year heuristic
+  # preferred an unrelated short, "Chloe and Attie," dated 2009 instead.
+  Chloe (2009): 28211
