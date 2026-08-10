@@ -6,13 +6,15 @@
  * gets the plain grid and those links work exactly as before.
  *
  * State lives in the URL rather than only in memory: `#photo-<sourceId>`
- * opens at a specific photograph, `#grid` opts out to the grid, and no hash
- * at all is the default landing in browse mode, at the title panel rather
- * than any specific photograph. A reload or a shared link reopens at the
- * same state. Only the transition that *opens* a specific photograph (a grid
- * click) pushes a history entry — scrolling or using the keyboard replaces
- * it, so browsing through the whole album doesn't fill up history with one
- * entry per photo.
+ * opens at a specific photograph, `#grid` opts out to the grid, `#browse`
+ * opts into the title-panel browse view with no specific photo, and no hash
+ * at all lands on whichever of grid/browse this view's `data-default-view`
+ * says (browse for every page except Selected Work, which opens on the
+ * grid — its whole point is to be surveyed as a set, not read start to
+ * end). A reload or a shared link reopens at the same state. Only the
+ * transition that *opens* a specific photograph (a grid click) pushes a
+ * history entry — scrolling or using the keyboard replaces it, so browsing
+ * through the whole album doesn't fill up history with one entry per photo.
  */
 
 const PHOTO_HASH_PREFIX = '#photo-';
@@ -42,6 +44,8 @@ function init(): void {
   const toggleButton = document.querySelector<HTMLButtonElement>('[data-view-toggle]');
   const position = root.querySelector<HTMLElement>('[data-browse-position]');
   if (stack === null || toggleButton === null) return;
+
+  const defaultView = root.dataset['defaultView'] === 'grid' ? 'grid' : 'browse';
 
   const items = Array.from(stack.querySelectorAll<HTMLElement>('[data-photo-id]'));
   const ids = items.map((item) => item.dataset['photoId'] ?? '');
@@ -103,6 +107,10 @@ function init(): void {
       show(id, behavior);
     } else if (location.hash === '#grid') {
       hide();
+    } else if (location.hash === '#browse') {
+      showIntro();
+    } else if (defaultView === 'grid') {
+      hide();
     } else {
       showIntro();
     }
@@ -146,10 +154,16 @@ function init(): void {
 
   toggleButton.addEventListener('click', () => {
     if (!isOpen()) {
-      // Entering from the grid rather than a specific photo: clear any
-      // #grid left in the URL and land at the top of the stack, same as a
-      // fresh visit with no hash at all.
-      history.pushState(null, '', location.pathname + location.search);
+      // Entering from the grid rather than a specific photo. On a
+      // browse-default page this returns to the default (no hash needed);
+      // on a grid-default page (Selected Work) browse is the non-default
+      // state, so it needs an explicit #browse marker or a reload would
+      // land back on the grid instead of where the visitor just was.
+      history.pushState(
+        null,
+        '',
+        defaultView === 'grid' ? '#browse' : location.pathname + location.search,
+      );
       stack.scrollTo({ top: 0, behavior: 'instant' });
       showIntro();
       return;
@@ -157,11 +171,17 @@ function init(): void {
     // A specific photo was opened by a grid click, which pushed a history
     // entry — going back lands exactly where that click happened (usually
     // #grid). Landing directly in browse mode (the default, no entry pushed)
-    // has nothing to go back to, so opting out pushes #grid explicitly.
+    // has nothing to go back to, so opting out pushes #grid explicitly —
+    // unless grid is already this page's default, in which case clearing
+    // the hash does the same job.
     if (isBrowseState(history.state)) {
       history.back();
     } else {
-      history.pushState(null, '', '#grid');
+      history.pushState(
+        null,
+        '',
+        defaultView === 'grid' ? location.pathname + location.search : '#grid',
+      );
       hide();
     }
   });
@@ -215,6 +235,30 @@ function init(): void {
   requestAnimationFrame(() => {
     items.forEach((item) => observer.observe(item));
   });
+
+  // On a narrow viewport the photo spans edge to edge, so the toggle and
+  // home link — legible over any image by design (mix-blend-mode) — end up
+  // sitting visibly on top of it rather than in the paper margin a wider
+  // screen still has. Below the CSS breakpoint, hide both while the stack
+  // is actually moving and bring them back a moment after it settles,
+  // rather than removing them outright: they still need to be reachable,
+  // just not fighting the photograph for attention mid-scroll. Desktop is
+  // untouched — the class only does anything under the matching @media
+  // rule in base.css.
+  const narrowScreen = window.matchMedia('(max-width: 39.99rem)');
+  let scrollHideTimer: ReturnType<typeof setTimeout> | undefined;
+  root.addEventListener(
+    'scroll',
+    () => {
+      if (!narrowScreen.matches) return;
+      document.body.classList.add('is-scrolling-browse');
+      clearTimeout(scrollHideTimer);
+      scrollHideTimer = setTimeout(() => {
+        document.body.classList.remove('is-scrolling-browse');
+      }, 600);
+    },
+    { passive: true },
+  );
 }
 
 if (document.readyState === 'loading') {

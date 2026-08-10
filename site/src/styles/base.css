@@ -495,7 +495,6 @@ a:focus-visible,
   letter-spacing: 0.02em;
   color: var(--muted);
 }
-
 /* ---------------------------------------------------------------------------
    Browse mode — a full-viewport overlay, not a modal: no dialog role, no
    focus trap. Everything behind it is hidden via body.is-browsing so it can't
@@ -568,6 +567,50 @@ body.is-browsing .view-toggle-index {
 }
 body.is-browsing .view-toggle-enter {
   display: none;
+}
+
+/* The one way out of browse mode to somewhere other than this page's own
+   grid — hidden the rest of the time, since the masthead already covers
+   that job whenever it's visible. Same corner-anchored, blend-mode
+   treatment as .view-toggle, opposite corner so the two never collide. */
+.browse-home {
+  display: none;
+  position: fixed;
+  left: 1.5rem;
+  top: 1.5rem;
+  z-index: 41;
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: #fff;
+  mix-blend-mode: difference;
+  opacity: 0.5;
+  text-decoration: none;
+  padding: 0.5rem;
+  margin: -0.5rem;
+  transition: opacity 0.2s ease;
+}
+body.is-browsing .browse-home {
+  display: inline;
+}
+.browse-home:hover,
+.browse-home:focus-visible {
+  opacity: 1;
+}
+
+/* Below this width the photograph spans edge to edge, so these two quiet
+   fixed labels have no paper margin to sit in — they end up visibly on top
+   of the image instead. Fade them out while the stack is actually moving
+   (see browse.ts's scroll listener, which only adds this class under the
+   same breakpoint) and let them fade back in once it settles. Desktop never
+   gets body.is-scrolling-browse added, so this rule never fires there. */
+@media (max-width: 39.99rem) {
+  body.is-scrolling-browse .view-toggle,
+  body.is-scrolling-browse .browse-home {
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 .browse-stack {
@@ -736,8 +779,11 @@ body.is-browsing .view-toggle-enter {
   color: var(--muted);
   font-size: 0.9375rem;
 }
-/* Per-photo film stock, shown only in views that span more than one roll
-   (see Browse.astro) — as quiet as the single-roll intro panel's version. */
+/* Per-photo film stock (views spanning more than one roll only, see
+   Browse.astro) and the camera/lens/location line (camera.ts) both use
+   this — as quiet as the single-roll intro panel's version. A photo can
+   stack both lines when a view has neither a single shared film stock nor
+   any camera/location data omitted. */
 .browse-item-meta {
   margin: 0.875rem 0 0;
   text-align: center;

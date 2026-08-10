@@ -1,4 +1,6 @@
-import { allTags, loadArchive } from './photography/archive.ts';
+import { loadFilms } from './films/films.ts';
+import { films } from './films/config.ts';
+import { allFilmStocks, allTags, loadArchive } from './photography/archive.ts';
 import { photography } from './photography/config.ts';
 import { loadRecipes } from './recipes/recipes.ts';
 import { recipes } from './recipes/config.ts';
@@ -20,6 +22,8 @@ export interface Collection {
    * only ever computed where it's actually shown.
    */
   readonly stats: () => string;
+  /** Every public URL this collection owns — its index plus every item page. Read only by sitemap.xml.ts. */
+  readonly urls: () => readonly string[];
 }
 
 export const collections: readonly Collection[] = [
@@ -37,6 +41,17 @@ export const collections: readonly Collection[] = [
       const tags = allTags(archive).length;
       return `${String(photographs)} photograph${photographs === 1 ? '' : 's'} · ${String(tags)} tag${tags === 1 ? '' : 's'}`;
     },
+    urls: () => {
+      const archive = loadArchive();
+      return [
+        '/photography/',
+        '/photography/selected/',
+        '/photography/archive/',
+        '/photography/about/',
+        ...allTags(archive).map((tag) => `/photography/${tag}/`),
+        ...allFilmStocks(archive).map((stock) => `/photography/film/${stock}/`),
+      ];
+    },
   },
   {
     slug: 'recipes',
@@ -47,5 +62,17 @@ export const collections: readonly Collection[] = [
       const count = loadRecipes().length;
       return `${String(count)} recipe${count === 1 ? '' : 's'}`;
     },
+    urls: () => ['/recipes/', ...loadRecipes().map((recipe) => `/recipes/${recipe.slug}/`)],
+  },
+  {
+    slug: 'films',
+    title: films.title,
+    description: films.description,
+    href: '/films/',
+    stats: () => {
+      const count = loadFilms().length;
+      return `${String(count)} film${count === 1 ? '' : 's'}`;
+    },
+    urls: () => ['/films/'],
   },
 ];

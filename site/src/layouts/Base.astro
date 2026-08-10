@@ -5,10 +5,18 @@ import { site } from '../config.ts';
 interface Props {
   title: string;
   description?: string;
+  /** An absolute URL — pages that have one pass a photograph's `og` crop; most pages have none. */
+  image?: string;
+  imageWidth?: number;
+  imageHeight?: number;
 }
 
-const { title, description = site.description } = Astro.props;
+const { title, description = site.description, image, imageWidth, imageHeight } = Astro.props;
 const fullTitle = title === site.title ? title : `${title} — ${site.title}`;
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+// `image` is an override, not opt-in — a page with no natural photo still
+// gets a real social card instead of a blank one.
+const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
 ---
 
 <!doctype html>
@@ -18,7 +26,28 @@ const fullTitle = title === site.title ? title : `${title} — ${site.title}`;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site).href} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#f6f1e6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0c09" media="(prefers-color-scheme: dark)" />
+    <link
+      rel="preload"
+      href="/fonts/newsreader-variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <meta property="og:site_name" content={site.title} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:image" content={ogImage} />
+    {image && imageWidth && <meta property="og:image:width" content={String(imageWidth)} />}
+    {image && imageHeight && <meta property="og:image:height" content={String(imageHeight)} />}
   </head>
   <body>
     <a class="skip-link" href="#content">Skip to content</a>

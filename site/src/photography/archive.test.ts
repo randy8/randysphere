@@ -117,6 +117,26 @@ test('joinBatch defaults tags to an empty list when photos.yaml has none for a p
   assert.deepEqual(photos[0]?.tags, []);
 });
 
+test('joinBatch carries per-photo location from photos.yaml through untouched', () => {
+  const m = manifest([photo('0827/001.tif', '0827')], [{ id: '0827', photoCount: 1 }]);
+  const rolls = joinRolls(m, [], 'test-batch');
+  const photos = joinBatch(
+    m,
+    [{ file: '0827/001.tif', location: 'Rue de Bretagne, Paris' }],
+    rolls,
+    'test-batch',
+    null,
+  );
+  assert.equal(photos[0]?.location, 'Rue de Bretagne, Paris');
+});
+
+test('joinBatch defaults location to null when photos.yaml has none for a photo', () => {
+  const m = manifest([photo('0827/001.tif', '0827')], [{ id: '0827', photoCount: 1 }]);
+  const rolls = joinRolls(m, [], 'test-batch');
+  const photos = joinBatch(m, [], rolls, 'test-batch', null);
+  assert.equal(photos[0]?.location, null);
+});
+
 test('joinBatch throws if a photo belongs to a roll missing from the rolls list', () => {
   const m = manifest([photo('0827/001.tif', '0827')], [{ id: '0827', photoCount: 1 }]);
   assert.throws(
@@ -187,6 +207,7 @@ function stubPhoto(
     tags,
     alt: '',
     caption: null,
+    location: null,
     featured,
     featuredOrder,
     cover,

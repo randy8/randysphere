@@ -469,7 +469,7 @@ one entry in the registry plus its own `src/pages/<slug>/` and (if it needs
 one) `src/<slug>/` — never an edit to the homepage, to `Base.astro`, or to
 another collection's code.
 
-The split is by *content shape*, not by reusability. `src/photography/`
+The split is by _content shape_, not by reusability. `src/photography/`
 holds things that only make sense for photographs — the archive reader, the
 manifest validator, the browse view, image URL building. `src/layouts/`,
 `src/styles/`, and `src/config.ts` hold what is genuinely site-wide: the
@@ -521,10 +521,10 @@ the archive's own chronological order, and neither is a tag:
   batch. `coverPhoto()` prefers it and otherwise falls back to the
   chronological first.
 
-**Why not a tag.** A tag is a claim about what a photograph *is* — a place, a
+**Why not a tag.** A tag is a claim about what a photograph _is_ — a place, a
 subject, a trip — and every photograph carrying it belongs in that view,
 unordered relative to each other beyond roll and frame. "This is one of my
-best, and it goes third" is a claim about *presentation*, and it has an
+best, and it goes third" is a claim about _presentation_, and it has an
 ordering a tag has no way to express. Modelling it as a tag (`selected`)
 would have meant either accepting whatever order the archive happened to
 produce, or inventing a per-tag ordering mechanism that only one tag ever
@@ -532,7 +532,7 @@ uses — which is a worse version of just saying so per photo.
 
 **Archival order is not touched by either.** `frame`, `byRollAndFrame`, and
 every tag view still sort chronologically, exactly as before. `cover` and
-`featuredOrder` are read *on top of* that order by the two callers that want
+`featuredOrder` are read _on top of_ that order by the two callers that want
 a presentation sequence, never folded into it. A photograph being a cover or
 being featured changes nothing about where it appears in its own tag's view.
 
@@ -597,7 +597,7 @@ give recipes their own parallel one.
 every derivative in the archive. Three changes together:
 
 - **A size tier is a cap on the long edge, not on the width.** `encodeVariant`
-  previously constrained a scaled resize by width only, so a *portrait*
+  previously constrained a scaled resize by width only, so a _portrait_
   photograph's long edge — its height — was never capped by a tier at all: a
   "1200" variant of a portrait scan came out 1200 wide and far taller than
   1200, many times the intended pixel count and file size. `planVariants` now
@@ -605,7 +605,7 @@ every derivative in the archive. Three changes together:
   whichever edge is longer and never pads the other, so the aspect ratio is
   exactly preserved for both orientations. `usableWidths` compares against
   the source's long edge for the same reason — comparing against a portrait's
-  width meant excluding tiers it easily supports and offering its *short*
+  width meant excluding tiers it easily supports and offering its _short_
   edge as the native ceiling.
 - **Quality went up, decisively.** AVIF 55 → 82, WebP 76 → 90, JPEG 80 → 90.
   The old numbers were chosen as a bandwidth trade; this is a fidelity-first
@@ -617,7 +617,7 @@ every derivative in the archive. Three changes together:
   to 3840, since it's what a non-AVIF/WebP browser opens fullscreen.
 
 **Why a version bump was unavoidable.** A derivative's key digests its
-`EncodeSpec` — the tier *number*, not how the resize was computed. Fixing the
+`EncodeSpec` — the tier _number_, not how the resize was computed. Fixing the
 long-edge bug changed the output bytes without changing any field in the
 spec, so nothing would have re-keyed on its own. `recipeVersion` is the
 documented escape hatch for exactly this case and it was the only correct
@@ -626,7 +626,7 @@ lever.
 **Effort stayed at 4.** AVIF effort 6 was tried first and measured, not
 assumed: over three hours on this collection's few hundred photographs
 without finishing. Effort trades encode time for a few percent of file size
-at the *same* quality — it does not affect fidelity — so it buys nothing a
+at the _same_ quality — it does not affect fidelity — so it buys nothing a
 viewer could ever see. The existing comment already called effort 9 a bad
 trade; 6 turned out to be one too.
 
@@ -637,3 +637,260 @@ untouched. `inspectDerivative` was added to `encode.ts` for the one case that
 now needs it: a derivative already on disk with no previous manifest record
 to copy dimensions from, where the plan's box is not a prediction of the real
 output size and has to be read off the file instead.
+
+---
+
+## 2026-08-03 — A third collection, films, and why it isn't scraped
+
+**Decision.** `/films/` is a third collection: a five-star viewing log built
+from Letterboxd's own "export your data" feature. `films/five-star-ratings.csv`
+is that export's `ratings.csv`, trimmed to 5-star rows and committed
+unmodified — not transcribed, not restructured into YAML, one file for the
+whole collection rather than one per film. `site/src/films/films.ts` reads it
+straight off disk at build time: no pipeline, no fetching, no cache, the same
+shape recipes already established for "a collection brings only the
+machinery its content actually needs."
+
+**Why one CSV, not one file per film.** Recipes are five hand-written
+documents; a person can hold all of them in their head, and one YAML file per
+recipe matches how someone edits them. 773 films is a different kind of
+content entirely — an export, not prose — and one-file-per-film would mean
+773 nearly-identical stub files with no one ever hand-editing an individual
+one. A single committed CSV that a spreadsheet or script can still open
+directly is the honest shape for data at this size, the same reasoning that
+already justifies one manifest per photography batch instead of one file per
+photograph.
+
+**Why a hand-rolled CSV reader.** Letterboxd film titles routinely contain
+commas ("Synecdoche, New York", "Paris, Texas") and quotes, so a naive
+`split(',')` would silently corrupt the file — this needed a real RFC 4180
+reader, not string splitting. `parseCsv` in `films.ts` is around 30 lines; a
+dependency for one committed file didn't clear the bar in
+`docs/dependencies.md`.
+
+**Why posters don't come from Letterboxd.** Letterboxd's own `robots.txt`
+disallows AI crawlers by name across the entire site, and a direct fetch of
+a ratings page independently returned 403. Both are the site telling
+automated tools not to extract its content, and that doesn't change based on
+which URL is requested or which tool does the requesting — a
+browser-automation workaround would just be the same scrape wearing a
+different tool, so it was refused the same way a direct scrape was.
+
+**Posters come from TMDB instead, via a separate opt-in enrichment step.**
+`tools/films/fetch-posters.ts` (`pnpm films:posters`) is its own workspace,
+not a script inside `tools/pipeline` — it needs `TMDB_READ_ACCESS_TOKEN` in
+`.env` and makes real network calls, which `pnpm ingest` must never do
+(constraint 1). It reads `films/five-star-ratings.csv`, looks each
+title+year up against TMDB's search API, and writes `films/tmdb.json`, a
+committed cache the site reads at build time — `site/src/films/films.ts`
+itself still makes no network call, the same boundary `pnpm describe` draws
+for photography. All 773 films matched; 772 of them have a poster. This
+mirrors `pnpm describe`'s relationship to the pipeline closely enough that
+it was tempting to fold it into `tools/pipeline`, but `tools/pipeline` has
+its own hard "no Astro/Vite/Tailwind" boundary and no reason to know films
+exist — a fourth, tiny workspace was more honest than stretching an existing
+one's purpose.
+
+**Search is a heuristic, so a correction file exists.** TMDB's search
+ranks results by relevance, not by year, so `fetchById`/`searchFilm` prefers
+whichever result's release year matches Letterboxd's exactly — imperfect,
+because a festival-year credit on Letterboxd vs. TMDB's wider-release date
+can lose to an unrelated same-year film. `films/tmdb-corrections.yaml` is
+the hand-maintained escape hatch: a confirmed TMDB id that always overrides
+the heuristic, re-run with `--only "Title (Year)"` so fixing one entry
+doesn't mean re-fetching all 773. The one real case so far, Bertrand
+Bonello's "La Bête," is recorded there with why.
+
+**Cropping is opt-in per poster, not automatic.** The default poster
+treatment is `object-fit: contain` — the whole image, no cropping — because
+that's correct for the overwhelming majority of TMDB's posters.
+`films/poster-overrides.yaml` lets a specific poster that reads poorly at
+that default (a lot of dead margin around a small central image) switch to a
+cover crop centred on a hand-chosen focal point and zoom. This is the same
+shape as `photos.yaml`: content is authored/cached automatically, a human
+corrects the rare exception by hand in a small committed file, not by
+teaching the fetch step more heuristics.
+
+**Attribution is required, not optional.** TMDB's terms require crediting
+them wherever their data is shown; the films page renders the attribution
+line only when at least one film actually has a poster (`hasPosters`), so
+the sentence doesn't appear on a page that ends up rendering none.
+
+**Revisit if.** A film in `tmdb-corrections.yaml` gets a better match, or a
+`TMDB_READ_ACCESS_TOKEN` rotation is needed — nothing about the collection's
+shape changes either way, since `Film`'s enriched fields were designed
+optional from the start (`loadFilms` already tolerates `tmdb.json` being
+entirely absent).
+
+---
+
+## 2026-08-04 — Recipe serving-size scaling and checklists are client-side-only, and scaling stops at the ingredients list
+
+**Decision.** `site/src/recipes/scale.ts`, `serving-scale.ts`, and
+`checklist.ts` add a ½×/1×/2× quantity scaler and real checkbox
+ingredients/instructions to the recipe page, both as progressive
+enhancement scripts imported from `[slug].astro` — nothing here touches
+`recipes/*.yaml`, `recipes.ts`, or how a recipe is authored. Both are pure
+site-layer state, same boundary as `browse.ts` for photography.
+
+**Scaling reaches `<strong>` quantities in the ingredients list only, never
+instruction text.** `renderQuiet` already marks a measurement embedded in an
+instruction step (a cook time, a splash of pasta water) with a deliberately
+quiet `.measurement` style, precisely because it isn't a quantity to shop
+for and often doesn't scale linearly with servings in the first place —
+scaling it automatically would misinform, not help. `scaleQuantity` only
+ever touches nodes inside `.recipe-doc-list`, which the ingredients markup
+already bolds for exactly this reason.
+
+**Every scale factor is computed from the original text, not the currently
+displayed one.** `serving-scale.ts` caches each element's pre-scale text in
+`data-original` the first time it's touched. Scaling from the live DOM value
+instead would compound rounding error across repeated switches (½ of an
+already-rounded ½ of 2 is not the same as ½ of the original 1×).
+`formatNice` always snaps the result to a common cooking fraction (⅛ ¼ ⅓ ½ ⅔
+¾) or a whole number rather than a raw decimal — a scaled recipe still has
+to be read off a measuring cup, not a spreadsheet.
+
+**The checklist's progress counter has no honest empty state, so it's
+omitted rather than shown as zero.** Nothing is checked on a fresh load; a
+server-rendered "0/11 · 0%" would be technically true and useless on every
+first view, so `[data-recipe-progress]` starts blank and only gets text once
+at least one box is checked. Checked state is real, useful, and entirely
+ephemeral — it lives in `localStorage`, keyed per recipe slug and per
+section (`recipe-checklist:<slug>:<section>`) so ingredients and
+instructions track independently — and was never a candidate for
+`recipes/*.yaml`, which is authored content, not viewer state.
+
+**Checkboxes are real `<input>` elements, not a custom widget.** The
+strikethrough/muted treatment on a checked item is pure CSS (`:checked ~
+span`); a visitor with JavaScript disabled still gets working checkboxes
+with the same visual feedback, just without cross-visit memory or the
+percentage counter — the same "still correct without the script" bar
+constraint 7 sets for browse mode.
+
+**Revisit if.** A recipe ever needs per-serving quantities authored
+directly (rather than derived by scaling written-for-N-servings text) — the
+current model assumes every `photos.yaml`-style quantity in
+`recipes/*.yaml` is written for the recipe's own `servings` value and scales
+from there.
+
+---
+
+## 2026-08-08 — A private, password-gated notebook (`/private`), served by a new long-lived process outside Astro entirely
+
+**Decision.** `/private` is a hand-appended personal notebook — short dated
+entries, optionally tagged `joy`, optionally carrying a photo — that needs
+real password protection: not an obscure URL, not a client-side check, not
+`robots.txt`. Every other route in this project is either a fully static
+page (`site/dist/`, built once and never touched again) or an offline CLI
+that exits when it's done. Neither shape can check a password on every
+request, so this needed something genuinely new: `tools/serve`, a small
+long-lived Node HTTP server (`pnpm serve`) that serves `site/dist/`
+unchanged for every public path and adds exactly one gated area on top.
+
+**Why a new workspace instead of an Astro adapter.** The alternative was
+giving Astro itself a server adapter (`@astrojs/node`) and marking one route
+`prerender: false`. That would have made the _build_ aware of privacy —
+every other page would need an explicit `prerender: true` to stay static,
+turning "this page must never require a server" from true-by-default into
+something enforced by remembering to add a line to every file. Keeping
+`site/` 100% static and putting the gate in front of it in a separate
+process means the 26 public pages are exactly as static as they were
+yesterday, verifiably: nothing in `site/src/` can read `private/` even by
+accident, because nothing in `site/src/` runs at request time at all.
+
+**Why sessions are a signed cookie, not a session store.** This is a
+single-user area. A database (or even a small on-disk session table) to
+track "is this device logged in" would be real infrastructure for a
+question that a signed timestamp already answers: `tools/serve/src/session.ts`
+issues `<expiry>.<hmac>` and verifies it by recomputing the HMAC — no
+lookup, nothing to garbage-collect, nothing that survives a server restart
+as state (the cookie itself is the only state, sitting in the browser).
+Losing `PRIVATE_SESSION_SECRET` or rotating it logs everyone out at once,
+which for one person is a feature, not an incident.
+
+**Why the password check hashes both sides before comparing.**
+`crypto.timingSafeEqual` requires two buffers of equal length and throws
+otherwise — a raw password string can't guarantee that against another raw
+string of arbitrary length. `passwordMatches` HMACs both the candidate and
+the real password with the session secret first, so the comparison is
+always two fixed-length digests, avoiding both the length-mismatch throw
+and a timing side-channel on password length.
+
+**Why the notes data can't be fetched by guessing the URL.** The literal
+requirement was: authentication has to be real, not "the page isn't linked
+from anywhere." `private/notes.yaml` and `private/photos/` sit outside
+`site/` entirely and are never read by the Astro build — `site/dist/` has
+no route, hashed or otherwise, that resolves to that data, so there is
+nothing to guess. `tools/serve`'s static-file branch only ever reads from
+`site/dist/`; `/private`'s own data path is a separate branch in the same
+router that checks `verifySessionToken` before touching the filesystem at
+all (`server.test.ts` asserts this directly: requesting
+`/private/notes.yaml` returns a plain 404 from the static branch, and
+`/private/photos/<file>` returns 401 before the file is even looked up).
+
+**Why `Secure` is unconditional.** The cookie is `HttpOnly; Secure;
+SameSite=Lax` with no env-var escape hatch to disable `Secure` for local
+HTTP testing. A cookie that would still be sent over plain HTTP is exactly
+the mistake worth not leaving a knob for. The operational consequence: this
+only works served over HTTPS, which for this project means running it
+behind `tailscale serve https` (Tailscale's automatic per-node TLS)
+rather than reaching `pnpm serve`'s port directly.
+
+**Why this server binds every interface, unlike `pnpm edit`'s.** Constraint
+10 requires the editor's server to stay on `127.0.0.1` because it has _no_
+authentication — anyone who could reach it could write to `photos.yaml`.
+`tools/serve` exists for the opposite reason: its whole purpose is to be
+reachable from other devices (the point of putting a password on it at
+all), and it gates access with a real verified session instead of relying
+on "nobody else is on localhost."
+
+**What was deliberately left out.** No rate-limiting or lockout on
+`/private/login` — acceptable for one known user, not a pattern to reuse if
+this ever became multi-user. No process supervisor (systemd/pm2/etc.) — the
+process has to actually be running for `/private` to exist, and today
+that's a foreground `pnpm serve` a person starts by hand.
+
+**Revisit if.** This ever needs more than one person to log in (at which
+point a signed-cookie-with-one-shared-password stops being the right
+model), or `/private` needs to survive the host machine restarting
+unattended (at which point it needs real process supervision, not a
+foreground command).
+
+---
+
+## 2026-08-09 — Per-photo `location`, and surfacing camera/lens EXIF the pipeline already captured
+
+**Decision.** `ArchivePhoto` gains a `location: string | null` field, read
+from a new optional `location:` key in `photos.yaml` — same boundary as
+`caption`, same site-layer-only treatment (no manifest field, no
+`SCHEMA_VERSION` bump). The 2026-07-29 entry ("Trips become a tag") deferred
+this exact field, explicitly pending "the first time a photograph actually
+needs one written down"; that entry was correct when written and is left
+unedited (decisions here are append-only), but the photographer has now
+asked for it directly, which is precisely the condition that entry named.
+
+Separately, `site/src/photography/manifest.ts`'s `Camera` type
+(`make`/`model`/`lens`/`focalLength`/`aperture`/`shutterSpeed`/`iso`/`takenAt`)
+has held real EXIF data per photo since the manifest schema's own
+introduction, but nothing in the site ever rendered any of it beyond
+`takenAt` (used only to derive a roll's date). A new pure function,
+`camera.ts`'s `formatCameraLine`, joins whatever subset of camera fields
+plus `location` a photograph actually has into one quiet line
+("Leica M6 · 50mm · f/2.8 · 1/250 · ISO 400 · Rue de Bretagne, Paris"),
+omitting any missing piece cleanly rather than leaving a stray separator.
+
+**Where it renders, and where it deliberately doesn't.** `Browse.astro`
+only — the one shared per-photo detail view behind every photography route
+(tag pages, Selected Work, film-stock pages), so adding it once covers all
+of them. Not `Photo.astro`, which stays metadata-free by existing
+convention (both its callers already render captions/film-stock themselves
+at the call site). Not the archive index, which shows one cover thumbnail
+per _view_, not per photograph — rendering one photo's EXIF there would
+misattribute it to the whole view, the same reasoning that already keeps
+the intro panel's film-stock line conditional on `view.roll !== null`.
+
+**No new CSS.** `.browse-item-meta` already existed for per-photo film
+stock in multi-roll views and is exactly the right quiet, centered,
+small-caps treatment for a second stacked line — only its comment changed
+to document the second use.

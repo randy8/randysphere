@@ -5,6 +5,8 @@ import Base from '../../../layouts/Base.astro';
 import PhotographyNav from '../../../photography/PhotographyNav.astro';
 import { loadArchive, selectedWork } from '../../../photography/archive.ts';
 import type { View } from '../../../photography/archive.ts';
+import { ogImageOf } from '../../../photography/image.ts';
+import { photography } from '../../../photography/config.ts';
 
 const archive = loadArchive();
 const photos = selectedWork(archive);
@@ -13,13 +15,29 @@ const photos = selectedWork(archive);
 // archive — not a tag, so it is never built through viewForTag. This is the
 // same View shape Browse.astro already reads, built directly instead.
 const view: View = { tag: 'selected', title: 'Selected Work', date: null, photos, roll: null };
+const hero = photos[0]?.photo;
+const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefined;
 ---
 
-<Base title="Selected Work — Photography" description="A curated sequence of photographs.">
+<Base
+  title="Selected Work — Photography"
+  description="A curated sequence of photographs."
+  image={og?.image}
+  imageWidth={og?.imageWidth}
+  imageHeight={og?.imageHeight}
+>
   {
+    /*
+      Selected Work opens on the grid, not the scroll — the opposite
+      default from every other photography page (see browse.ts) — since
+      the point of a curated set is to be surveyed at a glance, not read
+      start to end. Browse mode still opens instantly, with no flash of
+      the grid first, for a direct link to a specific photo (#photo-<id>)
+      or an explicit #browse.
+    */
     photos.length > 0 && (
       <script is:inline>
-        if (location.hash !== '#grid') {
+        if (location.hash.startsWith('#photo-') || location.hash === '#browse') {
           document.body.classList.add('is-browsing');
         }
       </script>
@@ -55,7 +73,47 @@ const view: View = { tag: 'selected', title: 'Selected Work', date: null, photos
           ))}
         </div>
 
-        <Browse view={view} />
+        <Browse view={view} defaultView="grid" />
+
+        {
+          /*
+            featuredOrder (see archive.ts's selectedWork()) is still the
+            real editorial sequence — the one thing that renders before any
+            script runs, and the no-JS fallback. This just reshuffles the
+            grid and the scroll sequence into a fresh random order on top of
+            it, once per page load, so the page doesn't show the same fixed
+            lineup every time you look. Both lists are shuffled with the
+            same permutation (matched by data-photo-id) so a photo sits in
+            the same position in the grid as it does in scroll order. Runs
+            as a synchronous inline script, before browse.ts's own
+            deferred module script below, so browse.ts's init() only ever
+            sees the already-shuffled DOM — never re-syncs on its own, so a
+            reload reshuffles again, which is the point.
+          */
+        }
+        <script is:inline>
+          {
+            const grid = document.querySelector('[data-grid]');
+            const stack = document.querySelector('[data-browse-stack]');
+            if (grid && stack) {
+              const ids = Array.from(grid.children).map((el) => el.dataset.photoId);
+              for (let i = ids.length - 1; i > 0; i -= 1) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [ids[i], ids[j]] = [ids[j], ids[i]];
+              }
+              const gridById = new Map(Array.from(grid.children).map((el) => [el.dataset.photoId, el]));
+              const stackById = new Map(
+                Array.from(stack.querySelectorAll('[data-photo-id]')).map((el) => [el.dataset.photoId, el]),
+              );
+              for (const id of ids) {
+                const gridEl = gridById.get(id);
+                const stackEl = stackById.get(id);
+                if (gridEl) grid.appendChild(gridEl);
+                if (stackEl) stack.appendChild(stackEl);
+              }
+            }
+          }
+        </script>
 
         <script>
           import '../../../photography/browse.ts';
