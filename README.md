@@ -194,6 +194,8 @@ generated/
 albums/                Album text, per-roll notes, and per-photo captions.
 recipes/               The recipes collection: one hand-written YAML file
                        per recipe, read straight off disk. No pipeline.
+films/                 The films collection: a five-star Letterboxd export
+                       (ratings.csv), committed as-is. No pipeline, no images.
 docs/                  Architecture, decisions, dependencies, verification.
 ```
 

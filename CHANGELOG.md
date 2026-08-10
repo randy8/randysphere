@@ -247,7 +247,7 @@ Photography also gained a front of house it didn't have: a **Selected Work**
 sequence, an **Archive** index, an **About** page, and film-stock views at
 `/photography/film/<stock>/` built from the roll notes that were already being
 recorded and, until now, never shown. Selected Work is the interesting one,
-because it is explicitly *not* a tag — `featured` and `featuredOrder` in
+because it is explicitly _not_ a tag — `featured` and `featuredOrder` in
 `photos.yaml` let a photographer pick and order a run of photographs by hand,
 which is a claim about presentation that a tag has no way to make. The same
 distinction gave `album.md` a working `cover:` field. Both sit on top of the
@@ -267,7 +267,7 @@ describing the real archive remains the next real work.
 
 `recipeVersion` went to 2 and the entire archive was re-encoded. The
 triggering discovery was a genuine bug: a size tier was being applied as a cap
-on a derivative's *width*, which for a portrait photograph is its short edge.
+on a derivative's _width_, which for a portrait photograph is its short edge.
 A portrait's long edge was therefore never capped by any tier — a "1200"
 variant of a portrait scan came out 1200 wide and far taller, at several times
 the intended pixel count and file weight. Landscapes were correct throughout,
@@ -276,7 +276,7 @@ is longer, with the aspect ratio preserved for both orientations.
 
 Fixing it required the version bump rather than benefiting from content
 addressing. A derivative's key digests the encode spec — the tier number, the
-quality, the kernel — but not *how* the resize gets computed from them. The
+quality, the kernel — but not _how_ the resize gets computed from them. The
 bug changed the output bytes while every field in the spec stayed identical,
 so nothing would have re-keyed on its own. `recipeVersion` exists as the
 deliberate escape hatch for precisely that case, and this is the first time it
@@ -286,7 +286,7 @@ Since everything was being re-encoded anyway, the quality settings were
 revisited and moved decisively toward fidelity: AVIF 55 → 82, WebP 76 → 90,
 JPEG 80 → 90, and two new size tiers at 3200 and 3840. The old values were
 picked as a bandwidth trade-off, which is the wrong trade for an archive of
-film scans where grain and subtle gradients *are* the content. The browse view
+film scans where grain and subtle gradients _are_ the content. The browse view
 renders a photograph at full viewport width, and the previous 2400 ceiling was
 visibly short on a large or Retina display.
 
@@ -301,3 +301,108 @@ The cost is that every image URL on the site changed and everything had to be
 re-published. That is the designed behaviour of content-addressed derivatives
 rather than a regression — no schema change, no migration, and nothing under
 `originals/` touched.
+
+---
+
+## 2026-08-03 — A third collection: films, a five-star viewing log, then posters via TMDB
+
+`/films/` joins photography and recipes, built from Letterboxd's own data
+export rather than anything hand-written or pipeline-generated. The whole
+collection is one committed CSV — the export's `ratings.csv`, trimmed to
+5-star rows — read by a small hand-rolled CSV parser rather than a new
+dependency, since Letterboxd titles routinely contain the commas and quotes
+that make `split(',')` unsafe. The page groups 773 films by the year they
+were rated.
+
+It launched as a dense, text-only index on purpose: Letterboxd's own
+`robots.txt` disallows AI crawlers by name across the whole site, and a
+direct fetch independently came back 403 — both are the site asking
+automated tools not to extract its content, and switching from a direct
+fetch to browser automation would have been the same scrape in a different
+tool, not a different answer. Posters were always meant to come from TMDB's
+API instead, which explicitly permits this kind of personal use — and once a
+key was available, `tools/films/fetch-posters.ts` (`pnpm films:posters`)
+became a fourth workspace, separate from `tools/pipeline` the way
+`pnpm describe` is separate from `pnpm ingest`: it makes real network calls
+and writes a committed cache, `films/tmdb.json`, that the site reads at
+build time with no network access of its own. All 773 films matched a TMDB
+entry; 772 came back with a poster. Two small hand-maintained files back the
+automated match up — `films/tmdb-corrections.yaml` overrides TMDB's search
+heuristic for the rare title it gets wrong, and `films/poster-overrides.yaml`
+gives one specific poster a cropped, focal-point treatment instead of the
+default uncropped card. The films page now reads as a real poster grid, with
+TMDB's required attribution line rendered only when at least one poster is
+actually showing.
+
+The same session pushed the shared design system further than either
+existing collection had gone: an oxblood accent reserved entirely for the
+moment of interaction, a headline scale that goes up to 6.5rem with a
+lighter editorial weight, entrance animation on headers and list rows, and a
+chapter-opener "ghost numeral" behind every roll's title in scroll mode —
+the view's own photo count, restated as huge, nearly-invisible type. Recipes
+needed the opposite adjustment: the shared heading scale swamped a recipe
+title, and the instruction list's one-line-per-step layout combined with
+generous section gaps turned an 11-step method into a very long, sparse
+scroll. The steps are now a compact numeral-gutter grid closer to a
+magazine's method list than a photobook's chapter breaks, and notes got a
+"chef's note" treatment of their own — an accent rule and a fleuron mark,
+set apart from the functional Ingredients/Instructions register on purpose.
+
+---
+
+## 2026-08-04 — Recipes get a serving-size scaler and a real checklist
+
+Two additions to the recipe page, both pure client-side progressive
+enhancement over the same server-rendered document — neither touches
+`recipes/*.yaml`, the pipeline, or `pnpm ingest`. A ½×/1×/2× button group
+rescales every ingredient quantity in place; ingredients and instructions
+both became real checkboxes, with a per-section "6/11 · 55%" progress count
+and checked state remembered per recipe across visits.
+
+Scaling deliberately stops at the ingredients list. A recipe's instructions
+carry their own embedded measurements in prose — a splash of pasta water, a
+cook time — that don't scale linearly with servings and would misinform a
+cook if rescaled automatically; that text was already styled quieter
+(`.measurement`) precisely because it isn't something to shop for, and the
+scaler leaves it alone. Every quantity is scaled from its original,
+unscaled text cached on first read rather than from whatever the previous
+scale factor left on screen, so switching ½× → 2× → ½× repeatedly never
+compounds rounding error, and the result is always reformatted to a common
+cooking fraction (¼, ⅓, ½...) rather than a raw decimal.
+
+The checklist's progress counter has no honest value on a fresh page load —
+nothing is checked yet — so it renders nothing rather than a technically-true
+but useless "0/11 · 0%", and only appears once a visitor has actually checked
+something. Checked boxes persist in `localStorage`, keyed per recipe and per
+section, so leaving the kitchen mid-recipe and coming back doesn't lose your
+place; the checkboxes themselves are real `<input type="checkbox">` elements
+styled with `:checked ~ span`, so the strikethrough treatment and the boxes
+themselves both work with JavaScript disabled, same as every other
+interactive surface on this site.
+
+---
+
+## 2026-08-08 — A private, password-gated notebook, and the site's first long-lived server
+
+`/private` is a small personal notebook — short dated entries, a `joy` tag,
+an occasional photo — that needed to actually be private, not just
+unlinked. Every other page on this site is either static HTML built once by
+`pnpm build` or an offline CLI that exits when it's done finished; neither
+shape can check a password on every request. `tools/serve` is new
+infrastructure to make that possible: a small long-lived Node process
+(`pnpm serve`) that serves the existing static `site/dist/` build unchanged
+and adds exactly one gated route on top, with a real server-verified,
+HMAC-signed session cookie — no client-side password check, no session
+database, no framework. The 26 public pages are exactly as static as they
+were before; nothing in `site/src/` can reach the private notebook's data
+even by accident, because nothing in `site/src/` runs at request time at
+all. Full reasoning, including why this became a new workspace instead of
+giving Astro a server adapter, is in `docs/decisions.md`.
+
+The notebook launched already populated: nine "Recent Joys" — specific,
+ordinary things (a good curry, a treadmill, a fence finally getting built),
+deliberately not smoothed into generic gratitude-journal language. Adding
+more is meant to be as low-friction as editing a text file, because that's
+exactly what it is: append an entry to `private/notes.yaml` and it shows up,
+newest first, filterable by All/Joys/Photos, with no code to touch and no
+UI to redesign.

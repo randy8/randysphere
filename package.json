@@ -21,14 +21,16 @@
     "publish:local": "node tools/pipeline/src/cli.ts publish --local",
     "sync": "pnpm ingest && pnpm publish:local",
     "describe": "node tools/pipeline/src/cli.ts describe",
+    "films:posters": "node tools/films/fetch-posters.ts",
     "doctor": "node tools/pipeline/src/cli.ts doctor",
     "edit": "node tools/pipeline/src/cli.ts edit",
+    "serve": "node tools/serve/src/cli.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit -p tools/pipeline && tsc --noEmit -p site",
-    "test": "node --test 'tools/pipeline/src/**/*.test.ts' 'site/src/**/*.test.ts'",
+    "typecheck": "tsc --noEmit -p tools/pipeline && tsc --noEmit -p tools/films && tsc --noEmit -p tools/serve && tsc --noEmit -p site",
+    "test": "node --test 'tools/pipeline/src/**/*.test.ts' 'tools/serve/src/**/*.test.ts' 'site/src/**/*.test.ts'",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "devDependencies": {

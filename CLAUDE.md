@@ -162,7 +162,7 @@ exception to the model above — each is still a query, just not one keyed on
   stock noted rather than showing an empty one.
 - **Selected Work** (`featured` / `featuredOrder` in `photos.yaml` →
   `selectedWork()`) is a hand-picked, hand-ordered sequence across the whole
-  archive. Deliberately not a tag: a tag says what a photograph *is* and
+  archive. Deliberately not a tag: a tag says what a photograph _is_ and
   carries no ordering, while this is a claim about presentation that needs
   one. Ordered photos sort first; unordered ones fall back to `(roll, frame)`.
 - **Cover** (`cover:` in `albums/<slug>/album.md` → `coverPhoto()`) names one
@@ -196,6 +196,7 @@ site/                       Astro application
                              not per trip), plus selected/, archive/,
                              about/, and film/<stock>/
   src/pages/recipes/        index + /recipes/<slug>/, reading recipes/*.yaml
+  src/pages/films/          index only, reading films/five-star-ratings.csv
   src/photography/          everything specific to the photography
                              collection — not shared, not reusable by a
                              future collection with a different content shape
@@ -221,7 +222,28 @@ site/                       Astro application
                              field optional, a half-written recipe renders
     markup.ts                 the one inline form recipes use (**bold**),
                              not a Markdown parser
+    scale.ts                  scaleQuantity/formatNice — scales a bolded
+                             ingredient quantity string and reformats it to
+                             a common cooking fraction, never touched by
+                             instruction text (see docs/decisions.md)
+    serving-scale.ts           progressive enhancement wiring the ½×/1×/2×
+                             buttons to scale.ts; caches each element's
+                             pre-scale text so repeated switches never
+                             compound rounding error
+    checklist.ts               real checkboxes for ingredients/instructions
+                             — per-section progress + localStorage
+                             persistence, keyed per recipe slug
     recipes.css               styles scoped to this collection
+  src/films/                 the films collection's own layer — no pipeline,
+                             no site-hosted images (posters are hotlinked
+                             from TMDB), one committed CSV, not one file per
+                             film (see docs/decisions.md)
+    films.ts                   loadFilms/filmsByYearRated + a hand-rolled
+                             RFC 4180 CSV reader (parseCsv) — Letterboxd
+                             titles contain commas, so a real parser earns
+                             its keep over split(',')
+    config.ts                   posterBaseUrl, TMDB attribution text
+    films.css                   styles scoped to this collection
 tools/pipeline/
   src/sources.ts            listAlbumSlugs, listRolls, flattenRolls
   src/ingest.ts              encode + write manifests + sync albums/*
@@ -233,6 +255,16 @@ tools/pipeline/
                              loopback-only, batch tags/alt/caption straight
                              into photos.yaml (see docs/decisions.md)
   src/storage/                local + R2 publish targets behind one interface
+tools/films/                 its own workspace, not part of tools/pipeline —
+                             makes real network calls (`pnpm films:posters`,
+                             needs TMDB_READ_ACCESS_TOKEN), which
+                             tools/pipeline must never do (see
+                             docs/decisions.md)
+  fetch-posters.ts            reads films/five-star-ratings.csv, looks each
+                             title+year up against TMDB, writes
+                             films/tmdb.json — resumable, --regenerate,
+                             --only "Title (Year)"; a correction in
+                             tmdb-corrections.yaml always wins
 originals/<batch>/[<roll>/]  master files — git-ignored, immutable, never
                              uploaded, not a backup; a batch has no public
                              meaning, see "Archive model" above
@@ -243,6 +275,43 @@ albums/<slug>/               album.md (scaffolded; only its `cover:` field is
                              — human-edited
 recipes/<slug>.yaml          the recipes collection's entire content layer —
                              hand-written, committed, read straight off disk
+films/five-star-ratings.csv  the films collection's entire content layer —
+                             Letterboxd's own "export your data" ratings.csv,
+                             trimmed to 5-star rows and committed as-is
+films/tmdb.json              committed cache written by `pnpm films:posters`
+                             — poster path, overview, runtime, director per
+                             film; site reads it, never fetches
+films/tmdb-corrections.yaml  hand-maintained: a confirmed TMDB id that
+                             overrides the search heuristic for one title
+films/poster-overrides.yaml  hand-maintained: a focal point/zoom crop for
+                             one specific poster that reads poorly uncropped
+tools/serve/                 its own workspace — serves site/dist/ (built by
+                             `pnpm build`) plus one password-gated route,
+                             /private, for a hand-appended personal
+                             notebook. The only workspace that runs as a
+                             long-lived server rather than a one-shot CLI
+                             (see docs/decisions.md)
+  src/server.ts                routing: /private, /private/login,
+                             /private/logout, /private/photos/<file>, then
+                             static files from site/dist/ for everything
+                             else
+  src/session.ts                HMAC-signed, stateless session tokens — no
+                             session store, no database
+  src/cookies.ts                 Set-Cookie for the session: HttpOnly,
+                             Secure (unconditional), SameSite=Lax,
+                             Path=/private
+  src/notes.ts, src/pages.ts     reads private/notes.yaml, renders the gate
+                             and the notes archive as plain server-side HTML
+private/                     never read by the Astro build, never inside
+                             site/dist/ — the only thing that can serve it
+                             is tools/serve, and only past the password
+                             gate
+  notes.yaml                    the private notebook's entire content layer
+                             — hand-appended, one entry per line item (date,
+                             text, optional joy flag, optional photo)
+  photos/                        images referenced by notes.yaml's optional
+                             `photo` field — no pipeline, no derivatives,
+                             served as-is
 generated/
   albums/*.json              per-batch manifests — committed, the
                              pipeline↔site contract; the site merges all of
@@ -266,9 +335,23 @@ pnpm run publish              # upload to R2 (needs .env; `pnpm publish` alone
 pnpm describe [--album <slug>] [--regenerate] [--model <id>]
                                # optional: draft alt text/captions via Claude
                                # (needs ANTHROPIC_API_KEY in .env)
+pnpm films:posters [--regenerate] [--only "Title (Year)"]
+                               # optional: fetch poster art/plot/runtime for
+                               # films/ from TMDB (needs TMDB_READ_ACCESS_TOKEN
+                               # in .env) — never called by pnpm ingest
 pnpm doctor                    # report drift, changes nothing
-pnpm edit [--port <n>]         # local web UI for batch tagging/captioning
-                               # (loopback-only, default port 4500)
+pnpm run edit [--port <n>]    # local web UI for batch tagging/captioning
+                               # (loopback-only, default port 4500; bare
+                               # `pnpm edit` hits pnpm's own reserved
+                               # command name and refuses to run — same
+                               # trap as `pnpm publish` above)
+pnpm serve [--port <n>]        # serve site/dist/ (run `pnpm build` first)
+                               # plus /private — needs PRIVATE_SITE_PASSWORD
+                               # and PRIVATE_SESSION_SECRET in .env; binds
+                               # every interface, so put it behind
+                               # `tailscale serve https` — the Secure
+                               # session cookie will not be sent over plain
+                               # HTTP
 pnpm typecheck / test / lint / format
 pnpm verify                    # format:check && lint && typecheck && test && build
 ```
@@ -319,6 +402,12 @@ every tsconfig's own directory). A handful of genuine
     writes to `photos.yaml` on every batch edit with no authentication of its
     own; that is only acceptable because it is never reachable from outside
     the machine it runs on.
+11. **`private/` is never read by the Astro build.** Nothing under
+    `site/src/` may import from `private/`; the only code allowed to read
+    `private/notes.yaml` or `private/photos/` is `tools/serve`, and only
+    after `verifySessionToken` succeeds. This is what makes "request the
+    data file directly" not a bypass — the file was never shipped to
+    `site/dist/` in the first place, regardless of the password check.
 
 ## Design principles and terminology
 
@@ -392,6 +481,7 @@ every tsconfig's own directory). A handful of genuine
   gap in code (item 4). The one hand-written caption
   (`0830/000008300011.tif`, the Paris Métro photo) was lost earlier still,
   during the bare-filename → roll-relative-path change, and remains lost.
+
 - `pnpm ingest` now deletes a batch's manifest and `albums/<slug>/` (captions,
   tags, everything) the moment `originals/<slug>/` no longer exists
   (`docs/decisions.md`, 2026-07-30, `removeOrphanAlbums`) — no confirmation,
@@ -411,7 +501,7 @@ every tsconfig's own directory). A handful of genuine
   against the real Anthropic API in this environment (no `ANTHROPIC_API_KEY`
   configured here) — the live HTTP round-trip, real JSON-shape handling, and
   refusal handling are unverified.
-- No dedicated roll *route* exists (see film-roll section) — intentional. Film
+- No dedicated roll _route_ exists (see film-roll section) — intentional. Film
   stock, which is roll-level data, does now have one at
   `/photography/film/<stock>/`; only `llfl01`'s roll has a `filmStock` noted
   so far, so most of the archive is absent from those views.
@@ -439,10 +529,34 @@ every tsconfig's own directory). A handful of genuine
   in-app undo (renaming one, and ordinary batch tag edits, do); `git` is the
   recovery path for that one action. Numbered quick-tag hotkey slots
   (Photo Mechanic-style) are deferred, not built.
+- The films collection (`/films/`) now has poster art, plot summaries,
+  runtime, and director for all 773 rated films (772 with a poster) via
+  `pnpm films:posters` and TMDB (see `docs/decisions.md`, 2026-08-04,
+  "why it isn't scraped"). `films/tmdb.json` is a committed cache the site
+  reads at build time with no network access of its own; re-running the
+  script only re-fetches films it hasn't seen, or a specific
+  `--only "Title (Year)"`, or everything with `--regenerate`. `films/` still
+  has no sync command for the ratings themselves: refreshing them means
+  re-running Letterboxd's export by hand and replacing
+  `films/five-star-ratings.csv`, the same way a recipe is edited by hand
+  today. TMDB's search heuristic mismatches a title occasionally — one
+  confirmed case is recorded in `films/tmdb-corrections.yaml` — and only one
+  poster (`films/poster-overrides.yaml`) has needed a hand-cropped focal
+  point so far.
+- **`tools/serve` is the one part of this project that is not a static
+  site or an offline CLI** — it's a long-lived Node process (`pnpm serve`)
+  that must actually be running for `/private` to exist at all. It has no
+  process supervisor yet (no systemd unit, no `pm2`, no
+  restart-on-crash): today it's a foreground command, killed by closing the
+  terminal or the machine sleeping. Fine for a single-user personal
+  notebook reached over Tailscale; would need real supervision before this
+  pattern is trusted for anything with an uptime expectation. There is also
+  no login rate-limiting — acceptable for a single known user, not a
+  pattern to reuse for a multi-user surface.
 
 ## Immediate next priorities
 
-1. Use `pnpm edit` to give all 289 photographs across all eight batches real
+1. Use `pnpm run edit` to give all 289 photographs across all eight batches real
    tags, replacing the auto-seeded batch-name ones. The four Paris batches
    (`0827`–`0830`) want a shared trip tag (e.g. `paris-2025`) so the site
    shows one trip view instead of four; `0271`, `0425`, `0462`, and `llfl01`
