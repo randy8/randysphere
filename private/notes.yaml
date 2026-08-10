@@ -1,0 +1,43 @@
+# A private, hand-appended notebook — never read by the public site build,
+# only by tools/serve's password-gated /private route. See docs/decisions.md.
+#
+# One entry per item. `date` is free text (a full timestamp or just a day);
+# entries render newest first by string order, so ISO-ish values
+# ("2026-08-08" or "2026-08-08T09:15") sort correctly without extra code.
+# `joy` marks an entry for the "Joys" filter. `photo` is optional — a
+# filename that must exist in private/photos/.
+#
+# To add an entry by hand (or ask Claude to), just append to this list.
+# Nothing else in the site needs to change.
+entries:
+  - date: '2026-08-08'
+    text: Palak paneer and garlic naan from Mayuri were unexpectedly incredible.
+    joy: true
+  - date: '2026-08-08'
+    text: >-
+      Got the Landice L7 treadmill — the Orthopedic Shock Absorption System
+      makes it wonderfully quiet and comfortable.
+    joy: true
+  - date: '2026-08-08'
+    text: Imagining and building out the basement treadmill/movie-room setup.
+    joy: true
+  - date: '2026-08-08'
+    text: >-
+      Film photography, especially getting a photo of Christine that came
+      out exactly right.
+    joy: true
+  - date: '2026-08-08'
+    text: Building my photography website and finally having my own domain.
+    joy: true
+  - date: '2026-08-08'
+    text: Tinkering with my coffee setup.
+    joy: true
+  - date: '2026-08-08'
+    text: Finding Buck Mason clothes and colors that actually feel right on me.
+    joy: true
+  - date: '2026-08-08'
+    text: The house projects becoming real, especially the fence finally starting.
+    joy: true
+  - date: '2026-08-08'
+    text: Slowly making the house feel like mine.
+    joy: true

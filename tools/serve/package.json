@@ -1,0 +1,14 @@
+{
+  "name": "@photo/serve",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Serves the built site (site/dist/) plus one password-gated route, /private, for a hand-written personal notebook that must never ship in the public static build. Knows nothing about Astro.",
+  "license": "MIT",
+  "dependencies": {
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0"
+  }
+}
