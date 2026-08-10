@@ -1,9 +1,8 @@
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
-  // Change this to your own domain. It is used for canonical and Open Graph
-  // URLs; nothing else depends on it.
-  site: 'https://example.com',
+  // Used for canonical, Open Graph, sitemap, and feed URLs.
+  site: 'https://randyliang.net',
 
   // One canonical shape for every URL, so a page is never reachable at two
   // addresses and search engines never have to pick.

@@ -37,6 +37,8 @@ export interface ArchivePhoto {
   readonly tags: readonly string[];
   readonly alt: string;
   readonly caption: string | null;
+  /** Hand-written in photos.yaml, same boundary as caption — no per-photo location until a photograph actually names one. */
+  readonly location: string | null;
   /**
    * Hand-picked for Selected Work, from photos.yaml — a photographer's
    * editorial choice, per photo, not derived. See `selectedWork()`.
@@ -88,6 +90,7 @@ interface PhotoEntry {
   readonly file?: string;
   readonly alt?: string;
   readonly caption?: string;
+  readonly location?: string;
   readonly tags?: string[];
   /** Hand-picked for Selected Work — a photographer's editorial choice, per photo, not derived. */
   readonly featured?: boolean;
@@ -196,6 +199,7 @@ export function joinBatch(
     photo: Photo,
     alt: string,
     caption: string | null,
+    location: string | null,
     tags: readonly string[],
     featured: boolean,
     featuredOrder: number | null,
@@ -216,6 +220,7 @@ export function joinBatch(
       tags,
       alt,
       caption,
+      location,
       featured,
       featuredOrder,
       cover: photo.file === coverFile,
@@ -239,6 +244,7 @@ export function joinBatch(
         photo,
         entry.alt?.trim() ?? '',
         entry.caption?.trim() ? entry.caption.trim() : null,
+        entry.location?.trim() ? entry.location.trim() : null,
         entry.tags ?? [],
         entry.featured === true,
         typeof entry.featuredOrder === 'number' ? entry.featuredOrder : null,
@@ -249,7 +255,7 @@ export function joinBatch(
   // Anything ingested but not yet listed still appears, at the end, rather
   // than silently vanishing from the archive.
   for (const photo of byFile.values()) {
-    ordered.push(toArchivePhoto(photo, '', null, [], false, null));
+    ordered.push(toArchivePhoto(photo, '', null, null, [], false, null));
   }
   return ordered;
 }

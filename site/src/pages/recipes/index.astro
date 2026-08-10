@@ -22,10 +22,10 @@ const items = loadRecipes();
               <h2>{recipe.title}</h2>
               <p class="recipe-index-description">{recipe.description}</p>
               <p class="recipe-index-meta">
-                <span>Prep {recipe.prepTime}</span>
-                <span>Cook {recipe.cookTime}</span>
-                <span>Serves {recipe.servings}</span>
-                <span>{recipe.difficulty}</span>
+                {recipe.prepTime && <span>Prep {recipe.prepTime}</span>}
+                {recipe.cookTime && <span>Cook {recipe.cookTime}</span>}
+                {recipe.servings && <span>Serves {recipe.servings}</span>}
+                {recipe.difficulty && <span>{recipe.difficulty}</span>}
               </p>
             </a>
           </li>

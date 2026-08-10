@@ -1,12 +1,16 @@
 ---
 import Photo from './Photo.astro';
+import { formatCameraLine } from './camera.ts';
+import { site } from '../config.ts';
 import type { View } from './archive.ts';
 
 interface Props {
   view: View;
+  /** Which state a hash-less visit lands on. Every page but Selected Work wants 'browse' — the site-wide default. */
+  defaultView?: 'browse' | 'grid';
 }
 
-const { view } = Astro.props;
+const { view, defaultView = 'browse' } = Astro.props;
 ---
 
 <button type="button" class="view-toggle" data-view-toggle>
@@ -18,7 +22,16 @@ const { view } = Astro.props;
   <span class="view-toggle-index">Grid</span>
   <span class="view-toggle-enter">Scroll</span>
 </button>
-<div class="browse" data-browse role="region" aria-label="Photo browser">
+{
+  /* Browse mode has no masthead, no nav — deliberately, it's meant to be
+     read start to end without chrome competing with the photograph. But
+     that leaves no way out except toggling back to the grid first, which
+     reads as a dead end deep in a long sequence. One quiet link home,
+     same corner-anchored, blend-mode-legible treatment as the toggle, so
+     leaving for a different page is always one click, not two. */
+}
+<a class="browse-home" href="/" aria-label={`${site.title} — Home`}>{site.title}</a>
+<div class="browse" data-browse data-default-view={defaultView} role="region" aria-label="Photo browser">
   <div class="browse-stack" data-browse-stack>
     <div class="browse-intro">
       <p class="browse-intro-count" aria-hidden="true">{String(view.photos.length).padStart(2, '0')}</p>
@@ -58,6 +71,7 @@ const { view } = Astro.props;
             )
           }
           {entry.caption && <figcaption>{entry.caption}</figcaption>}
+          {formatCameraLine(entry) && <p class="browse-item-meta">{formatCameraLine(entry)}</p>}
         </figure>
       ))
     }
