@@ -17,6 +17,7 @@ photos:
     alt: ''
     tags:
       - '0425'
+    featured: true
   - file: 000004250005.tif
     featured: true
     sourceId: 82f386e5e5085816
@@ -28,6 +29,7 @@ photos:
     alt: ''
     tags:
       - '0425'
+    featured: true
   - file: 000004250007.tif
     sourceId: 381b787a59c1c52b
     alt: ''
@@ -49,6 +51,7 @@ photos:
     alt: ''
     tags:
       - '0425'
+    featured: true
   - file: 000004250011.tif
     sourceId: 7a713e87418fda30
     alt: ''
@@ -59,6 +62,7 @@ photos:
     alt: ''
     tags:
       - '0425'
+    featured: true
   - file: 000004250013.tif
     sourceId: 5ec5f8b62f82a152
     alt: ''
@@ -69,6 +73,7 @@ photos:
     alt: ''
     tags:
       - '0425'
+    featured: true
   - file: 000004250015.tif
     sourceId: 5ece81f93a18c15d
     alt: ''
@@ -84,6 +89,7 @@ photos:
     alt: ''
     tags:
       - '0425'
+    featured: true
   - file: 000004250018.tif
     sourceId: 20ba66b7a2d8476a
     alt: ''
@@ -159,6 +165,7 @@ photos:
     alt: ''
     tags:
       - '0425'
+    featured: true
   - file: 000004250032.tif
     sourceId: 7d706efa42fbe2c9
     alt: ''
@@ -169,6 +176,7 @@ photos:
     alt: ''
     tags:
       - '0425'
+    featured: false
   - file: 000004250034.tif
     featured: true
     sourceId: 069193b2a3b8e5dd
