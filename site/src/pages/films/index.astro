@@ -1,0 +1,133 @@
+---
+import '../../films/films.css';
+import Base from '../../layouts/Base.astro';
+import { excerpt, filmsByYearRated, formatRuntime, loadFilms } from '../../films/films.ts';
+import { films as config } from '../../films/config.ts';
+
+const films = loadFilms();
+const groups = filmsByYearRated(films);
+const years = films.map((film) => film.ratedOn.slice(0, 4)).filter((year) => year.length === 4);
+const range =
+  years.length > 0 ? `${[...years].sort().at(0)}–${[...years].sort().at(-1)}` : null;
+const hasPosters = films.some((film) => film.posterPath !== null);
+---
+
+<Base title={config.title} description={config.description}>
+  <header class="album-header">
+    <h1>{config.title}</h1>
+    <p class="lede">
+      {films.length} film{films.length === 1 ? '' : 's'} rated five stars on Letterboxd{
+        range && `, ${range}`
+      }.
+    </p>
+  </header>
+
+  {
+    groups.length > 1 && (
+      <p class="film-year-jump">
+        <label for="film-year-select">Jump to year</label>
+        <select id="film-year-select" data-film-year-select>
+          {groups.map((group) => (
+            <option value={`#year-${group.year}`}>
+              {group.year} ({group.films.length})
+            </option>
+          ))}
+        </select>
+      </p>
+    )
+  }
+
+  {
+    groups.map((group) => (
+      <section class="film-year-group" id={`year-${group.year}`}>
+        <div class="film-year-heading">
+          <h2>{group.year}</h2>
+          <p class="film-year-count">
+            {group.films.length} film{group.films.length === 1 ? '' : 's'}
+          </p>
+        </div>
+        <ul class="film-grid">
+          {group.films.map((film) => {
+            const cropped = film.posterFocal !== null;
+            const style = cropped
+              ? `--focal-x:${String(film.posterFocal?.x)}%;--focal-y:${String(film.posterFocal?.y)}%;--focal-zoom:${String(film.posterFocal?.zoom)};`
+              : undefined;
+            const meta = [film.director, film.runtimeMinutes ? formatRuntime(film.runtimeMinutes) : null]
+              .filter((part): part is string => Boolean(part))
+              .join(' · ');
+            return (
+              <li class="film-card">
+                <div class="film-poster-frame">
+                  {film.posterPath ? (
+                    <img
+                      class="film-poster"
+                      data-cropped={cropped ? 'true' : undefined}
+                      style={style}
+                      src={`${config.posterBaseUrl}${film.posterPath}`}
+                      alt=""
+                      loading="lazy"
+                      width="500"
+                      height="750"
+                    />
+                  ) : (
+                    <div class="film-poster-placeholder" aria-hidden="true">
+                      No poster available
+                    </div>
+                  )}
+                </div>
+                <div class="film-card-body">
+                  <h3 class="film-title">
+                    {film.title} <span class="film-release-year">{film.year}</span>
+                  </h3>
+                  {meta.length > 0 && <p class="film-meta">{meta}</p>}
+                  {film.overview && <p class="film-overview">{excerpt(film.overview, 220)}</p>}
+                  <a
+                    class="film-letterboxd-link"
+                    href={film.letterboxdUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Letterboxd ↗
+                  </a>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    ))
+  }
+
+  {
+    hasPosters && (
+      <p class="film-attribution">
+        Poster art and plot summaries via{' '}
+        <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">
+          TMDB
+        </a>
+        . {config.tmdbAttribution}
+      </p>
+    )
+  }
+
+  {
+    groups.length > 1 && (
+      <script>
+        // Pure convenience: every year is already reachable by scrolling and
+        // by its own real #year-<year> anchor (a direct link to one still
+        // works with this script absent). The select just saves the scroll.
+        const select = document.querySelector<HTMLSelectElement>('[data-film-year-select]');
+        if (select) {
+          if (location.hash && [...select.options].some((option) => option.value === location.hash)) {
+            select.value = location.hash;
+          }
+          select.addEventListener('change', () => {
+            const target = document.querySelector(select.value);
+            target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            history.replaceState(null, '', select.value);
+          });
+        }
+      </script>
+    )
+  }
+</Base>
