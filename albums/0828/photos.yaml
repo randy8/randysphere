@@ -27,11 +27,13 @@ photos:
     alt: ''
     tags:
       - '0828'
+    featured: true
   - file: 000008280005.tif
     sourceId: 143e8f74010cf778
     alt: ''
     tags:
       - '0828'
+    featured: true
   - file: 000008280006.tif
     sourceId: 8dfd8b32e270cfa4
     alt: ''
@@ -42,6 +44,7 @@ photos:
     alt: ''
     tags:
       - '0828'
+    featured: true
   - file: 000008280008.tif
     sourceId: 0c29e12734039edb
     alt: ''
@@ -67,6 +70,7 @@ photos:
     alt: ''
     tags:
       - '0828'
+    featured: false
   - file: 000008280013.tif
     sourceId: 2778be45a8d1768a
     alt: ''
@@ -77,11 +81,13 @@ photos:
     alt: ''
     tags:
       - '0828'
+    featured: true
   - file: 000008280015.tif
     sourceId: 3f9e5c1d23b3c5a9
     alt: ''
     tags:
       - '0828'
+    featured: true
   - file: 000008280016.tif
     sourceId: 67c7d5504d06d90d
     alt: ''
@@ -92,11 +98,13 @@ photos:
     alt: ''
     tags:
       - '0828'
+    featured: true
   - file: 000008280018.tif
     sourceId: af9f4a602d713b33
     alt: ''
     tags:
       - '0828'
+    featured: true
   - file: 000008280019.tif
     sourceId: d69c366b181e3a59
     alt: ''
@@ -122,18 +130,20 @@ photos:
     alt: ''
     tags:
       - '0828'
+    featured: true
   - file: 000008280024.tif
     sourceId: c10013ea4ca0ee24
     alt: ''
     tags:
       - '0828'
+    featured: true
   - file: 000008280025.tif
     sourceId: 919e714306c8b25d
     alt: ''
     tags:
       - '0828'
   - file: 000008280026.tif
-    featured: true
+    featured: false
     sourceId: 2664de6e7fecc64d
     alt: ''
     tags:
@@ -143,6 +153,7 @@ photos:
     alt: ''
     tags:
       - '0828'
+    featured: true
   - file: 000008280028.tif
     sourceId: adf4c4c06c96462c
     alt: ''
@@ -158,6 +169,7 @@ photos:
     alt: ''
     tags:
       - '0828'
+    featured: false
   - file: 000008280031.tif
     sourceId: 0d7f36cc57f625c5
     alt: ''
@@ -168,11 +180,13 @@ photos:
     alt: ''
     tags:
       - '0828'
+    featured: true
   - file: 000008280033.tif
     sourceId: 8ea774a292048398
     alt: ''
     tags:
       - '0828'
+    featured: true
   - file: 000008280034.tif
     sourceId: e46e28fe8f88dc1a
     alt: ''
@@ -183,8 +197,10 @@ photos:
     alt: ''
     tags:
       - '0828'
+    featured: false
   - file: 000008280036.tif
     sourceId: 3bad6feaa8cc073b
     alt: ''
     tags:
       - '0828'
+    featured: true
