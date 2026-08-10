@@ -41,7 +41,6 @@ photos:
     tags:
       - '0425'
   - file: 000004250009.tif
-    featured: true
     sourceId: 433509187946222e
     alt: ''
     tags:
@@ -89,7 +88,6 @@ photos:
     alt: ''
     tags:
       - '0425'
-    featured: true
   - file: 000004250018.tif
     sourceId: 20ba66b7a2d8476a
     alt: ''
@@ -123,7 +121,6 @@ photos:
     tags:
       - '0425'
   - file: 000004250024.tif
-    featured: true
     sourceId: 7d8fd5d3bc4b7b76
     alt: ''
     tags:
@@ -194,7 +191,6 @@ photos:
     tags:
       - '0425'
   - file: 000004250037.tif
-    featured: true
     sourceId: 118dbf84b353d879
     alt: ''
     tags:

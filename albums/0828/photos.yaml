@@ -98,7 +98,6 @@ photos:
     alt: ''
     tags:
       - '0828'
-    featured: true
   - file: 000008280018.tif
     sourceId: af9f4a602d713b33
     alt: ''
@@ -186,7 +185,6 @@ photos:
     alt: ''
     tags:
       - '0828'
-    featured: true
   - file: 000008280034.tif
     sourceId: e46e28fe8f88dc1a
     alt: ''
@@ -203,4 +201,3 @@ photos:
     alt: ''
     tags:
       - '0828'
-    featured: true

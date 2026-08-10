@@ -98,7 +98,6 @@ photos:
     alt: ''
     tags:
       - llfl02
-    featured: true
   - file: RLiang08072625.tif
     sourceId: 382bfc2dd36ab03e
     alt: ''
@@ -110,7 +109,6 @@ photos:
     alt: ''
     tags:
       - llfl02
-    featured: true
   - file: RLiang08072627.tif
     sourceId: c615217b8c1ca71b
     alt: ''
