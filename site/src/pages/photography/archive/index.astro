@@ -4,12 +4,21 @@ import Base from '../../../layouts/Base.astro';
 import PhotographyNav from '../../../photography/PhotographyNav.astro';
 import { allTags, coverPhoto, loadArchive, viewForTag } from '../../../photography/archive.ts';
 import { photography } from '../../../photography/config.ts';
+import { ogImageOf } from '../../../photography/image.ts';
 
 const archive = loadArchive();
 const views = allTags(archive).map((tag) => viewForTag(archive, tag));
+const hero = views[0] ? coverPhoto(views[0].photos).photo : undefined;
+const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefined;
 ---
 
-<Base title={`Archive — ${photography.title}`} description={photography.description}>
+<Base
+  title={`Archive — ${photography.title}`}
+  description={photography.description}
+  image={og?.image}
+  imageWidth={og?.imageWidth}
+  imageHeight={og?.imageHeight}
+>
   <PhotographyNav current="archive" />
   <header class="album-header">
     <h1>Archive</h1>

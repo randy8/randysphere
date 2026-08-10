@@ -5,6 +5,8 @@ import Base from '../../../layouts/Base.astro';
 import PhotographyNav from '../../../photography/PhotographyNav.astro';
 import { allFilmStocks, loadArchive, viewForFilmStock } from '../../../photography/archive.ts';
 import type { View } from '../../../photography/archive.ts';
+import { ogImageOf } from '../../../photography/image.ts';
+import { photography } from '../../../photography/config.ts';
 
 export function getStaticPaths() {
   const archive = loadArchive();
@@ -19,9 +21,17 @@ interface Props {
 }
 
 const { view } = Astro.props;
+const hero = view.photos[0]?.photo;
+const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefined;
 ---
 
-<Base title={`${view.title} — Photography`} description={`Photographs shot on ${view.title}.`}>
+<Base
+  title={`${view.title} — Photography`}
+  description={`Photographs shot on ${view.title}.`}
+  image={og?.image}
+  imageWidth={og?.imageWidth}
+  imageHeight={og?.imageHeight}
+>
   <script is:inline>
     if (location.hash !== '#grid') {
       document.body.classList.add('is-browsing');

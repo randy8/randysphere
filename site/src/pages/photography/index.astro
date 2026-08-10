@@ -4,14 +4,28 @@ import Base from '../../layouts/Base.astro';
 import PhotographyNav from '../../photography/PhotographyNav.astro';
 import { loadArchive, selectedWork } from '../../photography/archive.ts';
 import { photography } from '../../photography/config.ts';
+import { ogImageOf } from '../../photography/image.ts';
 
 const archive = loadArchive();
 // A small taste, not a summary of the whole archive — Home's only job is to
 // hand off to Selected Work, Archive, or About. See docs/decisions.md.
-const preview = selectedWork(archive).slice(0, 3);
+// Every featured photo renders (not just nine) so the inline script below
+// can shuffle and pick a fresh nine on each load; PREVIEW_COUNT is only
+// the server-rendered (no-JS) fallback count — the first nine by
+// featuredOrder, same as before this got randomized.
+const PREVIEW_COUNT = 9;
+const preview = selectedWork(archive);
+const hero = preview[0]?.photo;
+const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefined;
 ---
 
-<Base title={photography.title} description={photography.description}>
+<Base
+  title={photography.title}
+  description={photography.description}
+  image={og?.image}
+  imageWidth={og?.imageWidth}
+  imageHeight={og?.imageHeight}
+>
   <PhotographyNav current="home" />
   <header class="photography-home-header">
     <h1>{photography.title}</h1>
@@ -20,9 +34,9 @@ const preview = selectedWork(archive).slice(0, 3);
 
   {
     preview.length > 0 && (
-      <ul class="photography-home-preview">
+      <ul class="photography-home-preview" data-home-preview>
         {preview.map((entry, index) => (
-          <li>
+          <li class:list={[index >= PREVIEW_COUNT && 'photography-home-preview-hidden']}>
             <a href={`/photography/selected/#photo-${entry.photo.sourceId}`}>
               <Photo
                 entry={entry}
@@ -34,6 +48,31 @@ const preview = selectedWork(archive).slice(0, 3);
           </li>
         ))}
       </ul>
+    )
+  }
+
+  {
+    preview.length > PREVIEW_COUNT && (
+      <script is:inline define:vars={{ PREVIEW_COUNT }}>
+        {
+          /* A fresh nine (and a fresh order) each load, from the full
+             featured pool — the no-JS/pre-shuffle fallback above is the
+             first nine by featuredOrder, so this only ever improves on
+             what's already a reasonable static default. */
+        }
+        const list = document.querySelector('[data-home-preview]');
+        if (list) {
+          const items = Array.from(list.children);
+          for (let i = items.length - 1; i > 0; i -= 1) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [items[i], items[j]] = [items[j], items[i]];
+          }
+          items.forEach((item, index) => {
+            list.appendChild(item);
+            item.classList.toggle('photography-home-preview-hidden', index >= PREVIEW_COUNT);
+          });
+        }
+      </script>
     )
   }
 
@@ -57,20 +96,64 @@ const preview = selectedWork(archive).slice(0, 3);
     padding: 0;
     list-style: none;
   }
-  @media (min-width: 48rem) {
-    .photography-home-preview {
-      grid-template-columns: repeat(3, 1fr);
-    }
+  .photography-home-preview-hidden {
+    display: none;
   }
-  .photography-home-preview .photo {
+  /*
+   * :global() is required on every selector that reaches `.photo` or its
+   * descendants: that markup is rendered by the child <Photo> component,
+   * not by this file, and Astro's per-component style scoping (a
+   * data-astro-cid-* attribute stamped onto both a scoped selector and the
+   * elements a component renders itself) never reaches across that
+   * boundary. Without it these rules compile to a selector that can never
+   * match anything, and silently do nothing rather than erroring — this
+   * was found by comparing computed styles against DOM scope attributes
+   * directly, not by inspection alone.
+   */
+  .photography-home-preview :global(.photo) {
     overflow: hidden;
     display: block;
   }
-  .photography-home-preview .photo img {
+  .photography-home-preview :global(.photo img) {
     transition: transform 0.5s ease;
   }
+  /* A fixed 3-column grid leaves a gap wherever a portrait photo lands next
+     to a landscape one — the row's height is set by the tallest cell, and
+     the shorter photo doesn't fill it. Justified rows (the same technique
+     the tag/archive/selected grids already use, see base.css's `.grid`)
+     solve this without cropping anything: every photo is held to a common
+     height and photos of every orientation pack edge-to-edge across the
+     row, wrapping naturally instead of forcing exactly three per row. */
+  @media (min-width: 48rem) {
+    .photography-home-preview {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+    .photography-home-preview li {
+      flex: 0 0 auto;
+      height: clamp(10rem, 6rem + 9vw, 15rem);
+    }
+    /* The photo sits inside its own link (to Selected Work), one level
+       deeper than the tag/archive grids' figure > .photo — height:100%
+       has to be threaded through that wrapper too, or it breaks the
+       percentage chain down to the image and every photo falls back to
+       its natural aspect ratio at full width instead of a shared height. */
+    .photography-home-preview li > a {
+      display: block;
+      height: 100%;
+    }
+    .photography-home-preview :global(.photo) {
+      height: 100%;
+    }
+    .photography-home-preview :global(.photo img) {
+      width: auto;
+      height: 100%;
+      max-width: 100%;
+    }
+  }
   @media (hover: hover) {
-    .photography-home-preview a:hover .photo img {
+    .photography-home-preview a:hover :global(.photo img) {
       transform: scale(1.035);
     }
   }
