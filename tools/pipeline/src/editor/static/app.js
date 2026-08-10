@@ -18,6 +18,7 @@ const state = {
   undoStack: [], // [{description, undo: () => Promise<void>}]
   saving: false,
   selectedWorkMode: false, // reorder view: shows only featured photos, sorted by featuredOrder, draggable
+  reviewKey: null, // set while the full-size review overlay is open
 };
 
 const KEY_SEP = ' ';
@@ -348,11 +349,20 @@ function renderGrid() {
       cell.appendChild(dot);
     }
 
-    if (photo.featured) {
-      const star = document.createElement('span');
-      star.className = 'featured-star';
-      star.title = 'Selected Work';
-      star.textContent = '★';
+    if (!state.selectedWorkMode) {
+      const star = document.createElement('button');
+      star.type = 'button';
+      star.className = photo.featured ? 'featured-star is-featured' : 'featured-star';
+      star.title = photo.featured ? 'Remove from Selected Work' : 'Add to Selected Work';
+      star.setAttribute('aria-pressed', String(photo.featured));
+      star.textContent = photo.featured ? '★' : '☆';
+      // Toggles directly from the grid — the fast path for picking Selected
+      // Work without opening the inspector. Stops propagation so it never
+      // also fires the cell's own click-to-select handler below.
+      star.addEventListener('click', (event) => {
+        event.stopPropagation();
+        void setFeatured(photo, !photo.featured);
+      });
       cell.appendChild(star);
     }
     if (photo.cover) {
@@ -377,6 +387,12 @@ function renderGrid() {
       else if (event.shiftKey) selectRangeTo(photo.key);
       else selectOnly(photo.key);
       renderAll();
+    });
+    // A mouse-friendly way into Review — the tiny thumbnail is for
+    // orientation, not for actually looking at the photo.
+    cell.addEventListener('dblclick', (event) => {
+      event.preventDefault();
+      openReview(photo.key);
     });
 
     if (state.selectedWorkMode) {
@@ -699,6 +715,77 @@ function renderAll() {
 }
 
 // ---------------------------------------------------------------------------
+// Review overlay — thumbnails in the grid are small by design (fitting many
+// on screen at once), which makes them a poor way to actually look at a
+// photo or reliably click its tiny star. Review shows one photo large,
+// moved through with the keyboard alone: R opens it at the focused photo,
+// arrows/h j k l move to the next/previous, F stars it, Esc closes.
+// ---------------------------------------------------------------------------
+
+function isReviewOpen() {
+  return !document.getElementById('review').hidden;
+}
+
+function openReview(key) {
+  state.reviewKey = key;
+  state.focusKey = key;
+  document.getElementById('review').hidden = false;
+  renderReview();
+}
+
+function closeReview() {
+  state.reviewKey = null;
+  document.getElementById('review').hidden = true;
+}
+
+function reviewMove(delta) {
+  const visible = visiblePhotos();
+  const index = visible.findIndex((p) => p.key === state.reviewKey);
+  if (index === -1) return;
+  const next = Math.min(Math.max(index + delta, 0), visible.length - 1);
+  state.reviewKey = visible[next].key;
+  renderReview();
+}
+
+function renderReview() {
+  const photo = state.photos.find((p) => p.key === state.reviewKey);
+  if (!photo) {
+    closeReview();
+    return;
+  }
+  state.focusKey = photo.key;
+
+  const image = document.getElementById('review-image');
+  image.src = photo.previewUrl;
+  image.alt = photo.alt || '';
+
+  const caption =
+    (photo.tags.length > 0 ? photo.tags.join(', ') : photo.file) +
+    (photo.alt.trim() === '' ? ' · no alt text yet' : '');
+  document.getElementById('review-caption').textContent = caption;
+
+  const star = document.getElementById('review-star');
+  star.textContent = photo.featured ? '★ Selected Work ( F )' : '☆ Selected Work ( F )';
+  star.classList.toggle('is-featured', photo.featured);
+
+  const visible = visiblePhotos();
+  const index = visible.findIndex((p) => p.key === photo.key);
+  document.getElementById('review-prev').disabled = index <= 0;
+  document.getElementById('review-next').disabled = index === -1 || index >= visible.length - 1;
+
+  // Keep the grid's focus ring in sync underneath, so closing review lands
+  // exactly where review left off.
+  renderGrid();
+}
+
+async function toggleReviewFeatured() {
+  const photo = state.photos.find((p) => p.key === state.reviewKey);
+  if (!photo) return;
+  await setFeatured(photo, !photo.featured);
+  renderReview();
+}
+
+// ---------------------------------------------------------------------------
 // Tag manager modal
 // ---------------------------------------------------------------------------
 
@@ -820,6 +907,33 @@ function attachKeyboard() {
   document.addEventListener('keydown', (event) => {
     const typing = isTypingTarget(document.activeElement);
 
+    // Review swallows its own keys entirely while open, ahead of every
+    // other shortcut below — including Escape, which closes review
+    // rather than falling through to "clear selection."
+    if (isReviewOpen()) {
+      if (event.key === 'Escape') {
+        closeReview();
+        renderAll();
+        return;
+      }
+      if (['ArrowLeft', 'ArrowUp', 'h', 'k'].includes(event.key)) {
+        event.preventDefault();
+        reviewMove(-1);
+        return;
+      }
+      if (['ArrowRight', 'ArrowDown', 'l', 'j'].includes(event.key)) {
+        event.preventDefault();
+        reviewMove(1);
+        return;
+      }
+      if (event.key.toLowerCase() === 'f') {
+        event.preventDefault();
+        void toggleReviewFeatured();
+        return;
+      }
+      return;
+    }
+
     if (event.key === 'Escape') {
       if (!document.getElementById('tag-manager').hidden) closeTagManager();
       else if (!document.getElementById('help').hidden)
@@ -847,6 +961,13 @@ function attachKeyboard() {
     if (event.key.toLowerCase() === 't') {
       event.preventDefault();
       document.getElementById('tag-input')?.focus();
+      return;
+    }
+    if (event.key.toLowerCase() === 'r') {
+      event.preventDefault();
+      const visible = visiblePhotos();
+      const key = state.focusKey ?? visible[0]?.key;
+      if (key) openReview(key);
       return;
     }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'a') {
@@ -918,6 +1039,20 @@ function init() {
   document.getElementById('help-backdrop').addEventListener('click', () => {
     document.getElementById('help').hidden = true;
   });
+
+  document.getElementById('review-close').addEventListener('click', () => {
+    closeReview();
+    renderAll();
+  });
+  document.getElementById('review-backdrop').addEventListener('click', () => {
+    closeReview();
+    renderAll();
+  });
+  document.getElementById('review-prev').addEventListener('click', () => reviewMove(-1));
+  document.getElementById('review-next').addEventListener('click', () => reviewMove(1));
+  document
+    .getElementById('review-star')
+    .addEventListener('click', () => void toggleReviewFeatured());
 
   attachKeyboard();
   loadAll().catch((error) => {

@@ -34,3 +34,18 @@ export function largest(photo: Photo, format: VariantFormat): Variant | undefine
 export function smallest(photo: Photo, format: VariantFormat): Variant | undefined {
   return variantsOf(photo, format).at(0);
 }
+
+export interface OgImage {
+  readonly image: string;
+  readonly imageWidth: number;
+  readonly imageHeight: number;
+}
+
+/** A photo's `og` crop as the three props Base.astro's social meta tags need, as an absolute URL. */
+export function ogImageOf(base: string, photo: Photo, site: URL): OgImage {
+  return {
+    image: new URL(assetUrl(base, photo.og.key), site).href,
+    imageWidth: photo.og.width,
+    imageHeight: photo.og.height,
+  };
+}
