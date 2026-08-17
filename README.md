@@ -136,6 +136,14 @@ tailscale serve reset
 `astro.config.mjs` already allows the `.ts.net` suffix in Vite's `allowedHosts`.
 Without it every request over the tailnet returns "Blocked request".
 
+### 7. Production
+
+The live site (`randyliang.net`) runs `tools/serve` under `systemd`, fronted
+by a Cloudflare Tunnel — both configured to survive a reboot on their own.
+`pnpm deploy` is the one command that ships a change. See
+[`docs/deployment.md`](docs/deployment.md) for the full picture, including
+how to recover if the host is ever rebuilt from scratch.
+
 ### Checking it worked
 
 ```sh

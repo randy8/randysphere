@@ -894,3 +894,47 @@ the intro panel's film-stock line conditional on `view.roll !== null`.
 stock in multi-roll views and is exactly the right quiet, centered,
 small-caps treatment for a second stacked line — only its comment changed
 to document the second use.
+
+---
+
+## 2026-08-17 — Real process supervision for `tools/serve`, and committing the unit files
+
+**Decision.** `photography-serve.service` and `cloudflared-tunnel.service`
+are now `systemd` units — `enable`d (survive a reboot with no manual step)
+and `Restart=on-failure` (come back on their own after a crash) — replacing
+the foreground `pnpm serve` a person had to start by hand. This is exactly
+the "revisit if" condition the 2026-08-08 entry named: `/private` needed to
+survive the host machine restarting unattended, and it now does.
+`cloudflared-tunnel` additionally declares `Requires=photography-serve`, so
+the tunnel comes up only after the site is actually listening, and stops
+first on shutdown — ordering that costs nothing and rules out a whole class
+of "tunnel is up, origin isn't" failures.
+
+Both unit files, plus the tunnel's `config.yml`, are now committed under
+`deploy/` rather than existing only as hand-edited files on one machine.
+None of the three contains a secret — the tunnel's actual credential is a
+separate JSON file (`~/.cloudflared/<tunnel-id>.json`) that stays
+uncommitted by design, referenced by path only. Committing the units turns
+"how is this box actually configured" from tribal knowledge into something
+`git log` can answer, and makes rebuilding the box from scratch a documented
+procedure (`docs/deployment.md`) instead of a from-memory exercise.
+
+**The one new command.** `pnpm deploy` — `pnpm sync && pnpm build && sudo
+systemctl restart photography-serve` — is the single command that covers
+publishing any change (code, recipe, photograph) live. It deliberately does
+not run the test suite itself, the same way `git push` doesn't run CI
+locally: `pnpm verify` is still a separate, expected step before deploying,
+not folded in, so a routine deploy stays fast.
+
+**Rejected.** A CI/CD pipeline (GitHub Actions building and pushing to the
+box) was considered and rejected as more moving parts than a single-person
+project with infrequent deploys needs — SSH secrets to manage, a runner to
+trust, a failure mode (a broken deploy from CI) that's harder to debug
+by hand than a failed local `pnpm deploy`. Revisit only if deploys become
+frequent enough, or collaborative enough, that "run one command on the box
+itself" stops being the fast path.
+
+**Revisit if.** A second person ever needs to deploy (at which point SSH
+access to this one box stops being a reasonable model), or uptime
+requirements grow past what `Restart=on-failure` plus a same-day manual fix
+covers.

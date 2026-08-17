@@ -1,0 +1,30 @@
+# Installed at /etc/systemd/system/photography-serve.service on the box that
+# hosts randyliang.net. This file is the source of truth — if you edit the
+# live unit, copy the change back here (or vice versa) so they don't drift.
+#
+# Install / update:
+#   sudo cp deploy/photography-serve.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now photography-serve
+#
+# Runs `pnpm serve` (tools/serve), which serves the already-built
+# site/dist/ plus the password-gated /private notebook. It does NOT build
+# the site itself — run `pnpm build` (or `pnpm deploy`, see docs/deployment.md)
+# before restarting this unit, or it keeps serving whatever was last built.
+
+[Unit]
+Description=photography site (pnpm serve)
+After=network-online.target
+
+[Service]
+User=randy
+Group=randy
+WorkingDirectory=/home/randy/Development/photography
+Environment=HOME=/home/randy
+Environment=PATH=/home/randy/.local/bin:/home/randy/.local/nodejs/bin:/usr/bin:/bin
+ExecStart=/home/randy/.local/bin/pnpm serve
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

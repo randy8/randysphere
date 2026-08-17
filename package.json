@@ -25,6 +25,7 @@
     "doctor": "node tools/pipeline/src/cli.ts doctor",
     "edit": "node tools/pipeline/src/cli.ts edit",
     "serve": "node tools/serve/src/cli.ts",
+    "deploy": "pnpm sync && pnpm build && sudo systemctl restart photography-serve",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

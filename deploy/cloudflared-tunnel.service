@@ -1,0 +1,33 @@
+# Installed at /etc/systemd/system/cloudflared-tunnel.service on the box
+# that hosts randyliang.net. Source of truth — see photography-serve.service
+# for the update workflow.
+#
+# Requires=photography-serve.service so the tunnel only comes up once the
+# site itself is listening, and systemd stops the tunnel first on shutdown.
+#
+# Install / update:
+#   sudo cp deploy/cloudflared-tunnel.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now cloudflared-tunnel
+#
+# Needs cloudflared installed (~/.local/bin/cloudflared) and the tunnel
+# credentials provisioned at ~/.cloudflared/ — see docs/deployment.md for
+# how to recreate those from scratch. The credentials JSON is a secret and
+# is never committed; deploy/cloudflared-config.yml (also in this repo) has
+# everything else the tunnel needs.
+
+[Unit]
+Description=cloudflared tunnel for randyliang.net
+After=network-online.target photography-serve.service
+Requires=photography-serve.service
+
+[Service]
+User=randy
+Group=randy
+Environment=HOME=/home/randy
+ExecStart=/home/randy/.local/bin/cloudflared tunnel --config /home/randy/.cloudflared/config.yml run
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
