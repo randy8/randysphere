@@ -1,0 +1,57 @@
+/*
+ * A running log, not a playlist library — one dated entry per "I'm really
+ * into this right now," newest first. The embed itself (Spotify/YouTube's
+ * own player chrome) already carries the title, artist, and cover art, so
+ * the entry around it stays quiet: a date, an optional note, nothing else.
+ */
+.music-scope h1 {
+  font-size: clamp(2.25rem, 1rem + 3vw, 3.25rem);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+}
+
+.music-list {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3rem, 5vw, 4rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-width: 30rem;
+}
+
+.music-entry {
+  animation: reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.music-note {
+  margin: 0 0 0.875rem;
+  font-size: 0.9375rem;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+/* A hairline mat around the platform's own player, the same "framed, not
+   boxed" idea as the film poster mat — one quiet edge, no shadow, no card. */
+.music-embed-frame {
+  border-radius: 0.25rem;
+  overflow: hidden;
+  background: var(--rule);
+  padding: 1px;
+}
+.music-embed-frame iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+}
+.music-embed-frame[data-platform='spotify'] iframe {
+  height: 152px;
+}
+.music-embed-frame[data-platform='youtube'] {
+  aspect-ratio: 16 / 9;
+}
+.music-embed-frame[data-platform='youtube'] iframe {
+  height: 100%;
+}

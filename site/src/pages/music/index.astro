@@ -1,0 +1,44 @@
+---
+import '../../music/music.css';
+import Base from '../../layouts/Base.astro';
+import { formatPostedAt, loadTracks } from '../../music/music.ts';
+import { music as config } from '../../music/config.ts';
+
+const tracks = loadTracks();
+---
+
+<Base title={config.title} description={config.description || undefined}>
+  <div class="music-scope">
+    <header class="album-header">
+      <h1>{config.title}</h1>
+      {config.description && <p class="lede">{config.description}</p>}
+    </header>
+
+    {
+      tracks.length === 0 ? (
+        <p class="lede">
+          Nothing logged yet — add a Spotify or YouTube link to <code>music/tracks.yaml</code> to
+          have it appear here.
+        </p>
+      ) : (
+        <ul class="music-list">
+          {tracks.map((track) => (
+            <li class="music-entry">
+              {track.postedAt && <p class="eyebrow">{formatPostedAt(track.postedAt)}</p>}
+              {track.note && <p class="music-note">{track.note}</p>}
+              <div class="music-embed-frame" data-platform={track.platform}>
+                <iframe
+                  src={track.embedUrl}
+                  loading="lazy"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  title={`Embedded ${track.platform === 'spotify' ? 'Spotify' : 'YouTube'} player`}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</Base>

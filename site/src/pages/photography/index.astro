@@ -40,7 +40,7 @@ const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefi
             <a href={`/photography/selected/#photo-${entry.photo.sourceId}`}>
               <Photo
                 entry={entry}
-                sizes="(min-width: 64rem) 30vw, 92vw"
+                sizes="(min-width: 64rem) 15vw, (min-width: 48rem) 22vw, 92vw"
                 priority={index === 0}
                 linked={false}
               />
@@ -117,39 +117,22 @@ const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefi
   .photography-home-preview :global(.photo img) {
     transition: transform 0.5s ease;
   }
-  /* A fixed 3-column grid leaves a gap wherever a portrait photo lands next
-     to a landscape one — the row's height is set by the tallest cell, and
-     the shorter photo doesn't fill it. Justified rows (the same technique
-     the tag/archive/selected grids already use, see base.css's `.grid`)
-     solve this without cropping anything: every photo is held to a common
-     height and photos of every orientation pack edge-to-edge across the
-     row, wrapping naturally instead of forcing exactly three per row. */
+  /* A fixed 3-column grid with a shared row height leaves a gap wherever a
+     portrait photo lands next to a landscape one — the row's height is set
+     by the tallest cell, and the shorter photo doesn't fill it. A CSS grid
+     with a shared column width instead (the same technique base.css's
+     `.grid` uses) solves this without cropping anything: every photo keeps
+     its own aspect ratio and its own height, and every row's outer edge
+     still lands flush on the same grid line, however many photos are in
+     it. */
   @media (min-width: 48rem) {
     .photography-home-preview {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: flex-start;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+      align-items: start;
     }
-    .photography-home-preview li {
-      flex: 0 0 auto;
-      height: clamp(10rem, 6rem + 9vw, 15rem);
-    }
-    /* The photo sits inside its own link (to Selected Work), one level
-       deeper than the tag/archive grids' figure > .photo — height:100%
-       has to be threaded through that wrapper too, or it breaks the
-       percentage chain down to the image and every photo falls back to
-       its natural aspect ratio at full width instead of a shared height. */
     .photography-home-preview li > a {
       display: block;
-      height: 100%;
-    }
-    .photography-home-preview :global(.photo) {
-      height: 100%;
-    }
-    .photography-home-preview :global(.photo img) {
-      width: auto;
-      height: 100%;
-      max-width: 100%;
     }
   }
   @media (hover: hover) {
