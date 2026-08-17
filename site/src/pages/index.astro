@@ -13,7 +13,7 @@ import { site } from '../config.ts';
   */
 }
 <Base title={site.title}>
-  <header class="album-header">
+  <header class="album-header home-header">
     <h1>{site.description}</h1>
   </header>
 
@@ -24,7 +24,7 @@ import { site } from '../config.ts';
         <li>
           <a href={collection.href}>
             <h2>{collection.title}</h2>
-            <p class="lede">{collection.description}</p>
+            {collection.description && <p class="lede">{collection.description}</p>}
             <p class="archive-index-stats">{collection.stats()}</p>
           </a>
         </li>

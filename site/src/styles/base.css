@@ -328,6 +328,22 @@ main {
  * ranked in collections.ts's own order. No image ever appears here: the
  * homepage introduces the archive, it never shows what's inside it.
  */
+/* The homepage announces a table of contents, not a photobook's title page
+   — the site-wide h1 scale (built for that moment) reads oversized here. */
+.home-header h1 {
+  font-size: clamp(1.75rem, 1rem + 2vw, 2.25rem);
+}
+
+/* Every photography subpage (a tag view, Archive, Selected Work, a film
+   stock, About) names what you're looking at, not a title-page moment —
+   the site-wide h1 scale (built for /photography/'s own landing header)
+   reads oversized repeated on every view. `.photography-nav` is the one
+   element every one of these headers directly follows in markup, so this
+   scopes without needing a wrapper class on each page. */
+.photography-nav + .album-header h1 {
+  font-size: clamp(2.25rem, 1.1rem + 3.5vw, 3.5rem);
+}
+
 .archive-label {
   margin: 2.5rem 0 0.75rem;
 }
@@ -364,12 +380,12 @@ main {
 }
 .archive-index a {
   display: block;
-  padding: 1.75rem 0;
+  padding: 2.25rem 0;
   color: inherit;
   text-decoration: none;
 }
 .archive-index h2 {
-  font-size: 1.375rem;
+  font-size: clamp(1.625rem, 1.2rem + 1vw, 1.875rem);
   font-weight: 400;
   letter-spacing: -0.01em;
   transition:
@@ -394,28 +410,41 @@ main {
 
 /*
  * The grid is a contact sheet, not a gallery — an index to consult, not the
- * reading experience. Small, dense, numbered by frame, uncaptioned: the
- * photographs themselves only get shown at size in scroll mode.
+ * reading experience. Numbered by frame, uncaptioned: the photographs
+ * themselves only get shown at full size in scroll mode.
  *
- * A shared row height, not a shared column width: an equal-width grid gives
- * every photograph the same footprint on the short edge and lets the long
- * edge run free, so a portrait frame — same width, taller — ends up
- * spanning two row-heights and reading as roughly twice the print size of
- * its landscape neighbours. Flush-left flex-wrap at a fixed height inverts
- * that: the long edge (a landscape's width, a portrait's height) is what's
- * held equal, exactly the way prints of different aspect ratios hang at the
- * same size in an exhibition. Nothing is cropped or upscaled — each photo's
- * own aspect ratio still decides its width at that height.
+ * A shared column width, not a shared row height: a CSS grid holds every
+ * column to the same width, so every row's outer edge lands on the same
+ * grid line no matter how many photos happen to land in that row — nothing
+ * is left jutting into the margin the way flush-left flex-wrap could leave
+ * a short last row. Each photo's own aspect ratio still decides its own
+ * height at that width; nothing is cropped, upscaled, or stretched to fit.
+ * A portrait frame simply reads taller than its landscape neighbours in the
+ * same row, top-aligned rather than forced to a shared height.
+ *
+ * A fixed column count per breakpoint, not auto-fill: auto-fill packs in as
+ * many columns as the minimum width allows, which reads as a dense index.
+ * This grid is meant to read closer to a page of large plates, so the count
+ * is capped explicitly (2 columns narrow, 3 mid-width, 4 at desktop widths)
+ * and each column simply gets wider as the viewport grows.
  */
 .grid {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+@media (min-width: 40rem) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (min-width: 64rem) {
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 .grid figure {
-  flex: 0 0 auto;
-  height: clamp(7.5rem, 3rem + 13vw, 12rem);
   transition: opacity 0.3s ease;
 }
 /* A quiet contact-sheet loupe: hovering one frame gently recedes the rest,
@@ -429,13 +458,9 @@ main {
 .grid .photo,
 .grid picture {
   display: block;
-  height: 100%;
   overflow: hidden;
 }
 .grid .photo img {
-  width: auto;
-  height: 100%;
-  max-width: 100%;
   transition: transform 0.4s ease;
 }
 @media (hover: hover) {
