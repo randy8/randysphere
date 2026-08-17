@@ -67,17 +67,6 @@ export const collections: readonly Collection[] = [
     urls: () => ['/recipes/', ...loadRecipes().map((recipe) => `/recipes/${recipe.slug}/`)],
   },
   {
-    slug: 'films',
-    title: films.title,
-    description: films.description,
-    href: '/films/',
-    stats: () => {
-      const count = loadFilms().length;
-      return `${String(count)} film${count === 1 ? '' : 's'}`;
-    },
-    urls: () => ['/films/'],
-  },
-  {
     slug: 'music',
     title: music.title,
     description: music.description,
@@ -87,5 +76,16 @@ export const collections: readonly Collection[] = [
       return `${String(count)} track${count === 1 ? '' : 's'}`;
     },
     urls: () => ['/music/'],
+  },
+  {
+    slug: 'films',
+    title: films.title,
+    description: films.description,
+    href: '/films/',
+    stats: () => {
+      const count = loadFilms().length;
+      return `${String(count)} film${count === 1 ? '' : 's'}`;
+    },
+    urls: () => ['/films/'],
   },
 ];
