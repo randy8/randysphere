@@ -1,0 +1,16 @@
+# Installed at ~/.cloudflared/config.yml on the box that hosts
+# randyliang.net. Contains no secret — the tunnel ID below is just an
+# identifier; the actual credential is the JSON file at credentials-file,
+# which is provisioned by `cloudflared tunnel create` / the Cloudflare
+# dashboard and is never committed. See docs/deployment.md for how to
+# recreate it on a new box.
+
+tunnel: 086fbf34-12b8-4a53-88ad-956930381aee
+credentials-file: /home/randy/.cloudflared/086fbf34-12b8-4a53-88ad-956930381aee.json
+
+ingress:
+  - hostname: randyliang.net
+    service: http://localhost:4322
+  - hostname: www.randyliang.net
+    service: http://localhost:4322
+  - service: http_status:404

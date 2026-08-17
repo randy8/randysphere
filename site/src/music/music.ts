@@ -64,7 +64,10 @@ export function toEmbed(url: string): { platform: Platform; embedUrl: string } |
   if (host === 'open.spotify.com') {
     const match = /^\/(track|album|playlist|episode|show)\/([A-Za-z0-9]+)/.exec(parsed.pathname);
     if (!match) return null;
-    return { platform: 'spotify', embedUrl: `https://open.spotify.com/embed/${match[1]}/${match[2]}` };
+    return {
+      platform: 'spotify',
+      embedUrl: `https://open.spotify.com/embed/${match[1]}/${match[2]}`,
+    };
   }
 
   if (host === 'youtube.com' || host === 'music.youtube.com') {
@@ -110,5 +113,10 @@ export function formatPostedAt(isoDate: string): string {
   if (!match) return isoDate;
   const [, year, month, day] = match;
   const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
 }

@@ -318,7 +318,13 @@ generated/
                              them into one Archive, never reads one alone
   derivatives/                encoded output — git-ignored, rebuildable
   descriptions.json           pnpm describe's cache — git-ignored, rebuildable
-docs/                        decisions.md, dependencies.md, verification.md
+docs/                        decisions.md, dependencies.md, verification.md,
+                             deployment.md (how randyliang.net stays up)
+deploy/                      committed systemd units for production
+                             (photography-serve.service,
+                             cloudflared-tunnel.service) and the tunnel's
+                             config.yml — source of truth for the box that
+                             hosts randyliang.net; see docs/deployment.md
 CHANGELOG.md                  milestone-only development journal (see below)
 ```
 
@@ -545,13 +551,14 @@ every tsconfig's own directory). A handful of genuine
   point so far.
 - **`tools/serve` is the one part of this project that is not a static
   site or an offline CLI** — it's a long-lived Node process (`pnpm serve`)
-  that must actually be running for `/private` to exist at all. It has no
-  process supervisor yet (no systemd unit, no `pm2`, no
-  restart-on-crash): today it's a foreground command, killed by closing the
-  terminal or the machine sleeping. Fine for a single-user personal
-  notebook reached over Tailscale; would need real supervision before this
-  pattern is trusted for anything with an uptime expectation. There is also
-  no login rate-limiting — acceptable for a single known user, not a
+  that must actually be running for `/private` to exist at all. In
+  production it now runs under `systemd` (`photography-serve.service`,
+  `enable`d and `Restart=on-failure`, paired with `cloudflared-tunnel.service`
+  for the actual `randyliang.net` traffic) — both units are committed under
+  `deploy/`, and the full picture is in `docs/deployment.md`
+  (`pnpm deploy` is the one command for shipping a change). See
+  `docs/decisions.md`, 2026-08-17. There is still no login rate-limiting on
+  `/private` — acceptable for a single known user, not a
   pattern to reuse for a multi-user surface.
 
 ## Immediate next priorities
