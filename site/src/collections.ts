@@ -36,7 +36,10 @@ export const collections: readonly Collection[] = [
     // of the same string is exactly how "I edited it and nothing changed"
     // bugs happen.
     description: photography.description,
-    href: '/photography/',
+    // Straight into Selected Work, not a preview page a visitor has to
+    // click through a second time to reach the same photographs — see
+    // docs/decisions.md.
+    href: '/photography/selected/',
     stats: () => {
       const archive = loadArchive();
       const photographs = archive.photos.length;
@@ -46,7 +49,6 @@ export const collections: readonly Collection[] = [
     urls: () => {
       const archive = loadArchive();
       return [
-        '/photography/',
         '/photography/selected/',
         '/photography/archive/',
         '/photography/about/',
