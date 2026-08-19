@@ -13,34 +13,54 @@
  */
 
 /* Fixed, not inline with the header — 773 films across seven years makes
-   for a very long page, and a jump control that scrolls away with the
-   header it started next to stops helping the moment you've used it once.
-   Same "one quiet mark, fixed in a corner" convention as photography's
-   view-toggle, just in the opposite corner (this page has no toggle of
-   its own to collide with). */
-.film-year-jump {
+   for a very long page, and controls that scroll away with the header they
+   started next to stop helping the moment they've been used once. Same
+   "one quiet mark, fixed in a corner" convention as photography's
+   browse-home link, just in the opposite corner (this page has nothing
+   else fixed there to collide with). One panel for all three controls
+   (genre, year, a random pick) rather than three floating separately,
+   which reads as chrome scattered around the edges instead of one place
+   to look. */
+.film-controls {
   position: fixed;
   right: 1.5rem;
   bottom: 1.5rem;
   z-index: 10;
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.625rem;
+  gap: 0.875rem;
   margin: 0;
   padding: 0.625rem 1rem;
-  background: var(--paper);
+  max-width: calc(100vw - 3rem);
+  /* Translucent with a blur, not solid paper — a fixed panel over a long
+     scrolling grid inevitably sits on top of whatever poster happens to be
+     in that corner, and a solid background would fully hide it underneath.
+     Frosted keeps the controls legible while letting the poster stay
+     visible through them, so nothing is ever completely covered. Falls
+     back to a slightly more opaque solid tint on the rare browser without
+     backdrop-filter support — still translucent, just without the blur. */
+  background: color-mix(in srgb, var(--paper) 78%, transparent);
+  backdrop-filter: blur(0.625rem);
+  -webkit-backdrop-filter: blur(0.625rem);
   border: 1px solid var(--rule);
   border-radius: 0.25rem;
   box-shadow: 0 0.75rem 2rem -1rem rgb(0 0 0 / 0.25);
 }
-.film-year-jump label {
+.film-control {
+  display: flex;
+  align-items: baseline;
+  gap: 0.625rem;
+  margin: 0;
+}
+.film-control label {
   font-family: var(--serif);
   font-variant-caps: small-caps;
   font-size: 0.9375rem;
   letter-spacing: 0.02em;
   color: var(--muted);
 }
-.film-year-jump select {
+.film-control select {
   appearance: none;
   background: none;
   border: 0;
@@ -64,8 +84,34 @@
   background-repeat: no-repeat;
   transition: border-color 0.2s ease;
 }
-.film-year-jump select:hover,
-.film-year-jump select:focus-visible {
+.film-control select:hover,
+.film-control select:focus-visible {
+  border-color: var(--accent);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .film-controls {
+    background: color-mix(in srgb, var(--paper) 94%, transparent);
+  }
+}
+.film-random-button {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--serif);
+  font-variant-caps: small-caps;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--rule);
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.film-random-button:hover,
+.film-random-button:focus-visible {
+  color: var(--accent);
   border-color: var(--accent);
 }
 
@@ -176,6 +222,32 @@
 .film-card:hover .film-poster[data-cropped='true'] {
   transform: scale(calc(var(--focal-zoom, 1) * 1.02));
 }
+/* The "Random film" button's whole point is pointing at one card among
+   hundreds — a brief ring in the accent colour (never at rest anywhere
+   else on this site, only ever a hover/interaction moment, and this is
+   exactly that) draws the eye there the instant the scroll settles, then
+   recedes on its own rather than leaving a permanent marker behind. */
+@keyframes film-highlight-ring {
+  from {
+    outline-color: var(--accent);
+    outline-offset: 0.5rem;
+  }
+  to {
+    outline-color: transparent;
+    outline-offset: 0.875rem;
+  }
+}
+.film-card.is-highlighted .film-poster-frame {
+  outline: 2px solid var(--accent);
+  outline-offset: 0.5rem;
+  animation: film-highlight-ring 1.6s ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .film-card.is-highlighted .film-poster-frame {
+    animation: none;
+    outline-color: var(--accent);
+  }
+}
 /* A film TMDB matched but has no poster for — a quiet placeholder within
    the same mat, not a broken image icon and not silently skipped. */
 .film-poster-placeholder {
@@ -218,6 +290,13 @@
   letter-spacing: 0.02em;
   color: var(--muted);
 }
+.film-genres {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+  opacity: 0.8;
+}
 .film-overview {
   margin: 0.125rem 0 0;
   font-size: 0.8125rem;
@@ -242,6 +321,13 @@
 .film-attribution {
   margin-top: clamp(4rem, 6vw, 6rem);
   padding-top: 1.5rem;
+  /* Extra room below the credit line, on top of main's own bottom padding
+     (base.css) — .film-controls is fixed to the viewport's bottom-right
+     corner, so scrolled all the way down, the last row of posters needs
+     real empty space beneath it, not just enough to clear the text above,
+     or it would sit permanently trapped under the panel with no further
+     scroll room to reveal it from underneath. */
+  padding-bottom: 6rem;
   border-top: 1px solid var(--rule);
   font-size: 0.8125rem;
   color: var(--muted);

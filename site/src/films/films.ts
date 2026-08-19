@@ -36,6 +36,7 @@ export interface Film {
   readonly overview: string | null;
   readonly runtimeMinutes: number | null;
   readonly director: string | null;
+  readonly genres: readonly string[];
   readonly posterFocal: PosterFocal | null;
 }
 
@@ -109,6 +110,7 @@ interface TmdbCacheEntry {
   readonly overview: string;
   readonly runtimeMinutes: number | null;
   readonly director: string | null;
+  readonly genres?: readonly string[];
 }
 
 /** Same key format `tools/films/fetch-posters.ts`'s `posterKey` writes. */
@@ -166,6 +168,7 @@ export function loadFilms(): Film[] {
         overview: entry?.overview && entry.overview.length > 0 ? entry.overview : null,
         runtimeMinutes: entry?.runtimeMinutes ?? null,
         director: entry?.director ?? null,
+        genres: entry?.genres ?? [],
         posterFocal: overrides[key] ?? null,
       };
     })
@@ -211,4 +214,9 @@ export function filmsByYearRated(films: readonly Film[]): FilmYearGroup[] {
   return Array.from(groups.entries())
     .sort(([a], [b]) => b.localeCompare(a))
     .map(([year, yearFilms]) => ({ year, films: yearFilms }));
+}
+
+/** Every distinct TMDB genre in use, alphabetical — films with none yet (not backfilled, or TMDB had none) are simply absent from every genre's count. */
+export function allGenres(films: readonly Film[]): string[] {
+  return [...new Set(films.flatMap((film) => film.genres))].sort();
 }

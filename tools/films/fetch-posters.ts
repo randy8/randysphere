@@ -136,10 +136,14 @@ export interface TmdbEntry {
   readonly overview: string;
   readonly runtimeMinutes: number | null;
   readonly director: string | null;
+  readonly genres: readonly string[];
 }
 
 interface TmdbCrewMember {
   readonly job: string;
+  readonly name: string;
+}
+interface TmdbGenre {
   readonly name: string;
 }
 interface TmdbMovieDetails {
@@ -147,6 +151,7 @@ interface TmdbMovieDetails {
   readonly overview?: string;
   readonly runtime: number | null;
   readonly credits?: { readonly crew: readonly TmdbCrewMember[] };
+  readonly genres?: readonly TmdbGenre[];
 }
 
 /** One call, `append_to_response=credits`, gets everything a `TmdbEntry` needs for a known id. */
@@ -167,6 +172,7 @@ async function fetchById(id: number, token: string): Promise<TmdbEntry> {
     overview: data.overview ?? '',
     runtimeMinutes: data.runtime ?? null,
     director,
+    genres: data.genres?.map((genre) => genre.name) ?? [],
   };
 }
 
@@ -257,10 +263,17 @@ async function main(): Promise<void> {
     const key = posterKey(entry.title, entry.year);
     try {
       const correctedId = corrections[key];
+      // Refreshing a film that's already matched (e.g. --regenerate after
+      // adding a new field to TmdbEntry) re-fetches its known id rather
+      // than searching again — search is a heuristic (see searchFilm's own
+      // comment) and re-running it risks landing on a different film than
+      // last time for no reason. Only a film with no cached match yet, or
+      // a title/year --only run, goes through search.
+      const knownId = correctedId ?? cache[key]?.tmdbId;
       const result =
-        correctedId === undefined
+        knownId === undefined
           ? await searchFilm(entry.title, entry.year, token)
-          : await fetchById(correctedId, token);
+          : await fetchById(knownId, token);
       cache[key] = result;
       if (result !== null) {
         matched += 1;

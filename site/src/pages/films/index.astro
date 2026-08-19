@@ -1,11 +1,12 @@
 ---
 import '../../films/films.css';
 import Base from '../../layouts/Base.astro';
-import { excerpt, filmsByYearRated, formatRuntime, loadFilms } from '../../films/films.ts';
+import { allGenres, excerpt, filmsByYearRated, formatRuntime, loadFilms } from '../../films/films.ts';
 import { films as config } from '../../films/config.ts';
 
 const films = loadFilms();
 const groups = filmsByYearRated(films);
+const genres = allGenres(films);
 const years = films.map((film) => film.ratedOn.slice(0, 4)).filter((year) => year.length === 4);
 const range =
   years.length > 0 ? `${[...years].sort().at(0)}–${[...years].sort().at(-1)}` : null;
@@ -23,17 +24,39 @@ const hasPosters = films.some((film) => film.posterPath !== null);
   </header>
 
   {
-    groups.length > 1 && (
-      <p class="film-year-jump">
-        <label for="film-year-select">Jump to year</label>
-        <select id="film-year-select" data-film-year-select>
-          {groups.map((group) => (
-            <option value={`#year-${group.year}`}>
-              {group.year} ({group.films.length})
-            </option>
-          ))}
-        </select>
-      </p>
+    films.length > 0 && (
+      <div class="film-controls">
+        {
+          genres.length > 0 && (
+            <p class="film-control">
+              <label for="film-genre-select">Genre</label>
+              <select id="film-genre-select" data-film-genre-select>
+                <option value="">All genres</option>
+                {genres.map((genre) => (
+                  <option value={genre}>{genre}</option>
+                ))}
+              </select>
+            </p>
+          )
+        }
+        {
+          groups.length > 1 && (
+            <p class="film-control">
+              <label for="film-year-select">Year</label>
+              <select id="film-year-select" data-film-year-select>
+                {groups.map((group) => (
+                  <option value={`#year-${group.year}`}>
+                    {group.year} ({group.films.length})
+                  </option>
+                ))}
+              </select>
+            </p>
+          )
+        }
+        <button type="button" class="film-random-button" data-random-film>
+          Random film
+        </button>
+      </div>
     )
   }
 
@@ -56,7 +79,7 @@ const hasPosters = films.some((film) => film.posterPath !== null);
               .filter((part): part is string => Boolean(part))
               .join(' · ');
             return (
-              <li class="film-card">
+              <li class="film-card" data-genres={film.genres.join('|')}>
                 <div class="film-poster-frame">
                   {film.posterPath ? (
                     <img
@@ -80,6 +103,9 @@ const hasPosters = films.some((film) => film.posterPath !== null);
                     {film.title} <span class="film-release-year">{film.year}</span>
                   </h3>
                   {meta.length > 0 && <p class="film-meta">{meta}</p>}
+                  {film.genres.length > 0 && (
+                    <p class="film-genres">{film.genres.join(' · ')}</p>
+                  )}
                   {film.overview && <p class="film-overview">{excerpt(film.overview, 220)}</p>}
                   <a
                     class="film-letterboxd-link"
@@ -111,22 +137,65 @@ const hasPosters = films.some((film) => film.posterPath !== null);
   }
 
   {
-    groups.length > 1 && (
+    films.length > 0 && (
       <script>
         // Pure convenience: every year is already reachable by scrolling and
         // by its own real #year-<year> anchor (a direct link to one still
         // works with this script absent). The select just saves the scroll.
-        const select = document.querySelector<HTMLSelectElement>('[data-film-year-select]');
-        if (select) {
-          if (location.hash && [...select.options].some((option) => option.value === location.hash)) {
-            select.value = location.hash;
+        const yearSelect = document.querySelector<HTMLSelectElement>('[data-film-year-select]');
+        if (yearSelect) {
+          if (
+            location.hash &&
+            [...yearSelect.options].some((option) => option.value === location.hash)
+          ) {
+            yearSelect.value = location.hash;
           }
-          select.addEventListener('change', () => {
-            const target = document.querySelector(select.value);
+          yearSelect.addEventListener('change', () => {
+            const target = document.querySelector(yearSelect.value);
             target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            history.replaceState(null, '', select.value);
+            history.replaceState(null, '', yearSelect.value);
           });
         }
+
+        // Genre is a client-side filter, not a route — there is no
+        // per-genre page the way photography has one per tag, so this
+        // just hides non-matching cards (and any year section left with
+        // none showing) rather than navigating anywhere. Without
+        // JavaScript every film stays visible, same as the year select
+        // doing nothing without it: a smaller experience, not a broken one.
+        const genreSelect = document.querySelector<HTMLSelectElement>('[data-film-genre-select]');
+        const cards = Array.from(document.querySelectorAll<HTMLElement>('.film-card'));
+        const yearGroups = Array.from(document.querySelectorAll<HTMLElement>('.film-year-group'));
+
+        const applyGenreFilter = (): void => {
+          const genre = genreSelect?.value ?? '';
+          for (const card of cards) {
+            const cardGenres = (card.dataset['genres'] ?? '').split('|');
+            card.hidden = genre !== '' && !cardGenres.includes(genre);
+          }
+          for (const group of yearGroups) {
+            const cardsInGroup = Array.from(group.querySelectorAll<HTMLElement>('.film-card'));
+            group.hidden = cardsInGroup.length > 0 && cardsInGroup.every((card) => card.hidden);
+          }
+        };
+        genreSelect?.addEventListener('change', applyGenreFilter);
+
+        // A "what should I watch" nudge: picks among whatever the genre
+        // filter currently leaves visible, so narrowing to one genre first
+        // and then asking for a random pick compose naturally.
+        const randomButton = document.querySelector<HTMLButtonElement>('[data-random-film]');
+        randomButton?.addEventListener('click', () => {
+          const visible = cards.filter((card) => !card.hidden);
+          const pick = visible[Math.floor(Math.random() * visible.length)];
+          if (pick === undefined) return;
+          pick.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          pick.classList.remove('is-highlighted');
+          // Reflow between removing and re-adding the class, so clicking
+          // the button twice in a row on the same film restarts the
+          // highlight animation instead of it being a no-op the second time.
+          void pick.offsetWidth;
+          pick.classList.add('is-highlighted');
+        });
       </script>
     )
   }
