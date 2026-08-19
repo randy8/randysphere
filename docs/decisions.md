@@ -1057,3 +1057,34 @@ view (not just a no-JS fallback) — at that point the toggle, its URL
 state, and `defaultView` would need to come back in some form, and this
 decision's premise (a JS-enabled visitor never sees the grid) no longer
 holds.
+
+---
+
+## 2026-08-19 — The full-size srcset tier tops out at 2560, not a higher Retina ceiling
+
+**Decision.** `pipeline.config.ts`'s `widths` caps at 2560, matching an
+explicit brief for the grid's smaller tiers (640/960/1280/1920) plus one
+full-size tier. The previous config topped out at 3840 — sized, by its own
+comment, for a 2x-DPR 1920 CSS-px-wide desktop viewport. 2560 is not that;
+it is generous for a typical Retina laptop but not a literal 2x cap for
+every real desktop window size.
+
+**Why 2560 anyway.** The brief was specific and said "roughly" and
+"around" throughout, reading as a considered ceiling rather than an
+approximation of something larger — and it is already well past what most
+image-heavy sites serve as their largest tier. Guessing past an explicit
+number toward a more theoretically-complete one would have second-guessed
+a clear instruction for a marginal gain most visitors' displays cannot
+resolve anyway (few browser windows are both 1920 CSS px wide _and_ 2x
+DPR at once — that combination needs a large external Retina monitor, not
+just any Retina laptop).
+
+**The actual tradeoff, named plainly.** On a 2x-DPR display with a browser
+window wider than ~1280 CSS px, the full-size browse view (`sizes="100vw"`)
+now serves a file that is sharp but not pixel-for-pixel native — the
+browser's downscale-then-upscale-to-fit at that combination is real,
+just below where most people notice it at normal viewing distance.
+
+**Revisit if.** Someone viewing on a large external Retina/5K display
+reports the full-size view reading as soft — at that point a sixth tier
+(e.g. 3200 or 3840) is a config-only change, no architecture to redo.

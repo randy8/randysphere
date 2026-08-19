@@ -23,15 +23,16 @@ const config: PipelineConfig = {
   recipeVersion: 2,
 
   /**
-   * Widths offered in srcset, in CSS pixels, up through a 2x-3840 desktop/
-   * Retina full-bleed — this is a fidelity-first archive, not a bandwidth-
-   * constrained feed, so the top end is sized for how large the browse view
-   * actually renders a photograph (`sizes="100vw"`) on a large or Retina
-   * display, not for the smallest acceptable download. Widths larger than a
-   * given photograph are skipped automatically, so small scans do not
-   * produce upscaled files.
+   * Widths offered in srcset, in physical pixels. 640/960/1280/1920 cover
+   * the grid and smaller screens; 2560 is the top tier for the full-size
+   * browse view (`sizes="100vw"`), landing well into Retina territory for
+   * any real desktop viewport without publishing a near-original-resolution
+   * file for every photograph — this is a fidelity-first archive, not a
+   * bandwidth-constrained feed, so this is a deliberate ceiling, not the
+   * smallest acceptable download. Widths larger than a given photograph are
+   * skipped automatically, so small scans do not produce upscaled files.
    */
-  widths: [400, 800, 1200, 1600, 2000, 2400, 3200, 3840],
+  widths: [640, 960, 1280, 1920, 2560],
 
   /** Lanczos3 is the sharpest of the available resamplers and the usual choice for photographs. */
   kernel: 'lanczos3',
@@ -61,7 +62,7 @@ const config: PipelineConfig = {
    * photograph" link — but that second one now matches the top of `widths`,
    * since it is also what a non-AVIF/WebP browser's fullscreen view opens.
    */
-  jpeg: { quality: 90, widths: [1200, 3840] },
+  jpeg: { quality: 90, widths: [1200, 2560] },
 
   /**
    * Open Graph images are crops of the photograph with no text on them, which

@@ -89,6 +89,12 @@ function init(): void {
   }
 
   window.addEventListener('keydown', (event) => {
+    // A modified arrow key is a browser or OS shortcut passing through
+    // (Cmd+Left for history back on Mac, most notably) — never ours to
+    // intercept. Swallowing it here previously left a visitor unable to
+    // navigate back out of a film-stock or tag page at all, since the
+    // keydown never reached the browser's own binding.
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
     const forward =
       event.key === 'ArrowDown' ||
       event.key === 'ArrowRight' ||
