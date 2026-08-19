@@ -501,3 +501,32 @@ swallowed as an in-page "previous photo" command on any page with Browse
 mode — a visitor could open a film-stock page from a photo's credit line
 and then have no keyboard way back out. It now ignores any keydown with
 Cmd, Ctrl, or Alt held.
+
+---
+
+## 2026-08-19 — Photography's entry point is Selected Work, not a preview of it
+
+`/photography/` — a small shuffled preview grid of Selected Work photos,
+plus a "View Selected Work →" link to the real thing — is gone. It was a
+second, smaller version of the exact page one more click led to, not a
+distinct destination of its own. The homepage's Photography link and
+`PhotographyNav`'s first item now both go straight to
+`/photography/selected/`, which already does everything the preview page
+was trying to: show the archive's best photographs, freshly shuffled, with
+one click. `PhotographyNav` drops from four links to three (Selected Work,
+Archive, About) — Selected Work fills the "entry point" role on its own,
+so a nav item that only ever pointed at a page just deleted would have had
+nothing left to say.
+
+Selected Work also lost its own opening title panel. Every tag or
+film-stock view's panel is real information (a trip's name, its date, the
+film it was shot on) worth a beat before the photographs start; Selected
+Work's had none of that to offer — no date, no shared roll, just "Selected
+Work" restated with a numeral and an arrow — a screen a visitor had to
+already know to click or scroll past, with nothing on it telling them how.
+`Browse.astro` gained an `intro` prop (default `true`, `false` for
+Selected Work only) that skips the panel entirely: with no intro, the
+stack's first child is simply the first photograph, and arriving there is
+the same "no `#photo-<id>` hash" default every other page already has, not
+a special case. A visitor now lands on a photograph immediately, in a
+fresh shuffle each visit, the moment they click in.

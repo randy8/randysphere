@@ -6,13 +6,16 @@
  * rest of the page chrome (see body.is-browsing in base.css).
  */
 interface Props {
-  current: 'home' | 'selected' | 'archive' | 'about';
+  current: 'selected' | 'archive' | 'about';
 }
 
 const { current } = Astro.props;
 
+// No separate "Photography"/home link — Selected Work is the collection's
+// entry point (collections.ts's href points straight here), so it already
+// fills that role without a second, redundant nav item pointing at the
+// same destination twice under two different labels.
 const links = [
-  { key: 'home', label: 'Photography', href: '/photography/' },
   { key: 'selected', label: 'Selected Work', href: '/photography/selected/' },
   { key: 'archive', label: 'Archive', href: '/photography/archive/' },
   { key: 'about', label: 'About', href: '/photography/about/' },

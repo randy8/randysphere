@@ -14,9 +14,20 @@ interface Props {
    * break into this view rather than a dead end. See CHANGELOG.md.
    */
   next?: { tag: string; title: string; date: string | null; count: number } | null;
+  /**
+   * A tag or film-stock view's opening panel is real information (its
+   * title, its date, its film stock) worth a beat before the photographs
+   * start. Selected Work has none of that — no date, no shared roll, just
+   * "Selected Work" restated — so for it this was a title screen with no
+   * hint of how to move past it, not a chapter opener. False skips it
+   * entirely: the stack's first child is the first photograph, and landing
+   * there is just the ordinary "no #photo-<id> hash" default (see
+   * browse.ts), not a special case.
+   */
+  intro?: boolean;
 }
 
-const { view, next = null } = Astro.props;
+const { view, next = null, intro = true } = Astro.props;
 ---
 
 {
@@ -28,24 +39,32 @@ const { view, next = null } = Astro.props;
 <a class="browse-home" href="/" aria-label={`${site.title} — Home`}>{site.title}</a>
 <div class="browse" data-browse role="region" aria-label="Photo browser">
   <div class="browse-stack" data-browse-stack>
-    <div class="browse-intro">
-      <p class="browse-intro-count" aria-hidden="true">{String(view.photos.length).padStart(2, '0')}</p>
-      {view.date && <p class="eyebrow">{view.date}</p>}
-      <h2>{view.title}</h2>
-      <p class="browse-intro-meta">
-        {
-          view.roll?.filmStock && (
-            <span class="film-stock">
-              <a href={`/photography/film/${view.roll.filmStock}/`}>{view.roll.filmStock}</a>
+    {
+      intro && (
+        <div class="browse-intro">
+          <p class="browse-intro-count" aria-hidden="true">
+            {String(view.photos.length).padStart(2, '0')}
+          </p>
+          {view.date && <p class="eyebrow">{view.date}</p>}
+          <h2>{view.title}</h2>
+          <p class="browse-intro-meta">
+            {
+              view.roll?.filmStock && (
+                <span class="film-stock">
+                  <a href={`/photography/film/${view.roll.filmStock}/`}>{view.roll.filmStock}</a>
+                </span>
+              )
+            }
+            <span>
+              {view.photos.length} photograph{view.photos.length === 1 ? '' : 's'}
             </span>
-          )
-        }
-        <span>
-          {view.photos.length} photograph{view.photos.length === 1 ? '' : 's'}
-        </span>
-      </p>
-      <p class="browse-intro-cue" aria-hidden="true">→</p>
-    </div>
+          </p>
+          <p class="browse-intro-cue" aria-hidden="true">
+            →
+          </p>
+        </div>
+      )
+    }
     {
       view.photos.map((entry, index) => (
         <figure class="browse-item" id={`photo-${entry.photo.sourceId}`} data-photo-id={entry.photo.sourceId}>
