@@ -1,64 +1,43 @@
 /**
- * Continuous-scroll browse mode is the default reading experience, not an
- * alternative layout — the grid is the explicit opt-out (`#grid`) and the
- * no-JS fallback: every grid thumbnail is still a real link to its full-size
- * JPEG (see Photo.astro), so without this script, or if it fails, a visitor
- * gets the plain grid and those links work exactly as before.
+ * Browse mode is the only reading experience now — there is no grid to
+ * toggle to or fall back on for a JavaScript-enabled visitor. The grid
+ * markup still exists server-side purely as the no-JS fallback (every
+ * thumbnail a real link to its full-size JPEG, see Photo.astro): without
+ * this script, or if it fails, that plain grid is all a visitor gets,
+ * since nothing else here ever runs to hide it.
  *
- * State lives in the URL rather than only in memory: `#photo-<sourceId>`
- * opens at a specific photograph, `#grid` opts out to the grid, `#browse`
- * opts into the title-panel browse view with no specific photo, and no hash
- * at all lands on whichever of grid/browse this view's `data-default-view`
- * says (browse for every page except Selected Work, which opens on the
- * grid — its whole point is to be surveyed as a set, not read start to
- * end). A reload or a shared link reopens at the same state. Only the
- * transition that *opens* a specific photograph (a grid click) pushes a
- * history entry — scrolling or using the keyboard replaces it, so browsing
- * through the whole album doesn't fill up history with one entry per photo.
+ * `#photo-<sourceId>` in the URL opens at a specific photograph; no hash
+ * lands on the opening title panel. A reload or a shared link reopens at
+ * the same photo. Scrolling and the keyboard/click navigation all replace
+ * the URL rather than push it, so moving through a whole album never fills
+ * up browser history with one entry per photo.
  */
 
 const PHOTO_HASH_PREFIX = '#photo-';
 const PRELOAD_RADIUS = 1;
 const CURRENT_MARK = 0.5;
 
-interface BrowseHistoryState {
-  readonly browse?: boolean;
-}
-
 function photoIdFromHash(hash: string): string | null {
   return hash.startsWith(PHOTO_HASH_PREFIX) ? hash.slice(PHOTO_HASH_PREFIX.length) : null;
 }
 
-function isBrowseState(state: unknown): state is BrowseHistoryState {
-  return (
-    typeof state === 'object' && state !== null && (state as BrowseHistoryState).browse === true
-  );
-}
-
 function init(): void {
   const root = document.querySelector<HTMLElement>('[data-browse]');
-  const grid = document.querySelector<HTMLElement>('[data-grid]');
-  if (root === null || grid === null) return;
+  if (root === null) return;
 
   const stack = root.querySelector<HTMLElement>('[data-browse-stack]');
-  const toggleButton = document.querySelector<HTMLButtonElement>('[data-view-toggle]');
   const position = root.querySelector<HTMLElement>('[data-browse-position]');
-  if (stack === null || toggleButton === null) return;
-
-  const defaultView = root.dataset['defaultView'] === 'grid' ? 'grid' : 'browse';
+  if (stack === null) return;
 
   const items = Array.from(stack.querySelectorAll<HTMLElement>('[data-photo-id]'));
   const ids = items.map((item) => item.dataset['photoId'] ?? '');
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let currentIndex = -1;
-  let lastTrigger: HTMLElement | null = null;
 
-  // Arrow functions, not declarations: TS only carries the `toggleButton`/`stack`
+  // Arrow functions, not declarations: TS only carries the `stack`
   // non-null narrowing above into closures it can prove run after that check,
   // which excludes hoisted function declarations.
-  const isOpen = (): boolean => document.body.classList.contains('is-browsing');
-
   const setEagerWindow = (index: number): void => {
     items.forEach((item, i) => {
       const img = item.querySelector('img');
@@ -76,141 +55,74 @@ function init(): void {
     currentIndex = index;
     setEagerWindow(index);
     updatePosition(index);
-    items[index]?.scrollIntoView({ behavior, block: 'start' });
+    items[index]?.scrollIntoView({ behavior, inline: 'start', block: 'nearest' });
   };
 
-  const show = (id: string, behavior: ScrollBehavior): void => {
-    const index = ids.indexOf(id);
-    if (index === -1) return;
-    document.body.classList.add('is-browsing');
-    focusItem(index, behavior);
-    toggleButton.focus();
-  };
-
-  const hide = (): void => {
-    document.body.classList.remove('is-browsing');
-    lastTrigger?.focus();
-    lastTrigger = null;
-  };
-
-  // No specific photo focused — the title panel at the top of the stack is
-  // whatever's on screen, same as any other scroll position, and the usual
-  // scroll-driven IntersectionObserver picks up currentIndex once the
-  // visitor scrolls into the sequence.
-  const showIntro = (): void => {
-    document.body.classList.add('is-browsing');
-  };
-
-  const syncFromHash = (behavior: ScrollBehavior): void => {
-    const id = photoIdFromHash(location.hash);
-    if (id !== null && ids.includes(id)) {
-      show(id, behavior);
-    } else if (location.hash === '#grid') {
-      hide();
-    } else if (location.hash === '#browse') {
-      showIntro();
-    } else if (defaultView === 'grid') {
-      hide();
-    } else {
-      showIntro();
-    }
-  };
-
-  const replaceHash = (id: string): void => {
-    history.replaceState(
-      { browse: true } satisfies BrowseHistoryState,
-      '',
-      `${PHOTO_HASH_PREFIX}${id}`,
-    );
-  };
-
-  const open = (id: string, trigger: HTMLElement | null): void => {
-    lastTrigger = trigger;
-    history.pushState(
-      { browse: true } satisfies BrowseHistoryState,
-      '',
-      `${PHOTO_HASH_PREFIX}${id}`,
-    );
-    show(id, 'instant');
-  };
-
-  // A reload or a link landing directly on #photo-<id> opens straight there,
-  // with no visible transition from the grid.
-  syncFromHash('instant');
-
-  grid.addEventListener('click', (event) => {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
-      return;
-    if (!(event.target instanceof Element)) return;
-    const link = event.target.closest('a.photo');
-    if (link === null) return;
-    const figure = event.target.closest<HTMLElement>('[data-photo-id]');
-    const id = figure?.dataset['photoId'];
+  // Each album loops on itself — forward from the last photo lands back on
+  // the first, backward from the first lands on the last — so neither the
+  // keyboard nor a click ever sweeps a visitor out to a whole different
+  // page by accident. The one deliberate way to actually leave for the next
+  // album is the outro panel below, reached by scrolling (or tabbing) to
+  // it, never by holding down an arrow key.
+  const advance = (fromIndex: number, forward: boolean): void => {
+    const targetIndex = (fromIndex + (forward ? 1 : -1) + items.length) % items.length;
+    const id = ids[targetIndex];
     if (id === undefined) return;
+    replaceHash(id);
+    focusItem(targetIndex, reduceMotion ? 'instant' : 'smooth');
+  };
 
-    event.preventDefault();
-    open(id, link instanceof HTMLElement ? link : null);
-  });
+  // The URL always names the current photo, but only ever by replacing —
+  // nothing here pushes a history entry any more, since there is no other
+  // page state (a grid, a title-only view) to come back to by pressing
+  // Back. Leaving the album entirely is a real navigation (the outro panel,
+  // browse-home), which the browser already handles on its own.
+  const replaceHash = (id: string): void => {
+    history.replaceState(null, '', `${PHOTO_HASH_PREFIX}${id}`);
+  };
 
-  toggleButton.addEventListener('click', () => {
-    if (!isOpen()) {
-      // Entering from the grid rather than a specific photo. On a
-      // browse-default page this returns to the default (no hash needed);
-      // on a grid-default page (Selected Work) browse is the non-default
-      // state, so it needs an explicit #browse marker or a reload would
-      // land back on the grid instead of where the visitor just was.
-      history.pushState(
-        null,
-        '',
-        defaultView === 'grid' ? '#browse' : location.pathname + location.search,
-      );
-      stack.scrollTo({ top: 0, behavior: 'instant' });
-      showIntro();
-      return;
-    }
-    // A specific photo was opened by a grid click, which pushed a history
-    // entry — going back lands exactly where that click happened (usually
-    // #grid). Landing directly in browse mode (the default, no entry pushed)
-    // has nothing to go back to, so opting out pushes #grid explicitly —
-    // unless grid is already this page's default, in which case clearing
-    // the hash does the same job.
-    if (isBrowseState(history.state)) {
-      history.back();
-    } else {
-      history.pushState(
-        null,
-        '',
-        defaultView === 'grid' ? location.pathname + location.search : '#grid',
-      );
-      hide();
-    }
-  });
-
-  window.addEventListener('popstate', () => {
-    syncFromHash('instant');
-  });
+  // A reload or a shared link landing directly on #photo-<id> opens
+  // straight there, with no visible transition from the opening panel.
+  const initialId = photoIdFromHash(location.hash);
+  if (initialId !== null && ids.includes(initialId)) {
+    focusItem(ids.indexOf(initialId), 'instant');
+  }
 
   window.addEventListener('keydown', (event) => {
-    if (!isOpen()) return;
-    if (event.key === 'Escape') {
-      toggleButton.click();
-      return;
-    }
-    const forward = event.key === 'ArrowDown' || event.key === 'PageDown' || event.key === 'j';
-    const backward = event.key === 'ArrowUp' || event.key === 'PageUp' || event.key === 'k';
+    const forward =
+      event.key === 'ArrowDown' ||
+      event.key === 'ArrowRight' ||
+      event.key === 'PageDown' ||
+      event.key === 'j';
+    const backward =
+      event.key === 'ArrowUp' ||
+      event.key === 'ArrowLeft' ||
+      event.key === 'PageUp' ||
+      event.key === 'k';
     if (!forward && !backward) return;
-    const nextIndex = currentIndex + (forward ? 1 : -1);
-    const id = ids[nextIndex];
-    if (id === undefined) return;
-
     event.preventDefault();
-    replaceHash(id);
-    focusItem(nextIndex, reduceMotion ? 'instant' : 'smooth');
+    advance(currentIndex, forward);
+  });
+
+  // The currently-open photo doubles as its own prev/next control: the left
+  // half advances backward, the right half forward — same destinations as
+  // the arrow keys, just reachable with a click. Decorative (aria-hidden),
+  // not a tab stop: the arrow keys already cover this for anyone not using
+  // a pointer, and two more focusable elements per photo would only add
+  // noise to keyboard/screen-reader navigation through a long album.
+  stack.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const nav = event.target.closest<HTMLElement>('[data-nav]');
+    if (nav === null) return;
+    const item = nav.closest<HTMLElement>('.browse-item');
+    if (item === null) return;
+    const index = items.indexOf(item);
+    if (index === -1) return;
+    advance(index, nav.dataset['nav'] === 'next');
   });
 
   const observer = new IntersectionObserver(
     (entries) => {
-      if (!isOpen()) return;
       let best: { index: number; ratio: number } | null = null;
       for (const entry of entries) {
         const index = items.indexOf(entry.target as HTMLElement);
@@ -225,32 +137,28 @@ function init(): void {
       const id = ids[currentIndex];
       if (id !== undefined) replaceHash(id);
     },
-    { root: stack, threshold: [0, 0.25, 0.5, 0.75, 1] },
+    { root, threshold: [0, 0.25, 0.5, 0.75, 1] },
   );
-  // Deferred a frame: observing immediately after `is-browsing` is added can
-  // fire against the pre-layout geometry (display:none's box, not the
-  // min-height:90vh title panel it's about to become), which was promoting
-  // photo 1 to "current" — and pushing #photo-<id> into the URL — before a
-  // single pixel had scrolled.
+  // Deferred a frame: observing immediately after the page's own early
+  // is-browsing script runs can fire against pre-layout geometry, which
+  // was promoting photo 1 to "current" — and pushing #photo-<id> into the
+  // URL — before a single pixel had scrolled.
   requestAnimationFrame(() => {
     items.forEach((item) => observer.observe(item));
   });
 
-  // On a narrow viewport the photo spans edge to edge, so the toggle and
-  // home link — legible over any image by design (mix-blend-mode) — end up
-  // sitting visibly on top of it rather than in the paper margin a wider
-  // screen still has. Below the CSS breakpoint, hide both while the stack
-  // is actually moving and bring them back a moment after it settles,
-  // rather than removing them outright: they still need to be reachable,
-  // just not fighting the photograph for attention mid-scroll. Desktop is
-  // untouched — the class only does anything under the matching @media
-  // rule in base.css.
-  const narrowScreen = window.matchMedia('(max-width: 39.99rem)');
+  // Every slide is edge to edge now, at every viewport width, so the home
+  // link — legible over any image by design (mix-blend-mode) — can end up
+  // straddling a photo and the paper showing in the snap gap between
+  // slides mid-scroll, which renders as a visible seam sliced through the
+  // text (see base.css). Hide it while the stack is actually moving and
+  // bring it back a moment after it settles, rather than removing it
+  // outright: it still needs to be reachable, just not painting that seam
+  // mid-scroll.
   let scrollHideTimer: ReturnType<typeof setTimeout> | undefined;
   root.addEventListener(
     'scroll',
     () => {
-      if (!narrowScreen.matches) return;
       document.body.classList.add('is-scrolling-browse');
       clearTimeout(scrollHideTimer);
       scrollHideTimer = setTimeout(() => {

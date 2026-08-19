@@ -52,16 +52,6 @@
   --accent: #7a2420;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #0d0c09;
-    --ink: #ece6d8;
-    --muted: #948a76;
-    --rule: #262219;
-    --accent: #dd8a7a;
-  }
-}
-
 *,
 *::before,
 *::after {
@@ -344,9 +334,6 @@ main {
   font-size: clamp(2.25rem, 1.1rem + 3.5vw, 3.5rem);
 }
 
-.archive-label {
-  margin: 2.5rem 0 0.75rem;
-}
 .archive-index {
   display: flex;
   flex-direction: column;
@@ -409,9 +396,11 @@ main {
 }
 
 /*
- * The grid is a contact sheet, not a gallery — an index to consult, not the
- * reading experience. Numbered by frame, uncaptioned: the photographs
- * themselves only get shown at full size in scroll mode.
+ * The grid is the no-JS fallback only — with JavaScript on, is-browsing
+ * hides it permanently and a visitor never sees it (see browse.ts). Kept
+ * exactly as it always rendered (real links, numbered by frame,
+ * uncaptioned) so a visitor without JavaScript, or search engine crawling
+ * the page, still gets a real way to reach every photograph.
  *
  * A shared column width, not a shared row height: a CSS grid holds every
  * column to the same width, so every row's outer edge lands on the same
@@ -478,6 +467,23 @@ main {
   text-align: right;
 }
 
+.next-album {
+  margin: 2.5rem 0 0;
+  text-align: right;
+  font-family: var(--serif);
+  font-variant-caps: small-caps;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+}
+.next-album a {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.next-album a:hover {
+  color: var(--accent);
+}
+
 figure {
   margin: 0;
 }
@@ -530,6 +536,7 @@ a:focus-visible,
 body.is-browsing .masthead,
 body.is-browsing .album-header,
 body.is-browsing .grid,
+body.is-browsing .next-album,
 body.is-browsing .site-footer,
 body.is-browsing .photography-nav {
   display: none;
@@ -544,60 +551,17 @@ body.is-browsing {
   inset: 0;
   z-index: 40;
   background: var(--paper);
-  overflow-y: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 body.is-browsing .browse {
   display: block;
 }
 
-/*
- * No bar, no position counter — a book doesn't tell you "page 12 of 37"
- * while you're reading it. One quiet mark, fixed in a corner, present but
- * not competing with the photograph on screen, doubles as the way in and
- * the way out: it sits outside .browse (not display:none'd with it) so it's
- * there in grid mode too, and which of its two labels shows is a pure CSS
- * read of body.is-browsing. mix-blend-mode keeps it legible against
- * whatever tone the current image happens to be, without a background chip
- * behind it.
- */
-.view-toggle {
-  position: fixed;
-  left: 1.5rem;
-  bottom: 1.5rem;
-  z-index: 41;
-  appearance: none;
-  background: none;
-  border: 0;
-  cursor: pointer;
-  font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 1rem;
-  letter-spacing: 0.02em;
-  color: #fff;
-  mix-blend-mode: difference;
-  opacity: 0.5;
-  padding: 0.5rem;
-  margin: -0.5rem;
-  transition: opacity 0.2s ease;
-}
-.view-toggle:hover,
-.view-toggle:focus-visible {
-  opacity: 1;
-}
-.view-toggle-index {
-  display: none;
-}
-body.is-browsing .view-toggle-index {
-  display: inline;
-}
-body.is-browsing .view-toggle-enter {
-  display: none;
-}
-
-/* The one way out of browse mode to somewhere other than this page's own
-   grid — hidden the rest of the time, since the masthead already covers
-   that job whenever it's visible. Same corner-anchored, blend-mode
-   treatment as .view-toggle, opposite corner so the two never collide. */
+/* The one way out of browse mode to somewhere other than this page — there
+   is no grid to fall back to any more, so this quiet corner mark (legible
+   over any photograph via mix-blend-mode, no background chip) is the whole
+   of browse mode's chrome besides the photographs themselves. */
 .browse-home {
   display: none;
   position: fixed;
@@ -624,56 +588,74 @@ body.is-browsing .browse-home {
   opacity: 1;
 }
 
-/* Below this width the photograph spans edge to edge, so these two quiet
-   fixed labels have no paper margin to sit in — they end up visibly on top
-   of the image instead. Fade them out while the stack is actually moving
-   (see browse.ts's scroll listener, which only adds this class under the
-   same breakpoint) and let them fade back in once it settles. Desktop never
-   gets body.is-scrolling-browse added, so this rule never fires there. */
-@media (max-width: 39.99rem) {
-  body.is-scrolling-browse .view-toggle,
-  body.is-scrolling-browse .browse-home {
-    opacity: 0;
-    pointer-events: none;
-  }
+/* Every slide is edge to edge now (the horizontal layout, unlike the old
+   vertical one, never gives this quiet fixed label a paper margin to sit
+   in at any viewport width) — mid-scroll, its fixed pixel position can sit
+   half over one photo and half over the paper showing in the snap gap
+   between slides, which mix-blend-mode renders as a visible seam sliced
+   through the text. Fading it out while the stack is actually moving (see
+   browse.ts's scroll listener) and back in once it settles avoids ever
+   painting that seam, at every screen size now rather than only below the
+   old mobile breakpoint. */
+body.is-scrolling-browse .browse-home {
+  opacity: 0;
+  pointer-events: none;
 }
 
+/*
+ * Every "page" in the stack — the opener, each photograph, the closer — is
+ * exactly one viewport wide and one viewport tall, laid out in a row
+ * instead of a column: this is a book read left to right one spread at a
+ * time, not a continuous vertical scroll any more. flex-shrink:0 keeps a
+ * slide from ever being squeezed narrower than the viewport just because
+ * its neighbours exist; mandatory snapping means a scroll or a swipe always
+ * settles exactly on one photograph, never half between two.
+ */
 .browse-stack {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5rem;
-  /* A small gutter, not a margin — the photograph is meant to nearly span
-     this, not sit inside it as a framed inset. */
-  padding: 2rem 1.5rem 12rem;
-  scroll-snap-type: y proximity;
+  flex-direction: row;
+  align-items: stretch;
+  height: 100%;
+  scroll-snap-type: x mandatory;
 }
-@media (min-width: 40rem) {
-  .browse-stack {
-    padding-inline: 2rem;
-  }
-}
-@media (min-width: 64rem) {
-  .browse-stack {
-    padding-inline: 2.5rem;
-  }
-}
-@media (min-width: 48rem) {
-  .browse-stack {
-    gap: 8rem;
-  }
-}
-.browse-intro {
-  position: relative;
-  min-height: 100vh;
-  min-height: 100dvh;
+.browse-intro,
+.browse-outro,
+.browse-item {
+  flex-shrink: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 2rem 1.5rem;
+  scroll-snap-align: start;
+}
+.browse-intro,
+.browse-outro {
+  position: relative;
   text-align: center;
   gap: 0.5rem;
-  scroll-snap-align: start;
+}
+/* The chapter closer is the one real link inside the browse stack — the
+   opener is purely informational, this is an invitation to keep reading.
+   A custom cursor is the one deliberately un-boring touch on the whole
+   site: a plain right chevron, the same gesture a slideshow's "next" edge
+   uses, telling a visitor this panel goes somewhere before they even
+   reach for the mouse. */
+.browse-outro {
+  color: inherit;
+  text-decoration: none;
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M15 10 L27 20 L15 30' fill='none' stroke='%2316130f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+      20 20,
+    pointer;
+}
+.browse-outro:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -4px;
 }
 /* A chapter opener's ghost numeral — the same photograph count already
    printed in words below it, just set enormous and nearly invisible, the
@@ -698,12 +680,20 @@ body.is-browsing .browse-home {
   pointer-events: none;
   user-select: none;
 }
-.browse-intro h2 {
+.browse-intro h2,
+.browse-outro h2 {
   font-size: clamp(2.5rem, 1rem + 9vw, 5.5rem);
   font-weight: 340;
   line-height: 1;
   letter-spacing: -0.03em;
   margin: 0;
+}
+.browse-outro h2 {
+  transition: color 0.2s ease;
+}
+.browse-outro:hover h2,
+.browse-outro:focus-visible h2 {
+  color: var(--accent);
 }
 .browse-intro-meta {
   margin: 0.5rem 0 0;
@@ -740,6 +730,16 @@ body.is-browsing .browse-home {
   font-size: 0.875rem;
   color: var(--muted);
   animation: browse-intro-cue-fade 3s ease-in-out infinite;
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+.browse-outro:hover .browse-intro-cue,
+.browse-outro:focus-visible .browse-intro-cue {
+  color: var(--accent);
+  transform: translateX(0.3rem);
+  animation-play-state: paused;
+  opacity: 0.75;
 }
 @keyframes browse-intro-cue-fade {
   0%,
@@ -757,46 +757,71 @@ body.is-browsing .browse-home {
   }
 }
 
-.browse-item {
-  margin: 0;
-  scroll-snap-align: start;
-  width: 100%;
-  /* Elegantly constrained by the site's own content width (matches .wrap),
-     not truly edge-to-edge — a ceiling for large screens, not a target. */
-  max-width: 76rem;
-}
-/* A held breath every few frames — pacing, not a metronome. */
-.browse-item:nth-of-type(5n) {
-  margin-top: 3rem;
-}
 .browse-item .photo {
   display: flex;
+  align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 .browse-item .photo img {
-  /* Width-driven, not height-driven: the photograph fills the gutter
-     instead of being boxed to a viewport-height fraction and floating in
-     whatever cream space that leaves on either side. No card, no frame —
-     just the image and the small gutter around it. */
-  width: 100%;
-  height: auto;
-  max-width: 100%;
-  margin: 0 auto;
-  background-size: contain;
-  background-position: center;
-}
-/* A portrait photograph filling the same width as a landscape one comes out
-   looming — 1.5x a landscape's height at the same column width, more for a
-   tall crop. Capped by height instead here, same as it would sit on a
-   spread in an actual photobook, and centered by the flex container above. */
-.browse-item .photo[data-orientation='portrait'] img {
+  /* Contained, not cropped, in either dimension — every photograph, portrait
+     or landscape, has to fit entirely within one slide's fixed box (the
+     viewport itself, minus the caption's own height) rather than being
+     boxed to whichever axis the old vertical layout favoured. */
   width: auto;
   height: auto;
   max-width: 100%;
-  max-height: 82vh;
-  max-height: 82dvh;
+  max-height: 100%;
+  background-size: contain;
+  background-position: center;
+}
+
+/* The photograph is its own prev/next control — the left half steps back,
+   the right half steps forward (browse.ts's advance(), wired to arrow keys
+   too). Each half fills exactly half of whatever the photo itself
+   occupies, portrait or landscape, so the hit target always matches what's
+   actually on screen rather than a fixed pixel band. The cursor alone is
+   the affordance — no visible button or chip drawn over the photograph,
+   same restraint as the rest of this photobook not decorating itself
+   unprompted. */
+.browse-item-frame {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.browse-item-nav {
+  position: absolute;
+  inset: 0;
+  width: 50%;
+}
+.browse-item-nav-prev {
+  left: 0;
+}
+.browse-item-nav-next {
+  right: 0;
+  left: auto;
+}
+@media (hover: hover) {
+  .browse-item-nav-prev {
+    cursor:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M25 10 L13 20 L25 30' fill='none' stroke='%2316130f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+        20 20,
+      pointer;
+  }
+  .browse-item-nav-next {
+    cursor:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M15 10 L27 20 L15 30' fill='none' stroke='%2316130f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+        20 20,
+      pointer;
+  }
 }
 .browse-item figcaption {
+  flex-shrink: 0;
   margin-top: 0.875rem;
   max-width: var(--measure);
   margin-inline: auto;
@@ -810,6 +835,7 @@ body.is-browsing .browse-home {
    stack both lines when a view has neither a single shared film stock nor
    any camera/location data omitted. */
 .browse-item-meta {
+  flex-shrink: 0;
   margin: 0.875rem 0 0;
   text-align: center;
   font-family: var(--serif);

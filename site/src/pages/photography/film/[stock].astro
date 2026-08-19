@@ -33,9 +33,7 @@ const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefi
   imageHeight={og?.imageHeight}
 >
   <script is:inline>
-    if (location.hash !== '#grid') {
-      document.body.classList.add('is-browsing');
-    }
+    document.body.classList.add('is-browsing');
   </script>
 
   <PhotographyNav current="archive" />

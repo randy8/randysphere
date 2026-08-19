@@ -938,3 +938,122 @@ itself" stops being the fast path.
 access to this one box stops being a reasonable model), or uptime
 requirements grow past what `Restart=on-failure` plus a same-day manual fix
 covers.
+
+---
+
+## 2026-08-18 — In-album navigation is circular; leaving for the next album is a separate, deliberate action
+
+**Decision.** `browse.ts`'s `advance()` wraps: forward past the last photo
+in a view returns to the first, backward past the first returns to the
+last. Both the arrow keys and the click zones on each photo (left half
+back, right half forward) call this same function — neither can carry a
+visitor out of the current tag's view.
+
+**What was tried and reverted.** The first version of this instead had the
+keyboard's forward key jump straight to the next album (reading a
+`data-next-href` off the browse root) once it ran out of photos in the
+current one — the same destination the outro panel offers, just reachable
+without scrolling. In practice this makes holding down or repeatedly
+pressing the forward key — a natural way to skim a sequence quickly —
+capable of leaving the page entirely with no visual warning beyond
+whatever photo was on screen when the key landed on the last one. A real
+footgun, and one that cuts against the site's own "read start to end,
+unhurried" framing (see CLAUDE.md) by turning the fastest input into the
+one most likely to misfire.
+
+**Why circular, not just "stop."** A hard stop (repeatedly do nothing past
+the last photo) was the safe alternative but reads as broken rather than
+intentional — nothing tells a visitor they've reached an edge. Wrapping
+communicates the edge was reached (the photo visibly changes) while
+keeping them inside the current album — and it matches the actual product
+intent behind this feature: a visitor should spend a little longer with
+each photograph, not get swept toward the exit by a key they were already
+holding down.
+
+**Why the chapter-closer panel is exempt.** It isn't reachable by holding a
+key — only by scrolling to it, tabbing to it, or clicking it, all
+inherently deliberate actions — so it stays the one sanctioned way out. Its
+href is a plain `/photography/<tag>/` link needing nothing from
+`browse.ts`'s navigation state, which is why removing `data-next-href`
+(dead once the keyboard stopped reading it) didn't touch it.
+
+**Why "next" is `allTags()`'s own alphabetical order.** `/photography/archive/`
+already lists every tag view in that order — reusing it means "next" always
+matches what a visitor would find by going back to the archive and picking
+the following entry, rather than a second, invisible ordering (e.g.
+chronological by EXIF date) that would disagree with the one order the site
+already shows.
+
+**Revisit if.** A future request specifically wants keyboard-driven
+album-to-album paging (e.g., a dedicated "next album" key distinct from the
+in-album forward key) — that could reuse the removed `data-next-href`
+approach without reintroducing the footgun, since a distinct key doesn't
+share the accidental-repeat problem forward/`j` does.
+
+---
+
+## 2026-08-18 — Grid is now the no-JS fallback only; Browse reads left to right, not top to bottom
+
+**Decision.** The Grid/Scroll toggle (`.view-toggle`, `#grid`/`#browse` URL
+states, `data-default-view`) is removed from every photography page that
+had one. With JavaScript on, a visitor always lands directly in Browse
+mode — there is no grid to opt into any more. The grid markup itself is
+untouched and still server-rendered on every page; it is simply always
+hidden the instant `is-browsing` is added, which each page's early inline
+script now does unconditionally instead of reading `location.hash` to
+decide. Separately, Browse mode's own layout changed axis: `.browse-stack`
+went from `flex-direction: column` (photos stacked, page scrolling down
+through them) to `flex-direction: row` with `scroll-snap-type: x mandatory`
+— each photo (and the opening/closing panels) is exactly one viewport wide
+and tall, and moving through an album is now a left-to-right sequence, not
+a vertical scroll.
+
+**Why the grid stays in the DOM at all.** Constraint 7 (`CLAUDE.md`) is
+unconditional: the site must work with JavaScript disabled. Browse mode's
+interactivity — arrow keys, click-to-advance, the intersection-observed
+position tracking — has no no-JS equivalent, so the grid's plain `<a>`
+links to full-size JPEGs remain the only way to view a photograph at all
+without a script running. This is the same relationship the grid always
+had to Browse mode; what changed is that a JS-enabled visitor now never
+sees it, where before it was one state of a toggle they could return to.
+
+**Why Selected Work lost its grid-first default too.** It was the one page
+that opened on the grid by design — "the point of a curated set is to be
+surveyed at a glance, not read start to end" (the same reasoning is still
+correct on its own terms). Removing the toggle site-wide meant no page
+could keep a grid-default behavior without reintroducing the thing being
+removed, so Selected Work now opens into Browse like every other page; the
+shuffle script that used to randomize both the grid and the browse stack's
+order now only shuffles the stack, since the grid is never seen by anyone
+who'd notice.
+
+**Why photo sizing became one rule instead of landscape/portrait split.**
+The old vertical layout let a landscape photo fill the available width
+(bounded only by the page's own max-width) and only capped a portrait
+photo's height, because the page itself had no fixed height to respect.
+A horizontal, one-screen-per-photo layout has a fixed box on both axes —
+exactly one viewport, minus whatever the caption underneath takes — so
+every photo, regardless of orientation, now has to fit inside that box
+without overflowing either dimension. `width: auto; height: auto;
+max-width: 100%; max-height: 100%;` (contain, not cover) replaced the old
+width-driven-landscape / height-capped-portrait split entirely, on a photo
+wrapper (`.browse-item-frame`) that flex-grows to fill whatever vertical
+space the caption doesn't take.
+
+**What this made dead, and was removed rather than left.** The grid
+density control (`GridDensityControl.astro`, `data-grid-density`,
+`photography-grid-density` in `localStorage`) governed the grid's column
+count — a size preference for something a JS-enabled visitor would never
+see again once the grid stopped being reachable. Rather than leave an
+unreachable control in the DOM (real markup, a real inline script, real
+CSS, controlling nothing anyone could see), it was deleted outright: the
+component file, its wiring in `browse.ts`, and its CSS. The grid itself
+reverted to the single fixed 2/3/4 column layout it had before that
+feature existed, and each page's `sizes` hint on its (now no-JS-only) grid
+images went back to the tighter values calibrated to that one layout.
+
+**Revisit if.** A future request wants the grid back as a real, reachable
+view (not just a no-JS fallback) — at that point the toggle, its URL
+state, and `defaultView` would need to come back in some form, and this
+decision's premise (a JS-enabled visitor never sees the grid) no longer
+holds.

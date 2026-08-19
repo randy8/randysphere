@@ -406,3 +406,45 @@ more is meant to be as low-friction as editing a text file, because that's
 exactly what it is: append an entry to `private/notes.yaml` and it shows up,
 newest first, filterable by All/Joys/Photos, with no code to touch and no
 UI to redesign.
+
+---
+
+## 2026-08-18 — Browse becomes the only reading experience, and it reads left to right
+
+Photography's Grid/Scroll toggle is gone. A JavaScript-enabled visitor now
+always opens straight into Browse mode — one photograph at a time — on
+every page that has one (tag views, film-stock views, Selected Work); there
+is nothing to toggle to any more. The grid survives only as the no-JS
+fallback (every thumbnail still a real link to its full-size JPEG,
+untouched), permanently hidden the moment `is-browsing` is added, which now
+happens unconditionally rather than being read off the URL hash.
+
+Browse mode itself changed shape to match: it was a continuous vertical
+scroll (every photo in the view stacked, one after another, down the page)
+and is now a horizontal, one-photograph-per-screen sequence — each photo,
+plus the opening and closing panels, is exactly one viewport wide and tall,
+scroll-snapped left to right like pages in a book rather than a scrolling
+feed. Every photo, portrait or landscape, is now contained (not cropped)
+within that fixed box, replacing the old width-driven landscape / height-
+capped portrait split with one rule for both. The photograph is its own
+prev/next control: its left half steps back, its right half steps forward,
+cursor changing to a plain chevron on hover as the only affordance (no
+visible button drawn over the image) — and the arrow keys (Left/Right now
+alias the existing Up/Down/j/k) do the same. That in-album navigation is
+deliberately circular: forward from the last photo returns to the first,
+backward from the first returns to the last, so neither a held-down key nor
+a stray click can sweep a visitor out to a different page by accident. See
+`docs/decisions.md` for why circular won over the alternative tried first.
+
+The one deliberate way out to what's next is a "chapter closer" panel,
+reached only by scrolling (or tabbing) past an album's last photo — the
+same numeral/eyebrow/title register as the opening panel, mirrored, naming
+and linking to the next tag in the archive's own listed order (the same
+alphabetical order `allTags()` already produces for
+`/photography/archive/`, reused rather than inventing a second one). A
+matching plain-link version sits under the no-JS grid.
+
+Also: dark mode is gone. `--paper`/`--ink`/etc. no longer respond to
+`prefers-color-scheme`, and the page's `theme-color` meta tag is a single
+value. The site runs on its warm, uncoated-paper palette all the time now,
+by request — one considered look instead of two.
