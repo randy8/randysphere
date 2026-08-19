@@ -474,3 +474,30 @@ to one genre first and asking for a pick compose naturally. Both are
 progressive enhancement over the same static poster wall: without
 JavaScript every film stays visible and the controls simply do nothing,
 same as the pre-existing year-jump select already worked.
+
+---
+
+## 2026-08-19 — Retuned srcset width tiers for the full-size browse view
+
+`pipeline.config.ts`'s `widths` moved from `[400, 800, 1200, 1600, 2000,
+2400, 3200, 3840]` to `[640, 960, 1280, 1920, 2560]`, and the JPEG
+fallback's top tier from 3840 to 2560 to match. The photography pipeline's
+srcset/sizes machinery, quality settings (AVIF 82, WebP 90, JPEG 90), and
+the "never serve the archival original, only ever the largest configured
+derivative" boundary were all already exactly this brief — this tuned the
+one real gap, a specific tier list requested for the grid (640, 960, 1280, 1920) and the full-size browse view (2560), landing well into Retina
+territory for any real desktop viewport without publishing a
+near-original-resolution file for every photograph. All 289 photographs
+were re-encoded (`pnpm ingest`) and republished locally; the old 400–3840
+tier derivatives are simply unreferenced by the new manifests now, not
+deleted — `generated/derivatives/`'s cache and the published storage both
+follow this project's existing "never delete, only stop referencing"
+model, so `pnpm doctor` lists them as safe-to-remove cache rather than
+anything being cleaned up automatically.
+
+Also fixed in the same pass: browse.ts's arrow-key handler didn't check
+for modifier keys, so Cmd+Left (browser history back on Mac) was being
+swallowed as an in-page "previous photo" command on any page with Browse
+mode — a visitor could open a film-stock page from a photo's credit line
+and then have no keyboard way back out. It now ignores any keydown with
+Cmd, Ctrl, or Alt held.
