@@ -448,3 +448,29 @@ Also: dark mode is gone. `--paper`/`--ink`/etc. no longer respond to
 `prefers-color-scheme`, and the page's `theme-color` meta tag is a single
 value. The site runs on its warm, uncoated-paper palette all the time now,
 by request — one considered look instead of two.
+
+---
+
+## 2026-08-18 — Films get a genre filter and a "Random film" button
+
+`films/tmdb.json` now carries each film's TMDB genres alongside the poster,
+overview, runtime, and director it already cached — `tools/films/fetch-posters.ts`
+asks for them in the same details call it was already making, no new
+request. Backfilling all 773 existing entries via `--regenerate` was made
+safe by a small change to that flag's own behaviour: refreshing a film
+that's already matched now re-fetches its known TMDB id directly instead of
+re-running the title/year search, since search is a heuristic (see its own
+comment) and re-running it for every film risked landing a few of them on a
+different match than before for no reason other than adding a field. The
+backfill confirmed this — all 773 films kept the exact match they had.
+
+The films page gets two small, quiet additions to the fixed corner panel
+that already held the year-jump control (now `.film-controls`, holding all
+three): a genre `<select>` that hides non-matching cards (and any year
+section left empty by the filter) client-side, and a "Random film" button
+that scrolls to — and briefly rings in the site's accent colour — a random
+pick among whatever the genre filter currently leaves visible, so narrowing
+to one genre first and asking for a pick compose naturally. Both are
+progressive enhancement over the same static poster wall: without
+JavaScript every film stays visible and the controls simply do nothing,
+same as the pre-existing year-jump select already worked.

@@ -103,6 +103,7 @@ function film(overrides: Partial<Film>): Film {
     overview: null,
     runtimeMinutes: null,
     director: null,
+    genres: [],
     posterFocal: null,
     ...overrides,
   };
