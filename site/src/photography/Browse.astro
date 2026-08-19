@@ -6,32 +6,27 @@ import type { View } from './archive.ts';
 
 interface Props {
   view: View;
-  /** Which state a hash-less visit lands on. Every page but Selected Work wants 'browse' — the site-wide default. */
-  defaultView?: 'browse' | 'grid';
+  /**
+   * The next view in the archive's own listed order (see allTags in
+   * archive.ts, the same order /photography/archive/ shows) — null for the
+   * last one, and null on views that aren't part of that sequence (Selected
+   * Work, film stock). Reaching the last photo becomes a real chapter
+   * break into this view rather than a dead end. See CHANGELOG.md.
+   */
+  next?: { tag: string; title: string; date: string | null; count: number } | null;
 }
 
-const { view, defaultView = 'browse' } = Astro.props;
+const { view, next = null } = Astro.props;
 ---
 
-<button type="button" class="view-toggle" data-view-toggle>
-  {
-    /* Which label shows is driven by body.is-browsing in CSS, not JS — the
-       inline script in each page that sets that class runs before paint, so
-       the button is never wrong for a single frame. */
-  }
-  <span class="view-toggle-index">Grid</span>
-  <span class="view-toggle-enter">Scroll</span>
-</button>
 {
   /* Browse mode has no masthead, no nav — deliberately, it's meant to be
-     read start to end without chrome competing with the photograph. But
-     that leaves no way out except toggling back to the grid first, which
-     reads as a dead end deep in a long sequence. One quiet link home,
-     same corner-anchored, blend-mode-legible treatment as the toggle, so
-     leaving for a different page is always one click, not two. */
+     read start to end without chrome competing with the photograph. There
+     is no grid to fall back to any more either, so this one quiet link
+     home is the entire chrome browse mode has. */
 }
 <a class="browse-home" href="/" aria-label={`${site.title} — Home`}>{site.title}</a>
-<div class="browse" data-browse data-default-view={defaultView} role="region" aria-label="Photo browser">
+<div class="browse" data-browse role="region" aria-label="Photo browser">
   <div class="browse-stack" data-browse-stack>
     <div class="browse-intro">
       <p class="browse-intro-count" aria-hidden="true">{String(view.photos.length).padStart(2, '0')}</p>
@@ -49,12 +44,16 @@ const { view, defaultView = 'browse' } = Astro.props;
           {view.photos.length} photograph{view.photos.length === 1 ? '' : 's'}
         </span>
       </p>
-      <p class="browse-intro-cue" aria-hidden="true">↓</p>
+      <p class="browse-intro-cue" aria-hidden="true">→</p>
     </div>
     {
       view.photos.map((entry, index) => (
         <figure class="browse-item" id={`photo-${entry.photo.sourceId}`} data-photo-id={entry.photo.sourceId}>
-          <Photo entry={entry} sizes="100vw" linked={false} priority={index === 0} />
+          <div class="browse-item-frame">
+            <Photo entry={entry} sizes="100vw" linked={false} priority={index === 0} />
+            <span class="browse-item-nav browse-item-nav-prev" data-nav="prev" aria-hidden="true" />
+            <span class="browse-item-nav browse-item-nav-next" data-nav="next" aria-hidden="true" />
+          </div>
           {
             // The intro panel's film stock is a single value for the whole
             // view, which only means something when every photo shares one
@@ -74,6 +73,31 @@ const { view, defaultView = 'browse' } = Astro.props;
           {formatCameraLine(entry) && <p class="browse-item-meta">{formatCameraLine(entry)}</p>}
         </figure>
       ))
+    }
+    {
+      /* The chapter closer mirrors the opener above — same numeral/eyebrow/
+         title register — but as one real link, not a dead end at the last
+         photograph. Every other way of moving through this album (arrow
+         keys, the click zones on each photo) loops back on itself rather
+         than ever leaving for a new page — see browse.ts's advance() — so
+         this panel, reached only by scrolling (or tabbing) past the last
+         photo, is the one deliberate way out to what's next. */
+      next && (
+        <a class="browse-outro" href={`/photography/${next.tag}/`} data-browse-outro>
+          <p class="browse-intro-count" aria-hidden="true">
+            {String(next.count).padStart(2, '0')}
+          </p>
+          <p class="eyebrow">Next</p>
+          <h2>{next.title}</h2>
+          <p class="browse-intro-meta">
+            {next.date && <span>{next.date}</span>}
+            <span>
+              {next.count} photograph{next.count === 1 ? '' : 's'}
+            </span>
+          </p>
+          <p class="browse-intro-cue" aria-hidden="true">→</p>
+        </a>
+      )
     }
   </div>
 </div>

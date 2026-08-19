@@ -27,19 +27,12 @@ const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefi
   imageHeight={og?.imageHeight}
 >
   {
-    /*
-      Selected Work opens on the grid, not the scroll — the opposite
-      default from every other photography page (see browse.ts) — since
-      the point of a curated set is to be surveyed at a glance, not read
-      start to end. Browse mode still opens instantly, with no flash of
-      the grid first, for a direct link to a specific photo (#photo-<id>)
-      or an explicit #browse.
-    */
+    /* Same as every other photography page now: browse mode opens
+       immediately, before the rest of the page paints, so there's no flash
+       of the grid first. The grid below is the no-JS fallback only. */
     photos.length > 0 && (
       <script is:inline>
-        if (location.hash.startsWith('#photo-') || location.hash === '#browse') {
-          document.body.classList.add('is-browsing');
-        }
+        document.body.classList.add('is-browsing');
       </script>
     )
   }
@@ -73,43 +66,37 @@ const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefi
           ))}
         </div>
 
-        <Browse view={view} defaultView="grid" />
+        <Browse view={view} />
 
         {
           /*
             featuredOrder (see archive.ts's selectedWork()) is still the
             real editorial sequence — the one thing that renders before any
-            script runs, and the no-JS fallback. This just reshuffles the
-            grid and the scroll sequence into a fresh random order on top of
-            it, once per page load, so the page doesn't show the same fixed
-            lineup every time you look. Both lists are shuffled with the
-            same permutation (matched by data-photo-id) so a photo sits in
-            the same position in the grid as it does in scroll order. Runs
-            as a synchronous inline script, before browse.ts's own
-            deferred module script below, so browse.ts's init() only ever
-            sees the already-shuffled DOM — never re-syncs on its own, so a
-            reload reshuffles again, which is the point.
+            script runs, and the no-JS fallback (the grid above keeps that
+            fixed order; nothing reshuffles it, since JS never shows it).
+            This reshuffles only the browse sequence into a fresh random
+            order on top of it, once per page load, so scrolling through
+            Selected Work doesn't show the same fixed lineup every time you
+            look. Runs as a synchronous inline script, before browse.ts's
+            own deferred module script below, so browse.ts's init() only
+            ever sees the already-shuffled DOM — never re-syncs on its own,
+            so a reload reshuffles again, which is the point.
           */
         }
         <script is:inline>
           {
-            const grid = document.querySelector('[data-grid]');
             const stack = document.querySelector('[data-browse-stack]');
-            if (grid && stack) {
-              const ids = Array.from(grid.children).map((el) => el.dataset.photoId);
+            if (stack) {
+              const items = Array.from(stack.querySelectorAll('[data-photo-id]'));
+              const ids = items.map((el) => el.dataset.photoId);
               for (let i = ids.length - 1; i > 0; i -= 1) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [ids[i], ids[j]] = [ids[j], ids[i]];
               }
-              const gridById = new Map(Array.from(grid.children).map((el) => [el.dataset.photoId, el]));
-              const stackById = new Map(
-                Array.from(stack.querySelectorAll('[data-photo-id]')).map((el) => [el.dataset.photoId, el]),
-              );
+              const byId = new Map(items.map((el) => [el.dataset.photoId, el]));
               for (const id of ids) {
-                const gridEl = gridById.get(id);
-                const stackEl = stackById.get(id);
-                if (gridEl) grid.appendChild(gridEl);
-                if (stackEl) stack.appendChild(stackEl);
+                const el = byId.get(id);
+                if (el) stack.appendChild(el);
               }
             }
           }

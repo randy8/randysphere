@@ -10,34 +10,50 @@ import { photography } from '../../photography/config.ts';
 
 export function getStaticPaths() {
   const archive = loadArchive();
-  return allTags(archive).map((tag) => ({ params: { tag }, props: { view: viewForTag(archive, tag) } }));
+  const tags = allTags(archive);
+  // Same order /photography/archive/ lists albums in (allTags is
+  // alphabetical) — "next" reuses the sequence a visitor already sees
+  // there rather than inventing a second ordering. The last tag gets no
+  // next view, same as a book's last chapter.
+  return tags.map((tag, index) => {
+    const nextTag = tags[index + 1];
+    return {
+      params: { tag },
+      props: {
+        view: viewForTag(archive, tag),
+        nextView: nextTag !== undefined ? viewForTag(archive, nextTag) : null,
+      },
+    };
+  });
 }
 
 interface Props {
   view: View;
+  nextView: View | null;
 }
 
-const { view } = Astro.props;
+const { view, nextView } = Astro.props;
 const hero = view.photos[0]?.photo;
 const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefined;
+const next = nextView
+  ? { tag: nextView.tag, title: nextView.title, date: nextView.date, count: nextView.photos.length }
+  : null;
 ---
 
 <Base title={view.title} description={view.title} image={og?.image} imageWidth={og?.imageWidth} imageHeight={og?.imageHeight}>
   {
     /*
-      Scroll (the continuous-sequence photobook view) is the default reading
-      experience, not an alternative layout — this runs before the rest of
-      the page paints so there's no flash of the grid first. The grid is the
-      explicit opt-out (#grid) and the no-JS fallback: without this script
-      running at all, is-browsing never gets added and the plain grid of
-      real links is what renders. `document.body` already exists here
-      regardless of where in the body this tag sits.
+      Browse (one photograph at a time, left to right) is the only reading
+      experience with JavaScript on — this runs before the rest of the page
+      paints so there's no flash of the grid first. The grid below is the
+      no-JS fallback only: without this script running at all, is-browsing
+      never gets added and the plain grid of real links is what renders.
+      `document.body` already exists here regardless of where in the body
+      this tag sits.
     */
   }
   <script is:inline>
-    if (location.hash !== '#grid') {
-      document.body.classList.add('is-browsing');
-    }
+    document.body.classList.add('is-browsing');
   </script>
 
   <PhotographyNav current="archive" />
@@ -71,7 +87,18 @@ const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefi
     }
   </div>
 
-  <Browse view={view} />
+  {
+    /* The no-JS/grid-mode counterpart to Browse.astro's outro panel — same
+       destination, plain-link register, always visible rather than reached
+       by scrolling to the end of a reading view that doesn't exist here. */
+    next && (
+      <p class="next-album">
+        <a href={`/photography/${next.tag}/`}>Next: {next.title} →</a>
+      </p>
+    )
+  }
+
+  <Browse view={view} next={next} />
 
   <script>
     import '../../photography/browse.ts';
