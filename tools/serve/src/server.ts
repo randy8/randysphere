@@ -9,6 +9,7 @@ import { clearSessionCookie, readSessionCookie, setSessionCookie } from './cooki
 import { loadNotes } from './notes.ts';
 import { renderArchive, renderGate } from './pages.ts';
 import { createSessionToken, passwordMatches, verifySessionToken } from './session.ts';
+import { findSharePreview } from './share-preview.ts';
 
 export interface ServeConfig {
   /** site/dist — the public, prebuilt static site. Never contains anything under private/. */
@@ -17,6 +18,10 @@ export interface ServeConfig {
   readonly privatePhotosDir: string;
   readonly password: string;
   readonly sessionSecret: string;
+  /** generated/albums — read to resolve a shared link's ?s= into a real photograph's OG crop. */
+  readonly generatedAlbumsDir: string;
+  /** Matches astro.config.mjs's `site` — used to build absolute og:image URLs. */
+  readonly siteOrigin: string;
 }
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
@@ -127,6 +132,40 @@ async function sendNotFoundPage(res: ServerResponse, distDir: string): Promise<v
   sendHtml(res, 404, body);
 }
 
+/**
+ * Rewrites just the `og:image` (plus `og:image:width`/`og:image:height`,
+ * not present by default since this page passes no `image` prop to
+ * `<Base>`) and description tags baked into the static
+ * `/photography/share/` build, so a link-preview bot — which fetches the
+ * URL and reads whatever's in the raw HTML without ever running
+ * JavaScript — sees the actual first shared photograph rather than the
+ * site-wide default. Exact-string replacement against Base.astro's own
+ * known, fixed output, not a general HTML parse: this is our own
+ * generated markup, so every string being matched is known in advance.
+ */
+function rewriteSharePreview(
+  html: string,
+  config: ServeConfig,
+  preview: { imagePath: string; width: number; height: number; count: number },
+): string {
+  const defaultImage = `${config.siteOrigin}/og-default.png`;
+  const previewImage = `${config.siteOrigin}${preview.imagePath}`;
+  const description = `A shared selection of ${preview.count.toString()} photograph${preview.count === 1 ? '' : 's'}.`;
+
+  let rewritten = html
+    .replaceAll(defaultImage, previewImage)
+    .replaceAll('A shared selection of photographs.', description);
+
+  const imageTag = `<meta property="og:image" content="${previewImage}">`;
+  if (rewritten.includes(imageTag)) {
+    const dimensionTags =
+      `<meta property="og:image:width" content="${preview.width.toString()}">` +
+      `<meta property="og:image:height" content="${preview.height.toString()}">`;
+    rewritten = rewritten.replace(imageTag, `${imageTag}${dimensionTags}`);
+  }
+  return rewritten;
+}
+
 function isAuthenticated(config: ServeConfig, req: IncomingMessage): boolean {
   const token = readSessionCookie(req.headers.cookie);
   return verifySessionToken(config.sessionSecret, token);
@@ -187,6 +226,28 @@ async function route(
       return;
     }
     await sendFile(res, join(config.privatePhotosDir, file));
+    return;
+  }
+
+  // A shared album link's real content lives in ?s=, which the static
+  // build can't know at pnpm-build time — this is the one route where the
+  // static HTML gets a per-request touch-up (its og:image alone) before
+  // being served, so a link-preview bot (which never runs the client-side
+  // decode in share-view.ts) sees an actual shared photograph.
+  if (pathname === '/photography/share/' && (method === 'GET' || method === 'HEAD')) {
+    let html: string;
+    try {
+      html = await readFile(join(config.distDir, 'photography', 'share', 'index.html'), 'utf8');
+    } catch {
+      await sendNotFoundPage(res, config.distDir);
+      return;
+    }
+    const encoded = new URL(req.url ?? '/', 'http://localhost').searchParams.get('s');
+    if (encoded !== null) {
+      const preview = await findSharePreview(config.generatedAlbumsDir, encoded);
+      if (preview !== null) html = rewriteSharePreview(html, config, preview);
+    }
+    sendHtml(res, 200, html);
     return;
   }
 
