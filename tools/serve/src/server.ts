@@ -9,7 +9,8 @@ import { clearSessionCookie, readSessionCookie, setSessionCookie } from './cooki
 import { loadNotes } from './notes.ts';
 import { renderArchive, renderGate } from './pages.ts';
 import { createSessionToken, passwordMatches, verifySessionToken } from './session.ts';
-import { findSharePreview } from './share-preview.ts';
+import type { PhotoPreview } from './share-preview.ts';
+import { findPhotoPreview, findSharePreview } from './share-preview.ts';
 
 export interface ServeConfig {
   /** site/dist — the public, prebuilt static site. Never contains anything under private/. */
@@ -133,37 +134,43 @@ async function sendNotFoundPage(res: ServerResponse, distDir: string): Promise<v
 }
 
 /**
- * Rewrites just the `og:image` (plus `og:image:width`/`og:image:height`,
- * not present by default since this page passes no `image` prop to
- * `<Base>`) and description tags baked into the static
- * `/photography/share/` build, so a link-preview bot — which fetches the
- * URL and reads whatever's in the raw HTML without ever running
- * JavaScript — sees the actual first shared photograph rather than the
- * site-wide default. Exact-string replacement against Base.astro's own
- * known, fixed output, not a general HTML parse: this is our own
- * generated markup, so every string being matched is known in advance.
+ * Rewrites `og:image` (plus `og:image:width`/`og:image:height`) to a
+ * specific photograph — a link-preview bot fetches a URL and reads
+ * whatever's in the raw HTML without ever running JavaScript, so no
+ * client-side script can do this. Regex-replaces the *content* of
+ * whichever `<meta property="og:image">` tag is already there, whatever
+ * it currently points at (the site default on /photography/share/, but a
+ * page-specific cover photo on a tag/film-stock/Selected-Work page — see
+ * each of those pages' own `image` prop to `<Base>`) rather than matching
+ * one known default string, so this works uniformly across every page
+ * Browse ever appears on. Width/height are replaced if already present,
+ * inserted right after the image tag if not (only /saved//share/ lack
+ * them, since neither passes an `image` prop of their own). Returns the
+ * input unchanged if no `og:image` tag is found at all.
  */
-function rewriteSharePreview(
-  html: string,
-  config: ServeConfig,
-  preview: { imagePath: string; width: number; height: number; count: number },
-): string {
-  const defaultImage = `${config.siteOrigin}/og-default.png`;
+function rewriteOgImage(html: string, config: ServeConfig, preview: PhotoPreview): string {
+  const imagePattern = /<meta property="og:image" content="[^"]*">/;
+  if (!imagePattern.test(html)) return html;
   const previewImage = `${config.siteOrigin}${preview.imagePath}`;
-  const description = `A shared selection of ${preview.count.toString()} photograph${preview.count === 1 ? '' : 's'}.`;
+  return html
+    .replace(/<meta property="og:image:width" content="[^"]*">/, '')
+    .replace(/<meta property="og:image:height" content="[^"]*">/, '')
+    .replace(
+      imagePattern,
+      `<meta property="og:image" content="${previewImage}">` +
+        `<meta property="og:image:width" content="${preview.width.toString()}">` +
+        `<meta property="og:image:height" content="${preview.height.toString()}">`,
+    );
+}
 
-  let rewritten = html
-    .replaceAll(defaultImage, previewImage)
-    .replaceAll('A shared selection of photographs.', description);
-
-  const imageTag = `<meta property="og:image" content="${previewImage}">`;
-  if (rewritten.includes(imageTag)) {
-    const dimensionTags =
-      `<meta property="og:image:width" content="${preview.width.toString()}">` +
-      `<meta property="og:image:height" content="${preview.height.toString()}">`;
-    rewritten = rewritten.replace(imageTag, `${imageTag}${dimensionTags}`);
-  }
-  return rewritten;
+/** Replaces both description tags' content — only used for /photography/share/'s own count-based text, which has no better page-specific default to preserve (unlike a tag/film-stock page's description, left untouched). */
+function rewriteDescription(html: string, description: string): string {
+  return html
+    .replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${description}">`)
+    .replace(
+      /<meta property="og:description" content="[^"]*">/,
+      `<meta property="og:description" content="${description}">`,
+    );
 }
 
 function isAuthenticated(config: ServeConfig, req: IncomingMessage): boolean {
@@ -229,28 +236,6 @@ async function route(
     return;
   }
 
-  // A shared album link's real content lives in ?s=, which the static
-  // build can't know at pnpm-build time — this is the one route where the
-  // static HTML gets a per-request touch-up (its og:image alone) before
-  // being served, so a link-preview bot (which never runs the client-side
-  // decode in share-view.ts) sees an actual shared photograph.
-  if (pathname === '/photography/share/' && (method === 'GET' || method === 'HEAD')) {
-    let html: string;
-    try {
-      html = await readFile(join(config.distDir, 'photography', 'share', 'index.html'), 'utf8');
-    } catch {
-      await sendNotFoundPage(res, config.distDir);
-      return;
-    }
-    const encoded = new URL(req.url ?? '/', 'http://localhost').searchParams.get('s');
-    if (encoded !== null) {
-      const preview = await findSharePreview(config.generatedAlbumsDir, encoded);
-      if (preview !== null) html = rewriteSharePreview(html, config, preview);
-    }
-    sendHtml(res, 200, html);
-    return;
-  }
-
   // Everything else: the public, prebuilt static site (`pnpm build` must
   // have run first — this process never runs Astro itself).
   if (method === 'GET' || method === 'HEAD') {
@@ -261,6 +246,38 @@ async function route(
       sendText(res, 400, 'Bad request');
       return;
     }
+
+    // A visitor's own copied address-bar URL (?photo=<id>, set by
+    // browse.ts's replaceHash alongside the #photo-<id> hash it's always
+    // kept) or a generated share link (?s=..., /photography/share/ only)
+    // each name real content a link-preview bot can never decode itself —
+    // this is the one place either gets reflected into the static HTML,
+    // per request, before it's served.
+    const query = new URL(req.url ?? '/', 'http://localhost').searchParams;
+    const photoId = query.get('photo');
+    const sharedIds = pathname === '/photography/share/' ? query.get('s') : null;
+    if (relativeWithoutSlash.endsWith('.html') && (photoId !== null || sharedIds !== null)) {
+      let html: string;
+      try {
+        html = await readFile(join(config.distDir, relativeWithoutSlash), 'utf8');
+      } catch {
+        await sendNotFoundPage(res, config.distDir);
+        return;
+      }
+      if (photoId !== null) {
+        const preview = await findPhotoPreview(config.generatedAlbumsDir, photoId);
+        if (preview !== null) html = rewriteOgImage(html, config, preview);
+      } else if (sharedIds !== null) {
+        const preview = await findSharePreview(config.generatedAlbumsDir, sharedIds);
+        if (preview !== null) {
+          const description = `A shared selection of ${preview.count.toString()} photograph${preview.count === 1 ? '' : 's'}.`;
+          html = rewriteDescription(rewriteOgImage(html, config, preview), description);
+        }
+      }
+      sendHtml(res, 200, html);
+      return;
+    }
+
     await sendFile(
       res,
       join(config.distDir, relativeWithoutSlash),

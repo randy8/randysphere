@@ -127,8 +127,20 @@ function init(): void {
   // page state (a grid, a title-only view) to come back to by pressing
   // Back. Leaving the album entirely is a real navigation (the outro panel,
   // browse-home), which the browser already handles on its own.
+  //
+  // Sets ?photo=<id> alongside the #photo-<id> hash, not just the hash —
+  // this is what lets a visitor's plain copied address-bar URL preview the
+  // exact photo they were looking at when they send it. A link-preview
+  // bot (iMessage, Slack, …) fetches a URL and reads whatever's in the raw
+  // HTML without ever running JavaScript, so the hash — never sent to a
+  // server at all — is invisible to it; a query string isn't. Built from
+  // the current URL and only ever setting the one `photo` key, so it never
+  // clobbers another param already there (the share page's own `?s=`).
   const replaceHash = (id: string): void => {
-    history.replaceState(null, '', `${PHOTO_HASH_PREFIX}${id}`);
+    const url = new URL(location.href);
+    url.searchParams.set('photo', id);
+    url.hash = `${PHOTO_HASH_PREFIX}${id}`;
+    history.replaceState(null, '', url);
   };
 
   // A reload or a shared link landing directly on #photo-<id> opens

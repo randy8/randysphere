@@ -94,12 +94,32 @@ async function readPhotosById(albumsDir: string): Promise<Map<string, ManifestPh
   return byId;
 }
 
-export interface SharePreview {
+export interface PhotoPreview {
   readonly imagePath: string;
   readonly width: number;
   readonly height: number;
+}
+
+export interface SharePreview extends PhotoPreview {
   /** How many of the decoded ids actually resolved to a real photograph. */
   readonly count: number;
+}
+
+function previewOf(photo: ManifestPhoto): PhotoPreview {
+  return { imagePath: `/${photo.og.key}`, width: photo.og.width, height: photo.og.height };
+}
+
+/**
+ * A single `sourceId` — as named by a Browse page's own `?photo=` query
+ * param (browse.ts's replaceHash sets it alongside the #photo-<id> hash
+ * it's always kept, specifically so a copied address-bar URL survives a
+ * link-preview bot, which never sees the hash at all) — resolved to its
+ * own OG crop. null if the id doesn't match any current photograph.
+ */
+export async function findPhotoPreview(albumsDir: string, id: string): Promise<PhotoPreview | null> {
+  const byId = await readPhotosById(albumsDir);
+  const photo = byId.get(id);
+  return photo === undefined ? null : previewOf(photo);
 }
 
 /**
@@ -126,5 +146,5 @@ export async function findSharePreview(
     if (first === null) first = photo;
   }
   if (first === null) return null;
-  return { imagePath: `/${first.og.key}`, width: first.og.width, height: first.og.height, count };
+  return { ...previewOf(first), count };
 }

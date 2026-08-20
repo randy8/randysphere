@@ -1,4 +1,5 @@
 ---
+import type { Variant } from './manifest.ts';
 import { photography } from './config.ts';
 import { assetUrl, largest, smallest, srcset, variantsOf } from './image.ts';
 import type { ArchivePhoto } from './archive.ts';
@@ -14,15 +15,31 @@ interface Props {
    * has already provided a link, because nested anchors are invalid HTML.
    */
   linked?: boolean;
+  /**
+   * Drop any variant wider than this from every format's srcset — for a
+   * caller that already knows this photo will only ever render as a small
+   * grid tile (never full-bleed), the largest configured tiers are pure
+   * unused markup weight, not a real quality option `sizes` would ever
+   * actually pick. Unset (the default) keeps every configured width, which
+   * every full-size/Browse usage still needs. Never drops a format down to
+   * zero variants — falls back to the single smallest one it has.
+   */
+  maxWidth?: number;
 }
 
-const { entry, sizes, priority = false, linked = true } = Astro.props;
+const { entry, sizes, priority = false, linked = true, maxWidth } = Astro.props;
 const { photo, alt } = entry;
 const base = photography.imageBaseUrl;
 
-const avif = variantsOf(photo, 'avif');
-const webp = variantsOf(photo, 'webp');
-const jpeg = variantsOf(photo, 'jpeg');
+function capped(variants: readonly Variant[]): readonly Variant[] {
+  if (maxWidth === undefined) return variants;
+  const kept = variants.filter((variant) => variant.width <= maxWidth);
+  return kept.length > 0 ? kept : variants.slice(0, 1);
+}
+
+const avif = capped(variantsOf(photo, 'avif'));
+const webp = capped(variantsOf(photo, 'webp'));
+const jpeg = capped(variantsOf(photo, 'jpeg'));
 
 const fallback = smallest(photo, 'jpeg') ?? photo.variants[0];
 const full = largest(photo, 'jpeg') ?? fallback;
