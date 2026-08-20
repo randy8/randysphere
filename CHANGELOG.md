@@ -530,3 +530,73 @@ stack's first child is simply the first photograph, and arriving there is
 the same "no `#photo-<id>` hash" default every other page already has, not
 a special case. A visitor now lands on a photograph immediately, in a
 fresh shuffle each visit, the moment they click in.
+
+---
+
+## 2026-08-20 — Browse mode's navigation, tuned from actually using it
+
+Three changes to how a visitor moves through a photograph, each landed
+after finding the previous behavior didn't hold up in practice. Wheel and
+touch-drag scrolling no longer move the stack at all — only a click (the
+photograph's own edge zones) or an arrow key does; scroll gestures used to
+advance past a threshold, but any threshold reads as unpredictable next to
+a deliberate click, and free-scrolling let two photographs sit partially
+visible at once mid-drag, which this reading mode is built specifically
+not to show. Every jump between photographs is now instant rather than
+smooth-scrolled for the same reason — a smooth slide necessarily paints
+both photographs at once mid-transition.
+
+The photograph's own prev/next click zones went through two more changes.
+First, narrowed from a 50/50 split of the whole photo down to edge-only
+strips, so the centre — where a visitor is actually looking — stays
+neutral. Then, after real testing turned up "I can't click to the right,"
+widened again (`clamp(5rem, 35%, 18rem)`, from `clamp(3rem, 20%, 8rem)`):
+the zones are sized against the slide's full-width frame, not the
+photograph's own rendered bounds, and `object-fit: contain` letterboxes
+almost any photo whose aspect ratio doesn't exactly match the viewport — a
+zone anchored to the frame's edge but sized too narrow sat entirely past a
+letterboxed photo's visible pixels, missing the actual click target it was
+meant to cover.
+
+---
+
+## 2026-08-20 — Saved photographs and shareable selections
+
+A visitor can now save individual photographs to revisit later, entirely
+client-side: a small `+ Save` / `✓ Saved` control on every photograph in
+Browse mode (`saved.ts`, a `localStorage` array of `sourceId`s, same house
+style as `recipes/checklist.ts`), a first-use hint shown once and never
+again, and a "Saved N" destination that appears — in `PhotographyNav` and
+as a second corner mark during Browse, mirroring `browse-home` — only
+once something actually is saved.
+
+`/photography/saved/` presents the collection as a contact sheet (a real
+CSS Grid, not `.archive-composition`'s multi-column flow, which would have
+scrambled reading order relative to click order) rather than opening
+straight into Browse mode: the grid is the primary view, and clicking a
+photograph opens the existing Browse viewer scoped to just the saved set
+— `browse.ts` gained one exported entry point, `openPhoto()`, for exactly
+this. Exiting the viewer here returns to the grid in place rather than
+navigating home, which for free preserves scroll position: the grid was
+never unmounted, only hidden, the same `body.is-browsing` toggle every
+other page already uses. Individual photographs can be unsaved from
+directly inside the grid (a quiet, hover-revealed × — always visible,
+just quieter, on touch) or the collection cleared entirely.
+
+A visitor can also share their saved selection as a link. `share-code.ts`
+packs the ordered list of (16-hex-char) photograph ids into a compact,
+self-contained, deterministic `?s=` query string — a query param rather
+than a hash, since `browse.ts`'s own `#photo-<id>` already owns the hash on
+every Browse page and a query string survives its
+`history.replaceState(null, '', '#photo-xyz')` calls untouched. Opening
+`/photography/share/?s=...` — no account or prior visit needed — shows
+exactly that subset, in the sender's own order, gracefully dropping any id
+for a photograph since removed from the archive; a recipient can save any
+photograph they like into their own, separate Saved collection the same
+way as anywhere else on the site.
+
+Also: `/photography/archive/`'s route is untouched and still builds and
+serves, but it's no longer linked from `PhotographyNav` or listed in
+`sitemap.xml` — every other page's entry point (Selected Work, a tag, a
+saved link) is already reachable without it, and it was the one page
+mostly serving as an index a visitor never otherwise needed to find.

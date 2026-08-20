@@ -1088,3 +1088,57 @@ just below where most people notice it at normal viewing distance.
 **Revisit if.** Someone viewing on a large external Retina/5K display
 reports the full-size view reading as soft — at that point a sixth tier
 (e.g. 3200 or 3840) is a config-only change, no architecture to redo.
+
+---
+
+## 2026-08-20 — Saved's grid and viewer are one page, and shared links live in the query string
+
+**Decision.** `/photography/saved/` renders its contact-sheet grid and a
+full `Browse` instance on the *same* page, toggled by the existing
+`body.is-browsing` class — not a separate route the grid navigates to.
+Exiting the viewer removes that class rather than navigating anywhere.
+Separately, `/photography/share/`'s photograph list is encoded in
+`?s=...` (a query string), not the URL hash.
+
+**Why one page for grid and viewer.** The spec asked for the viewer to
+"return to the same album and approximately the same grid/scroll
+position" on exit — which sounds like it needs real state restoration
+(remember scroll position, re-render the grid, restore it) across a
+navigation. It doesn't, if the grid is never actually left: every other
+photography page already renders both a no-JS grid and a full `Browse`
+stack in one page, toggled by `is-browsing` (added once, early, never
+removed). Saved just lets that same toggle run in both directions. The
+grid sits in normal document flow the entire time, `display:none` while
+browsing under `body.is-browsing { overflow: hidden }` — the window's own
+scroll position is simply never touched while hidden, so it's still
+exactly where it was the moment the class comes back off. No scroll
+position was ever saved or restored; none needed to be.
+
+**Why a query string for the share link, not the hash.** `browse.ts`'s
+`#photo-<id>` already owns the URL hash on every Browse page, `/share/`
+included — `replaceHash()` calls `history.replaceState(null, '',
+'#photo-xyz')`, and per the URL spec a fragment-only reference like that
+resolves against the *current* URL, replacing only the fragment and
+leaving the path and query string untouched. Putting the shared id list in
+`?s=` instead means it survives every photo-to-photo hash change inside
+the viewer for free, with zero changes to `browse.ts` — the two mechanisms
+never have to know about each other. Static file serving (both Astro dev
+and `tools/serve`) already ignores the query string when resolving which
+file to serve, so this costs nothing on the routing side either.
+
+**The `decodeIds` duplication.** `tools/serve`'s planned per-link
+Open-Graph preview (decoding `?s=` server-side to point `og:image` at the
+first shared photograph) needs the same decoder `site/src/photography/
+share-code.ts` already has. It's copied, not imported — `tools/serve`
+depends on neither `site` nor `tools/pipeline` by design (see its
+`package.json` description, and `server.ts`'s existing `isSafeRelativePath`,
+copied from the pipeline editor for the identical reason). A ~15-line,
+dependency-free, DOM-free function is cheaper to duplicate once than to
+justify a new cross-workspace dependency for.
+
+**Revisit if.** A future "Albums" feature needs a *named* collection to
+survive across more than one page (e.g. a dedicated URL per local album,
+not just Saved) — at that point grid-and-viewer-as-one-page may need to
+become grid-and-viewer-as-two-pages with real state handed between them,
+and the free scroll-preservation trick here would need to become a real
+`sessionStorage`-backed one instead.

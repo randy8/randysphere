@@ -50,7 +50,9 @@ export const collections: readonly Collection[] = [
       const archive = loadArchive();
       return [
         '/photography/selected/',
-        '/photography/archive/',
+        // Deliberately not '/photography/archive/' — it's not linked from
+        // the nav any more either (PhotographyNav.astro); the route still
+        // builds and serves, it's just not advertised to a sitemap crawler.
         '/photography/about/',
         ...allTags(archive).map((tag) => `/photography/${tag}/`),
         ...allFilmStocks(archive).map((stock) => `/photography/film/${stock}/`),
