@@ -6,7 +6,7 @@
  * rest of the page chrome (see body.is-browsing in base.css).
  */
 interface Props {
-  current: 'selected' | 'archive' | 'about';
+  current: 'selected' | 'archive' | 'about' | 'saved';
 }
 
 const { current } = Astro.props;
@@ -15,9 +15,14 @@ const { current } = Astro.props;
 // entry point (collections.ts's href points straight here), so it already
 // fills that role without a second, redundant nav item pointing at the
 // same destination twice under two different labels.
+//
+// Archive deliberately has no nav entry — the page and its route are
+// untouched and still build/serve normally at /photography/archive/, it's
+// just not advertised anywhere a visitor would click. `current` still
+// accepts 'archive' (the page itself still passes it) so nothing breaks;
+// it simply never matches a link here any more.
 const links = [
   { key: 'selected', label: 'Selected Work', href: '/photography/selected/' },
-  { key: 'archive', label: 'Archive', href: '/photography/archive/' },
   { key: 'about', label: 'About', href: '/photography/about/' },
 ] as const;
 ---
@@ -30,7 +35,26 @@ const links = [
       </a>
     ))
   }
+  {
+    /* Hidden until a first photograph is actually saved (see saved.ts's
+       syncSavedUI, which every [data-saved-link] on a page defers to,
+       this one included) — an empty "Saved" destination would just be
+       clutter on a page a browsing-only visitor never uses. */
+  }
+  <a
+    href="/photography/saved/"
+    class="saved-nav-link"
+    data-saved-link
+    aria-current={current === 'saved' ? 'page' : undefined}
+  >
+    Saved <span data-saved-count>0</span>
+  </a>
 </nav>
+
+<script>
+  import { syncSavedUI } from './saved.ts';
+  syncSavedUI();
+</script>
 
 <style>
   .photography-nav {
@@ -61,5 +85,11 @@ const links = [
   .photography-nav a[aria-current='page'] {
     color: var(--ink);
     background-size: 100% 1px;
+  }
+  .saved-nav-link {
+    display: none;
+  }
+  .saved-nav-link.is-shown {
+    display: inline;
   }
 </style>

@@ -1,0 +1,58 @@
+---
+import Browse from '../../../photography/Browse.astro';
+import Photo from '../../../photography/Photo.astro';
+import Base from '../../../layouts/Base.astro';
+import { loadArchive } from '../../../photography/archive.ts';
+import type { View } from '../../../photography/archive.ts';
+import { photography } from '../../../photography/config.ts';
+
+const archive = loadArchive();
+
+// A shared link names its own photographs entirely in the URL fragment
+// (share-code.ts, decoded by share-view.ts) — the server can't read that,
+// so, same trick as /photography/saved/, this renders the whole archive
+// and lets client-side JS prune both the grid and the Browse stack down to
+// just the shared subset, in the shared order (not archive order — a
+// shared link is exactly the sequence its sender curated).
+const view: View = { tag: 'share', title: 'Shared', date: null, photos: archive.photos, roll: null };
+---
+
+<Base
+  title={`Shared — ${photography.title}`}
+  description="A shared selection of photographs."
+>
+  <header class="album-header">
+    <p class="saved-summary" data-share-summary hidden></p>
+  </header>
+
+  <p class="saved-empty" data-share-empty>
+    This link doesn't point to any photographs anymore.
+  </p>
+  <noscript>
+    <p class="saved-empty">Viewing a shared selection requires JavaScript.</p>
+  </noscript>
+
+  <ul class="saved-grid" data-share-grid>
+    {
+      archive.photos.map((entry) => (
+        <li data-photo-id={entry.photo.sourceId}>
+          <Photo entry={entry} sizes="(min-width: 64rem) 22vw, (min-width: 40rem) 30vw, 46vw" />
+        </li>
+      ))
+    }
+  </ul>
+
+  <Browse view={view} intro={false} exitToGrid="Back" />
+
+  {
+    /* share-view.ts prunes and reorders both the grid and the Browse stack
+       before browse.ts reads either — same document-order guarantee
+       saved-view.ts already relies on ahead of its own browse.ts import. */
+  }
+  <script>
+    import '../../../photography/share-view.ts';
+  </script>
+  <script>
+    import '../../../photography/browse.ts';
+  </script>
+</Base>

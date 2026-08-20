@@ -13,12 +13,34 @@
  * up browser history with one entry per photo.
  */
 
+import { hasSeenHint, isSaved, markHintSeen, savedCount, toggleSaved } from './saved.ts';
+
 const PHOTO_HASH_PREFIX = '#photo-';
 const PRELOAD_RADIUS = 1;
 const CURRENT_MARK = 0.5;
 
 function photoIdFromHash(hash: string): string | null {
   return hash.startsWith(PHOTO_HASH_PREFIX) ? hash.slice(PHOTO_HASH_PREFIX.length) : null;
+}
+
+// Set once per page by init(), below — an escape hatch for a page that
+// needs to open a specific photo from outside this module entirely (the
+// Saved page's own contact-sheet grid is the one caller today; every other
+// page only ever opens through its own #photo-<id> hash or in-stack clicks,
+// both handled internally). null until init() has actually run.
+let openHandler: ((id: string) => boolean) | null = null;
+
+/** Opens a specific photo in the current page's Browse stack, if one exists. Returns whether it did. */
+export function openPhoto(id: string): boolean {
+  return openHandler !== null && openHandler(id);
+}
+
+function applySaveButtonState(button: HTMLElement, saved: boolean): void {
+  button.setAttribute('aria-pressed', String(saved));
+  const icon = button.querySelector('[data-save-icon]');
+  const label = button.querySelector('[data-save-label]');
+  if (icon !== null) icon.textContent = saved ? '✓' : '+';
+  if (label !== null) label.textContent = saved ? 'Saved' : 'Save';
 }
 
 function init(): void {
@@ -31,9 +53,31 @@ function init(): void {
 
   const items = Array.from(stack.querySelectorAll<HTMLElement>('[data-photo-id]'));
   const ids = items.map((item) => item.dataset['photoId'] ?? '');
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Every save button starts server-rendered as unsaved (the server has no
+  // way to know what's in this visitor's localStorage) — reconcile once,
+  // on load, against whatever's actually saved.
+  items.forEach((item, i) => {
+    const button = item.querySelector<HTMLElement>('[data-save]');
+    if (button !== null) applySaveButtonState(button, isSaved(ids[i] ?? ''));
+  });
 
   let currentIndex = -1;
+  let hintChecked = false;
+
+  // The first-use hint attaches to whichever photo a visitor actually
+  // encounters first (respecting a #photo-<id> deep link), shown once ever
+  // — not modelled as a modal or tour, just one quiet line under that one
+  // photo's Save button, gone for good the moment it's shown.
+  const maybeShowHint = (index: number): void => {
+    if (hintChecked) return;
+    hintChecked = true;
+    if (savedCount() > 0 || hasSeenHint()) return;
+    const hint = items[index]?.querySelector<HTMLElement>('[data-save-hint]');
+    if (hint === null || hint === undefined) return;
+    hint.hidden = false;
+    markHintSeen();
+  };
 
   // Arrow functions, not declarations: TS only carries the `stack`
   // non-null narrowing above into closures it can prove run after that check,
@@ -55,6 +99,7 @@ function init(): void {
     currentIndex = index;
     setEagerWindow(index);
     updatePosition(index);
+    maybeShowHint(index);
     items[index]?.scrollIntoView({ behavior, inline: 'start', block: 'nearest' });
   };
 
@@ -64,12 +109,17 @@ function init(): void {
   // page by accident. The one deliberate way to actually leave for the next
   // album is the outro panel below, reached by scrolling (or tabbing) to
   // it, never by holding down an arrow key.
+  //
+  // Always 'instant': a smooth slide necessarily paints both photos at once
+  // mid-transition, which is exactly the "two images partially in view"
+  // this reading mode is trying not to show. One photo replaces another in
+  // a single frame, the same cut a click into a new page would make.
   const advance = (fromIndex: number, forward: boolean): void => {
     const targetIndex = (fromIndex + (forward ? 1 : -1) + items.length) % items.length;
     const id = ids[targetIndex];
     if (id === undefined) return;
     replaceHash(id);
-    focusItem(targetIndex, reduceMotion ? 'instant' : 'smooth');
+    focusItem(targetIndex, 'instant');
   };
 
   // The URL always names the current photo, but only ever by replacing —
@@ -110,14 +160,31 @@ function init(): void {
     advance(currentIndex, forward);
   });
 
-  // The currently-open photo doubles as its own prev/next control: the left
-  // half advances backward, the right half forward — same destinations as
-  // the arrow keys, just reachable with a click. Decorative (aria-hidden),
-  // not a tab stop: the arrow keys already cover this for anyone not using
-  // a pointer, and two more focusable elements per photo would only add
+  // The currently-open photo doubles as its own prev/next control: a strip
+  // at its left edge advances backward, a strip at its right edge forward
+  // (see base.css's .browse-item-nav) — same destinations as the arrow
+  // keys, just reachable with a click. Decorative (aria-hidden), not a tab
+  // stop: the arrow keys already cover this for anyone not using a
+  // pointer, and two more focusable elements per photo would only add
   // noise to keyboard/screen-reader navigation through a long album.
   stack.addEventListener('click', (event) => {
     if (!(event.target instanceof Element)) return;
+
+    const saveButton = event.target.closest<HTMLElement>('[data-save]');
+    if (saveButton !== null) {
+      const item = saveButton.closest<HTMLElement>('.browse-item');
+      const id = item?.dataset['photoId'];
+      if (id === undefined) return;
+      applySaveButtonState(saveButton, toggleSaved(id));
+      // Using the feature once is a stronger signal than merely seeing it —
+      // dismiss the hint immediately rather than waiting for the once-ever
+      // check above to run again (it may already have, on a different photo).
+      const hint = item?.querySelector<HTMLElement>('[data-save-hint]');
+      if (hint !== null && hint !== undefined) hint.hidden = true;
+      markHintSeen();
+      return;
+    }
+
     const nav = event.target.closest<HTMLElement>('[data-nav]');
     if (nav === null) return;
     const item = nav.closest<HTMLElement>('.browse-item');
@@ -126,6 +193,16 @@ function init(): void {
     if (index === -1) return;
     advance(index, nav.dataset['nav'] === 'next');
   });
+
+  // Scrolling never moves the stack — only a click (the edge nav zones, a
+  // tap included — a tap with no drag still fires 'click' normally below)
+  // or an arrow key does. A wheel notch or a swipe used to advance past a
+  // threshold, but any such threshold reads as unpredictable ("too
+  // sensitive") next to a plain, deliberate click — so this only blocks the
+  // browser's own proportional drag/scroll rather than replacing it with a
+  // different gesture.
+  root.addEventListener('wheel', (event) => event.preventDefault(), { passive: false });
+  root.addEventListener('touchmove', (event) => event.preventDefault(), { passive: false });
 
   const observer = new IntersectionObserver(
     (entries) => {
@@ -140,6 +217,7 @@ function init(): void {
       currentIndex = best.index;
       setEagerWindow(currentIndex);
       updatePosition(currentIndex);
+      maybeShowHint(currentIndex);
       const id = ids[currentIndex];
       if (id !== undefined) replaceHash(id);
     },
@@ -152,6 +230,22 @@ function init(): void {
   requestAnimationFrame(() => {
     items.forEach((item) => observer.observe(item));
   });
+
+  // The one door in from outside this module — the Saved page's contact
+  // sheet has no other way to tell an already-running Browse instance
+  // "open this specific photo" (see openPhoto() above).
+  openHandler = (id) => {
+    const index = ids.indexOf(id);
+    if (index === -1) return false;
+    // is-browsing has to be added first — .browse is display:none until
+    // then, and scrollIntoView on an element with no layout box (hidden by
+    // a display:none ancestor) does nothing, silently leaving the stack at
+    // its default scroll position (the first photo) once revealed.
+    document.body.classList.add('is-browsing');
+    replaceHash(id);
+    focusItem(index, 'instant');
+    return true;
+  };
 
   // Every slide is edge to edge now, at every viewport width, so the home
   // link — legible over any image by design (mix-blend-mode) — can end up

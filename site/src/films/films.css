@@ -195,6 +195,11 @@
   padding: 0.375rem;
   background: var(--rule);
   margin: 0 0 1rem;
+  /* A cropped poster's transform: scale (data-cropped, films/poster-overrides.yaml)
+     grows outward from the image's own centre — without a clip here, any
+     zoom above 1 bleeds straight through the mat, which is exactly what was
+     erasing Body Heat's border. */
+  overflow: hidden;
   transition:
     transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 0.35s ease;

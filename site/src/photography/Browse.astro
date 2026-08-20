@@ -25,18 +25,53 @@ interface Props {
    * browse.ts), not a special case.
    */
   intro?: boolean;
+  /**
+   * Set (to the corner mark's own label) only for a page whose "home"
+   * corner isn't the site's front door but a contact-sheet grid one scroll
+   * away on that same page — /photography/saved/ ("Saved") and
+   * /photography/share/ ("Back") today, see saved-view.ts/share-view.ts.
+   * The corner control becomes a plain in-page "back to grid" button
+   * rather than a real navigation. Every other page's browse-home, a real
+   * link to "/", is untouched.
+   */
+  exitToGrid?: string | false;
 }
 
-const { view, next = null, intro = true } = Astro.props;
+const { view, next = null, intro = true, exitToGrid = false } = Astro.props;
 ---
 
 {
   /* Browse mode has no masthead, no nav — deliberately, it's meant to be
      read start to end without chrome competing with the photograph. There
-     is no grid to fall back to any more either, so this one quiet link
-     home is the entire chrome browse mode has. */
+     is no grid to fall back to any more either (except on /saved/, which
+     has its own contact-sheet grid on this same page — see exitToGrid
+     above), so these one or two quiet corner marks are the entire chrome
+     browse mode has. */
 }
-<a class="browse-home" href="/" aria-label={`${site.title} — Home`}>{site.title}</a>
+{
+  exitToGrid ? (
+    <button type="button" class="browse-home" data-exit-grid>
+      {exitToGrid}
+    </button>
+  ) : (
+    <a class="browse-home" href="/" aria-label={`${site.title} — Home`}>
+      {site.title}
+    </a>
+  )
+}
+{
+  /* Opposite corner from browse-home, same treatment — hidden until a
+     first photograph is actually saved (see saved.ts's syncSavedUI, which
+     every [data-saved-link] on the page, this one included, defers to).
+     Skipped entirely on /saved/ itself: the other corner already reads
+     "Saved" there, a second one pointing at the same page would be noise,
+     not a second destination. */
+  !exitToGrid && (
+    <a href="/photography/saved/" class="browse-saved-link" data-saved-link>
+      Saved <span data-saved-count>0</span>
+    </a>
+  )
+}
 <div class="browse" data-browse role="region" aria-label="Photo browser">
   <div class="browse-stack" data-browse-stack>
     {
@@ -90,6 +125,20 @@ const { view, next = null, intro = true } = Astro.props;
           }
           {entry.caption && <figcaption>{entry.caption}</figcaption>}
           {formatCameraLine(entry) && <p class="browse-item-meta">{formatCameraLine(entry)}</p>}
+          {
+            /* Descriptive lines above are about the photograph; this one is
+               about the visitor's own relationship to it, so it comes last
+               — a quiet line of text, not a floating button, the same
+               restraint as everything else down here. Server-rendered
+               unsaved (the server can't know localStorage); browse.ts
+               reconciles the real state on load. */
+          }
+          <button type="button" class="browse-save" data-save aria-pressed="false">
+            <span data-save-icon aria-hidden="true">+</span> <span data-save-label>Save</span>
+          </button>
+          <p class="browse-save-hint" data-save-hint hidden>
+            Save photographs to revisit later. Stored only in this browser.
+          </p>
         </figure>
       ))
     }
