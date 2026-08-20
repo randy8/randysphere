@@ -78,6 +78,7 @@ const next = nextView
             entry={entry}
             sizes="(min-width: 64rem) 11vw, (min-width: 40rem) 17vw, 45vw"
             priority={index === 0}
+            maxWidth={1280}
           />
           <span class="frame-mark" aria-hidden="true">
             {String(entry.frame).padStart(2, '0')}

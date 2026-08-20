@@ -35,9 +35,20 @@ interface Props {
    * link to "/", is untouched.
    */
   exitToGrid?: string | false;
+  /**
+   * Passed straight through to each photograph's own Photo.astro maxWidth
+   * (see there) — unset everywhere except /photography/saved/ and
+   * /photography/share/, which each render every photo in the archive
+   * into this stack (most of them destined to be pruned away client-side
+   * before a visitor ever sees them, see saved-view.ts/share-view.ts) and
+   * so pay for the full 2560-wide tier — deliberately kept for every other
+   * page's real full-size reading view (see CHANGELOG.md, 2026-08-19) —
+   * on hundreds of photographs that were never going to use it.
+   */
+  photoMaxWidth?: number;
 }
 
-const { view, next = null, intro = true, exitToGrid = false } = Astro.props;
+const { view, next = null, intro = true, exitToGrid = false, photoMaxWidth } = Astro.props;
 ---
 
 {
@@ -104,7 +115,13 @@ const { view, next = null, intro = true, exitToGrid = false } = Astro.props;
       view.photos.map((entry, index) => (
         <figure class="browse-item" id={`photo-${entry.photo.sourceId}`} data-photo-id={entry.photo.sourceId}>
           <div class="browse-item-frame">
-            <Photo entry={entry} sizes="100vw" linked={false} priority={index === 0} />
+            <Photo
+              entry={entry}
+              sizes="100vw"
+              linked={false}
+              priority={index === 0}
+              maxWidth={photoMaxWidth}
+            />
             <span class="browse-item-nav browse-item-nav-prev" data-nav="prev" aria-hidden="true" />
             <span class="browse-item-nav browse-item-nav-next" data-nav="next" aria-hidden="true" />
           </div>

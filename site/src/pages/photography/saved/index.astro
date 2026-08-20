@@ -53,6 +53,7 @@ const view: View = { tag: 'saved', title: 'Saved', date: null, photos: archive.p
             entry={entry}
             sizes="(min-width: 40rem) 30vw, 46vw"
             priority={index === 0}
+            maxWidth={960}
           />
           <button type="button" class="saved-grid-remove" data-remove-saved aria-label="Remove from Saved">
             <span aria-hidden="true">×</span>
@@ -62,7 +63,7 @@ const view: View = { tag: 'saved', title: 'Saved', date: null, photos: archive.p
     }
   </ul>
 
-  <Browse view={view} intro={false} exitToGrid="Saved" />
+  <Browse view={view} intro={false} exitToGrid="Saved" photoMaxWidth={1920} />
 
   {
     /* saved-view.ts prunes the grid and the Browse stack down to the saved

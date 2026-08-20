@@ -39,7 +39,12 @@
      closer to a printed page than a screen. */
   --paper: #f6f1e6;
   --ink: #16130f;
-  --muted: #7c7364;
+  /* 4.95:1 against --paper — the original #7c7364 measured 4.15:1, under
+     WCAG AA's 4.5:1 floor for normal text, and this colour is used at
+     normal (not large) text sizes almost everywhere on the site (every
+     .eyebrow, caption, meta line). Same hue, ~10% darker; not a visible
+     departure from the original warm brown-gray. */
+  --muted: #6f675a;
   --rule: #ddd3c0;
   --measure: 64ch;
   --serif: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;

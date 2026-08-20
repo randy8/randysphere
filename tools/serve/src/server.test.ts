@@ -11,6 +11,7 @@ const PASSWORD = 'letmein';
 const SECRET = 'test-session-secret';
 const SITE_ORIGIN = 'https://example.test';
 const SHARED_ID = '0123456789abcdef';
+const TAG_PHOTO_ID = 'aaaaaaaaaaaaaaaa';
 
 // Same fixed-width byte-packing scheme site/src/photography/share-code.ts's
 // encodeIds uses — reimplemented here, not imported, for the same
@@ -56,7 +57,7 @@ before(async () => {
   );
 
   // A trimmed stand-in for the real markup Base.astro/share/index.astro
-  // actually produce — just the bits rewriteSharePreview touches.
+  // actually produce — just the bits the og:image rewrite touches.
   await mkdir(join(distDir, 'photography', 'share'), { recursive: true });
   await writeFile(
     join(distDir, 'photography', 'share', 'index.html'),
@@ -66,6 +67,24 @@ before(async () => {
       `<meta property="og:description" content="A shared selection of photographs.">` +
       `<meta property="og:image" content="${SITE_ORIGIN}/og-default.png">` +
       `</head><body><h1>Shared</h1></body></html>`,
+  );
+
+  // A tag page, unlike /photography/share/, already passes its own cover
+  // photo as `image` to <Base> (see [tag].astro) — og:image and its
+  // width/height tags are already real, just not necessarily *this*
+  // photo. This fixture is what proves rewriteOgImage replaces an
+  // existing value rather than only ever filling in a missing one.
+  await mkdir(join(distDir, 'photography', 'paris-2025'), { recursive: true });
+  await writeFile(
+    join(distDir, 'photography', 'paris-2025', 'index.html'),
+    `<!doctype html><html><head>` +
+      `<meta name="description" content="Paris 2025">` +
+      `<meta property="og:title" content="Paris 2025 — Photography — Randy Liang">` +
+      `<meta property="og:description" content="Paris 2025">` +
+      `<meta property="og:image" content="${SITE_ORIGIN}/p/coverphoto1234567/og-cover.jpg">` +
+      `<meta property="og:image:width" content="1200">` +
+      `<meta property="og:image:height" content="630">` +
+      `</head><body><h1>Paris 2025</h1></body></html>`,
   );
 
   await mkdir(generatedAlbumsDir, { recursive: true });
@@ -78,6 +97,10 @@ before(async () => {
         {
           sourceId: SHARED_ID,
           og: { format: 'jpeg', width: 1200, height: 630, bytes: 1000, key: `p/${SHARED_ID}/og-1.jpg` },
+        },
+        {
+          sourceId: TAG_PHOTO_ID,
+          og: { format: 'jpeg', width: 1200, height: 675, bytes: 1000, key: `p/${TAG_PHOTO_ID}/og-2.jpg` },
         },
       ],
     }),
@@ -233,4 +256,38 @@ test('a share link whose ?s= names no real photograph also serves the page uncha
   assert.equal(response.status, 200);
   const body = await response.text();
   assert.match(body, /og-default\.png/);
+});
+
+test('a plain page URL with ?photo=<id> — the address bar while viewing that photo in Browse — gets its own og:image, replacing whatever cover photo was already there', async () => {
+  const response = await fetch(`${baseUrl}/photography/paris-2025/?photo=${TAG_PHOTO_ID}`);
+  assert.equal(response.status, 200);
+  const body = await response.text();
+  assert.match(body, new RegExp(`og:image" content="${SITE_ORIGIN}/p/${TAG_PHOTO_ID}/og-2\\.jpg"`));
+  assert.match(body, /og:image:width" content="1200"/);
+  assert.match(body, /og:image:height" content="675"/);
+  assert.doesNotMatch(body, /coverphoto1234567/);
+  // The page's own description is left alone — only /photography/share/'s
+  // has no better default to preserve.
+  assert.match(body, /og:description" content="Paris 2025"/);
+});
+
+test('?photo= takes precedence over ?s= when a share link is open on a specific photo', async () => {
+  const response = await fetch(
+    `${baseUrl}/photography/share/?s=${encodeIdsForTest([SHARED_ID])}&photo=${TAG_PHOTO_ID}`,
+  );
+  const body = await response.text();
+  assert.match(body, new RegExp(`og:image" content="${SITE_ORIGIN}/p/${TAG_PHOTO_ID}/og-2\\.jpg"`));
+});
+
+test('?photo= naming no real photograph leaves the page unchanged', async () => {
+  const response = await fetch(`${baseUrl}/photography/paris-2025/?photo=ffffffffffffffff`);
+  const body = await response.text();
+  assert.match(body, /coverphoto1234567/);
+});
+
+test('a page with no ?photo= or ?s= at all is streamed unchanged (the common case)', async () => {
+  const response = await fetch(`${baseUrl}/photography/paris-2025/`);
+  assert.equal(response.status, 200);
+  const body = await response.text();
+  assert.match(body, /coverphoto1234567/);
 });

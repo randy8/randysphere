@@ -622,3 +622,65 @@ already-built static HTML before serving it — pointing at the first
 shared photograph's own pre-existing OG crop (every photograph already has
 one; no image compositing needed). No `?s=`, or one that resolves to no
 real photograph, serves the page byte-for-byte unchanged.
+
+---
+
+## 2026-08-20 — A ruthless self-review, and fixing what didn't need a photograph to fix
+
+Asked to grade the site as an outside reviewer rather than its own
+builder. The honest findings, roughly in order of severity: all 325
+photographs still carry empty alt text, empty captions, and a tag that's
+literally the scanner batch's directory name (`0271`, `llfl02`, …) — the
+single worst thing about the site, and squarely content work only the
+photographer can actually do (`pnpm describe` can't either — no
+`ANTHROPIC_API_KEY` configured). `--muted` (`#7c7364`) measured 4.15:1
+against `--paper`, under WCAG AA's 4.5:1 floor at the normal (not large)
+text sizes it's used at almost everywhere — captions, eyebrows, every meta
+line. And `/photography/saved/`'s and `/photography/share/`'s built HTML
+were 868KB and 845KB respectively: both render the entire archive twice
+(a grid, a full Browse stack) since a static site can't know client-side
+what's saved or shared until JS runs, and `Photo.astro` was emitting the
+same full 15-variant srcset (3 formats × 5 widths) for a 30vw grid
+thumbnail as for a 100vw hero.
+
+Fixed the two that don't need the photographer's own knowledge. `--muted`
+is now `#6f665a` — 4.95:1, same hue, ~10% darker, not a visible departure.
+`Photo.astro` gained an optional `maxWidth` prop that drops any variant
+wider than it from every format's srcset (never below one, per format) —
+applied at `1280` to every grid-only usage site-wide (the no-JS
+tag/selected/film-stock grids, the Archive cover grid) and, since Saved
+and Share's 325-photo multiplier makes the waste far worse there, `960`
+for their grid tiles specifically plus a new `Browse.astro` prop,
+`photoMaxWidth`, capping their full-screen stack to `1920` (dropping only
+the top tier the 2026-08-19 entry added specifically for the *primary*
+full-size reading view, which this isn't). Saved dropped to 693KB, Share
+to 662KB — real, measured, ~20% cuts, not a full fix: getting further
+would mean a real per-request server render, the same wall the
+static-site architecture keeps running into, and wasn't attempted here.
+
+---
+
+## 2026-08-20 — A specific photograph's own Open Graph preview
+
+The per-shared-collection preview above only ever showed the *first*
+shared photo. Copying the address bar while looking at any one
+photograph anywhere in Browse — a tag, Selected Work, a film stock,
+Saved, a share link already open on one photo within it — now previews
+*that* one specifically. `browse.ts`'s `replaceHash` sets `?photo=<id>`
+in the query string alongside the `#photo-<id>` hash it always kept
+(built from the current URL, only ever setting that one key, so it never
+touches another param already there, like the share page's own `?s=`) —
+a link-preview bot reads raw HTML with no query string, but it also never
+runs the JavaScript that decodes a hash, so the fragment was always going
+to be invisible to it regardless.
+
+`tools/serve` now checks for `?photo=` on *any* HTML page, not just
+`/photography/share/`: `share-preview.ts` gained `findPhotoPreview`, a
+single-id lookup, and the `og:image` rewrite itself became a proper
+regex replace of whatever's currently in the tag — not a match against
+one known default string — since a tag/film-stock/Selected-Work page
+already passes its own cover photo as `image` to `<Base>` (a real photo,
+just not necessarily *this* one), where `/photography/share/`'s only
+ever the site-wide default. `?photo=` takes precedence over `?s=` when a
+share link happens to be open on a specific photo, for the same reason:
+more specific wins.
