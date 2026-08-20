@@ -9,6 +9,25 @@ import { createPrivateSiteServer } from './server.ts';
 
 const PASSWORD = 'letmein';
 const SECRET = 'test-session-secret';
+const SITE_ORIGIN = 'https://example.test';
+const SHARED_ID = '0123456789abcdef';
+
+// Same fixed-width byte-packing scheme site/src/photography/share-code.ts's
+// encodeIds uses — reimplemented here, not imported, for the same
+// cross-workspace reason share-preview.ts itself doesn't import it either.
+function encodeIdsForTest(ids: readonly string[]): string {
+  const bytes = new Uint8Array(ids.length * 8);
+  ids.forEach((id, index) => {
+    for (let i = 0; i < 8; i += 1) {
+      bytes[index * 8 + i] = Number.parseInt(id.slice(i * 2, i * 2 + 2), 16);
+    }
+  });
+  let binary = '';
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
 
 let baseUrl: string;
 let close: () => Promise<void>;
@@ -18,6 +37,7 @@ before(async () => {
   const distDir = join(root, 'dist');
   const privatePhotosDir = join(root, 'private-photos');
   const notesPath = join(root, 'notes.yaml');
+  const generatedAlbumsDir = join(root, 'albums');
 
   await mkdir(distDir, { recursive: true });
   await writeFile(join(distDir, 'index.html'), '<h1>Public home</h1>');
@@ -35,12 +55,42 @@ before(async () => {
     `entries:\n  - date: '2026-08-08'\n    text: The fence finally started.\n    joy: true\n`,
   );
 
+  // A trimmed stand-in for the real markup Base.astro/share/index.astro
+  // actually produce — just the bits rewriteSharePreview touches.
+  await mkdir(join(distDir, 'photography', 'share'), { recursive: true });
+  await writeFile(
+    join(distDir, 'photography', 'share', 'index.html'),
+    `<!doctype html><html><head>` +
+      `<meta name="description" content="A shared selection of photographs.">` +
+      `<meta property="og:title" content="Shared — Photography — Randy Liang">` +
+      `<meta property="og:description" content="A shared selection of photographs.">` +
+      `<meta property="og:image" content="${SITE_ORIGIN}/og-default.png">` +
+      `</head><body><h1>Shared</h1></body></html>`,
+  );
+
+  await mkdir(generatedAlbumsDir, { recursive: true });
+  await writeFile(
+    join(generatedAlbumsDir, 'test.json'),
+    JSON.stringify({
+      schemaVersion: 2,
+      slug: 'test',
+      photos: [
+        {
+          sourceId: SHARED_ID,
+          og: { format: 'jpeg', width: 1200, height: 630, bytes: 1000, key: `p/${SHARED_ID}/og-1.jpg` },
+        },
+      ],
+    }),
+  );
+
   const server = createPrivateSiteServer({
     distDir,
     notesPath,
     privatePhotosDir,
     password: PASSWORD,
     sessionSecret: SECRET,
+    generatedAlbumsDir,
+    siteOrigin: SITE_ORIGIN,
   });
   await new Promise<void>((resolve) => server.listen(0, resolve));
   const { port } = server.address() as AddressInfo;
@@ -158,4 +208,29 @@ test('logging out clears the session so /private shows the gate again', async ()
   const cleared = logout.headers.get('set-cookie');
   assert.ok(cleared);
   assert.match(cleared, /Max-Age=0/);
+});
+
+test('a share link with a real ?s= gets its og:image rewritten to the shared photograph', async () => {
+  const response = await fetch(`${baseUrl}/photography/share/?s=${encodeIdsForTest([SHARED_ID])}`);
+  assert.equal(response.status, 200);
+  const body = await response.text();
+  assert.match(body, new RegExp(`og:image" content="${SITE_ORIGIN}/p/${SHARED_ID}/og-1\\.jpg"`));
+  assert.match(body, /og:image:width" content="1200"/);
+  assert.match(body, /og:image:height" content="630"/);
+  assert.doesNotMatch(body, /og-default\.png/);
+});
+
+test('a share link with no ?s= serves the page byte-for-byte unchanged', async () => {
+  const response = await fetch(`${baseUrl}/photography/share/`);
+  assert.equal(response.status, 200);
+  const body = await response.text();
+  assert.match(body, /og-default\.png/);
+  assert.doesNotMatch(body, /og:image:width/);
+});
+
+test('a share link whose ?s= names no real photograph also serves the page unchanged', async () => {
+  const response = await fetch(`${baseUrl}/photography/share/?s=${encodeIdsForTest(['ffffffffffffffff'])}`);
+  assert.equal(response.status, 200);
+  const body = await response.text();
+  assert.match(body, /og-default\.png/);
 });

@@ -600,3 +600,25 @@ serves, but it's no longer linked from `PhotographyNav` or listed in
 `sitemap.xml` — every other page's entry point (Selected Work, a tag, a
 saved link) is already reachable without it, and it was the one page
 mostly serving as an index a visitor never otherwise needed to find.
+
+---
+
+## 2026-08-20 — A shared link's own Open Graph preview
+
+Pasting a `/photography/share/?s=...` link into iMessage, Slack, or
+anywhere else that unfurls links used to always show the site-wide default
+preview image — link-preview bots fetch a URL and read whatever's in the
+raw static HTML without ever running JavaScript, so `share-view.ts`'s
+client-side decoding of `?s=` was invisible to them, and every visit to
+that one prebuilt page necessarily carried the same baked-in `og:image`.
+
+`tools/serve` — already a real, long-lived Node server in production, not
+just a static file host — now intercepts `GET /photography/share/`,
+decodes `?s=` server-side (`share-preview.ts`, a small, dependency-free
+decode-only copy of `share-code.ts`'s `decodeIds`; see `docs/decisions.md`
+for why it's copied rather than imported), and rewrites just the
+`og:image`/`og:image:width`/`og:image:height`/description tags in the
+already-built static HTML before serving it — pointing at the first
+shared photograph's own pre-existing OG crop (every photograph already has
+one; no image compositing needed). No `?s=`, or one that resolves to no
+real photograph, serves the page byte-for-byte unchanged.

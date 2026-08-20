@@ -41,6 +41,10 @@ if (!password || !sessionSecret) {
     privatePhotosDir: join(ROOT, 'private', 'photos'),
     password,
     sessionSecret,
+    generatedAlbumsDir: join(ROOT, 'generated', 'albums'),
+    // Matches astro.config.mjs's `site` — see the duplication note in
+    // share-preview.ts/docs/decisions.md.
+    siteOrigin: 'https://randyliang.net',
   });
   server.listen(port, () => {
     console.log(`Serving site/dist on http://0.0.0.0:${String(port)} — private area at /private`);
