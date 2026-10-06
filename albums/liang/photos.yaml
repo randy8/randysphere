@@ -1,0 +1,549 @@
+# Captions and alt text.
+#
+# `pnpm ingest` maintains which files are listed here and nothing else.
+# The order, the fields, and every comment are yours; re-running ingest will
+# not touch them. A photo is identified by its content (`sourceId`) first,
+# so moving or renaming a file in originals/ — even into a different roll —
+# keeps its entry below, alt text, caption, and tags intact. Only a photo
+# actually deleted from originals/ loses its entry.
+photos:
+  - file: 4852/48520001.TIF
+    sourceId: 98db9865ceea4ea3
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520002.TIF
+    sourceId: dc80e59693eb7c93
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520003.TIF
+    sourceId: 428531230292dc9d
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520004.TIF
+    sourceId: 9a41cb9279369b50
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520005.TIF
+    sourceId: cc35028e19fa7146
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520006.TIF
+    sourceId: 73741a302b0838be
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520007.TIF
+    sourceId: 0b984847f65a2af1
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520008.TIF
+    sourceId: 9995f8476eb8a1f4
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520009.TIF
+    sourceId: 35352ef6baf53ac2
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520010.TIF
+    sourceId: c0f59e675f6343fd
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520011.TIF
+    sourceId: 67c14161a274ed55
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520012.TIF
+    sourceId: d74c713db12402fa
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520013.TIF
+    sourceId: 3f2ec367cd5343d6
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520014.TIF
+    sourceId: 17e279c26ed22f7c
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520015.TIF
+    sourceId: 4792843f7e90b90f
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520016.TIF
+    sourceId: ba265c4e92a82960
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520017.TIF
+    sourceId: 2bf60e96f996a59e
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520018.TIF
+    sourceId: b78a213292be7da5
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520019.TIF
+    sourceId: 82d99dfdb26e113a
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520020.TIF
+    sourceId: 04c12963f8a2223f
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520021.TIF
+    sourceId: 16a6ce05fa617c69
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520022.TIF
+    sourceId: 38cca5f712f26c72
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520023.TIF
+    sourceId: 9cc152fba19a72d9
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520024.TIF
+    sourceId: c2bed49fb934e5f1
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520025.TIF
+    sourceId: 789a8dbd14da467c
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520026.TIF
+    sourceId: 4b6f625bcee5f603
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520027.TIF
+    sourceId: 9b1a5d59632487ea
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520028.TIF
+    sourceId: 55ee3db687abc0e7
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520029.TIF
+    sourceId: 28f263db603d88f4
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520030.TIF
+    sourceId: 08c828f0fa985d54
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520031.TIF
+    sourceId: b788005835ee4ce7
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520032.TIF
+    sourceId: 46374ac9ae877324
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520033.TIF
+    sourceId: 2c843a74252e890e
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520034.TIF
+    sourceId: 97153dbe6065f5bb
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520035.TIF
+    sourceId: 034ecc27494f7b0f
+    alt: ''
+    tags:
+      - liang
+  - file: 4852/48520036.TIF
+    sourceId: 519703c71f79b3fc
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530001.tif
+    sourceId: 66423201cfbbf35c
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530002.tif
+    sourceId: 3107afcfe345fcf0
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530003.tif
+    sourceId: c985af38c1b54c0a
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530004.tif
+    sourceId: 6e2b819a99835d06
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530005.tif
+    sourceId: a43c1acb08a4ffb6
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530006.tif
+    sourceId: 62e23b60ad22e915
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530007.tif
+    sourceId: 35fba42efb15bab0
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530008.tif
+    sourceId: 1b8d83bed4deaa31
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530009.tif
+    sourceId: 668f10f179a4519b
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530010.tif
+    sourceId: c90868d537a55e6f
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530011.tif
+    sourceId: 35a04249f9a9d1a9
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530012.tif
+    sourceId: d9aaeb872e1437d0
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530013.tif
+    sourceId: fc653d9e49b01a4e
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530014.tif
+    sourceId: 323f294ab27eaa51
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530015.tif
+    sourceId: 2ae3e89e15bb61fa
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530016.tif
+    sourceId: 732854ad3f7e62cc
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530017.tif
+    sourceId: 5ef482ab33ad2226
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530018.tif
+    sourceId: cc57c0e4d152fcd5
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530019.tif
+    sourceId: 0e50f8d9001afa26
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530020.tif
+    sourceId: 011371cb96815867
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530021.tif
+    sourceId: 9db00d2ce934ca1b
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530022.tif
+    sourceId: 15df8dcb010ff4ad
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530023.tif
+    sourceId: 1514dd1d7bee0d94
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530024.tif
+    sourceId: df7de13b556e7abc
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530025.tif
+    sourceId: 168bdfa9a6c31ab3
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530026.tif
+    sourceId: a818ad053fa544e6
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530027.tif
+    sourceId: 0da98f1948598b43
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530028.tif
+    sourceId: f2c98d7d5b02a980
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530029.tif
+    sourceId: c1e4c58a1ab2f201
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530030.tif
+    sourceId: 74a640992ec554d8
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530031.tif
+    sourceId: 8a59c9f661075858
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530032.tif
+    sourceId: 74f453c8fde00f42
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530033.tif
+    sourceId: 0ebfd0f0bbf7f2ce
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530034.tif
+    sourceId: c1b4410f4111b7a3
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530035.tif
+    sourceId: fbe2d43a729cb17f
+    alt: ''
+    tags:
+      - liang
+  - file: 4853/000048530036.tif
+    sourceId: 3b3f07673db72ab0
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540001.tif
+    sourceId: e3f9536c30f341a8
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540002.tif
+    sourceId: 6df7da349be899d8
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540003.tif
+    sourceId: e63d774c772bd816
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540004.tif
+    sourceId: ecc2b3a4dfe991b7
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540005.tif
+    sourceId: b5bc370cb194ec16
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540006.tif
+    sourceId: 15953163e319d313
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540007.tif
+    sourceId: bee10aa781d65475
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540008.tif
+    sourceId: 8d6a7c572bcd821f
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540009.tif
+    sourceId: f10e4c82da4af334
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540010.tif
+    sourceId: 0d15d837895fd34c
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540011.tif
+    sourceId: ba2cf5e643c6a9ef
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540012.tif
+    sourceId: 3b36ae1fc95c6913
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540013.tif
+    sourceId: d253bf5e0b7609e2
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540014.tif
+    sourceId: 17f7221144669a33
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540015.tif
+    sourceId: 63c0304bc5dde867
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540016.tif
+    sourceId: 169b75f03bd90b01
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540017.tif
+    sourceId: a7927aba8fbcf853
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540018.tif
+    sourceId: 18dc5bc0924d8a31
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540019.tif
+    sourceId: 3d96ca9918592bc4
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540020.tif
+    sourceId: 0cd48cace78a3baa
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540021.tif
+    sourceId: 1dcf96d145a801d8
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540022.tif
+    sourceId: a0ca037d41141946
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540023.tif
+    sourceId: ed0f1f17f4a5775e
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540024.tif
+    sourceId: 862bf76f68c3bae6
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540025.tif
+    sourceId: a1b80a19605844af
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540026.tif
+    sourceId: e09094cca13a767a
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540027.tif
+    sourceId: b10ad014d9988661
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540028.tif
+    sourceId: af9772c44d4feeab
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540029.tif
+    sourceId: a4d6b3f2bde6aef4
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540030.tif
+    sourceId: fcdcb567e45cad41
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540031.tif
+    sourceId: b35df61eb572340e
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540032.tif
+    sourceId: d780ac5406c41cb5
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540033.tif
+    sourceId: 0d2b0e6f8e25d992
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540034.tif
+    sourceId: 27bf1230a0b63d4b
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540035.tif
+    sourceId: 3ca013a81bbc86d6
+    alt: ''
+    tags:
+      - liang
+  - file: 4854/000048540036.tif
+    sourceId: 8ab7d99aab167506
+    alt: ''
+    tags:
+      - liang
