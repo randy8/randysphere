@@ -1,20 +1,18 @@
 ---
-import Browse from '../../../photography/Browse.astro';
+import Lightbox from '../../../photography/Lightbox.astro';
 import Photo from '../../../photography/Photo.astro';
 import Base from '../../../layouts/Base.astro';
 import PhotographyNav from '../../../photography/PhotographyNav.astro';
 import { loadArchive } from '../../../photography/archive.ts';
-import type { View } from '../../../photography/archive.ts';
 import { photography } from '../../../photography/config.ts';
 
 const archive = loadArchive();
 
 // The server has no idea what's saved (that's localStorage, entirely
 // client-side) — this page renders the whole archive, as a grid and as a
-// Browse stack, and saved-view.ts prunes both down to the saved subset
-// before a visitor ever sees them. Archive order throughout: "Saved" is a
-// filter over the archive, not a separately-ordered list.
-const view: View = { tag: 'saved', title: 'Saved', date: null, photos: archive.photos, roll: null };
+// lightbox, and saved-view.ts prunes both down to the saved subset before a
+// visitor ever sees them. Archive order throughout: "Saved" is a filter
+// over the archive, not a separately-ordered list.
 ---
 
 <Base
@@ -63,21 +61,21 @@ const view: View = { tag: 'saved', title: 'Saved', date: null, photos: archive.p
     }
   </ul>
 
-  <Browse view={view} intro={false} exitToGrid="Saved" photoMaxWidth={1920} />
+  <Lightbox photos={archive.photos} photoMaxWidth={1920} />
 
   {
-    /* saved-view.ts prunes the grid and the Browse stack down to the saved
-       subset — it has to run, and finish, before browse.ts reads that same
-       stack to build its own items/ids. Both are plain type="module"
+    /* saved-view.ts prunes the grid and the lightbox down to the saved
+       subset — it has to run, and finish, before lightbox.ts reads that
+       same markup to build its own items/ids. Both are plain type="module"
        scripts, which execute in document order (the same ordering trick
        selected/index.astro's own inline shuffle script already relies on,
-       just ahead of its browse.ts import too), so listing this one first
+       just ahead of its lightbox.ts import too), so listing this one first
        is what makes that guarantee hold. */
   }
   <script>
     import '../../../photography/saved-view.ts';
   </script>
   <script>
-    import '../../../photography/browse.ts';
+    import '../../../photography/lightbox.ts';
   </script>
 </Base>

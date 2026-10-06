@@ -878,3 +878,34 @@ and the Archive weren't touched; both already fill the page symmetrically
 with a grid. See `docs/decisions.md` for the full reasoning, including why
 this makes the masthead and the column below it share a left edge on
 every other page but not these two.
+
+---
+
+## 2026-10-06 — Browse mode is gone; photography is a grid with a lightbox now
+
+Photography's reading experience changes shape entirely. Landing on a
+tag, Selected Work, or a film stock no longer drops you into a full-bleed,
+page-at-a-time book with its own title panel and a "Grid" button to find
+your way back — the grid is simply the page now, for every visitor,
+JavaScript or not. Clicking a photo opens a standard lightbox on top of
+it: close, prev/next, one photo at a time, the same Save button as
+before. Closing it (×, Escape, or clicking the dark backdrop) puts you
+right back on the grid you were already looking at.
+
+This replaces, rather than adds to, several months of Browse-mode work —
+the chapter intro/outro panels, the horizontal scroll-snap stack, the
+mix-blend-mode corner marks, the "Grid" toggle button. All of it is gone.
+What's kept: deep-linking straight to a photo via its URL (so sharing and
+reloading still work exactly as before), pinch-to-zoom, Selected Work's
+per-load shuffle, and the Save button with its first-use hint. Saved and
+Share — which already rendered their own filtered grid alongside the full
+reading view — got simpler as a direct consequence: there's no longer a
+separate "mode" for them to build a special exit button for, so that
+per-page logic is gone too, not replaced.
+
+The direct ask was pointed: the two-view toggle concept read as "messy,"
+and the request was explicitly to simplify toward something standard — a
+plain grid that opens a lightbox on click, the way most photo sites
+already work. See `docs/decisions.md` for the full reasoning, including
+why this is a deliberate reversal of the Browse-mode direction rather than
+another layer on top of it.

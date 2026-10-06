@@ -296,7 +296,7 @@ test('a share link whose ?s= names no real photograph also serves the page uncha
   assert.match(body, /og-default\.png/);
 });
 
-test('a plain page URL with ?photo=<id> — the address bar while viewing that photo in Browse — gets its own og:image, replacing whatever cover photo was already there', async () => {
+test('a plain page URL with ?photo=<id> — the address bar while viewing that photo in the lightbox — gets its own og:image, replacing whatever cover photo was already there', async () => {
   const response = await fetch(`${baseUrl}/photography/paris-2025/?photo=${TAG_PHOTO_ID}`);
   assert.equal(response.status, 200);
   const body = await response.text();

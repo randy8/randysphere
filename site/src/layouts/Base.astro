@@ -58,7 +58,7 @@ const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
           /* The exact same nameplate Browse.astro floats over a photo in
              browse mode (title, a thin rule, every collection underneath,
              the current one inert) — same markup, same
-             browse-menu-title/-list/-current classes, so the two literally
+             nameplate-title/-list/-current classes, so the two literally
              cannot drift apart visually. Only the wrapper differs: no
              position:fixed, no mix-blend-mode, no opacity fade, because
              this one sits in a normal (if sticky) header with its own
@@ -72,13 +72,13 @@ const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
              here. See docs/decisions.md, 2026-08-28. */
         }
         <div class="masthead-nameplate">
-          <p class="browse-menu-title">{site.title}</p>
-          <ul class="browse-menu-list">
+          <p class="nameplate-title">{site.title}</p>
+          <ul class="nameplate-list">
             {
               collections.map((collection) => (
                 <li>
                   {pathname.startsWith(`/${collection.slug}/`) ? (
-                    <span class="browse-menu-current" aria-current="page">
+                    <span class="nameplate-current" aria-current="page">
                       {collection.title}
                     </span>
                   ) : (

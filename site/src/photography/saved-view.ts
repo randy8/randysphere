@@ -1,20 +1,20 @@
 /**
  * Page-specific glue for /photography/saved/ alone — never imported
  * anywhere else. The page server-renders the entire archive twice (a grid
- * of thumbnails, a full Browse stack) because it has no way to know what's
- * saved at build time; this module is what actually prunes both down to
- * the saved subset, before browse.ts ever reads the stack (see the ordering
- * note in saved/index.astro).
+ * of thumbnails, the full lightbox markup) because it has no way to know
+ * what's saved at build time; this module is what actually prunes both
+ * down to the saved subset, before lightbox.ts ever reads it (see the
+ * ordering note in saved/index.astro).
  */
 
-import { openPhoto } from './browse.ts';
+import { openPhoto } from './lightbox.ts';
 import { encodeIds } from './share-code.ts';
 import { clearSaved, pruneStale, removeSaved, savedIds } from './saved.ts';
 
 const SHARE_LABEL_RESET_MS = 2000;
 
 const grid = document.querySelector<HTMLElement>('[data-saved-grid]');
-const stack = document.querySelector<HTMLElement>('[data-browse-stack]');
+const stage = document.querySelector<HTMLElement>('[data-lightbox-stage]');
 const emptyMessage = document.querySelector<HTMLElement>('[data-saved-empty]');
 const summary = document.querySelector<HTMLElement>('[data-saved-summary]');
 const actions = document.querySelector<HTMLElement>('[data-saved-actions]');
@@ -56,7 +56,7 @@ if (grid !== null) {
     grid.querySelectorAll<HTMLElement>('[data-photo-id]').forEach((tile) => {
       if (!saved.has(tile.dataset['photoId'] ?? '')) tile.remove();
     });
-    stack?.querySelectorAll<HTMLElement>('[data-photo-id]').forEach((item) => {
+    stage?.querySelectorAll<HTMLElement>('[data-photo-id]').forEach((item) => {
       if (!saved.has(item.dataset['photoId'] ?? '')) item.remove();
     });
 
@@ -71,10 +71,11 @@ if (grid !== null) {
         const id = tile?.dataset['photoId'];
         if (id === undefined) return;
         // Only the grid tile — the corresponding photo inside the (already
-        // built, by the time any click can happen) Browse stack is left in
-        // place rather than spliced out of browse.ts's own index bookkeeping.
-        // It simply won't reappear next time this page loads; see the same
-        // trade-off documented for unsaving from inside the open viewer.
+        // built, by the time any click can happen) lightbox markup is left
+        // in place rather than spliced out of lightbox.ts's own index
+        // bookkeeping. It simply won't reappear next time this page loads;
+        // see the same trade-off documented for unsaving from inside the
+        // open viewer.
         removeSaved(id);
         tile?.remove();
         remaining -= 1;
@@ -92,16 +93,6 @@ if (grid !== null) {
   }
 }
 
-const exitToGrid = (): void => {
-  document.body.classList.remove('is-browsing');
-  history.replaceState(null, '', '/photography/saved/');
-};
-
-document.querySelector('[data-exit-grid]')?.addEventListener('click', exitToGrid);
-window.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && document.body.classList.contains('is-browsing')) exitToGrid();
-});
-
 clearButton?.addEventListener('click', () => {
   clearSaved();
   location.reload();
@@ -112,11 +103,11 @@ clearButton?.addEventListener('click', () => {
 // itself already uses for feedback, not a toast.
 shareButton?.addEventListener('click', () => {
   if (shareButton === null) return;
-  // A query param, not a hash — browse.ts's own #photo-<id> already owns
-  // the hash on every Browse page, /share/ included (see share-view.ts);
-  // a query string survives history.replaceState(null, '', '#photo-xyz')
-  // untouched (that call only ever replaces the fragment), so the two
-  // never collide.
+  // A query param, not a hash — lightbox.ts's own #photo-<id> already owns
+  // the hash on every page that renders one, /share/ included (see
+  // share-view.ts); a query string survives
+  // history.replaceState(null, '', '#photo-xyz') untouched (that call only
+  // ever replaces the fragment), so the two never collide.
   const url = `${location.origin}/photography/share/?s=${encodeIds(savedIds())}`;
   navigator.clipboard.writeText(url).then(
     () => {
