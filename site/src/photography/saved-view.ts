@@ -23,7 +23,10 @@ const shareButton = document.querySelector<HTMLElement>('[data-share-saved]');
 
 if (grid !== null) {
   const validIds = new Set(
-    Array.from(grid.querySelectorAll<HTMLElement>('[data-photo-id]'), (el) => el.dataset['photoId'] ?? ''),
+    Array.from(
+      grid.querySelectorAll<HTMLElement>('[data-photo-id]'),
+      (el) => el.dataset['photoId'] ?? '',
+    ),
   );
   pruneStale(validIds);
 

@@ -281,8 +281,30 @@ function init(): void {
   );
 }
 
+// Deferred a microtask, not called inline: saved-view.ts and share-view.ts
+// both `import { openPhoto } from './browse.ts'` so they can hand a clicked
+// grid tile off to Browse once they've pruned the stack down to their own
+// subset — but per the ES module spec, evaluating an import means running
+// the imported module's own top-level code first, *before* the importer's
+// body continues. That put this file's side effect (init(), which snapshots
+// `items`/`ids` from whatever's in the DOM right now) ahead of that pruning
+// on both pages, regardless of which <script> tag looks first in the
+// document: Browse ran open against the full, unpruned archive, so
+// "advance" (next/prev, arrow keys, the IntersectionObserver's own
+// scroll-tracking) could walk straight out of a saved or shared selection
+// into whatever photo happened to be archive-adjacent to it. A microtask
+// always runs after the synchronous script that queued it finishes — which
+// on these two pages includes the rest of that importing script's body, the
+// pruning included — so by the time init() actually reads the DOM, it's
+// already down to the right subset. The three pages that render Browse
+// straight from the archive with no pruning step (selected/index.astro,
+// [tag].astro, film/[stock].astro) see no change: init() still runs before
+// anything else touches the page.
+const deferredInit = (): void => {
+  queueMicrotask(init);
+};
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', deferredInit);
 } else {
-  init();
+  deferredInit();
 }

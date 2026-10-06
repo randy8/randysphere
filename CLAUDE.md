@@ -9,11 +9,15 @@ behind each one, `docs/dependencies.md` for why each dependency exists, and
 ## What this project is
 
 A personal, long-term archive, not a conventional portfolio or a
-social-media-style gallery. `/` is a homepage that introduces **collections**
-(`site/src/collections.ts`) — photography is the first and flagship one,
-recipes is the second, and more (running, films, writing) are added the same
-way: a new entry plus its own `src/pages/<slug>/`. The homepage introduces
-collections; it never shows individual photographs or other content directly.
+social-media-style gallery. `/` redirects straight to photography — the
+flagship **collection** and the reason this site exists — rather than
+stopping at an index first. The collections themselves (`site/src/collections.ts`)
+still live behind their own homepage at `/collections/`: photography is the
+first and flagship one, recipes is the second, and more (running, films,
+writing) are added the same way — a new entry plus its own
+`src/pages/<slug>/`. `/collections/` introduces collections; it never shows
+individual photographs or other content directly. See `docs/decisions.md`,
+2026-08-24, "`/` redirects to photography."
 
 A collection brings **only the machinery its own content needs**. Photography
 has a pipeline, a manifest, and object storage because photographs are large
@@ -180,17 +184,37 @@ bump. See `docs/decisions.md`, 2026-08-03, "Selected Work is editorial."
 
 ```
 site/                       Astro application
-  src/pages/index.astro     site-wide homepage — introduces collections,
-                             shows no photographs or other content directly
-  src/collections.ts        the collection registry the homepage reads;
-                             adding a collection is one entry here plus its
-                             own src/pages/<slug>/ and (if needed) src/<slug>/
+  astro.config.mjs           "/" -> /photography/selected/ lives here
+                             (redirects), not as a page — see
+                             docs/decisions.md, 2026-08-24
+  src/pages/collections/     the collections homepage — introduces every
+    index.astro              collection, shows no photographs or other
+                             content directly; reachable at /collections/,
+                             also linked from the masthead nav below on
+                             every page, not from "/" any more
+  src/collections.ts        the collection registry src/pages/collections/
+                             reads; adding a collection is one entry here
+                             plus its own src/pages/<slug>/ and (if needed)
+                             src/<slug>/
   src/config.ts             site-wide identity only (title, author) — a
                              collection's own settings live in its own
                              config.ts, e.g. src/photography/config.ts
   src/layouts/Base.astro    shared shell (masthead, footer, typography) —
                              collection-agnostic on purpose; never learns
-                             about a specific collection
+                             about any one collection's specifics, but its
+                             sticky masthead does render the same
+                             browse-menu-title/-list/-current nameplate
+                             Browse.astro floats over a photo (title, a
+                             thin rule, every collection from the generic
+                             collections.ts registry, current one inert) —
+                             the exact same classes, reused verbatim so the
+                             two can't drift apart, just wrapped
+                             differently (.masthead-nameplate: no
+                             position:fixed, no mix-blend-mode, a real
+                             opaque background) — see docs/decisions.md,
+                             2026-08-28. Hidden during Browse's full-bleed
+                             mode (body.is-browsing), which shows its own
+                             copy instead (see Browse.astro below)
   src/styles/base.css       shared design tokens/typography, all collections
   src/pages/photography/    index + /photography/<tag>/ (one route per tag,
                              not per trip), plus selected/, archive/,
@@ -201,12 +225,21 @@ site/                       Astro application
                              collection — not shared, not reusable by a
                              future collection with a different content shape
     Photo.astro, Browse.astro   continuous-scroll reading view — not a
-                             modal lightbox
+                             modal lightbox; Browse.astro's top-left corner
+                             also renders a plain, always-visible list of
+                             every collection (from collections.ts) as the
+                             site title's nameplate — no JS, no toggle
+                             state (see docs/decisions.md, 2026-08-27)
     PhotographyNav.astro     Home/Selected Work/Archive/About — photography's
                              own nav, NOT in Base.astro, which stays
                              collection-agnostic
     browse.ts                client-side browse-mode logic, progressive
                              enhancement over plain <a> links
+    zoom.ts                    pinch-to-zoom/pan for the current photo,
+                             touch-only, wired up from inside Browse.astro
+                             itself — every page gets it for free, no
+                             per-page script tag needed (see
+                             docs/decisions.md, 2026-08-24)
     manifest.ts               the site's OWN manifest reader/validator —
                              deliberately not shared with the pipeline
                              (see docs/decisions.md, "type-only boundary")
@@ -440,7 +473,8 @@ every tsconfig's own directory). A handful of genuine
 - **Collection** — a top-level content area with its own pages, its own data
   layer, and its own config (`site/src/collections.ts`). Photography is the
   first; recipes is the second and deliberately shares none of photography's
-  machinery. The homepage introduces collections and shows no content itself.
+  machinery. `/collections/` introduces them and shows no content itself;
+  `/` redirects straight to photography instead of stopping there first.
 - **Selected Work** — the hand-picked, hand-ordered sequence across the whole
   archive (`featured`/`featuredOrder` → `selectedWork()`). Editorial, not a
   tag. See "Archive model."

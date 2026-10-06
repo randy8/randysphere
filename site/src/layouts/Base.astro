@@ -1,6 +1,7 @@
 ---
 import '../styles/base.css';
 import { site } from '../config.ts';
+import { collections } from '../collections.ts';
 
 interface Props {
   title: string;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 const { title, description = site.description, image, imageWidth, imageHeight } = Astro.props;
+const { pathname } = Astro.url;
 const fullTitle = title === site.title ? title : `${title} — ${site.title}`;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 // `image` is an override, not opt-in — a page with no natural photo still
@@ -52,7 +54,41 @@ const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
     <a class="skip-link" href="#content">Skip to content</a>
     <div class="wrap">
       <header class="masthead">
-        <a class="wordmark" href="/">{site.title}</a>
+        {
+          /* The exact same nameplate Browse.astro floats over a photo in
+             browse mode (title, a thin rule, every collection underneath,
+             the current one inert) — same markup, same
+             browse-menu-title/-list/-current classes, so the two literally
+             cannot drift apart visually. Only the wrapper differs: no
+             position:fixed, no mix-blend-mode, no opacity fade, because
+             this one sits in a normal (if sticky) header with its own
+             opaque background rather than floating over arbitrary photo
+             content — see .masthead-nameplate in base.css. Browse mode
+             hides this whole header and shows its own floating copy
+             instead, because browse mode hides ALL of Base's chrome to
+             stay full-bleed over the photograph; everywhere else (recipes,
+             films, music, /collections/, and photography before/without
+             JS) this is the only such list, so it needs to actually be
+             here. See docs/decisions.md, 2026-08-28. */
+        }
+        <div class="masthead-nameplate">
+          <p class="browse-menu-title">{site.title}</p>
+          <ul class="browse-menu-list">
+            {
+              collections.map((collection) => (
+                <li>
+                  {pathname.startsWith(`/${collection.slug}/`) ? (
+                    <span class="browse-menu-current" aria-current="page">
+                      {collection.title}
+                    </span>
+                  ) : (
+                    <a href={collection.href}>{collection.title}</a>
+                  )}
+                </li>
+              ))
+            }
+          </ul>
+        </div>
       </header>
       <main id="content">
         <slot />

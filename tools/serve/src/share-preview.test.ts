@@ -58,7 +58,12 @@ test('decodeIds round-trips a list encoded the same way share-code.ts does', () 
 test('a link naming one real photograph resolves to its own OG crop', async () => {
   const albumsDir = await fixtureAlbumsDir();
   const preview = await findSharePreview(albumsDir, encodeIdsForTest([ID_A]));
-  assert.deepEqual(preview, { imagePath: `/p/${ID_A}/og-1.jpg`, width: 1200, height: 630, count: 1 });
+  assert.deepEqual(preview, {
+    imagePath: `/p/${ID_A}/og-1.jpg`,
+    width: 1200,
+    height: 630,
+    count: 1,
+  });
 });
 
 test('the first valid id wins when several are shared, in order', async () => {

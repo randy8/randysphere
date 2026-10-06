@@ -16,7 +16,10 @@ const summary = document.querySelector<HTMLElement>('[data-share-summary]');
 
 if (grid !== null) {
   const validIds = new Set(
-    Array.from(grid.querySelectorAll<HTMLElement>('[data-photo-id]'), (el) => el.dataset['photoId'] ?? ''),
+    Array.from(
+      grid.querySelectorAll<HTMLElement>('[data-photo-id]'),
+      (el) => el.dataset['photoId'] ?? '',
+    ),
   );
 
   const encoded = new URLSearchParams(location.search).get('s') ?? '';
@@ -28,7 +31,10 @@ if (grid !== null) {
     emptyMessage?.remove();
 
     const gridTiles = new Map(
-      Array.from(grid.querySelectorAll<HTMLElement>('[data-photo-id]'), (el) => [el.dataset['photoId'], el]),
+      Array.from(grid.querySelectorAll<HTMLElement>('[data-photo-id]'), (el) => [
+        el.dataset['photoId'],
+        el,
+      ]),
     );
     const stackItems = new Map(
       Array.from(stack?.querySelectorAll<HTMLElement>('[data-photo-id]') ?? [], (el) => [

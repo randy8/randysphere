@@ -1094,7 +1094,7 @@ reports the full-size view reading as soft — at that point a sixth tier
 ## 2026-08-20 — Saved's grid and viewer are one page, and shared links live in the query string
 
 **Decision.** `/photography/saved/` renders its contact-sheet grid and a
-full `Browse` instance on the *same* page, toggled by the existing
+full `Browse` instance on the _same_ page, toggled by the existing
 `body.is-browsing` class — not a separate route the grid navigates to.
 Exiting the viewer removes that class rather than navigating anywhere.
 Separately, `/photography/share/`'s photograph list is encoded in
@@ -1118,7 +1118,7 @@ position was ever saved or restored; none needed to be.
 `#photo-<id>` already owns the URL hash on every Browse page, `/share/`
 included — `replaceHash()` calls `history.replaceState(null, '',
 '#photo-xyz')`, and per the URL spec a fragment-only reference like that
-resolves against the *current* URL, replacing only the fragment and
+resolves against the _current_ URL, replacing only the fragment and
 leaving the path and query string untouched. Putting the shared id list in
 `?s=` instead means it survives every photo-to-photo hash change inside
 the viewer for free, with zero changes to `browse.ts` — the two mechanisms
@@ -1136,9 +1136,812 @@ copied from the pipeline editor for the identical reason). A ~15-line,
 dependency-free, DOM-free function is cheaper to duplicate once than to
 justify a new cross-workspace dependency for.
 
-**Revisit if.** A future "Albums" feature needs a *named* collection to
+**Revisit if.** A future "Albums" feature needs a _named_ collection to
 survive across more than one page (e.g. a dedicated URL per local album,
 not just Saved) — at that point grid-and-viewer-as-one-page may need to
 become grid-and-viewer-as-two-pages with real state handed between them,
 and the free scroll-preservation trick here would need to become a real
 `sessionStorage`-backed one instead.
+
+---
+
+## 2026-08-24 — `/` redirects to photography; the collections homepage moves to `/collections/`
+
+**Decision.** `/` is now a build-time redirect (`astro.config.mjs`'s
+`redirects`) straight to `/photography/selected/` — the same URL
+`collections.ts`'s photography entry already points at. The page that used
+to live at `/` (introduce every collection, no content of its own) moved
+unchanged to `src/pages/collections/index.astro`, reachable at
+`/collections/`, and is now linked from the site-wide footer ("All
+collections") so recipes/music/films stay reachable by more than a direct
+URL or a search engine. `sitemap.xml.ts` advertises `/collections/`
+instead of `/`, since `/` itself is no longer a real page a crawler should
+index.
+
+**Why.** This directly reverses the 2026-08-03 decision below ("The site
+becomes multi-collection; photography is the first one, not the whole
+site"), on explicit request: every visit was stopping at a table of
+contents before reaching the photographs, for a site whose whole reason for
+existing is the photography. The multi-collection registry itself is
+untouched — `collections.ts`, the homepage template, `stats()`,
+`urls()` — only where "/" points is different.
+
+**What did not change.** `Base.astro` still never learns that photography
+exists; the redirect target is a literal string in `astro.config.mjs` (site
+build config, not `Base.astro`), matching the same literal already
+hand-kept in `collections.ts`'s photography entry — the same duplication
+the 2026-08-03 entry already accepted for that entry, not a new pattern.
+The masthead wordmark still links to plain `/` rather than hardcoding a
+collection's URL into the shared layout.
+
+**Rejected.** Deleting the collections homepage outright rather than moving
+it to `/collections/`. Recipes, music, and films are still real
+collections a visitor should be able to browse from the site itself, not
+just guess the URL for — orphaning them from every page's chrome traded one
+kind of directness (photography, faster) for another kind of loss
+(everything else, undiscoverable).
+
+**Revisit if.** A second collection becomes popular enough to want its own
+`/`-adjacent shortcut, or the "All collections" footer link turns out to be
+too quiet for anyone to find in practice (worth a usage check once there's
+real traffic).
+
+---
+
+## 2026-08-24 — Browse mode's frame height is capped below 40rem, so a landscape photo doesn't strand its caption
+
+**Decision.** `.browse-item-frame` (`site/src/styles/base.css`) gets a
+`max-height: 66dvh` below the 40rem breakpoint, on top of its existing
+`flex: 1 1 auto`. Nothing else about the browse-mode layout changed.
+
+**Why.** The frame flex-grows to fill whatever vertical space the caption
+stack below it doesn't use, which is exactly right on a wide desktop
+viewport (a landscape photo is usually the one being height-bound there,
+so growing the frame grows the photo). On a phone-width, portrait-oriented
+viewport it backfires: a landscape photo is width-bound instead (its
+rendered height is fixed by its aspect ratio well before the frame's
+available height matters), so the frame still grows to fill nearly the
+whole screen — around it, not the photo — and the caption/film-stock/save
+button, sized to their own content rather than flexed, end up stranded
+right at the bottom edge, a long dead gap away from the photograph they
+describe. Verified with Playwright screenshots at a 390×844 viewport
+against a real landscape photo (3130×2075) and a real portrait one
+(2075×3130) from this archive: uncapped, the frame reached ~780px on that
+landscape photo with a ~240px gap between photo and caption; capped at
+66dvh (~557px), the gap between the frame's own bottom edge and the save
+button closes to ~16px, while the portrait photo — already width-bound at
+~513px, comfortably under the cap — is unaffected pixel-for-pixel.
+
+**Why 66dvh and not something tighter.** `.photo img`'s `max-height: 100%`
+resolves against the frame's own _used_ height, which is well-defined only
+because the flex algorithm gives a flex-grown-then-clamped item a definite
+resolved size (a real, spec-backed provision — the same one this rule
+already relied on before this change, just without the clamp). Sizing the
+frame to hug the image tightly instead (`flex: 0 1 auto`) was tried and
+rejected: `browse.ts` disables native touch scrolling
+(`touchmove` → `preventDefault()`) and drives all forward/back navigation
+through the `[data-nav]` click zones inside this same frame, which are the
+_only_ way to advance photos by touch. Shrinking the frame to the image's
+own rendered size would shrink those tap zones by the same amount — for a
+short landscape photo, down to a thin strip in the middle of the screen —
+trading a visual gap for a much smaller touch target. 66dvh keeps the tap
+zone large (most of the screen) while still comfortably clearing the
+tallest a standard 2:3 portrait gets width-bound to at typical phone
+widths, so only landscape photos — the ones actually stranding their
+caption — are affected.
+
+**Revisit if.** A future archive photo has a more extreme aspect ratio than
+standard 35mm 2:3 (a stitched panorama, say) and gets clipped by the 66dvh
+cap on a narrow viewport — at that point the cap needs to become
+aspect-ratio-aware (the manifest already has each photo's own width/height
+to compute from) rather than one flat constant.
+
+---
+
+## 2026-08-24 — Browse's init() is deferred a microtask, so Saved/Share prune the stack before it reads one
+
+**Decision.** `browse.ts`'s self-run at the bottom of the file
+(`document.readyState === 'loading' ? ... : init()`) now defers the actual
+`init()` call through `queueMicrotask`, instead of calling it inline.
+
+**Why.** `/photography/saved/` and `/photography/share/` both render the
+_entire_ archive into the Browse stack server-side, then run their own
+script (`saved-view.ts` / `share-view.ts`) to prune the DOM down to just
+the saved or shared subset before a visitor sees it — the same trick
+described in the 2026-08-20 entry above. Both of those scripts
+`import { openPhoto } from './browse.ts'`, so they can hand a clicked grid
+tile to Browse once pruning is done. Per the ES module spec, evaluating an
+`import` means running the imported module's own top-level code to
+completion _first_ — so `browse.ts`'s top-level `init()` call (which reads
+`stack.querySelectorAll('[data-photo-id]')` once and closes over the
+result as `items`/`ids` for the rest of the module's lifetime: `advance()`,
+the IntersectionObserver's scroll-tracking, preloading, all of it) ran
+_before_ `saved-view.ts`/`share-view.ts`'s own pruning code, regardless of
+which `<script>` tag looked first in the rendered HTML. The DOM still
+looked correctly pruned moments later (share-view.ts genuinely does remove
+the extra elements), but `items`/`ids` had already captured the full,
+unpruned archive-order list by then — detached elements are still valid JS
+references. Tapping a shared album's "next" zone, or scrolling far enough
+for the IntersectionObserver to fire, could walk straight out of a
+two-photo shared selection into whatever photo happened to be
+archive-adjacent to it. Confirmed with Playwright against a real built
+`site/dist/` (not just `astro dev`, to rule out a dev-only artifact):
+before this change, "next" from a 2-photo `?s=` link landed on an unrelated
+third photo from the same batch; after, it looped correctly between
+exactly the two shared photos.
+
+**Why a microtask, not restructuring `init()` into an explicit export.**
+`queueMicrotask` always runs after the synchronous script that queued it
+finishes — which, for a script importing `browse.ts`, includes the rest of
+_that importing script's own body_ (the pruning), since import evaluation
+and the importer's top-level code both run within the same synchronous job
+before any microtask checkpoint. That fixes the ordering at its root for
+every current and future page, with a one-line change, regardless of
+`<script>` tag order. The alternative — exporting `init` and having each of
+the five pages that use Browse call it explicitly, in the right order for
+their own page — is more explicit but requires every current and future
+Browse page to get that ordering right by hand; the microtask fix makes
+"pruning before Browse reads the DOM" true unconditionally instead of a
+convention someone has to remember.
+
+**Revisit if.** A future page needs to prune the stack _asynchronously_
+(an `await` before the DOM mutation finishes) — a microtask isn't enough
+there, and `init()` would need to become an explicit, awaited export
+instead.
+
+---
+
+## 2026-08-24 — Pinch-to-zoom in Browse mode, touch-only, pinch instead of double-tap
+
+**Decision.** `site/src/photography/zoom.ts` adds pinch-to-zoom and pan to
+the current photo in Browse mode (`MAX_SCALE = 4`), wired up from inside
+`Browse.astro` itself (one `<script>` at the end of the component, calling
+`initZoom(document.querySelector('[data-browse]'))`) rather than from each
+of the five pages that render `<Browse>` — every page that uses the
+component gets it for free, the same way `PhotographyNav.astro`'s own
+inline script needs no per-page wiring either. One delegated listener set
+on `[data-browse-stack]`, not one per photo (a Selected Work stack alone is
+325 frames) — per-frame gesture state lives in a `WeakMap`, created lazily
+on the first touch a given frame actually sees.
+
+**Why pinch, and deliberately not double-tap.** The nav-zone strips a plain
+tap already advances through (`.browse-item-nav`, see its own comment in
+`base.css`) read a single tap as "advance," instantly, with no threshold —
+the 2026-07-29 reading-view entry and browse.ts's own wheel/touchmove
+comment both already rejected adding any gesture threshold to that
+interaction as reading "unpredictable." Double-tap-to-zoom needs exactly
+that: holding every ordinary tap back a couple hundred milliseconds to see
+whether a second one arrives before committing to "advance," since the nav
+zones physically overlap most of the photo (letterboxed photos don't reach
+the frame's own edges, which is why those zones are sized against the
+frame and not the rendered image — see that same base.css comment). Pinch
+has no such conflict: it always takes two simultaneous touches, which a
+single-tap advance never does, so it can be added with zero latency cost
+to the existing gesture. Once a photo is zoomed in, a plain single tap is
+repurposed to reset back to fit instead — there's no "next photo" to reveal
+from inside a zoomed-in crop the way there is on an unzoomed one, so
+nothing is actually taken away from the existing gesture, only extended to
+a state that didn't exist before.
+
+**The math.** Two things had to be right for this to feel like a real
+photo viewer rather than a toy: the point under two pinching fingers has to
+stay visually fixed as scale changes (`zoomAt`, rescaling around a focal
+point in frame-local coordinates rather than the frame's own centre — the
+standard "zoom under the cursor" formula, here driven by the pinch
+midpoint every touchmove rather than a single fixed focal point per
+gesture, so the anchor tracks live if the midpoint drifts mid-pinch), and
+a pan can never drag the photo's edge past the frame's own edge, which
+would show blank paper around a supposedly-full-bleed photo (`clamp`,
+bounding the translate to `(renderedSize × scale − frameSize) / 2` per
+axis, derived from the image's own untransformed `offsetWidth`/
+`offsetHeight` rather than `getBoundingClientRect()` mid-transform, which
+would have baked the current transform into the very measurement being
+used to constrain it).
+
+**Suppressing the resulting click.** A touch sequence that pinches or
+drags would otherwise still end in the browser synthesizing a `click` —
+which the nav zones underneath would read as "advance," right after a
+pinch or a zoomed tap-to-reset that had nothing to do with navigating.
+Each gesture-handling touch sequence is flagged (`state.zoomHandled`, set
+the moment a second finger joins or the sequence starts already zoomed in)
+and, only when that flag is set, `touchend` adds a one-time, capture-phase
+`click` listener on the frame that stops the synthetic click from ever
+reaching `stack`'s own bubble-phase click handler in browse.ts. An
+ordinary tap on an unzoomed photo never sets the flag, so it's completely
+untouched — confirmed with Playwright against a real production build:
+`page.tap()` on a nav zone still advances exactly as before, on every page
+that renders Browse.
+
+**Resetting on navigation.** A photo staying zoomed in after a visitor has
+moved on to the next one would be wrong regardless of how they left it —
+tapping the opposite nav zone (which resets naturally, see above), the
+keyboard (arrow keys, which don't touch zoom.ts at all), or Saved's
+contact-sheet grid. Rather than hook every one of those exits individually,
+`initZoom` runs its own `IntersectionObserver` over every `.browse-item` in
+the stack and resets whichever frame's intersection ratio drops below 0.5
+— this has to be a second observer rather than reusing browse.ts's own
+(which only promotes a new "current" photo past the same threshold
+`browse.ts` calls `CURRENT_MARK`, exactly the point this needs to already
+have reset well ahead of).
+
+**`touch-action: none` on `.browse-item-frame`.** Without it the browser's
+own native pinch-zoom-the-whole-page gesture and this script's own handling
+fight over the same touchmove events. `overflow: hidden` on the same rule
+keeps a panned-in photo visually clipped to its own frame rather than
+spilling into the caption below it.
+
+**Rejected.** Mouse-driven zoom (scroll-wheel or click-drag) for desktop.
+Nothing was asked for beyond mobile, and a mouse has no pinch gesture to
+reuse this same conflict-free reasoning for — a scroll-wheel zoom would
+need to fight the wheel listener browse.ts already uses for advancing, the
+same conflict double-tap would have created on touch.
+
+**Revisit if.** Desktop zoom is wanted later — scroll-wheel zoom while a
+modifier key is held (Cmd/Ctrl, matching the OS-level pinch-zoom gesture's
+own keyboard equivalent) would sidestep the existing wheel-to-advance
+conflict without needing a threshold.
+
+---
+
+## 2026-08-24 — The site title opens a collections menu, replacing a separate corner mark
+
+**Decision.** The bottom-left "Collections" corner mark added earlier the
+same day (see the `/` redirect entry above) is gone. In its place, the
+site title in Browse mode's top-left corner — `browse-home`, previously a
+plain link to `/` — is now a `<button>` that opens a small fixed menu
+right underneath it (`.browse-menu-list`), listing every collection from
+the same `collections.ts` registry the collections homepage itself reads.
+`collections-menu.ts` owns the open/close state: click the title to
+toggle, click anywhere else (a photo, the caption, the paper margin) or
+press Escape to close.
+
+**Why.** Two separate marks were live at once for a few minutes of this
+same session — a static "Collections" label at the bottom, and the site
+title at the top still pointing at `/` (which, since the redirect above,
+just reloads the page it's already on). Explicit user feedback: fold this
+into the site title itself, "under my name." That reading makes sense on
+its own terms too, not just as a preference — the site title is the one
+piece of chrome already present on every Browse page and already legible
+against any photo (the same `mix-blend-mode` treatment `.browse-home`
+always had), so turning it into the menu's own trigger means one mark
+doing one clear job, not two marks competing for the same corner's worth
+of attention.
+
+**Why a real panel, not another translucent corner mark — for the trigger
+too, not just the list.** The existing corner marks (`browse-home`,
+`browse-saved-link`) are single short words, legible via
+`mix-blend-mode: difference` against whatever photo happens to be behind
+them, white source colour, no background chip at all. The first pass here
+kept that treatment for the trigger and only gave the panel a real
+background — but direct user feedback caught what that missed: sitting
+right above an opaque panel, the trigger's blend-mode white read as washed
+out rather than deliberate, and the two pieces looked like an unrelated
+mark plus a card underneath it, not one object. Both now share the same
+frosted-paper chip — `color-mix(in srgb, var(--paper) 82%/92%, transparent)`
+plus `backdrop-filter: blur(0.625rem)`, a hairline `var(--rule)` border,
+`var(--ink)` text going to `var(--accent)` on hover/focus — the same
+"a real panel over content, legible via tint and blur rather than
+inversion" register the films page's own `.film-controls` already
+established for a fixed panel that has to stay legible over whatever's
+behind it (see the `min-width: 10rem` / `border-radius: 0.25rem` values
+there, and its own `@supports not (backdrop-filter)` fallback, mirrored
+here for both pieces). Confirmed legible with a screenshot against a real
+dark, busy photo filling the frame edge-to-edge, not just the paper
+margin most photos leave up there.
+
+**Scope.** Only where `browse-home` renders as the site title — Selected
+Work, tag pages, film-stock pages. `/photography/saved/` and
+`/photography/share/` keep their existing `exitToGrid` button
+("Saved"/"Back") in that corner unchanged; `collections-menu.ts` is a
+no-op there (it just doesn't find `[data-collections-toggle]` in the DOM).
+
+**Rejected.** Keeping the separate bottom-left mark alongside the new menu
+— redundant once the site title itself does the same job, and two ways to
+reach the same destination from the same page is exactly the kind of
+chrome-for-chrome's-sake this project's design principles reject.
+
+**Revisit if.** Saved or Share ever want the same menu — at that point
+`exitToGrid`'s button and the collections-menu trigger need to coexist in
+one corner, which today's implementation doesn't attempt (the trigger and
+the exitToGrid button are the same DOM slot, mutually exclusive by
+`Browse.astro`'s own `exitToGrid` prop branch).
+
+---
+
+## 2026-08-27 — The collections menu becomes a standing nameplate, not a dropdown; `collections-menu.ts` is deleted
+
+**Decision.** This reverses the click-to-open panel from the 2026-08-24
+entry above ("The site title opens a collections menu"). The site title in
+Browse mode's top-left corner is now a plain, always-visible list — a
+one-line title (`site.title`) over a thin rule, with every collection
+listed underneath it, photography itself shown as inert text rather than a
+link, everything else a plain `<a>`. There is no toggle, no open/closed
+state, and no click-outside/Escape handling to own, so `collections-menu.ts`
+is deleted outright rather than kept around unused.
+
+**Why.** Explicit user request: a dropdown a visitor has to notice and
+click before the other collections become visible was replaced with
+something that's just always there. Once nothing opens or closes, the menu
+needs no `<button>`, no `aria-expanded`, and no JavaScript at all — a
+straight walk down `collections.ts`'s registry works with JS disabled the
+same way every other link in Browse mode already does, satisfying
+constraint 7 without the progressive-enhancement layer the dropdown
+version needed.
+
+**Why the frosted-paper chip from the 2026-08-24 entry was dropped along
+with the dropdown.** That treatment was chosen specifically to make a
+panel that appears for a moment on click read as one deliberate object
+rather than a stray label. A fixture that's on screen for the entire visit
+is a different problem: an opaque card sitting in the corner of every
+photograph for the whole time someone reads the archive is exactly the
+"chrome that isn't earned" this project's design principles reject.
+`.browse-menu` now uses the same `mix-blend-mode: difference`, no-
+background treatment as the plain corner marks (`browse-home`,
+`browse-saved-link`) instead — legible over any photo without ever
+painting over one, small-caps serif type reading like a museum wall label
+(title, rule, list) rather than a floating word plus a card underneath it.
+
+**Scope.** Unchanged from the entry above — only where `browse-home` used
+to render as the site title (Selected Work, tag pages, film-stock pages).
+`/photography/saved/` and `/photography/share/` keep their own
+`exitToGrid` button in that corner, untouched.
+
+**Revisit if.** The collections list grows past four or five entries —
+a permanently visible list that long would start crowding the corner in a
+way four short entries don't; at that point collapsing behind a click
+again, or moving the list to the footer/nav instead, is worth another look.
+
+---
+
+## 2026-08-27 — `/` redirects for real in production, instead of serving Astro's meta-refresh flash page
+
+**Decision.** `tools/serve/src/server.ts` now intercepts `pathname === '/'`
+before falling through to static file serving, and answers with a real
+`301` to `/photography/selected/` — the same target `astro.config.mjs`'s
+`redirects` entry already names. `dist/index.html` (Astro's own generated
+`<meta http-equiv="refresh">` page) is no longer read for a normal request
+to `/` in production at all.
+
+**Why.** A static build has no server at request time, so Astro's
+`redirects` config can only ever produce a real page for `/` — one with its
+own `<title>Redirecting to: /photography/selected/</title>` and a visible
+`<a>` fallback link — that redirects itself via meta refresh once the
+browser has already painted it. `tools/serve` is a real server, not a
+generic static host, so it doesn't need that page for `/` at all: issuing
+the redirect at the HTTP layer means a visitor's browser never paints
+anything for `/` before landing on `/photography/selected/`, closing the
+brief flash of the redirect page's own title/text that the meta-refresh
+version was visibly showing first.
+
+**What did not change.** `astro.config.mjs`'s `redirects` entry stays —
+`astro dev` still needs it (a real redirect there too, since the dev
+server itself is a server), and `dist/index.html` remains a correct
+fallback for any static host that serves `site/dist/` directly instead of
+through `tools/serve`. The two now duplicate the same
+`'/photography/selected/'` literal in two files for two different runtimes,
+the same kind of duplication the 2026-08-24 `/`-redirect entry already
+accepted between `astro.config.mjs` and `collections.ts`.
+
+**Revisit if.** A third runtime ever needs to know this redirect target
+(a Cloudflare Worker in front of the tunnel, say) — at that point a single
+source of truth (an env var, or a small shared JSON file) might be worth
+it; today, two literals in two files each already tied to a comment
+pointing at the other, is still cheaper than the indirection.
+
+---
+
+## 2026-08-28 — Base.astro's masthead grows a collections nav; the browse-menu fade during scroll is dropped
+
+**Decision.** Three follow-ups from direct user feedback while using the
+site, all scoped to navigation chrome.
+
+First: `Base.astro`'s masthead — previously just the `wordmark` link to
+`/` — now renders the _exact same nameplate_ Browse.astro floats over a
+photo in browse mode: `<p class="browse-menu-title">{site.title}</p>`
+followed by a `<ul class="browse-menu-list">` of every collection from
+`collections.ts` (the current one an inert `browse-menu-current` span,
+everything else a plain link), wrapped in a new `.masthead-nameplate`
+div rather than `.browse-menu` itself. Reusing those classes verbatim —
+not a parallel `masthead-collections` set, tried first and reverted the
+same day — was itself a direct fix: an initial pass gave the masthead its
+own separate horizontal, middot-separated nav, and direct user feedback
+("the left side navigation should look the same on every page") caught
+that it didn't actually match Browse's vertical title/rule/list nameplate
+in shape, even once both sat in the same top-left corner. Sharing the
+classes makes that drift structurally impossible going forward: any future
+change to the nameplate's typography or spacing happens once, in
+`.browse-menu-title`/`.browse-menu-list`/`.browse-menu-current`, and both
+call sites pick it up. The old plain `wordmark` link to `/` is gone
+entirely — Browse's own nameplate title was never a link either, just
+inert text, and `.browse-menu-list` already lists Photography as a link
+when it isn't the current page. This is the same registry `/collections/`
+and the footer already read; the footer's own "All collections" link is
+gone, since the masthead now does that job for every page this layout
+renders. `Base.astro` stays collection-agnostic in the sense that matters
+(no photography-specific logic; `pathname.startsWith('/${slug}/')` is
+generic across every entry) — see "Why" below for why this doesn't
+contradict that principle.
+
+Second: `.masthead` is `position: sticky; top: 0;` instead of sitting in
+normal flow only at the very top of the page. It still reserves its own
+height in the document (no manual clearance padding needed, unlike a
+`position: fixed` overlay would require) but now pins to the top of the
+viewport once a page scrolls past it, with an explicit `background:
+var(--paper)` so scrolled content doesn't show through. `z-index: 30`
+keeps it above ordinary page content.
+
+Third: `.browse-menu` (the fixed collections nameplate Browse.astro shows
+over a photo, see the 2026-08-27 entry above) no longer fades out while the
+stack is scrolling. `body.is-scrolling-browse` still fades `.browse-home`
+and `.browse-saved-link` (unchanged), but `.browse-menu` was dropped from
+that rule.
+
+**Why the masthead change.** A visitor clicking a collection link from
+photography's browse-mode nameplate landed on `/recipes/` (or `/films/`,
+`/music/`) with no equivalent way back except the ambiguous wordmark
+(links to `/`, which redirects to photography with no indication that's
+where it goes) or scrolling all the way to a single footer link. The
+nameplate's whole value — every collection, one click away, always visible
+— evaporated the moment you left photography. Since `Base.astro` renders on
+every non-browsing page (recipes, films, music, `/collections/`, and
+photography pages before `is-browsing` hides the masthead), putting the
+same list there closes that gap for every page at once instead of teaching
+each collection's own pages about it individually.
+
+**Why sticky, not the same `position: fixed` floating corner panel
+`.browse-menu` uses.** Direct user feedback asked for the nav to "remain
+consistent for all pages" — reachable no matter how far you've scrolled,
+the same as browse mode's own nameplate, which never leaves the screen.
+The two page types the nav appears on aren't equivalent enough to reuse
+the identical technique, though: `.browse-menu` has no background at all
+and relies on `mix-blend-mode: difference` for legibility, which works
+because it only ever sits over a photograph (or the paper margin around
+one) — the exact colours under it never carry meaning of their own. A
+fixed, backgroundless overlay over an ordinary content page would sit on
+top of real paragraph text, occluding whatever's underneath it rather than
+just blending with it, the same problem `.film-controls` (see
+`films.css`) already solved by going translucent instead of blend-mode for
+its own fixed corner panel over a long scrolling grid. Sticky sidesteps
+the whole problem: it reserves its own space in the flow (nothing to ever
+cover), then pins itself once scrolled to, with a solid `var(--paper)`
+background doing the same job `.film-controls`'s frosted one does, just
+opaque since nothing needs to show through a header the way a poster does
+through a corner panel.
+
+**Why this isn't the same thing the 2026-08-27 entry rejected.** That entry
+kept `Base.astro`'s masthead and footer completely hidden during browse
+mode (full-bleed, chrome-free reading), which is unrelated to what the
+masthead itself contains when it _is_ shown. Reading the same
+collection-agnostic registry the footer link and `/collections/` already
+depended on is not "learning about a specific collection" in the sense
+`Base.astro`'s design principle means — no collection's slug, route shape,
+or content is hardcoded; a fifth collection added to `collections.ts`
+appears here for free, the same as it already does in the footer and
+`/collections/` today.
+
+**Why the browse-menu fade was dropped.** The 2026-08-27 entry's own fade
+rule was there to avoid a `mix-blend-mode` seam artifact when the nameplate
+straddles the gap between two horizontally-snapping slides mid-scroll.
+Direct user feedback: the fade-out-then-back-in on every single
+photo-to-photo advance read as flicker, not a subtle mid-scroll fix — worse
+than the seam it was preventing. Scoped narrowly to `.browse-menu`, not
+`.browse-home`/`.browse-saved-link`, since only the nameplate was called
+out.
+
+**Rejected.** Suppressing `masthead-collections` on `/collections/` itself
+to avoid restating the page's own content — rejected for the same reason
+`archive/index.astro` already shows both the masthead nav and
+`PhotographyNav` at once: one wide-scope nav plus one narrow-scope nav (or
+page body) at different altitudes isn't the kind of redundancy this
+project's design principles reject; two links to the _same_ destination in
+the _same_ corner (like the old dropdown-plus-corner-mark case) is.
+
+**Revisit if.** The `.browse-menu` seam artifact this fade used to prevent
+turns out to be visible often enough in practice to matter more than the
+flicker it traded away — at that point a less jarring fix (a shorter fade,
+or constraining the nameplate's fixed position so it can't ever land in a
+slide gap) is worth another look before reinstating the blanket fade.
+
+---
+
+## 2026-08-28 — Browse mode's corner marks stop jumping sideways when you navigate into or out of it
+
+**Decision.** `.browse-home`, `.browse-menu`, and `.browse-saved-link` no
+longer sit at a flat `left: 1.5rem` / `right: 1.5rem`. They now use a new
+`--wrap-inset` custom property: `max(1.5rem, calc((100vw - 76rem) / 2 +
+1.5rem))`.
+
+**Why.** Direct user feedback: clicking "Photography" from another
+collection visibly moved the collections nameplate to the left. The cause
+was two different coordinate systems for what was supposed to be one
+fixed, unmoving mark. `.masthead-nameplate` (the previous entry) sits
+inside `.wrap`, which is `max-width: 76rem; margin: 0 auto` — centered,
+not flush against the viewport edge, on any viewport wider than 76rem plus
+its own padding. Its content (and therefore the nameplate) starts at
+`1.5rem` past `.wrap`'s own left edge, which itself is `(100vw - 76rem) /
+2` in from the real viewport edge on a wide screen. `.browse-menu`, by
+contrast, is `position: fixed; left: 1.5rem`, measured from the true
+viewport edge with no knowledge of `.wrap` at all. On an ordinary
+1440px-wide browser window those two values differ by roughly 90px; on a
+1920px display, over 300px — small enough to miss while eyeballing a
+narrow dev-tools viewport, obvious the moment someone actually clicked
+between a normal page and browse mode on a real monitor. `--wrap-inset`
+computes the exact same effective inset `.wrap`'s own layout already
+produces (the `max()` reproduces `.wrap` filling the full viewport with
+just its own padding once the viewport drops below 76rem, matching what
+already happens on narrow/mobile viewports without any change needed
+there), so a browse-mode corner mark now always lands exactly where the
+masthead nameplate's content already sits, at any viewport width.
+
+**Why fix Browse's corner marks rather than the masthead.** The masthead's
+own positioning (in-flow inside `.wrap`, letting `.wrap`'s existing
+centering do the work) can't easily be abandoned without reopening the
+"a fixed overlay can't sit on top of real paragraph text" problem the
+2026-08-28 sticky-masthead entry above was written to avoid — `.wrap`'s
+centering is exactly what already keeps every page's content, this
+nameplate included, inside one consistent reading column. Browse mode's
+own marks have no such constraint (they float over full-bleed photos, not
+paragraph text), so teaching them `.wrap`'s inset instead is the smaller,
+more local change — one custom property, three call sites — rather than
+restructuring how every other page lays out its content.
+
+**Revisit if.** `.wrap`'s own `max-width`/padding values change — `
+--wrap-inset` would need updating to match, since it's a deliberate,
+commented duplicate of that arithmetic rather than something computed from
+the same source (CSS has no way to read another rule's declared
+`max-width` back out as a value).
+
+---
+
+## 2026-08-28 — Both nameplates go horizontal, reversing the 2026-08-27/28 vertical shape
+
+**Decision.** `.browse-menu-title`/`.browse-menu-list`/`.browse-menu-current`
+— the shared markup `.masthead-nameplate` (the sticky top bar on every
+ordinary page) and `.browse-menu` (the fixed corner mark Browse mode
+floats over a photo) both wrap — now lay title and list out horizontally
+instead of stacking the list vertically underneath the title. The
+masthead reads as a plain magazine masthead: site name on the left,
+`collections.ts`'s list on the right, `justify-content: space-between`
+across the full bar. `.browse-menu` gets the same shape in miniature: name
+then collections in one row (wrapping onto a second row on a narrow
+phone, since it's a fixed-position box with no background and needs to
+stay inside the viewport rather than run off the edge). Colour treatment
+still differs by context exactly as before — the masthead uses ordinary
+ink/muted/accent with an underline-grows-on-hover, `.browse-menu` keeps
+`mix-blend-mode: difference` and its own opacity-fade hover — only the
+shared layout (flex row, gap, no per-item block row, no rule under the
+title) moved to the shared base rules.
+
+**Why.** Direct user feedback, in two parts. First: the masthead
+specifically read as cramped and app-like stacked vertically in a
+sticky bar that spans the whole page width — a horizontal bar reads
+closer to the "independent magazine / creative director" register this
+project's design principles ask for. Second, once the masthead went
+horizontal, a follow-up request asked that Browse mode's corner mark
+match it rather than staying the odd one out, on the explicit condition
+that doing so cost the photograph nothing. It doesn't: a single line (or
+two, wrapped, on a phone) is *shorter* than the five-line vertical stack
+(title, rule, four collection rows) it replaces, so the corner mark now
+covers less of the photo than before, not more — the mix-blend-mode/
+no-background treatment that keeps it from ever painting an opaque panel
+over a picture is unchanged.
+
+**Why this reverses 2026-08-27/28 rather than layering on top of them.**
+Those two entries record an explicit prior instruction — "the left side
+navigation should look the same on every page" — which is exactly what
+this change still honours: both nameplates still share one set of base
+classes, so a future typography or spacing tweak still happens once. What
+changed is which shape the shared classes draw, not the principle that
+they must be shared. Anyone re-reading 2026-08-27/28 alone would expect a
+vertical list; this entry is the record that a later, direct request
+moved the target shape to horizontal for both.
+
+**Revisit if.** The collections list grows long enough that a horizontal
+row wraps onto three or more lines even on a normal desktop width — at
+that point the masthead may want to go back to a stacked or overflow-menu
+shape, and `.browse-menu` would need to follow it down again for the same
+reason it followed it up here.
+
+---
+
+## 2026-09-02 — One masthead, on screen everywhere, browse mode included
+
+**Decision.** `.masthead` (Base.astro's sticky top bar) is no longer
+hidden by `body.is-browsing`. It stays visible and — since `.browse` is a
+fixed full-viewport overlay painted on top of everything else — now sits
+above it in z-index (45 vs. `.browse`'s 40) so it keeps rendering as a
+real, opaque, in-place header instead of being covered. `.browse` itself
+no longer starts at the very top of the viewport (`inset: 0`); it now
+starts a fixed distance below the masthead (`--masthead-h` +
+`--browse-top`, both new root custom properties) so a photograph opens
+with real margin under the header rather than its top edge sitting under
+an opaque bar, or — the version tried first and rejected — a translucent
+one it partially bled through. `Browse.astro`'s own floating nameplate
+(`.browse-menu`, the mix-blend-mode "Randy Liang / collections" corner
+mark it used to draw over a photo whenever the page had no `exitToGrid`
+button) is removed entirely: `.masthead` now does that job everywhere, so
+there is exactly one nameplate implementation left, not two kept in sync
+by shared CSS classes. `.browse-home`/`.browse-saved-link`'s own top
+offset moved from a flat `2rem` (calibrated to match where the hidden
+masthead's nameplate used to sit) to `--browse-top` plus a matching inset,
+since the thing they used to align with is now a real, visible header
+rather than an absence.
+
+**Why.** Direct user request: "the navbar is still broken... this at the
+top on all pages in an identical fashion, that's it" — followed by a
+photo of the intended masthead content. Browse mode's separate floating
+nameplate was a second implementation of the same nav that could (and, per
+the user, did) drift from the plain masthead every other page shows in
+look and behaviour — a translucent, blend-mode-legible-over-any-photo
+treatment is simply not the same navbar as an opaque one with a real
+background and an underline hover, no matter how many CSS classes the two
+share. One always-on-screen header removes the possibility of that drift
+by construction. The user separately asked for "a more aesthetic margin"
+under the photo, which is what `--browse-top`'s extra inset (beyond just
+clearing the header) is for, and this is also what made `.browse-item`/
+`.browse-intro`/`.browse-outro`'s hardcoded `height: 100vh`/`100dvh` (see
+their own comment) need to change to `height: 100%` — they used to rely on
+`.browse` itself being exactly the viewport height, which stopped being
+true the moment `.browse` started below the header instead of at the very
+top of it.
+
+**Revisit if.** The rough below-masthead clearance this introduced for
+`.browse-home`/`.browse-saved-link` (and `--masthead-h`'s own two-tier,
+not-pixel-measured value) turns out wrong at some viewport width not
+checked here — both are deliberately approximate, not JS-measured against
+the header's real rendered height, on the understanding (also from the
+user) that a further pass would polish the full-bleed browse layout once
+the navbar itself was fixed.
+
+---
+
+## 2026-09-02 — The grid is back, as an explicit secondary view, not just a no-JS fallback
+
+**Decision.** Every page that pairs a `.grid` with a `<Browse>` component
+(tag pages, Selected Work, film-stock pages — not `/saved/`/`/share/`,
+which already had their own version of this) now passes
+`exitToGrid="Grid"` to `<Browse>`, and loads a new
+`site/src/photography/grid-toggle.ts` alongside `browse.ts`. Reading
+(Browse) is still what a JS-enabled visitor lands on by default — nothing
+about the initial `document.body.classList.add('is-browsing')` inline
+script on any of these pages changed. What's new is a way back and forth:
+the "Grid" corner mark (the same `.browse-home` button `/saved/`/`/share/`
+already use, just relabelled) clears `is-browsing` to reveal the grid that
+was already rendering underneath it (as the no-JS fallback, now doing
+double duty), and `grid-toggle.ts` intercepts a click on any grid tile to
+call `browse.ts`'s existing `openPhoto(id)` instead of following its
+plain `<a>` to the raw JPEG, re-entering Browse at that exact photograph.
+Both halves of this were already fully built for `/saved/`/`/share/` (see
+`saved-view.ts`/`share-view.ts`) — `grid-toggle.ts` is the same shape
+without the subset-pruning step those two pages also need, not a new
+mechanism.
+
+**Why.** Direct user request — "we need to reintroduce the grid view... it
+should be a secondary option" — after the masthead fix above made it
+worth asking what the grid's own status was. It had quietly become
+JS-invisible markup: real, tested, correct HTML that a browser only ever
+painted with JavaScript disabled, per the "Browse mode is the only reading
+experience now" comment `browse.ts` still carries. The user wants it back
+as a real, reachable view, but explicitly secondary to reading — hence
+reusing the exact affordance (`exitToGrid`, `.browse-home`) `/saved/`/
+`/share/` already established, rather than making the grid a first
+default state or adding a second, competing toggle mechanism.
+
+**Revisit if.** A page wants to remember which view a visitor left it in
+across a reload (`sessionStorage`, most likely) — today every fresh load
+always starts in Browse, same as before this change; the toggle only
+persists within a single page view, not across navigation.
+
+---
+
+## 2026-09-02 — Recipes and Music centre their content column instead of sitting flush left
+
+**Decision.** `.recipe-scope` (recipes.css) and `.music-scope` (music.css)
+— the outer wrapper both the index and (for recipes) the detail page
+render everything into — now carry their own `max-width` (`--measure` for
+recipes, `30rem` for music, matching `.music-list`'s own pre-existing cap,
+which lost its now-redundant duplicate of that value) and
+`margin-inline: auto`. Previously only the inner lists/prose
+(`.recipe-index`, `.recipe-doc`, `.music-list`) capped their own width,
+flush against `.wrap`'s left padding with nothing centring them — on any
+viewport wider than roughly `2 × --measure`, that left a page that was
+mostly empty space down its entire right half.
+
+**Why.** Direct user request, made after the masthead fix above: "fix the
+alignment for the other pages — consider the UX of switching pages and
+the eye having to move to the left from the photography centred." The
+concrete problem is exactly what it sounds like — Selected Work and every
+tag view is a centred, full-bleed photograph, the strongest possible
+"eyes on the middle of the screen" composition; landing on Recipes or
+Music immediately after put the visitor's next fixation point (the page's
+own title and content) hard against the left edge of a mostly-empty page,
+the largest and most jarring position swap the layout could produce. This
+is a deliberate trade, not a strict improvement in isolation: the
+masthead above no longer shares a left edge with the H1 underneath it on
+these two collections, since the header stays flush left everywhere
+(`.wrap`'s own padding) while the content column now centres itself
+within `.wrap` instead. Two fixed points — header always flush left,
+article always centred — read as more intentional, and cost the eye less
+across a page change, than one that's technically flush left everywhere
+but leaves half the page empty on these two collections specifically.
+Films and the collections/photography-archive pages weren't touched:
+both already fill `.wrap` symmetrically with a multi-column grid, so they
+had no flush-left/empty-space problem to begin with.
+
+**Revisit if.** A collection's content column and the masthead above it
+genuinely need to share a left edge again (a design pass decides the
+trade above reads as broken rather than intentional) — the fix then is
+either widening that column back toward `.wrap`'s own edge, or giving the
+masthead itself a matching centred treatment, not reverting the centring
+alone.
+
+---
+
+## 2026-10-06 — The Grid/Saved corner marks are opaque chips, not mix-blend-mode text
+
+**Decision.** `.browse-home` and `.browse-saved-link` (base.css) no longer
+render as bare text in `mix-blend-mode: difference` at `opacity: 0.5`. Both
+are now a small opaque chip — the same frosted-paper treatment
+`films.css`'s `.film-controls` panel already uses (`color-mix` paper tint,
+`backdrop-filter: blur`, a hairline `--rule` border, a soft shadow), with
+ordinary `--ink` text that goes `--accent` on hover/focus instead of fading
+toward full opacity. The `@supports not (backdrop-filter)` fallback
+`.film-controls` already needed is copied over for the same reason: a
+browser without blur support still gets a readable, more-opaque solid
+tint instead of a translucent chip with nothing softening the edge.
+
+**Why.** Direct user request: landing on `/photography/selected/` (or any
+tag/film-stock page), the first thing visible was the word "Grid" sitting
+translucently on top of the hero photograph — "I shouldn't see 'Grid'
+overlayed on top of the photo." The corner mark itself (reachability back
+to the grid, per 2026-09-02's "The grid is back...") wasn't in question —
+confirmed directly, the fix was to the mark's *presentation*: mix-blend-mode
+text with no background reads as debris sitting on the image rather than a
+control, especially as the very first thing a visitor sees before they've
+had a chance to learn what it is. An opaque chip is legible against its own
+background instead of depending on blending with whatever's in the photo
+underneath, so it reads unambiguously as a button no matter which photo
+it's sitting over. `.browse-saved-link` got the identical treatment in the
+same pass — it's the same corner-mark pattern in the opposite corner (the
+code already called them "same treatment" before this change), and leaving
+one restyled while the other kept the old ghost-text look would have been
+exactly the kind of two-implementations-that-can-drift the 2026-09-02
+masthead decision was trying to eliminate elsewhere.
+
+**Revisit if.** The chip's fixed position ever needs to adapt further for
+very narrow viewports (it hasn't been tested below common phone widths with
+a long `exitToGrid` label — today's labels are all short: "Grid", "Saved",
+"Back").
+
+---
+
+## 2026-10-06 — Recipes and Music widen their centred column from --measure/30rem
+
+**Decision.** `.recipe-scope`, `.recipe-index`, and `.recipe-doc`
+(recipes.css) now cap at a fixed `46rem` instead of `var(--measure)`
+(64ch). `.music-scope` (music.css) now caps at `38rem` instead of a flat
+`30rem`.
+
+**Why.** Direct user request — the recipes and music pages read as "way
+too narrow margined" next to film (which fills `.wrap` symmetrically with
+a grid and was left alone). The root cause wasn't the centring decision
+from 2026-09-02 above, which stands: it was the specific widths chosen.
+`--measure` is defined as `64ch`, but `ch` is keyed to Newsreader's own
+glyph metrics, and resolves to roughly `34rem` in practice — under half of
+`.wrap`'s `76rem` max-width, which read as a narrow column stranded in an
+oversized page rather than a deliberate magazine column. Music's `30rem`
+had the opposite reasoning problem: it was sized to exactly match a
+Spotify embed's native width, technically precise but stark with nothing
+else on the page to anchor it. Both moved to fixed `rem` values (so they
+don't shift if the typeface's own metrics ever do) chosen to look
+proportionate within `.wrap` at common desktop widths while staying well
+short of hurting either prose readability (recipes) or embed
+proportions (a 38rem-wide 16:9 YouTube embed lands at a reasonable
+~337px tall). Neither change touches anything below roughly 49rem/41rem
+respectively (column width plus `.wrap`'s own padding) — phones and most
+tablets were already using the full available width and are unaffected.
+
+**Revisit if.** A collection's column needs to track viewport width more
+continuously than a single fixed breakpoint allows — a `clamp()` between
+today's value and something narrower would be the next step, rather than
+another flat number.
