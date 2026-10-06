@@ -55,6 +55,37 @@
      focus earns it, so it reads as the page responding to you rather than
      as decoration sitting there uninvited. */
   --accent: #7a2420;
+  /* Where .wrap's own content actually starts, measured from the real
+     viewport edge — its 1.5rem padding, plus however much margin:auto is
+     centering it once the viewport exceeds its 76rem max-width. Browse
+     mode's corner marks (.browse-home, .browse-menu, .browse-saved-link)
+     read this instead of a flat 1.5rem so they land at the exact same
+     on-screen position .masthead's in-flow content already sits at on
+     every other page — without it, any viewport wider than 76rem plus its
+     own padding put the sticky masthead's nameplate visibly further right
+     than the fixed one Browse mode shows, a jump every browse-to-page (or
+     page-to-browse) navigation made visible. See docs/decisions.md,
+     2026-08-28. */
+  --wrap-inset: max(1.5rem, calc((100vw - 76rem) / 2 + 1.5rem));
+  /* .masthead's own rendered height, single-line — measured (not derived
+     from its padding/font alone, since line-height and border add to it),
+     so .browse and its corner marks can sit a real margin below the header
+     instead of guessing at or overlapping it. Bumped for viewports narrow
+     enough that .masthead-nameplate wraps onto a second line (its content
+     doesn't fit one line below ~31rem in practice; 40rem matches the
+     breakpoint the rest of this file already uses rather than that exact
+     number, since a little extra clearance here is harmless). */
+  --masthead-h: 4.9rem;
+  /* Where the browse photo area itself actually starts (see .browse) —
+     shared so its corner marks (.browse-home, .browse-saved-link) can sit
+     a consistent inset below that same line instead of each recalculating
+     it. */
+  --browse-top: calc(var(--masthead-h) + 1.5rem);
+}
+@media (max-width: 39.9375rem) {
+  :root {
+    --masthead-h: 7.25rem;
+  }
 }
 
 *,
@@ -129,13 +160,29 @@ body {
   padding: 0 1.5rem;
 }
 
+/* Sticky, not just a header that scrolls away with the rest of the page —
+   direct user feedback: the collections nav needs to stay reachable no
+   matter how far down a page you've scrolled, the same way Browse's own
+   floating nameplate never leaves the screen once browse mode hides this
+   header entirely. Renders in normal flow (so it reserves its own height
+   automatically, no manual clearance padding needed) and then pins itself
+   to the top the moment a page scrolls past it. An explicit background is
+   required even though it happens to match the page's own (var(--paper))
+   — sticky content is otherwise transparent, which would let whatever's
+   scrolling underneath show straight through. See docs/decisions.md,
+   2026-08-28. */
 .masthead {
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 1.5rem;
+  position: sticky;
+  top: 0;
+  /* Above .browse (z-index 40) — belt and suspenders now that .browse sits
+     below it with a real margin (--masthead-h, see .browse below) rather
+     than underneath it, but this is what actually mattered while it did
+     overlap, and costs nothing to keep: one identical navbar on every
+     page, browse mode included, instead of the separate floating
+     nameplate that used to stand in for it there. */
+  z-index: 45;
   padding: 2rem 0 1.0625rem;
+  background: var(--paper);
   border-bottom: 2px solid var(--ink);
 }
 /* A second, slender rule in the accent — a letterhead's colophon line, the
@@ -150,18 +197,58 @@ body {
   height: 1px;
   background: var(--accent);
 }
-.masthead a {
-  color: inherit;
-  text-decoration: none;
-  transition: color 0.2s ease;
+/* Wraps the exact same title/rule/list markup Browse.astro floats over a
+   photo (browse-menu-title/-list/-current, see .browse-menu further down)
+   — deliberately reusing those classes rather than a parallel set, so the
+   two can never disagree on shape or typography. Both now lay title and
+   list out horizontally (see the shared rules on .browse-menu-title/
+   -list/-current below); what's left different here is only what has to
+   be: no position:fixed (it sits in .masthead's own sticky, in-flow
+   header), no mix-blend-mode (it has a real opaque background behind it,
+   not an arbitrary photo, so it uses ordinary ink/muted/accent colour
+   instead), no is-scrolling-browse fade (no scroll-snap seam to avoid
+   here), and justify-content:space-between to push the list to the far
+   side of the full-width bar (moot for .browse-menu, which shrinks to fit
+   its own corner). See docs/decisions.md, 2026-08-28 and its two
+   follow-ups for the history of this shape going vertical, then both
+   contexts going horizontal again. */
+.masthead-nameplate {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 2rem;
+  color: var(--ink);
 }
-.masthead a:hover {
+/* Same understated hover language as .photography-nav below: an underline
+   that grows in on hover rather than sitting there at rest, so colour
+   only ever arrives in response to an interaction (see --accent's own
+   definition above). .browse-menu keeps the opacity-fade hover it already
+   had instead — its mix-blend-mode text reads oddly with an underline
+   layered on top, and that fade already matches browse-home/
+   browse-saved-link, the other corner marks beside it. */
+.masthead-nameplate .browse-menu-current,
+.masthead-nameplate .browse-menu-list a {
+  opacity: 1;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  transition:
+    background-size 0.25s ease,
+    color 0.2s ease;
+}
+.masthead-nameplate .browse-menu-list a {
+  color: var(--muted);
+}
+.masthead-nameplate .browse-menu-list a:hover,
+.masthead-nameplate .browse-menu-list a:focus-visible {
   color: var(--accent);
+  background-size: 100% 1px;
 }
-.wordmark {
-  font-size: 1rem;
-  font-weight: 500;
-  letter-spacing: 0.03em;
+.masthead-nameplate .browse-menu-current {
+  color: var(--ink);
+  background-size: 100% 1px;
 }
 
 /*
@@ -725,7 +812,6 @@ a:focus-visible,
    grid's scroll position is untouched underneath and needs no bookkeeping.
    --------------------------------------------------------------------------- */
 
-body.is-browsing .masthead,
 body.is-browsing .album-header,
 body.is-browsing .grid,
 body.is-browsing .next-album,
@@ -740,7 +826,14 @@ body.is-browsing {
 .browse {
   display: none;
   position: fixed;
-  inset: 0;
+  /* Starts below .masthead (which stays on screen in browse mode too, see
+     its own comment) plus a real margin, rather than underneath it — a
+     photograph now opens with some air below the header instead of its
+     own top edge sitting flush against the rule beneath the nameplate. */
+  top: var(--browse-top);
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 40;
   background: var(--paper);
   overflow-x: auto;
@@ -750,83 +843,157 @@ body.is-browsing .browse {
   display: block;
 }
 
-/* The one way out of browse mode to somewhere other than this page — there
-   is no grid to fall back to any more, so this quiet corner mark (legible
-   over any photograph via mix-blend-mode, no background chip) is the whole
-   of browse mode's chrome besides the photographs themselves. On /saved/
-   this is a <button> instead of a link (see Browse.astro's exitToGrid) —
-   appearance/border/background/cursor reset so it reads identically
-   either way. */
+/* One of the two quiet corner marks that are the whole of browse mode's
+   chrome besides the photographs themselves. Doubles as the "Grid" toggle
+   (see Browse.astro's exitToGrid — every tag/Selected Work/film-stock page
+   passes "Grid", /saved/ and /share/ still pass their own "Saved"/"Back").
+   Previously bare mix-blend-mode text (legible over any photo with no
+   background needed) — reads, in practice, as stray text floating on top
+   of the photograph rather than a control, especially as the first thing
+   visible on landing in Browse mode. A real translucent chip (the same
+   frosted-paper treatment film-controls already uses for a panel fixed
+   over a long scrolling grid) reads unambiguously as a button instead,
+   legible against its own background rather than relying on blending with
+   whatever the photo underneath happens to be. `top` sits a matching inset
+   below where .browse itself starts (--browse-top), the same distance
+   .browse-saved-link opposite it uses. */
 .browse-home {
   display: none;
   position: fixed;
-  left: 1.5rem;
-  top: 1.5rem;
+  left: var(--wrap-inset);
+  top: calc(var(--browse-top) + 1.5rem);
   z-index: 41;
   appearance: none;
-  background: none;
-  border: 0;
   cursor: pointer;
   font-family: var(--serif);
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 500;
-  letter-spacing: 0.03em;
-  color: #fff;
-  mix-blend-mode: difference;
-  opacity: 0.5;
+  letter-spacing: 0.02em;
+  color: var(--ink);
   text-decoration: none;
-  padding: 0.5rem;
-  margin: -0.5rem;
-  transition: opacity 0.2s ease;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.25rem;
+  background: color-mix(in srgb, var(--paper) 82%, transparent);
+  backdrop-filter: blur(0.625rem);
+  -webkit-backdrop-filter: blur(0.625rem);
+  box-shadow: 0 0.5rem 1.5rem -0.75rem rgb(0 0 0 / 0.3);
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 body.is-browsing .browse-home {
-  display: inline;
+  display: inline-block;
 }
 .browse-home:hover,
 .browse-home:focus-visible {
-  opacity: 1;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
-/* The Saved collection's own corner mark, opposite browse-home — same
+/* The Saved collection's own corner mark, opposite browse-home — same chip
    treatment, hidden until saved.ts's syncSavedUI finds at least one saved
    photograph (see the shared [data-saved-link] convention it toggles
-   everywhere, including PhotographyNav's own nav item). */
+   everywhere, including PhotographyNav's own nav item). Same below-.browse
+   clearance as .browse-home above. */
 .browse-saved-link {
   display: none;
   position: fixed;
-  right: 1.5rem;
-  top: 1.5rem;
+  right: var(--wrap-inset);
+  top: calc(var(--browse-top) + 1.5rem);
   z-index: 41;
   font-family: var(--serif);
   font-variant-caps: small-caps;
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 500;
-  letter-spacing: 0.03em;
-  color: #fff;
-  mix-blend-mode: difference;
-  opacity: 0.5;
+  letter-spacing: 0.02em;
+  color: var(--ink);
   text-decoration: none;
-  padding: 0.5rem;
-  margin: -0.5rem;
-  transition: opacity 0.2s ease;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.25rem;
+  background: color-mix(in srgb, var(--paper) 82%, transparent);
+  backdrop-filter: blur(0.625rem);
+  -webkit-backdrop-filter: blur(0.625rem);
+  box-shadow: 0 0.5rem 1.5rem -0.75rem rgb(0 0 0 / 0.3);
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 body.is-browsing .browse-saved-link.is-shown {
-  display: inline;
+  display: inline-block;
 }
 .browse-saved-link:hover,
 .browse-saved-link:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+/* Same fallback film-controls uses: a touch more opaque so the one thing
+   doing the legibility work, without blur to soften it, is a slightly
+   stronger tint rather than a sharp edge against the photo underneath. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .browse-home,
+  .browse-saved-link {
+    background: color-mix(in srgb, var(--paper) 94%, transparent);
+  }
+}
+
+/* The site nameplate no longer floats a second copy of itself over browse
+   mode — .masthead (above) is visible and painted on top of .browse now
+   (see its own z-index comment), so there is exactly one nameplate
+   implementation, not two that have to be kept in sync by convention. What
+   remains here (.browse-menu-title/-list/-current) is markup
+   .masthead-nameplate itself reuses — see Base.astro. */
+.browse-menu-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+.browse-menu-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.browse-menu-current,
+.browse-menu-list a {
+  display: inline;
+  padding: 0;
+  font-family: var(--serif);
+  font-variant-caps: small-caps;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+}
+.browse-menu-current {
+  opacity: 0.7;
+}
+.browse-menu-list a {
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+.browse-menu-list a:hover,
+.browse-menu-list a:focus-visible {
   opacity: 1;
+  text-decoration: underline;
 }
 
 /* Every slide is edge to edge now (the horizontal layout, unlike the old
    vertical one, never gives this quiet fixed label a paper margin to sit
-   in at any viewport width) — mid-scroll, its fixed pixel position can sit
+   in at any viewport width) — mid-scroll, a fixed pixel position can sit
    half over one photo and half over the paper showing in the snap gap
    between slides, which mix-blend-mode renders as a visible seam sliced
-   through the text. Fading it out while the stack is actually moving (see
+   through the text. Fading out while the stack is actually moving (see
    browse.ts's scroll listener) and back in once it settles avoids ever
-   painting that seam, at every screen size now rather than only below the
-   old mobile breakpoint. */
+   painting that seam. .browse-menu is deliberately excluded: explicit user
+   request to keep the collections nameplate visible and fixed through
+   every photo-to-photo scroll rather than have it fade on each advance —
+   the seam it can still show mid-scroll is the accepted tradeoff. */
 body.is-scrolling-browse .browse-home,
 body.is-scrolling-browse .browse-saved-link {
   opacity: 0;
@@ -854,8 +1021,12 @@ body.is-scrolling-browse .browse-saved-link {
 .browse-item {
   flex-shrink: 0;
   width: 100vw;
-  height: 100vh;
-  height: 100dvh;
+  /* 100% of .browse-stack (in turn 100% of .browse), not a hardcoded
+     100vh/100dvh — .browse is no longer the full viewport height itself
+     now that it starts below .masthead (see .browse's own top), so each
+     slide has to size to what's actually left rather than the whole
+     screen. */
+  height: 100%;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -1033,6 +1204,31 @@ body.is-scrolling-browse .browse-saved-link {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* zoom.ts owns every touch gesture in here itself (pinch, pan, the tap
+     that backs a zoomed photo out to fit) — without this, the browser's
+     own native pinch-to-zoom-the-whole-page fights it for the same
+     gesture. Clipped so a panned-in photo never visually spills past its
+     own frame into the caption below. */
+  touch-action: none;
+  overflow: hidden;
+}
+/* Below 40rem, a landscape photo's width fills the narrow viewport long
+   before its height does, so the flex-grown frame above ends up far taller
+   than the photo itself — the photo sits centred in the upper screen while
+   the caption, film stock, and save button (sized to their own content, not
+   flexed) are stranded at the very bottom edge, a long dead gap away from
+   the photograph they describe. Capping the frame's height here still lets
+   percentage sizing on .photo img resolve against it (the flex algorithm's
+   clamped size is a definite used height), but keeps the leftover space
+   small enough that .browse-item's own justify-content: center pulls photo
+   and caption back into one visual group. 66dvh comfortably clears the
+   tallest a standard 2:3 portrait frame gets width-bound to at typical
+   phone widths (~1.5 × the padded content width), so this only ever
+   tightens landscape photos, which were the ones stranding the caption. */
+@media (max-width: 39.9375rem) {
+  .browse-item-frame {
+    max-height: 66dvh;
+  }
 }
 .browse-item-nav {
   position: absolute;
