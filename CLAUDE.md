@@ -201,20 +201,14 @@ site/                       Astro application
                              config.ts, e.g. src/photography/config.ts
   src/layouts/Base.astro    shared shell (masthead, footer, typography) —
                              collection-agnostic on purpose; never learns
-                             about any one collection's specifics, but its
-                             sticky masthead does render the same
-                             browse-menu-title/-list/-current nameplate
-                             Browse.astro floats over a photo (title, a
-                             thin rule, every collection from the generic
-                             collections.ts registry, current one inert) —
-                             the exact same classes, reused verbatim so the
-                             two can't drift apart, just wrapped
-                             differently (.masthead-nameplate: no
-                             position:fixed, no mix-blend-mode, a real
-                             opaque background) — see docs/decisions.md,
-                             2026-08-28. Hidden during Browse's full-bleed
-                             mode (body.is-browsing), which shows its own
-                             copy instead (see Browse.astro below)
+                             about any one collection's specifics. Its
+                             sticky masthead renders the site title, a
+                             thin rule, and every collection from the
+                             generic collections.ts registry (current one
+                             inert) — never hidden, not even while the
+                             lightbox is open (it paints on top, same as
+                             any ordinary modal) — see docs/decisions.md,
+                             2026-08-28 and 2026-10-06
   src/styles/base.css       shared design tokens/typography, all collections
   src/pages/photography/    index + /photography/<tag>/ (one route per tag,
                              not per trip), plus selected/, archive/,
@@ -224,19 +218,23 @@ site/                       Astro application
   src/photography/          everything specific to the photography
                              collection — not shared, not reusable by a
                              future collection with a different content shape
-    Photo.astro, Browse.astro   continuous-scroll reading view — not a
-                             modal lightbox; Browse.astro's top-left corner
-                             also renders a plain, always-visible list of
-                             every collection (from collections.ts) as the
-                             site title's nameplate — no JS, no toggle
-                             state (see docs/decisions.md, 2026-08-27)
+    Photo.astro, Lightbox.astro   the grid is always the page; Lightbox.astro
+                             renders a standard overlay (close/prev/next,
+                             one photo at a time, Save button) that opens
+                             on a grid-tile click and closes back to the
+                             same grid — no separate "mode," no toggle
+                             button (see docs/decisions.md, 2026-10-06,
+                             which replaces the 2026-08-27/28 and
+                             2026-09-02 Browse-mode entries below it)
     PhotographyNav.astro     Home/Selected Work/Archive/About — photography's
                              own nav, NOT in Base.astro, which stays
                              collection-agnostic
-    browse.ts                client-side browse-mode logic, progressive
-                             enhancement over plain <a> links
-    zoom.ts                    pinch-to-zoom/pan for the current photo,
-                             touch-only, wired up from inside Browse.astro
+    lightbox.ts               client-side lightbox logic (open/close/prev/
+                             next, #photo-<id> deep links, the Save
+                             button) — progressive enhancement over the
+                             grid's own plain <a> links
+    zoom.ts                    pinch-to-zoom/pan for the open photo,
+                             touch-only, wired up from inside Lightbox.astro
                              itself — every page gets it for free, no
                              per-page script tag needed (see
                              docs/decisions.md, 2026-08-24)
@@ -429,9 +427,9 @@ every tsconfig's own directory). A handful of genuine
    copies only, through the `Storage` interface.
 6. **Originals are immutable and never committed.** `originals/` is
    git-ignored; nothing in the pipeline writes to it.
-7. **The site works with JavaScript disabled.** Browse/reading mode is a
-   progressive enhancement over plain `<a>` links to full-size images — not a
-   requirement to use the gallery at all.
+7. **The site works with JavaScript disabled.** The grid is always the page;
+   the lightbox is a progressive enhancement over its plain `<a>` links to
+   full-size images — not a requirement to browse the gallery at all.
 8. **A photo's identity is `sourceId` (content hash), not pixels or a name.**
    Re-exporting with different metadata is a new identity on purpose (see
    `docs/decisions.md`).
@@ -466,10 +464,12 @@ every tsconfig's own directory). A handful of genuine
 - **Manifest** — `generated/albums/<batch>.json`; one per batch, the
   committed contract between the two halves. The site never reads just one —
   it merges all of them into the Archive.
-- **Reading view / browse mode** — the continuous vertical-scroll, large-image
-  view (`Browse.astro` + `browse.ts`), reached from the grid. Explicitly not a
-  modal lightbox: no dialog role, no focus trap, state lives in the URL
-  (`#photo-<sourceId>`) so back/reload/share behave like real navigation.
+- **Lightbox** — the one photo at a time overlay (`Lightbox.astro` +
+  `lightbox.ts`) that opens on a grid tile click and closes back to the same
+  grid. A standard lightbox, deliberately: the grid is always the page,
+  there is no separate "mode" to toggle into or out of. State lives in the
+  URL (`#photo-<sourceId>`) so back/reload/share behave like real
+  navigation. See `docs/decisions.md`, 2026-10-06.
 - **Collection** — a top-level content area with its own pages, its own data
   layer, and its own config (`site/src/collections.ts`). Photography is the
   first; recipes is the second and deliberately shares none of photography's

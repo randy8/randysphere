@@ -55,37 +55,6 @@
      focus earns it, so it reads as the page responding to you rather than
      as decoration sitting there uninvited. */
   --accent: #7a2420;
-  /* Where .wrap's own content actually starts, measured from the real
-     viewport edge — its 1.5rem padding, plus however much margin:auto is
-     centering it once the viewport exceeds its 76rem max-width. Browse
-     mode's corner marks (.browse-home, .browse-menu, .browse-saved-link)
-     read this instead of a flat 1.5rem so they land at the exact same
-     on-screen position .masthead's in-flow content already sits at on
-     every other page — without it, any viewport wider than 76rem plus its
-     own padding put the sticky masthead's nameplate visibly further right
-     than the fixed one Browse mode shows, a jump every browse-to-page (or
-     page-to-browse) navigation made visible. See docs/decisions.md,
-     2026-08-28. */
-  --wrap-inset: max(1.5rem, calc((100vw - 76rem) / 2 + 1.5rem));
-  /* .masthead's own rendered height, single-line — measured (not derived
-     from its padding/font alone, since line-height and border add to it),
-     so .browse and its corner marks can sit a real margin below the header
-     instead of guessing at or overlapping it. Bumped for viewports narrow
-     enough that .masthead-nameplate wraps onto a second line (its content
-     doesn't fit one line below ~31rem in practice; 40rem matches the
-     breakpoint the rest of this file already uses rather than that exact
-     number, since a little extra clearance here is harmless). */
-  --masthead-h: 4.9rem;
-  /* Where the browse photo area itself actually starts (see .browse) —
-     shared so its corner marks (.browse-home, .browse-saved-link) can sit
-     a consistent inset below that same line instead of each recalculating
-     it. */
-  --browse-top: calc(var(--masthead-h) + 1.5rem);
-}
-@media (max-width: 39.9375rem) {
-  :root {
-    --masthead-h: 7.25rem;
-  }
 }
 
 *,
@@ -118,9 +87,7 @@
 
 /* Every hover transition/transform added below this line is a nicety, not
    information — safe to collapse to instant for anyone who's asked for
-   less motion. The browse-intro-cue's own reduced-motion rule further down
-   additionally pins its opacity, since this alone would just make its fade
-   near-instant rather than give it a resting state. */
+   less motion. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -162,24 +129,18 @@ body {
 
 /* Sticky, not just a header that scrolls away with the rest of the page —
    direct user feedback: the collections nav needs to stay reachable no
-   matter how far down a page you've scrolled, the same way Browse's own
-   floating nameplate never leaves the screen once browse mode hides this
-   header entirely. Renders in normal flow (so it reserves its own height
-   automatically, no manual clearance padding needed) and then pins itself
-   to the top the moment a page scrolls past it. An explicit background is
-   required even though it happens to match the page's own (var(--paper))
-   — sticky content is otherwise transparent, which would let whatever's
-   scrolling underneath show straight through. See docs/decisions.md,
-   2026-08-28. */
+   matter how far down a page you've scrolled. Renders in normal flow (so
+   it reserves its own height automatically, no manual clearance padding
+   needed) and then pins itself to the top the moment a page scrolls past
+   it. An explicit background is required even though it happens to match
+   the page's own (var(--paper)) — sticky content is otherwise transparent,
+   which would let whatever's scrolling underneath show straight through.
+   See docs/decisions.md, 2026-08-28. */
 .masthead {
   position: sticky;
   top: 0;
-  /* Above .browse (z-index 40) — belt and suspenders now that .browse sits
-     below it with a real margin (--masthead-h, see .browse below) rather
-     than underneath it, but this is what actually mattered while it did
-     overlap, and costs nothing to keep: one identical navbar on every
-     page, browse mode included, instead of the separate floating
-     nameplate that used to stand in for it there. */
+  /* Below the lightbox (z-index 50) — the lightbox is a true full-viewport
+     overlay and covers this entirely while open, same as any modal would. */
   z-index: 45;
   padding: 2rem 0 1.0625rem;
   background: var(--paper);
@@ -197,21 +158,13 @@ body {
   height: 1px;
   background: var(--accent);
 }
-/* Wraps the exact same title/rule/list markup Browse.astro floats over a
-   photo (browse-menu-title/-list/-current, see .browse-menu further down)
-   — deliberately reusing those classes rather than a parallel set, so the
-   two can never disagree on shape or typography. Both now lay title and
-   list out horizontally (see the shared rules on .browse-menu-title/
-   -list/-current below); what's left different here is only what has to
-   be: no position:fixed (it sits in .masthead's own sticky, in-flow
-   header), no mix-blend-mode (it has a real opaque background behind it,
-   not an arbitrary photo, so it uses ordinary ink/muted/accent colour
-   instead), no is-scrolling-browse fade (no scroll-snap seam to avoid
-   here), and justify-content:space-between to push the list to the far
-   side of the full-width bar (moot for .browse-menu, which shrinks to fit
-   its own corner). See docs/decisions.md, 2026-08-28 and its two
-   follow-ups for the history of this shape going vertical, then both
-   contexts going horizontal again. */
+/* The site title, a thin rule, and every collection from collections.ts
+   (the current one inert) — the one navigation element every page shares,
+   sitting in .masthead's own sticky, in-flow header. justify-content:
+   space-between pushes the collections list to the far side of the
+   full-width bar. See docs/decisions.md, 2026-08-28 and its two
+   follow-ups for the history of this shape going vertical, then
+   horizontal again. */
 .masthead-nameplate {
   display: flex;
   align-items: baseline;
@@ -223,12 +176,9 @@ body {
 /* Same understated hover language as .photography-nav below: an underline
    that grows in on hover rather than sitting there at rest, so colour
    only ever arrives in response to an interaction (see --accent's own
-   definition above). .browse-menu keeps the opacity-fade hover it already
-   had instead — its mix-blend-mode text reads oddly with an underline
-   layered on top, and that fade already matches browse-home/
-   browse-saved-link, the other corner marks beside it. */
-.masthead-nameplate .browse-menu-current,
-.masthead-nameplate .browse-menu-list a {
+   definition above). */
+.masthead-nameplate .nameplate-current,
+.masthead-nameplate .nameplate-list a {
   opacity: 1;
   background-image: linear-gradient(currentColor, currentColor);
   background-position: 0 100%;
@@ -238,15 +188,15 @@ body {
     background-size 0.25s ease,
     color 0.2s ease;
 }
-.masthead-nameplate .browse-menu-list a {
+.masthead-nameplate .nameplate-list a {
   color: var(--muted);
 }
-.masthead-nameplate .browse-menu-list a:hover,
-.masthead-nameplate .browse-menu-list a:focus-visible {
+.masthead-nameplate .nameplate-list a:hover,
+.masthead-nameplate .nameplate-list a:focus-visible {
   color: var(--accent);
   background-size: 100% 1px;
 }
-.masthead-nameplate .browse-menu-current {
+.masthead-nameplate .nameplate-current {
   color: var(--ink);
   background-size: 100% 1px;
 }
@@ -675,11 +625,11 @@ main:has(> .home-header) {
 }
 
 /*
- * The grid is the no-JS fallback only — with JavaScript on, is-browsing
- * hides it permanently and a visitor never sees it (see browse.ts). Kept
- * exactly as it always rendered (real links, numbered by frame,
- * uncaptioned) so a visitor without JavaScript, or search engine crawling
- * the page, still gets a real way to reach every photograph.
+ * The grid is always the page — not a no-JS fallback standing in for
+ * something else, the default view for every visitor. With JavaScript on,
+ * lightbox.ts intercepts a tile click to open the lightbox instead of
+ * following the link; without it, that link (real, numbered by frame,
+ * uncaptioned) still reaches the full-size photograph directly.
  *
  * A shared column width, not a shared row height: a CSS grid holds every
  * column to the same width, so every row's outer edge lands on the same
@@ -805,153 +755,16 @@ a:focus-visible,
   letter-spacing: 0.02em;
   color: var(--muted);
 }
-/* ---------------------------------------------------------------------------
-   Browse mode — a full-viewport overlay, not a modal: no dialog role, no
-   focus trap. Everything behind it is hidden via body.is-browsing so it can't
-   be tabbed to while covered, and the overlay owns its own scroll, so the
-   grid's scroll position is untouched underneath and needs no bookkeeping.
-   --------------------------------------------------------------------------- */
-
-body.is-browsing .album-header,
-body.is-browsing .grid,
-body.is-browsing .next-album,
-body.is-browsing .site-footer,
-body.is-browsing .photography-nav {
-  display: none;
-}
-body.is-browsing {
-  overflow: hidden;
-}
-
-.browse {
-  display: none;
-  position: fixed;
-  /* Starts below .masthead (which stays on screen in browse mode too, see
-     its own comment) plus a real margin, rather than underneath it — a
-     photograph now opens with some air below the header instead of its
-     own top edge sitting flush against the rule beneath the nameplate. */
-  top: var(--browse-top);
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 40;
-  background: var(--paper);
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-body.is-browsing .browse {
-  display: block;
-}
-
-/* One of the two quiet corner marks that are the whole of browse mode's
-   chrome besides the photographs themselves. Doubles as the "Grid" toggle
-   (see Browse.astro's exitToGrid — every tag/Selected Work/film-stock page
-   passes "Grid", /saved/ and /share/ still pass their own "Saved"/"Back").
-   Previously bare mix-blend-mode text (legible over any photo with no
-   background needed) — reads, in practice, as stray text floating on top
-   of the photograph rather than a control, especially as the first thing
-   visible on landing in Browse mode. A real translucent chip (the same
-   frosted-paper treatment film-controls already uses for a panel fixed
-   over a long scrolling grid) reads unambiguously as a button instead,
-   legible against its own background rather than relying on blending with
-   whatever the photo underneath happens to be. `top` sits a matching inset
-   below where .browse itself starts (--browse-top), the same distance
-   .browse-saved-link opposite it uses. */
-.browse-home {
-  display: none;
-  position: fixed;
-  left: var(--wrap-inset);
-  top: calc(var(--browse-top) + 1.5rem);
-  z-index: 41;
-  appearance: none;
-  cursor: pointer;
-  font-family: var(--serif);
-  font-size: 0.9375rem;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--ink);
-  text-decoration: none;
-  padding: 0.5rem 0.875rem;
-  border: 1px solid var(--rule);
-  border-radius: 0.25rem;
-  background: color-mix(in srgb, var(--paper) 82%, transparent);
-  backdrop-filter: blur(0.625rem);
-  -webkit-backdrop-filter: blur(0.625rem);
-  box-shadow: 0 0.5rem 1.5rem -0.75rem rgb(0 0 0 / 0.3);
-  transition:
-    border-color 0.2s ease,
-    color 0.2s ease;
-}
-body.is-browsing .browse-home {
-  display: inline-block;
-}
-.browse-home:hover,
-.browse-home:focus-visible {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-/* The Saved collection's own corner mark, opposite browse-home — same chip
-   treatment, hidden until saved.ts's syncSavedUI finds at least one saved
-   photograph (see the shared [data-saved-link] convention it toggles
-   everywhere, including PhotographyNav's own nav item). Same below-.browse
-   clearance as .browse-home above. */
-.browse-saved-link {
-  display: none;
-  position: fixed;
-  right: var(--wrap-inset);
-  top: calc(var(--browse-top) + 1.5rem);
-  z-index: 41;
-  font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--ink);
-  text-decoration: none;
-  padding: 0.5rem 0.875rem;
-  border: 1px solid var(--rule);
-  border-radius: 0.25rem;
-  background: color-mix(in srgb, var(--paper) 82%, transparent);
-  backdrop-filter: blur(0.625rem);
-  -webkit-backdrop-filter: blur(0.625rem);
-  box-shadow: 0 0.5rem 1.5rem -0.75rem rgb(0 0 0 / 0.3);
-  transition:
-    border-color 0.2s ease,
-    color 0.2s ease;
-}
-body.is-browsing .browse-saved-link.is-shown {
-  display: inline-block;
-}
-.browse-saved-link:hover,
-.browse-saved-link:focus-visible {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-/* Same fallback film-controls uses: a touch more opaque so the one thing
-   doing the legibility work, without blur to soften it, is a slightly
-   stronger tint rather than a sharp edge against the photo underneath. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .browse-home,
-  .browse-saved-link {
-    background: color-mix(in srgb, var(--paper) 94%, transparent);
-  }
-}
-
-/* The site nameplate no longer floats a second copy of itself over browse
-   mode — .masthead (above) is visible and painted on top of .browse now
-   (see its own z-index comment), so there is exactly one nameplate
-   implementation, not two that have to be kept in sync by convention. What
-   remains here (.browse-menu-title/-list/-current) is markup
-   .masthead-nameplate itself reuses — see Base.astro. */
-.browse-menu-title {
+/* .nameplate-title/-list/-current: the markup .masthead-nameplate itself
+   reuses — see Base.astro. */
+.nameplate-title {
   margin: 0;
   font-family: var(--serif);
   font-size: 1rem;
   font-weight: 500;
   letter-spacing: 0.03em;
 }
-.browse-menu-list {
+.nameplate-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.375rem 1.5rem;
@@ -959,8 +772,8 @@ body.is-browsing .browse-saved-link.is-shown {
   padding: 0;
   list-style: none;
 }
-.browse-menu-current,
-.browse-menu-list a {
+.nameplate-current,
+.nameplate-list a {
   display: inline;
   padding: 0;
   font-family: var(--serif);
@@ -968,213 +781,106 @@ body.is-browsing .browse-saved-link.is-shown {
   font-size: 0.9375rem;
   letter-spacing: 0.02em;
 }
-.browse-menu-current {
+.nameplate-current {
   opacity: 0.7;
 }
-.browse-menu-list a {
+.nameplate-list a {
   color: inherit;
   text-decoration: none;
   opacity: 0.85;
   transition: opacity 0.2s ease;
 }
-.browse-menu-list a:hover,
-.browse-menu-list a:focus-visible {
+.nameplate-list a:hover,
+.nameplate-list a:focus-visible {
   opacity: 1;
   text-decoration: underline;
 }
 
-/* Every slide is edge to edge now (the horizontal layout, unlike the old
-   vertical one, never gives this quiet fixed label a paper margin to sit
-   in at any viewport width) — mid-scroll, a fixed pixel position can sit
-   half over one photo and half over the paper showing in the snap gap
-   between slides, which mix-blend-mode renders as a visible seam sliced
-   through the text. Fading out while the stack is actually moving (see
-   browse.ts's scroll listener) and back in once it settles avoids ever
-   painting that seam. .browse-menu is deliberately excluded: explicit user
-   request to keep the collections nameplate visible and fixed through
-   every photo-to-photo scroll rather than have it fade on each advance —
-   the seam it can still show mid-scroll is the accepted tradeoff. */
-body.is-scrolling-browse .browse-home,
-body.is-scrolling-browse .browse-saved-link {
-  opacity: 0;
-  pointer-events: none;
+/* ---------------------------------------------------------------------------
+   The lightbox — a standard overlay, not a second "mode": the grid behind
+   it never changes or hides, this just paints on top when a photo is
+   clicked and clears away when it closes. Full-viewport and above
+   everything else (z-index 50, above .masthead's 45), the same as any
+   ordinary modal. Scoped on-dark colour tokens below (--lightbox-ink/
+   -muted) rather than reusing the page's --ink/--muted, which assume a
+   light paper background: the old mix-blend-mode trick existed only
+   because a floating corner mark had to stay legible over an arbitrary
+   photo in a full-bleed reading view. A uniform dark scrim makes that
+   unnecessary — plain light-on-dark colour is simpler and more reliable.
+   --------------------------------------------------------------------------- */
+
+body.lightbox-open {
+  overflow: hidden;
 }
 
-/*
- * Every "page" in the stack — the opener, each photograph, the closer — is
- * exactly one viewport wide and one viewport tall, laid out in a row
- * instead of a column: this is a book read left to right one spread at a
- * time, not a continuous vertical scroll any more. flex-shrink:0 keeps a
- * slide from ever being squeezed narrower than the viewport just because
- * its neighbours exist; mandatory snapping means a scroll or a swipe always
- * settles exactly on one photograph, never half between two.
- */
-.browse-stack {
+.lightbox {
+  --lightbox-ink: var(--paper);
+  --lightbox-muted: color-mix(in srgb, var(--paper) 62%, transparent);
+  position: fixed;
+  inset: 0;
+  z-index: 50;
   display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  height: 100%;
-  scroll-snap-type: x mandatory;
+  background: color-mix(in srgb, var(--ink) 92%, transparent);
+  color: var(--lightbox-ink);
 }
-.browse-intro,
-.browse-outro,
-.browse-item {
-  flex-shrink: 0;
-  width: 100vw;
-  /* 100% of .browse-stack (in turn 100% of .browse), not a hardcoded
-     100vh/100dvh — .browse is no longer the full viewport height itself
-     now that it starts below .masthead (see .browse's own top), so each
-     slide has to size to what's actually left rather than the whole
-     screen. */
-  height: 100%;
-  box-sizing: border-box;
+.lightbox[hidden] {
+  display: none;
+}
+
+.lightbox-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4.5rem 1.5rem 2rem;
+  overflow: hidden;
+}
+@media (max-width: 39.9375rem) {
+  .lightbox-stage {
+    padding: 3.5rem 1rem 1.5rem;
+  }
+}
+
+.lightbox-item {
+  display: none;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 2rem 1.5rem;
-  scroll-snap-align: start;
-  /* Stop at every slide, never skip one on a fast fling — the discrete
-     wheel/touch handling in browse.ts is the primary guard, this is the
-     fallback for any scroll it doesn't intercept (e.g. a scrollbar drag). */
-  scroll-snap-stop: always;
+  max-width: 100%;
+  max-height: 100%;
+  min-height: 0;
 }
-.browse-intro,
-.browse-outro {
+.lightbox-item.is-active {
+  display: flex;
+}
+
+/* zoom.ts owns every touch gesture in here itself (pinch, pan, the tap
+   that backs a zoomed photo out to fit) — without this, the browser's own
+   native pinch-to-zoom-the-whole-page fights it for the same gesture.
+   Clipped so a panned-in photo never visually spills past its own frame. */
+.lightbox-frame {
   position: relative;
-  text-align: center;
-  gap: 0.5rem;
-}
-/* The chapter closer is the one real link inside the browse stack — the
-   opener is purely informational, this is an invitation to keep reading.
-   A custom cursor is the one deliberately un-boring touch on the whole
-   site: a plain right chevron, the same gesture a slideshow's "next" edge
-   uses, telling a visitor this panel goes somewhere before they even
-   reach for the mouse. */
-.browse-outro {
-  color: inherit;
-  text-decoration: none;
-  cursor:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M15 10 L27 20 L15 30' fill='none' stroke='%2316130f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
-      20 20,
-    pointer;
-}
-.browse-outro:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: -4px;
-}
-/* A chapter opener's ghost numeral — the same photograph count already
-   printed in words below it, just set enormous and nearly invisible, the
-   way a fine-press title page repeats a number as pure type texture rather
-   than new information. Real data restated, not decoration invented for
-   the occasion. */
-.browse-intro-count {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0;
-  font-family: var(--serif);
-  font-variant-numeric: oldstyle-nums tabular-nums;
-  font-size: clamp(7rem, 34vw, 26rem);
-  font-weight: 340;
-  line-height: 1;
-  color: var(--ink);
-  opacity: 0.045;
-  pointer-events: none;
-  user-select: none;
+  touch-action: none;
+  overflow: hidden;
 }
-.browse-intro h2,
-.browse-outro h2 {
-  font-size: clamp(2.5rem, 1rem + 9vw, 5.5rem);
-  font-weight: 340;
-  line-height: 1;
-  letter-spacing: -0.03em;
-  margin: 0;
-}
-.browse-outro h2 {
-  transition: color 0.2s ease;
-}
-.browse-outro:hover h2,
-.browse-outro:focus-visible h2 {
-  color: var(--accent);
-}
-.browse-intro-meta {
-  margin: 0.5rem 0 0;
-  display: flex;
-  gap: 0.75rem;
-  font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.9375rem;
-  letter-spacing: 0.02em;
-  color: var(--muted);
-}
-.browse-intro-meta span:not(:last-child)::after {
-  content: '·';
-  margin-left: 0.75rem;
-  color: var(--rule);
-}
-.browse-intro-meta .film-stock {
-  font-weight: 600;
-}
-.browse-intro-meta .film-stock a {
-  color: var(--ink);
-  text-decoration: none;
-  border-bottom: 1px solid var(--rule);
-  transition:
-    color 0.2s ease,
-    border-color 0.2s ease;
-}
-.browse-intro-meta .film-stock a:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-.browse-intro-cue {
-  margin: 3rem 0 0;
-  font-size: 0.875rem;
-  color: var(--muted);
-  animation: browse-intro-cue-fade 3s ease-in-out infinite;
-  transition:
-    color 0.2s ease,
-    transform 0.2s ease;
-}
-.browse-outro:hover .browse-intro-cue,
-.browse-outro:focus-visible .browse-intro-cue {
-  color: var(--accent);
-  transform: translateX(0.3rem);
-  animation-play-state: paused;
-  opacity: 0.75;
-}
-@keyframes browse-intro-cue-fade {
-  0%,
-  100% {
-    opacity: 0.25;
-  }
-  50% {
-    opacity: 0.75;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .browse-intro-cue {
-    animation: none;
-    opacity: 0.5;
-  }
-}
-
-.browse-item .photo {
+.lightbox-frame .photo {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: 100%;
 }
-.browse-item .photo img {
-  /* Contained, not cropped, in either dimension — every photograph, portrait
-     or landscape, has to fit entirely within one slide's fixed box (the
-     viewport itself, minus the caption's own height) rather than being
-     boxed to whichever axis the old vertical layout favoured. */
+.lightbox-frame .photo img {
+  /* Contained, not cropped, in either dimension — every photograph,
+     portrait or landscape, fits entirely within the stage rather than
+     being boxed to whichever axis. */
   width: auto;
   height: auto;
   max-width: 100%;
@@ -1183,94 +889,17 @@ body.is-scrolling-browse .browse-saved-link {
   background-position: center;
 }
 
-/* The photograph is its own prev/next control — a strip at its left edge
-   steps back, a strip at its right edge steps forward (browse.ts's
-   advance(), wired to arrow keys too). Not a 50/50 split of the whole
-   photo — the centre stays neutral — but wide enough that it reliably
-   overlaps the photograph itself: these zones are sized against the
-   frame's own box, which is the full slide (100vw), not the photograph's
-   rendered bounds within it. A letterboxed photo (almost any aspect ratio
-   that isn't an exact match for the viewport) doesn't reach the frame's
-   edge at all, so a too-narrow zone anchored there sits in blank space
-   past the visible image and never gets clicked — that was the bug behind
-   "can't click to the right." Wide enough now to reach well into a
-   letterboxed photo at ordinary viewport widths; arrow keys remain the
-   fully reliable fallback regardless of a photo's own proportions. */
-.browse-item-frame {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* zoom.ts owns every touch gesture in here itself (pinch, pan, the tap
-     that backs a zoomed photo out to fit) — without this, the browser's
-     own native pinch-to-zoom-the-whole-page fights it for the same
-     gesture. Clipped so a panned-in photo never visually spills past its
-     own frame into the caption below. */
-  touch-action: none;
-  overflow: hidden;
-}
-/* Below 40rem, a landscape photo's width fills the narrow viewport long
-   before its height does, so the flex-grown frame above ends up far taller
-   than the photo itself — the photo sits centred in the upper screen while
-   the caption, film stock, and save button (sized to their own content, not
-   flexed) are stranded at the very bottom edge, a long dead gap away from
-   the photograph they describe. Capping the frame's height here still lets
-   percentage sizing on .photo img resolve against it (the flex algorithm's
-   clamped size is a definite used height), but keeps the leftover space
-   small enough that .browse-item's own justify-content: center pulls photo
-   and caption back into one visual group. 66dvh comfortably clears the
-   tallest a standard 2:3 portrait frame gets width-bound to at typical
-   phone widths (~1.5 × the padded content width), so this only ever
-   tightens landscape photos, which were the ones stranding the caption. */
-@media (max-width: 39.9375rem) {
-  .browse-item-frame {
-    max-height: 66dvh;
-  }
-}
-.browse-item-nav {
-  position: absolute;
-  inset: 0;
-  width: clamp(5rem, 35%, 18rem);
-}
-.browse-item-nav-prev {
-  left: 0;
-}
-.browse-item-nav-next {
-  right: 0;
-  left: auto;
-}
-@media (hover: hover) {
-  .browse-item-nav-prev {
-    cursor:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M25 10 L13 20 L25 30' fill='none' stroke='%2316130f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
-        20 20,
-      pointer;
-  }
-  .browse-item-nav-next {
-    cursor:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M15 10 L27 20 L15 30' fill='none' stroke='%2316130f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
-        20 20,
-      pointer;
-  }
-}
-.browse-item figcaption {
+.lightbox-item figcaption {
   flex-shrink: 0;
   margin-top: 0.875rem;
   max-width: var(--measure);
-  margin-inline: auto;
   text-align: center;
-  color: var(--muted);
+  color: var(--lightbox-muted);
   font-size: 0.9375rem;
 }
-/* Per-photo film stock (views spanning more than one roll only, see
-   Browse.astro) and the camera/lens/location line (camera.ts) both use
-   this — as quiet as the single-roll intro panel's version. A photo can
-   stack both lines when a view has neither a single shared film stock nor
-   any camera/location data omitted. */
-.browse-item-meta {
+/* Per-photo film stock and the camera/lens/location line (camera.ts) both
+   use this. A photo can stack both lines when it has both. */
+.lightbox-item-meta {
   flex-shrink: 0;
   margin: 0.875rem 0 0;
   text-align: center;
@@ -1278,25 +907,22 @@ body.is-scrolling-browse .browse-saved-link {
   font-variant-caps: small-caps;
   font-size: 0.875rem;
   letter-spacing: 0.02em;
+  color: var(--lightbox-muted);
 }
-.browse-item-meta a {
-  color: var(--muted);
+.lightbox-item-meta a {
+  color: inherit;
   text-decoration: none;
-  border-bottom: 1px solid var(--rule);
-  transition:
-    color 0.2s ease,
-    border-color 0.2s ease;
+  border-bottom: 1px solid color-mix(in srgb, var(--paper) 30%, transparent);
+  transition: border-color 0.2s ease;
 }
-.browse-item-meta a:hover {
-  color: var(--accent);
-  border-color: var(--accent);
+.lightbox-item-meta a:hover {
+  border-color: var(--lightbox-ink);
 }
 /* The one control on a photograph — last in reading order, after every
    descriptive line, so it reads as a footer action rather than competing
-   with the caption. Plain typography, no button chrome, same small-caps
-   register as .browse-item-meta; the pressed (saved) state just deepens
-   to full ink, no colour, no fill. */
-.browse-save {
+   with the caption. Plain typography, no button chrome; the pressed
+   (saved) state just brightens to full --lightbox-ink. */
+.lightbox-save {
   display: block;
   flex-shrink: 0;
   margin: 1rem auto 0;
@@ -1309,17 +935,17 @@ body.is-scrolling-browse .browse-saved-link {
   font-variant-caps: small-caps;
   font-size: 0.875rem;
   letter-spacing: 0.02em;
-  color: var(--muted);
+  color: var(--lightbox-muted);
   transition: color 0.2s ease;
 }
-.browse-save:hover,
-.browse-save:focus-visible {
-  color: var(--accent);
+.lightbox-save:hover,
+.lightbox-save:focus-visible {
+  color: var(--lightbox-ink);
 }
-.browse-save[aria-pressed='true'] {
-  color: var(--ink);
+.lightbox-save[aria-pressed='true'] {
+  color: var(--lightbox-ink);
 }
-.browse-save-hint {
+.lightbox-save-hint {
   flex-shrink: 0;
   max-width: 22rem;
   margin: 0.5rem auto 0;
@@ -1327,5 +953,89 @@ body.is-scrolling-browse .browse-saved-link {
   font-family: var(--serif);
   font-style: italic;
   font-size: 0.8125rem;
-  color: var(--muted);
+  color: var(--lightbox-muted);
+}
+
+/* Close, prev, next, and the position counter — the lightbox's entire
+   chrome beyond the photograph itself. Pinned to the viewport's own
+   corners/edges, not the page's content column: a full-bleed overlay has
+   no column to align with any more. */
+.lightbox-close,
+.lightbox-nav {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  appearance: none;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+  color: var(--lightbox-ink);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.lightbox-close:hover,
+.lightbox-close:focus-visible,
+.lightbox-nav:hover,
+.lightbox-nav:focus-visible {
+  background: color-mix(in srgb, var(--ink) 65%, transparent);
+}
+.lightbox-close {
+  top: 1rem;
+  right: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 1.375rem;
+  line-height: 1;
+}
+.lightbox-nav {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3rem;
+  height: 3rem;
+  font-size: 1.75rem;
+  line-height: 1;
+}
+.lightbox-nav-prev {
+  left: 1rem;
+}
+.lightbox-nav-next {
+  right: 1rem;
+}
+@media (max-width: 39.9375rem) {
+  .lightbox-close {
+    top: 0.625rem;
+    right: 0.625rem;
+  }
+  .lightbox-nav {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.5rem;
+  }
+  .lightbox-nav-prev {
+    left: 0.375rem;
+  }
+  .lightbox-nav-next {
+    right: 0.375rem;
+  }
+}
+.lightbox-position {
+  position: absolute;
+  top: 1.375rem;
+  left: 1.5rem;
+  z-index: 1;
+  margin: 0;
+  font-family: var(--serif);
+  font-variant-numeric: tabular-nums;
+  font-variant-caps: small-caps;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  color: var(--lightbox-muted);
+}
+@media (max-width: 39.9375rem) {
+  .lightbox-position {
+    top: 1rem;
+    left: 1rem;
+  }
 }

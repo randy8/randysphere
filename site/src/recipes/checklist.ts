@@ -12,7 +12,7 @@
 
 // An empty export makes this a real ES module rather than a global script —
 // without one, `init` below is a *global* declaration (same as
-// photography/browse.ts's own top-level `init`), and TypeScript, correctly,
+// photography/lightbox.ts's own top-level `init`), and TypeScript, correctly,
 // refuses to compile two different global functions with the same name.
 export {};
 

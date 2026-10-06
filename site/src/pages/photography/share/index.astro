@@ -1,9 +1,8 @@
 ---
-import Browse from '../../../photography/Browse.astro';
+import Lightbox from '../../../photography/Lightbox.astro';
 import Photo from '../../../photography/Photo.astro';
 import Base from '../../../layouts/Base.astro';
 import { loadArchive } from '../../../photography/archive.ts';
-import type { View } from '../../../photography/archive.ts';
 import { photography } from '../../../photography/config.ts';
 
 const archive = loadArchive();
@@ -11,10 +10,9 @@ const archive = loadArchive();
 // A shared link names its own photographs entirely in the URL fragment
 // (share-code.ts, decoded by share-view.ts) — the server can't read that,
 // so, same trick as /photography/saved/, this renders the whole archive
-// and lets client-side JS prune both the grid and the Browse stack down to
+// and lets client-side JS prune both the grid and the lightbox down to
 // just the shared subset, in the shared order (not archive order — a
 // shared link is exactly the sequence its sender curated).
-const view: View = { tag: 'share', title: 'Shared', date: null, photos: archive.photos, roll: null };
 ---
 
 <Base
@@ -42,17 +40,17 @@ const view: View = { tag: 'share', title: 'Shared', date: null, photos: archive.
     }
   </ul>
 
-  <Browse view={view} intro={false} exitToGrid="Back" photoMaxWidth={1920} />
+  <Lightbox photos={archive.photos} photoMaxWidth={1920} />
 
   {
-    /* share-view.ts prunes and reorders both the grid and the Browse stack
-       before browse.ts reads either — same document-order guarantee
-       saved-view.ts already relies on ahead of its own browse.ts import. */
+    /* share-view.ts prunes and reorders both the grid and the lightbox
+       before lightbox.ts reads either — same document-order guarantee
+       saved-view.ts already relies on ahead of its own lightbox.ts import. */
   }
   <script>
     import '../../../photography/share-view.ts';
   </script>
   <script>
-    import '../../../photography/browse.ts';
+    import '../../../photography/lightbox.ts';
   </script>
 </Base>

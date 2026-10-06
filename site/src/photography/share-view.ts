@@ -6,11 +6,11 @@
  * it in, not archive order — so this reorders the DOM, not just filters it.
  */
 
-import { openPhoto } from './browse.ts';
+import { openPhoto } from './lightbox.ts';
 import { decodeIds } from './share-code.ts';
 
 const grid = document.querySelector<HTMLElement>('[data-share-grid]');
-const stack = document.querySelector<HTMLElement>('[data-browse-stack]');
+const stage = document.querySelector<HTMLElement>('[data-lightbox-stage]');
 const emptyMessage = document.querySelector<HTMLElement>('[data-share-empty]');
 const summary = document.querySelector<HTMLElement>('[data-share-summary]');
 
@@ -36,8 +36,8 @@ if (grid !== null) {
         el,
       ]),
     );
-    const stackItems = new Map(
-      Array.from(stack?.querySelectorAll<HTMLElement>('[data-photo-id]') ?? [], (el) => [
+    const stageItems = new Map(
+      Array.from(stage?.querySelectorAll<HTMLElement>('[data-photo-id]') ?? [], (el) => [
         el.dataset['photoId'],
         el,
       ]),
@@ -50,14 +50,14 @@ if (grid !== null) {
     ids.forEach((id) => {
       const tile = gridTiles.get(id);
       if (tile !== undefined) grid.appendChild(tile);
-      const item = stackItems.get(id);
-      if (item !== undefined && stack !== null) stack.appendChild(item);
+      const item = stageItems.get(id);
+      if (item !== undefined && stage !== null) stage.appendChild(item);
     });
     const keep = new Set(ids);
     gridTiles.forEach((tile, id) => {
       if (id === undefined || !keep.has(id)) tile.remove();
     });
-    stackItems.forEach((item, id) => {
+    stageItems.forEach((item, id) => {
       if (id === undefined || !keep.has(id)) item.remove();
     });
 
@@ -77,16 +77,3 @@ if (grid !== null) {
     });
   }
 }
-
-const exitToGrid = (): void => {
-  document.body.classList.remove('is-browsing');
-  // Drop only the #photo-<id> fragment browse.ts owns — location.search
-  // (the ?s=... that names this whole shared selection) has to survive,
-  // or a reload from inside the grid would lose the link's own content.
-  history.replaceState(null, '', location.pathname + location.search);
-};
-
-document.querySelector('[data-exit-grid]')?.addEventListener('click', exitToGrid);
-window.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && document.body.classList.contains('is-browsing')) exitToGrid();
-});

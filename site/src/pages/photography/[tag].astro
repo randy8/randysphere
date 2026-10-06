@@ -1,5 +1,5 @@
 ---
-import Browse from '../../photography/Browse.astro';
+import Lightbox from '../../photography/Lightbox.astro';
 import Photo from '../../photography/Photo.astro';
 import Base from '../../layouts/Base.astro';
 import PhotographyNav from '../../photography/PhotographyNav.astro';
@@ -41,21 +41,6 @@ const next = nextView
 ---
 
 <Base title={view.title} description={view.title} image={og?.image} imageWidth={og?.imageWidth} imageHeight={og?.imageHeight}>
-  {
-    /*
-      Browse (one photograph at a time, left to right) is the only reading
-      experience with JavaScript on — this runs before the rest of the page
-      paints so there's no flash of the grid first. The grid below is the
-      no-JS fallback only: without this script running at all, is-browsing
-      never gets added and the plain grid of real links is what renders.
-      `document.body` already exists here regardless of where in the body
-      this tag sits.
-    */
-  }
-  <script is:inline>
-    document.body.classList.add('is-browsing');
-  </script>
-
   <PhotographyNav current="archive" />
   <header class="album-header">
     {
@@ -89,9 +74,6 @@ const next = nextView
   </div>
 
   {
-    /* The no-JS/grid-mode counterpart to Browse.astro's outro panel — same
-       destination, plain-link register, always visible rather than reached
-       by scrolling to the end of a reading view that doesn't exist here. */
     next && (
       <p class="next-album">
         <a href={`/photography/${next.tag}/`}>Next: {next.title} →</a>
@@ -99,10 +81,9 @@ const next = nextView
     )
   }
 
-  <Browse view={view} next={next} exitToGrid="Grid" />
+  <Lightbox photos={view.photos} />
 
   <script>
-    import '../../photography/browse.ts';
-    import '../../photography/grid-toggle.ts';
+    import '../../photography/lightbox.ts';
   </script>
 </Base>

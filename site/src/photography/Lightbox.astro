@@ -1,0 +1,98 @@
+---
+import Photo from './Photo.astro';
+import { formatCameraLine } from './camera.ts';
+import type { ArchivePhoto } from './archive.ts';
+
+interface Props {
+  photos: readonly ArchivePhoto[];
+  /**
+   * Passed straight through to each photograph's own Photo.astro maxWidth
+   * (see there) — unset everywhere except /photography/saved/ and
+   * /photography/share/, which each render every photo in the archive into
+   * this overlay (most of them destined to be pruned away client-side
+   * before a visitor ever opens one, see saved-view.ts/share-view.ts) and
+   * so pay for the full 2560-wide tier — deliberately kept for every other
+   * page's real full-size viewer — on hundreds of photographs that were
+   * never going to use it.
+   */
+  photoMaxWidth?: number;
+}
+
+const { photos, photoMaxWidth } = Astro.props;
+---
+
+{
+  /*
+    A standard lightbox: hidden until a grid tile is clicked (lightbox.ts),
+    then one photo at a time — not Browse mode's full-bleed scroll-snap
+    stack with its own title/outro panels. Those panels restated
+    information the grid's own (now never-hidden) header already shows, so
+    there's nothing here beyond the photograph itself and what describes
+    it. Every photo is still rendered server-side up front (reusing
+    Photo.astro exactly as before) and switched by toggling `.is-active`,
+    not fetched on demand — this is a straight swap-in for the old
+    scroll-snap stack, not a new loading strategy.
+  */
+}
+<div class="lightbox" data-lightbox hidden>
+  <button type="button" class="lightbox-close" data-lightbox-close aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+  </button>
+  <p class="lightbox-position" data-lightbox-position aria-hidden="true"></p>
+  <button
+    type="button"
+    class="lightbox-nav lightbox-nav-prev"
+    data-nav="prev"
+    aria-label="Previous photograph"
+  >
+    <span aria-hidden="true">&#8249;</span>
+  </button>
+  <button
+    type="button"
+    class="lightbox-nav lightbox-nav-next"
+    data-nav="next"
+    aria-label="Next photograph"
+  >
+    <span aria-hidden="true">&#8250;</span>
+  </button>
+  <div class="lightbox-stage" data-lightbox-stage>
+    {
+      photos.map((entry) => (
+        <figure class="lightbox-item" data-photo-id={entry.photo.sourceId}>
+          <div class="lightbox-frame">
+            <Photo entry={entry} sizes="100vw" linked={false} maxWidth={photoMaxWidth} />
+          </div>
+          {
+            entry.roll.filmStock && (
+              <p class="lightbox-item-meta">
+                <a href={`/photography/film/${entry.roll.filmStock}/`}>{entry.roll.filmStock}</a>
+              </p>
+            )
+          }
+          {entry.caption && <figcaption>{entry.caption}</figcaption>}
+          {formatCameraLine(entry) && <p class="lightbox-item-meta">{formatCameraLine(entry)}</p>}
+          <button type="button" class="lightbox-save" data-save aria-pressed="false">
+            <span data-save-icon aria-hidden="true">
+              +
+            </span>{' '}
+            <span data-save-label>Save</span>
+          </button>
+          <p class="lightbox-save-hint" data-save-hint hidden>
+            Save photographs to revisit later. Stored only in this browser.
+          </p>
+        </figure>
+      ))
+    }
+  </div>
+</div>
+
+{
+  /* Pinch-to-zoom, self-contained (see zoom.ts) — every page that renders
+     <Lightbox> gets it for free with no per-page wiring. */
+}
+<script>
+  import { initZoom } from './zoom.ts';
+
+  const root = document.querySelector<HTMLElement>('[data-lightbox]');
+  if (root !== null) initZoom(root);
+</script>

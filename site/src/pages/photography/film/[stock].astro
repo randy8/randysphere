@@ -1,5 +1,5 @@
 ---
-import Browse from '../../../photography/Browse.astro';
+import Lightbox from '../../../photography/Lightbox.astro';
 import Photo from '../../../photography/Photo.astro';
 import Base from '../../../layouts/Base.astro';
 import PhotographyNav from '../../../photography/PhotographyNav.astro';
@@ -32,10 +32,6 @@ const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefi
   imageWidth={og?.imageWidth}
   imageHeight={og?.imageHeight}
 >
-  <script is:inline>
-    document.body.classList.add('is-browsing');
-  </script>
-
   <PhotographyNav current="archive" />
   <header class="album-header">
     <p class="eyebrow">Film Stock</p>
@@ -60,10 +56,9 @@ const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefi
     }
   </div>
 
-  <Browse view={view} exitToGrid="Grid" />
+  <Lightbox photos={view.photos} />
 
   <script>
-    import '../../../photography/browse.ts';
-    import '../../../photography/grid-toggle.ts';
+    import '../../../photography/lightbox.ts';
   </script>
 </Base>

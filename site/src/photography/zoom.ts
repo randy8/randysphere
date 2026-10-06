@@ -1,22 +1,19 @@
 /**
- * Pinch-to-zoom and pan for the current photo in Browse mode — touch-only,
- * purely additive on top of browse.ts, and deliberately not double-tap.
- * The nav-zone strips a plain tap advances through (see base.css's comment
- * on .browse-item-nav) already treat a single tap as "advance," instantly,
- * with no threshold — browse.ts's own wheel/touchmove comment already
- * rejected trading that away for a gesture that "reads as unpredictable."
- * Double-tap-to-zoom would mean holding every ordinary tap back a couple
- * hundred milliseconds waiting to see if a second one arrives, which is
- * exactly that tradeoff. Pinch has no such conflict — it always takes two
- * touches, which a single-tap advance never does — so it's the one gesture
- * added here. Once zoomed, a plain tap is repurposed to back out to fit
- * (there's no next photo to reveal from inside a zoomed-in crop anyway);
- * an ordinary tap on an unzoomed photo is untouched and still advances
- * exactly as before.
+ * Pinch-to-zoom and pan for the open photo in the lightbox — touch-only,
+ * purely additive on top of lightbox.ts, and deliberately not double-tap.
+ * A plain tap on the photo itself does nothing in the lightbox (navigation
+ * is the explicit prev/next buttons, not a tap-zone on the image), so
+ * there's no competing single-tap gesture to protect — pinch was simply
+ * the gesture worth building: it always takes two touches, which nothing
+ * else here ever does, so it can't be mistaken for anything. Once zoomed,
+ * a plain tap on the photo is repurposed to back out to fit, since that's
+ * otherwise the only way to leave a zoomed-in crop without reaching for
+ * the close button or Escape.
  *
- * One delegated listener set on the stack, not one per photo (a Selected
- * Work stack alone is 325 frames) — state for whichever frame is actually
- * mid-gesture lives in a WeakMap, created lazily on first touch.
+ * One delegated listener set on the stage, not one per photo (a Selected
+ * Work lightbox alone holds hundreds of frames) — state for whichever
+ * frame is actually mid-gesture lives in a WeakMap, created lazily on
+ * first touch.
  */
 
 const MAX_SCALE = 4;
@@ -138,17 +135,17 @@ function frameAndImg(
   target: EventTarget | null,
 ): { frame: HTMLElement; img: HTMLImageElement } | null {
   if (!(target instanceof Element)) return null;
-  const frame = target.closest<HTMLElement>('.browse-item-frame');
+  const frame = target.closest<HTMLElement>('.lightbox-frame');
   const img = frame?.querySelector('img') ?? null;
   if (frame === null || img === null) return null;
   return { frame, img };
 }
 
 export function initZoom(root: HTMLElement): void {
-  const stack = root.querySelector<HTMLElement>('[data-browse-stack]');
-  if (stack === null) return;
+  const stage = root.querySelector<HTMLElement>('[data-lightbox-stage]');
+  if (stage === null) return;
 
-  stack.addEventListener(
+  stage.addEventListener(
     'touchstart',
     (event) => {
       const found = frameAndImg(event.target);
@@ -183,7 +180,7 @@ export function initZoom(root: HTMLElement): void {
     { passive: false },
   );
 
-  stack.addEventListener(
+  stage.addEventListener(
     'touchmove',
     (event) => {
       const found = frameAndImg(event.target);
@@ -269,29 +266,28 @@ export function initZoom(root: HTMLElement): void {
     if (!state.moved && state.scale > 1) reset(frame, img, state);
   };
 
-  stack.addEventListener('touchend', end);
-  stack.addEventListener('touchcancel', end);
+  stage.addEventListener('touchend', end);
+  stage.addEventListener('touchcancel', end);
 
-  // Scrolling away from a zoomed-in photo — by tapping the opposite nav
-  // zone, the keyboard, or Saved's contact-sheet grid — always resets it,
+  // Navigating away from a zoomed-in photo — prev/next, the keyboard, or
+  // Saved's contact-sheet grid opening a different one — always resets it,
   // the same way a real photo viewer never leaves the next photograph
-  // zoomed in from whatever the last one was left at. This has to be its
-  // own observer rather than reusing browse.ts's: that one only fires past
-  // the midpoint of a full slide crossing (CURRENT_MARK), which is exactly
-  // the swipe/settle threshold this needs to run well ahead of.
-  const items = Array.from(stack.querySelectorAll<HTMLElement>('.browse-item'));
+  // zoomed in from whatever the last one was left at. Watching `.is-active`
+  // itself (rather than calling into lightbox.ts's own navigation
+  // functions) keeps this file self-contained — every way a photo stops
+  // being active flips this same class (see lightbox.ts's
+  // activate()/close()), so there's exactly one thing to watch.
+  const items = Array.from(stage.querySelectorAll<HTMLElement>('.lightbox-item'));
   if (items.length === 0) return;
-  const observer = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        if (entry.intersectionRatio > 0.5) continue;
-        const frame = entry.target.querySelector<HTMLElement>('.browse-item-frame');
-        const img = frame?.querySelector('img') ?? null;
-        if (frame === null || img === null) continue;
-        reset(frame, img, stateFor(frame));
-      }
-    },
-    { root, threshold: [0, 0.5] },
-  );
-  items.forEach((item) => observer.observe(item));
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      const item = mutation.target as HTMLElement;
+      if (item.classList.contains('is-active')) continue;
+      const frame = item.querySelector<HTMLElement>('.lightbox-frame');
+      const img = frame?.querySelector('img') ?? null;
+      if (frame === null || img === null) continue;
+      reset(frame, img, stateFor(frame));
+    }
+  });
+  items.forEach((item) => observer.observe(item, { attributes: true, attributeFilter: ['class'] }));
 }

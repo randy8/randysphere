@@ -1,20 +1,14 @@
 ---
-import Browse from '../../../photography/Browse.astro';
+import Lightbox from '../../../photography/Lightbox.astro';
 import Photo from '../../../photography/Photo.astro';
 import Base from '../../../layouts/Base.astro';
 import PhotographyNav from '../../../photography/PhotographyNav.astro';
 import { loadArchive, selectedWork } from '../../../photography/archive.ts';
-import type { View } from '../../../photography/archive.ts';
 import { ogImageOf } from '../../../photography/image.ts';
 import { photography } from '../../../photography/config.ts';
 
 const archive = loadArchive();
 const photos = selectedWork(archive);
-
-// Selected Work is a hand-picked, hand-ordered sequence across the whole
-// archive — not a tag, so it is never built through viewForTag. This is the
-// same View shape Browse.astro already reads, built directly instead.
-const view: View = { tag: 'selected', title: 'Selected Work', date: null, photos, roll: null };
 const hero = photos[0]?.photo;
 const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefined;
 ---
@@ -26,17 +20,6 @@ const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefi
   imageWidth={og?.imageWidth}
   imageHeight={og?.imageHeight}
 >
-  {
-    /* Same as every other photography page now: browse mode opens
-       immediately, before the rest of the page paints, so there's no flash
-       of the grid first. The grid below is the no-JS fallback only. */
-    photos.length > 0 && (
-      <script is:inline>
-        document.body.classList.add('is-browsing');
-      </script>
-    )
-  }
-
   <PhotographyNav current="selected" />
 
   {
@@ -67,7 +50,7 @@ const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefi
           ))}
         </div>
 
-        <Browse view={view} intro={false} exitToGrid="Grid" />
+        <Lightbox photos={photos} />
 
         {
           /*
@@ -75,20 +58,21 @@ const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefi
             real editorial sequence — the one thing that renders before any
             script runs, and the no-JS fallback (the grid above keeps that
             fixed order; nothing reshuffles it, since JS never shows it).
-            This reshuffles only the browse sequence into a fresh random
-            order on top of it, once per page load, so scrolling through
-            Selected Work doesn't show the same fixed lineup every time you
-            look. Runs as a synchronous inline script, before browse.ts's
-            own deferred module script below, so browse.ts's init() only
-            ever sees the already-shuffled DOM — never re-syncs on its own,
-            so a reload reshuffles again, which is the point.
+            This reshuffles only the lightbox's own internal order (what
+            prev/next step through once a photo is open) on top of it, once
+            per page load, so arrowing through Selected Work doesn't show
+            the same fixed lineup every time you look. Runs as a synchronous
+            inline script, before lightbox.ts's own deferred module script
+            below, so lightbox.ts's init() only ever sees the
+            already-shuffled DOM — never re-syncs on its own, so a reload
+            reshuffles again, which is the point.
           */
         }
         <script is:inline>
           {
-            const stack = document.querySelector('[data-browse-stack]');
-            if (stack) {
-              const items = Array.from(stack.querySelectorAll('[data-photo-id]'));
+            const stage = document.querySelector('[data-lightbox-stage]');
+            if (stage) {
+              const items = Array.from(stage.querySelectorAll('[data-photo-id]'));
               const ids = items.map((el) => el.dataset.photoId);
               for (let i = ids.length - 1; i > 0; i -= 1) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -97,15 +81,14 @@ const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefi
               const byId = new Map(items.map((el) => [el.dataset.photoId, el]));
               for (const id of ids) {
                 const el = byId.get(id);
-                if (el) stack.appendChild(el);
+                if (el) stage.appendChild(el);
               }
             }
           }
         </script>
 
         <script>
-          import '../../../photography/browse.ts';
-          import '../../../photography/grid-toggle.ts';
+          import '../../../photography/lightbox.ts';
         </script>
       </Fragment>
     )

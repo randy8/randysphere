@@ -1720,7 +1720,7 @@ project's design principles ask for. Second, once the masthead went
 horizontal, a follow-up request asked that Browse mode's corner mark
 match it rather than staying the odd one out, on the explicit condition
 that doing so cost the photograph nothing. It doesn't: a single line (or
-two, wrapped, on a phone) is *shorter* than the five-line vertical stack
+two, wrapped, on a phone) is _shorter_ than the five-line vertical stack
 (title, rule, four collection rows) it replaces, so the corner mark now
 covers less of the photo than before, not more — the mix-blend-mode/
 no-background treatment that keeps it from ever painting an opaque panel
@@ -1895,7 +1895,7 @@ tag/film-stock page), the first thing visible was the word "Grid" sitting
 translucently on top of the hero photograph — "I shouldn't see 'Grid'
 overlayed on top of the photo." The corner mark itself (reachability back
 to the grid, per 2026-09-02's "The grid is back...") wasn't in question —
-confirmed directly, the fix was to the mark's *presentation*: mix-blend-mode
+confirmed directly, the fix was to the mark's _presentation_: mix-blend-mode
 text with no background reads as debris sitting on the image rather than a
 control, especially as the very first thing a visitor sees before they've
 had a chance to learn what it is. An opaque chip is legible against its own
@@ -1945,3 +1945,137 @@ tablets were already using the full available width and are unaffected.
 continuously than a single fixed breakpoint allows — a `clamp()` between
 today's value and something narrower would be the next step, rather than
 another flat number.
+
+---
+
+## 2026-10-06 — Recipes/Music widened a second time, to 58rem/44rem
+
+**Decision.** `.recipe-scope`/`.recipe-index`/`.recipe-doc` move from
+`46rem` to `58rem`; `.music-scope` moves from `38rem` to `44rem`.
+
+**Why.** Direct, immediate follow-up to the entry above: the first widening
+pass wasn't enough — "need to widen those margins" again, confirmed
+against the same two collections rather than any other page (films and
+photography were re-checked and genuinely have no equivalent narrow
+column). No new reasoning beyond the entry above; this is the same
+direction, taken further.
+
+**Revisit if.** Same as above.
+
+---
+
+## 2026-10-06 — A roll is promoted to its own batch, same as the Paris split
+
+**Decision.** `originals/liang/{4852,4853,4854}` (added this session, see
+the batch-ingest entry above) is gone; each of its three rolls is now its
+own top-level batch — `originals/4852/`, `originals/4853/`, `originals/4854/`
+— the same shape `0827`–`0830` already use. `albums/liang/` and
+`generated/albums/liang.json` no longer exist; `albums/4852/`,
+`albums/4853/`, and `albums/4854/` replace them, each with its roll id as
+`.` (a flat batch is roll `.`, per the film-roll model in `CLAUDE.md`).
+
+**Why.** Direct user request — "they shouldn't be in /liang at all, move
+the subdirs up to be level with the other rolls of film." The "liang"
+grouping was never a meaningful trip/subject distinction, just this
+session's convenient name for the whole transfer; three rolls that happen
+to share no story beyond "came off the same card" don't need a shared
+parent batch.
+
+This hit the exact cross-batch sourceId limitation `CLAUDE.md` already
+flags from the Paris split: identity-survives-a-move matching is scoped to
+one batch slug's own previous manifest, so a plain `pnpm ingest` after the
+move would have treated all 108 photographs as brand new — losing the
+`liang` tag and the film stock already noted in `albums/liang/rolls.yaml`
+minutes earlier. Rather than accept that loss (as the Paris split did, per
+its own entry above), each new album's `photos.yaml`/`rolls.yaml` was
+hand-written _before_ running ingest, with `sourceId`s and `tags` copied
+over unchanged and `file` paths stripped of their old `4852/`-style roll
+prefix (now redundant — the roll is the batch root). `pnpm ingest` then
+matched every entry by `sourceId` and found nothing to add, remove, or
+backfill, so it left all three files untouched; the move cost zero
+re-encoding, too — `generated/derivatives/` is keyed by `sourceId`, which
+never changed, so `pnpm publish:local` afterward uploaded 0 new files.
+
+The `liang` tag itself was deliberately left as-is on all 108 photos,
+not renamed to match the new batch names — tags are photographer-authored
+and independent of batch naming (`CLAUDE.md`'s "Archive model"), and
+nobody asked for a different tag, just a different directory shape.
+
+**Revisit if.** The cross-batch sourceId-matching gap (item 4 in
+`CLAUDE.md`'s "Immediate next priorities") ever gets built for real — at
+that point this kind of restructuring wouldn't need a hand-written
+`photos.yaml` detour at all, `pnpm ingest` could do it unassisted.
+
+---
+
+## 2026-10-06 — Browse mode is gone; the grid is always the page, a standard lightbox opens on click
+
+**Decision.** This supersedes 3c38f72's "Browse becomes photography's only
+reading experience" and every decision layered on top of it since (the
+2026-08-24 pinch-zoom and mobile-frame entries, 2026-08-27's floating
+nameplate, the 2026-08-28 trio tightening it, 2026-09-02's "masthead stays
+on screen" and "the grid is back" entries). None of those decisions were
+wrong given what they were solving at the time; this one changes what the
+photo-viewing experience fundamentally is, so it replaces them rather than
+adding another layer.
+
+`Browse.astro`/`browse.ts`/`grid-toggle.ts` are deleted outright. In their
+place: `Lightbox.astro` + `lightbox.ts`, a standard overlay — close
+button, prev/next, a position counter, one photo at a time — that opens on
+a grid-tile click and closes back to the exact same grid. There is no
+mode to auto-enter on load, no "Grid" corner-mark button to switch back
+and forth, no chapter intro panel (title/date/count — already shown in
+the grid's own `.album-header`, which no longer ever hides) and no chapter
+outro panel linking to the next album (redundant with the plain
+`.next-album` link tag pages already render in the grid). The grid is
+simply always the page, for every visitor, JavaScript or not — `lightbox.ts`
+only intercepts a tile click to open the overlay instead of following the
+link to the raw image.
+
+Kept, carried over with no behavioural change: `#photo-<id>` +
+`?photo=<id>` URL sync (`tools/serve/src/share-preview.ts` depends on the
+exact `?photo=` convention for Open Graph previews — this is the one piece
+that could not drift), deep-linking straight to a photo on load, the Save
+button and its first-use hint (`saved.ts`, untouched), Selected Work's
+per-load shuffle (now shuffling the lightbox's own photo order rather than
+a scroll stack's), and pinch-to-zoom (`zoom.ts`, retargeted to the new
+class names — `.lightbox-frame` instead of `.browse-item-frame` — and its
+one piece of coupling to the old scroll-position tracking replaced with a
+`MutationObserver` on `.is-active`, so it stays self-contained rather than
+calling into `lightbox.ts`'s own navigation functions).
+
+Saved and Share got simpler, not just ported: both lose their own
+`exitToGrid`-driven "Back"/"Saved" corner button and Escape handler — that
+existed only because leaving "browse mode" was a special case per page.
+Every page now closes the lightbox the same way (×, Escape, or clicking
+the backdrop), so that per-page logic was deleted rather than carried
+forward.
+
+One deliberate aesthetic call: the lightbox sits on a dark (ink-toned, not
+pure black) scrim, a clean break from the mix-blend-mode-on-arbitrary-photo
+trick the old corner marks needed (see the 2026-10-06 "opaque chips" entry
+above, from earlier the same day — that fix was already heading this
+direction before the whole mode was reconsidered). A uniform dark backdrop
+makes mix-blend-mode unnecessary: plain light-on-dark colour is legible
+against its own background regardless of which photo is open, which is
+also why the lightbox's hover/focus state brightens toward white rather
+than reaching for `--accent` (a dark oxblood red reads at roughly 1.7:1
+contrast against a near-black scrim — nowhere near legible).
+
+**Why.** Direct user request: "i need to improve the view of selected
+photos vs grid - i think it's too messy as it stands... simplify it to be
+more standard looking." Asked to confirm scope before touching anything
+this established — the answer was the whole two-mode concept, not just
+the grid's own styling: "the idea of two separate views for the same
+photos (plus corner-mark toggles to switch) feels overbuilt. Simplify
+toward one standard pattern — e.g. a plain grid that opens a
+lightbox/viewer on click." That is exactly what this is: the pattern
+essentially every photo site (Flickr, Google Photos, Unsplash, Apple
+Photos) already uses, and it nets out as less code than what it replaced,
+not an equivalent amount moved around.
+
+**Revisit if.** A continuous, scroll-through reading experience turns out
+to still be wanted for some specific context (a slideshow mode, say) —
+that would be a new, clearly-scoped addition on top of the lightbox, not a
+reason to resurrect Browse mode's machinery, which this decision treats as
+gone for good.

@@ -26,14 +26,16 @@
    (64ch) — on this serif's actual glyph metrics that renders to roughly
    34rem, under half of .wrap's 76rem, which read as a narrow column
    stranded in an oversized page rather than a deliberate magazine column.
-   46rem is a fixed rem value instead of a font-relative ch one (so it
-   doesn't move if the typeface's own metrics ever do) and keeps the column
-   within a normal prose reading width while giving the page noticeably
-   less dead margin on anything wider than a tablet. Below ~49rem (46rem
-   plus .wrap's own padding) this is already the full available width, so
-   phones and small tablets are unaffected either way. */
+   A first pass widened this to 46rem; direct follow-up feedback was that
+   it was still too narrow, so this is 58rem now — comfortably inside
+   .wrap's own 76rem rather than pushed right up against it, but a page
+   that reads as using its own width rather than one with a narrow column
+   adrift in it. A fixed rem value rather than a font-relative ch one, so
+   it doesn't move if the typeface's own metrics ever do. Below ~61rem
+   (58rem plus .wrap's own padding) this is already the full available
+   width, so phones and most tablets are unaffected either way. */
 .recipe-scope {
-  max-width: 46rem;
+  max-width: 58rem;
   margin-inline: auto;
 }
 /* Recipes are read for the task, not lingered over the way a photograph's
@@ -53,7 +55,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  max-width: 46rem;
+  max-width: 58rem;
   border-bottom: 1px solid var(--rule);
 }
 .recipe-index li {
@@ -91,7 +93,7 @@
 }
 
 .recipe-doc {
-  max-width: 46rem;
+  max-width: 58rem;
 }
 .recipe-doc-description {
   color: var(--muted);
