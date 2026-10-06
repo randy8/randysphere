@@ -99,9 +99,10 @@ const next = nextView
     )
   }
 
-  <Browse view={view} next={next} />
+  <Browse view={view} next={next} exitToGrid="Grid" />
 
   <script>
     import '../../photography/browse.ts';
+    import '../../photography/grid-toggle.ts';
   </script>
 </Base>

@@ -41,7 +41,17 @@ before(async () => {
   const generatedAlbumsDir = join(root, 'albums');
 
   await mkdir(distDir, { recursive: true });
-  await writeFile(join(distDir, 'index.html'), '<h1>Public home</h1>');
+  // The real build's dist/index.html is Astro's meta-refresh redirect page
+  // — never served in production because the "/" route below redirects for
+  // real before this file is ever read. Kept in the fixture only to prove
+  // that.
+  await writeFile(
+    join(distDir, 'index.html'),
+    '<!doctype html><title>Redirecting to: /photography/selected/</title>' +
+      '<meta http-equiv="refresh" content="0;url=/photography/selected/">',
+  );
+  await mkdir(join(distDir, 'photography', 'selected'), { recursive: true });
+  await writeFile(join(distDir, 'photography', 'selected', 'index.html'), '<h1>Public home</h1>');
   await writeFile(join(distDir, '404.html'), '<h1>Not found, distinctively</h1>');
   await mkdir(join(distDir, 'p', 'abc123'), { recursive: true });
   await writeFile(join(distDir, 'p', 'abc123', '1200-deadbeef.avif'), 'not really avif bytes');
@@ -96,11 +106,23 @@ before(async () => {
       photos: [
         {
           sourceId: SHARED_ID,
-          og: { format: 'jpeg', width: 1200, height: 630, bytes: 1000, key: `p/${SHARED_ID}/og-1.jpg` },
+          og: {
+            format: 'jpeg',
+            width: 1200,
+            height: 630,
+            bytes: 1000,
+            key: `p/${SHARED_ID}/og-1.jpg`,
+          },
         },
         {
           sourceId: TAG_PHOTO_ID,
-          og: { format: 'jpeg', width: 1200, height: 675, bytes: 1000, key: `p/${TAG_PHOTO_ID}/og-2.jpg` },
+          og: {
+            format: 'jpeg',
+            width: 1200,
+            height: 675,
+            bytes: 1000,
+            key: `p/${TAG_PHOTO_ID}/og-2.jpg`,
+          },
         },
       ],
     }),
@@ -126,6 +148,20 @@ after(async () => {
 });
 
 test('the public site is served for an ordinary path', async () => {
+  const response = await fetch(`${baseUrl}/photography/selected/`);
+  assert.equal(response.status, 200);
+  assert.match(await response.text(), /Public home/);
+});
+
+test('"/" issues a real HTTP redirect to Selected Work rather than serving Astro\'s meta-refresh flash page', async () => {
+  const response = await fetch(`${baseUrl}/`, { redirect: 'manual' });
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get('location'), '/photography/selected/');
+  const body = await response.text();
+  assert.doesNotMatch(body, /Redirecting/);
+});
+
+test('"/" still resolves to the real page once redirects are followed', async () => {
   const response = await fetch(`${baseUrl}/`);
   assert.equal(response.status, 200);
   assert.match(await response.text(), /Public home/);
@@ -252,7 +288,9 @@ test('a share link with no ?s= serves the page byte-for-byte unchanged', async (
 });
 
 test('a share link whose ?s= names no real photograph also serves the page unchanged', async () => {
-  const response = await fetch(`${baseUrl}/photography/share/?s=${encodeIdsForTest(['ffffffffffffffff'])}`);
+  const response = await fetch(
+    `${baseUrl}/photography/share/?s=${encodeIdsForTest(['ffffffffffffffff'])}`,
+  );
   assert.equal(response.status, 200);
   const body = await response.text();
   assert.match(body, /og-default\.png/);

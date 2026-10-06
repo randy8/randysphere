@@ -652,7 +652,7 @@ tag/selected/film-stock grids, the Archive cover grid) and, since Saved
 and Share's 325-photo multiplier makes the waste far worse there, `960`
 for their grid tiles specifically plus a new `Browse.astro` prop,
 `photoMaxWidth`, capping their full-screen stack to `1920` (dropping only
-the top tier the 2026-08-19 entry added specifically for the *primary*
+the top tier the 2026-08-19 entry added specifically for the _primary_
 full-size reading view, which this isn't). Saved dropped to 693KB, Share
 to 662KB — real, measured, ~20% cuts, not a full fix: getting further
 would mean a real per-request server render, the same wall the
@@ -662,11 +662,11 @@ static-site architecture keeps running into, and wasn't attempted here.
 
 ## 2026-08-20 — A specific photograph's own Open Graph preview
 
-The per-shared-collection preview above only ever showed the *first*
+The per-shared-collection preview above only ever showed the _first_
 shared photo. Copying the address bar while looking at any one
 photograph anywhere in Browse — a tag, Selected Work, a film stock,
 Saved, a share link already open on one photo within it — now previews
-*that* one specifically. `browse.ts`'s `replaceHash` sets `?photo=<id>`
+_that_ one specifically. `browse.ts`'s `replaceHash` sets `?photo=<id>`
 in the query string alongside the `#photo-<id>` hash it always kept
 (built from the current URL, only ever setting that one key, so it never
 touches another param already there, like the share page's own `?s=`) —
@@ -674,13 +674,207 @@ a link-preview bot reads raw HTML with no query string, but it also never
 runs the JavaScript that decodes a hash, so the fragment was always going
 to be invisible to it regardless.
 
-`tools/serve` now checks for `?photo=` on *any* HTML page, not just
+`tools/serve` now checks for `?photo=` on _any_ HTML page, not just
 `/photography/share/`: `share-preview.ts` gained `findPhotoPreview`, a
 single-id lookup, and the `og:image` rewrite itself became a proper
 regex replace of whatever's currently in the tag — not a match against
 one known default string — since a tag/film-stock/Selected-Work page
 already passes its own cover photo as `image` to `<Base>` (a real photo,
-just not necessarily *this* one), where `/photography/share/`'s only
+just not necessarily _this_ one), where `/photography/share/`'s only
 ever the site-wide default. `?photo=` takes precedence over `?s=` when a
 share link happens to be open on a specific photo, for the same reason:
 more specific wins.
+
+---
+
+## 2026-08-24 — `/` goes straight to photography
+
+Visiting the site now lands directly on `/photography/selected/` instead
+of stopping first at a table of contents listing every collection. That
+table of contents still exists — it moved, unchanged, to `/collections/`,
+and the site-wide footer now carries an "All collections" link so recipes,
+music, and films stay reachable from the site itself rather than only by
+direct URL or a search engine. This is a deliberate reversal of the
+2026-08-03 decision that made `/` a collections homepage in the first
+place: photography is still the reason this site exists, and a visitor
+should see it first. See `docs/decisions.md`, 2026-08-24, for the reasoning
+and what was rejected.
+
+Separately, the reading/browse view got a mobile fix: on a phone-width
+screen, a landscape photo left a large dead gap of empty paper both above
+and below it, with its caption and Save button stranded at the very
+bottom edge of the screen. The frame that holds each photo now caps its
+height below the 40rem breakpoint, closing that gap to a few pixels
+without shrinking portrait photos (already comfortably under the cap) or
+the touch tap-zones used to advance between photos. See `docs/decisions.md`
+for why a tighter fix (shrinking the frame to hug the photo exactly) was
+rejected — it would have shrunk those tap zones along with it.
+
+Also fixed: tapping "next" inside a shared album link, or Saved, could walk
+straight out of that curated selection into unrelated photos from the rest
+of the archive — confirmed against a real production build, not just dev.
+The cause was a module-evaluation-order bug, not a logic bug: both pages
+prune the Browse stack down to their own subset via a script that imports
+`openPhoto` from `browse.ts`, and per the ES module spec that import forces
+`browse.ts`'s own top-level `init()` — which snapshots the stack's photos
+once, for the whole page's lifetime — to run _before_ the pruning script's
+own body does, no matter which `<script>` tag looks first in the page.
+`init()` now runs a microtask later, which is enough for it to always see
+the already-pruned stack. See `docs/decisions.md` for the full trace.
+
+The site title in Browse mode's top-left corner is now the trigger for a
+small fixed menu listing every collection, opening right underneath it —
+not a plain link to `/` any more. Once `/` started redirecting straight to
+photography (above), that link had degenerated into "reload the page
+you're already on"; the footer's own "All collections" link is no help
+either, since browse mode hides the footer along with the rest of its
+chrome by design. This is the only visible way to reach the other
+collections from photography's own default landing page now. An earlier
+pass tried a second, separate "Collections" corner mark instead
+(bottom-left, alongside the existing home mark and Saved link) before
+landing on folding it into the site title itself.
+
+---
+
+## 2026-08-24 — Pinch-to-zoom in Browse mode
+
+The current photo in Browse mode can now be pinch-zoomed (up to 4×) and
+panned around while zoomed, touch-only. A plain tap on a zoomed-in photo
+backs it out to fit rather than advancing — there's no next photo to
+reveal from inside a zoomed-in crop — and zoom resets automatically the
+moment a photo scrolls out of view, however that happens (tapping the
+opposite nav zone, an arrow key, Saved's contact-sheet grid), so the next
+photo always opens at fit scale regardless of how the last one was left.
+
+Double-tap-to-zoom was considered and rejected: the nav-zone strips a
+plain tap already advances through overlap most of the photo (a
+letterboxed photo doesn't reach the frame's own edges), so recognizing a
+double-tap would mean holding every ordinary single tap back a couple
+hundred milliseconds to see if a second one arrives — exactly the kind of
+threshold browse.ts's own wheel/touchmove handling already rejected for
+this same gesture, for the same reason. Pinch has no such conflict: it
+always takes two simultaneous touches, which a single-tap advance never
+does, so it costs the existing interaction nothing. See `docs/decisions.md`
+for the anchoring math (the point under two pinching fingers stays fixed
+as the scale changes) and how the resulting synthetic click gets swallowed
+so a pinch or a zoomed tap-to-reset can never also register as "advance."
+
+---
+
+## 2026-08-27 — The collections menu is always visible; `/` redirects without a flash
+
+Browse mode's collections menu, added three days earlier as a click-to-open
+dropdown under the site title, is now just always there — a small standing
+nameplate (title, a thin rule, the other collections underneath) rather
+than a panel a visitor has to notice and click first. Nothing opens or
+closes any more, so the JavaScript that owned that state
+(`collections-menu.ts`) is gone entirely; the menu is now plain links,
+working identically with JavaScript disabled. The frosted-paper card the
+dropdown used is gone too — appropriate for something that appears for a
+moment on click, wrong for a card that would otherwise sit over every
+photograph for an entire visit — in favor of the same borderless,
+mix-blend-mode treatment the site's other quiet corner marks already use.
+
+Separately, production's home page (`/`) stopped visibly flashing its own
+redirect page before landing on Selected Work. Astro's static build can
+only ever turn a configured redirect into a real page that redirects
+itself via `<meta http-equiv="refresh">` — there's no server at build time
+to do better — and that page's own title and fallback link were briefly
+visible before the refresh fired. `tools/serve`, the process that actually
+answers production traffic, now intercepts `/` and issues a real HTTP
+redirect itself, so that generated page is never read for a normal
+request any more.
+
+---
+
+## 2026-08-28 — The collections nav reaches every page, not just photography browse mode
+
+Every page now shows the exact same collections nameplate Browse mode
+floats over a photo — title, a thin rule, every collection listed
+underneath with the current one inert — not just a lookalike. `Base.astro`'s
+masthead, previously just the site title linking to `/`, now renders that
+same markup directly, so the two can't drift apart in typography or
+spacing the way an early pass at this (a separate horizontal, middot-
+separated nav) did. Recipes, films, music, `/collections/` itself, and
+photography's own non-browsing pages (the archive grid, About) all pick
+this up for free. The footer's old, single "All collections" link is gone
+— the masthead does that job everywhere now. The masthead also stays on
+screen while a page scrolls (`position: sticky`) rather than scrolling
+away with everything else, so it's reachable the same way no matter how
+far down any page you are — the same standing presence Browse mode's own
+nameplate already has.
+
+Separately, the browse-mode nameplate stopped fading out on every single
+photo-to-photo advance. It previously faded during any stack scroll to
+avoid a `mix-blend-mode` rendering seam mid-scroll; in practice that read
+as flicker on every navigation rather than a subtle fix, so it now stays
+visible and fixed throughout. See `docs/decisions.md` for both.
+
+---
+
+## 2026-08-28 — Browse mode's corner marks stop jumping sideways on navigation
+
+Clicking into or out of photography's browse mode used to visibly shift
+the collections nameplate sideways on any normal-to-wide desktop window.
+The masthead's copy sits inside the page's centered content column;
+Browse mode's floating copy was measured from the raw browser window edge
+instead — two different coordinate systems for what was supposed to read
+as one unmoving mark. Browse mode's three corner marks (the nameplate,
+the Saved link, the plain "Saved"/"Back" button Saved and Share use) now
+compute the same effective inset the page's content column already uses,
+so navigating between a normal page and browse mode no longer moves
+anything. See `docs/decisions.md`.
+
+---
+
+## 2026-08-28 — Both collections nameplates go horizontal
+
+The collections nameplate — the masthead on every ordinary page, and the
+corner mark Browse mode floats over a photo — no longer stacks the
+collections list vertically under the site title. Both now read as a
+single horizontal line (wrapping onto a second on a narrow phone): the
+site name, then every collection from `collections.ts`, the masthead
+pushing them to the far side of the bar with the current collection
+inert. Direct user feedback drove both halves of this: the masthead read
+as cramped and app-like stacked vertically in a sticky bar spanning the
+full page width, and once it went horizontal, a follow-up request asked
+Browse mode's corner mark to match — which costs the photograph nothing,
+since one line (or two, wrapped) is shorter than the five-line stack it
+replaces.
+
+This reverses the shape the 2026-08-27 and preceding 2026-08-28 entries
+landed on, without reversing what those entries actually decided: both
+nameplates still share one set of base classes, so a typography or
+spacing change still happens once, in one place. Only the shape the shared
+classes draw moved from vertical to horizontal. See `docs/decisions.md`.
+
+---
+
+## 2026-09-02 — The masthead stays on screen in Browse mode too
+
+Direct user feedback on the navbar work above: Browse mode's floating
+"Randy Liang / collections" corner mark is gone, and the ordinary sticky
+masthead now stays visible and on top of a photograph instead of being
+hidden the moment browse mode starts. There is exactly one nameplate
+implementation left, not two kept in sync by shared CSS classes. A
+photograph now opens with real margin under the header rather than
+butting straight against it. See `docs/decisions.md`.
+
+Separately, the grid — the plain-link fallback that was the only thing a
+visitor without JavaScript ever saw, and had otherwise quietly become
+dead markup no browser with JS on ever painted — is back as a real,
+reachable secondary view. A "Grid" corner mark on every tag/Selected
+Work/film-stock page (the same affordance Saved and Share already used
+for their own "Saved"/"Back") switches out of Browse and back in at the
+same photograph, direct user request after asking what the grid's status
+even still was. Reading remains the default a JS-enabled visitor lands
+on; nothing about that changed.
+
+Finally, Recipes and Music now centre their content column within the
+page instead of sitting flush against its left padding — on anything
+wider than roughly twice the column's own width, flush-left was leaving a
+visibly lopsided page with dead space down the entire right half. Film
+and the Archive weren't touched; both already fill the page symmetrically
+with a grid. See `docs/decisions.md` for the full reasoning, including why
+this makes the masthead and the column below it share a left edge on
+every other page but not these two.

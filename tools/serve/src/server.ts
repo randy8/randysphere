@@ -166,7 +166,10 @@ function rewriteOgImage(html: string, config: ServeConfig, preview: PhotoPreview
 /** Replaces both description tags' content — only used for /photography/share/'s own count-based text, which has no better page-specific default to preserve (unlike a tag/film-stock page's description, left untouched). */
 function rewriteDescription(html: string, description: string): string {
   return html
-    .replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${description}">`)
+    .replace(
+      /<meta name="description" content="[^"]*">/,
+      `<meta name="description" content="${description}">`,
+    )
     .replace(
       /<meta property="og:description" content="[^"]*">/,
       `<meta property="og:description" content="${description}">`,
@@ -233,6 +236,22 @@ async function route(
       return;
     }
     await sendFile(res, join(config.privatePhotosDir, file));
+    return;
+  }
+
+  // Astro's static build turns astro.config.mjs's `redirects` entry into a
+  // real page (dist/index.html) that only redirects via
+  // `<meta http-equiv="refresh">` — there's no server at build time to issue
+  // a real HTTP redirect. Serving that page as-is means a visitor briefly
+  // sees its own title/body ("Redirecting to: /photography/selected/")
+  // before the refresh fires. This process *is* a server, so it redirects
+  // "/" for real instead, before that file is ever read. Must match
+  // astro.config.mjs's own `'/': '/photography/selected/'` entry, which
+  // still matters for `astro dev` (a real redirect there too) and for a
+  // generic static host serving dist/ directly.
+  if (pathname === '/' && (method === 'GET' || method === 'HEAD')) {
+    res.writeHead(301, { location: '/photography/selected/' });
+    res.end();
     return;
   }
 

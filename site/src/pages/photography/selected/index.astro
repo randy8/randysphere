@@ -67,7 +67,7 @@ const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefi
           ))}
         </div>
 
-        <Browse view={view} intro={false} />
+        <Browse view={view} intro={false} exitToGrid="Grid" />
 
         {
           /*
@@ -105,6 +105,7 @@ const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefi
 
         <script>
           import '../../../photography/browse.ts';
+          import '../../../photography/grid-toggle.ts';
         </script>
       </Fragment>
     )

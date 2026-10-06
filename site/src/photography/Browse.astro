@@ -1,7 +1,6 @@
 ---
 import Photo from './Photo.astro';
 import { formatCameraLine } from './camera.ts';
-import { site } from '../config.ts';
 import type { View } from './archive.ts';
 
 interface Props {
@@ -52,22 +51,18 @@ const { view, next = null, intro = true, exitToGrid = false, photoMaxWidth } = A
 ---
 
 {
-  /* Browse mode has no masthead, no nav — deliberately, it's meant to be
-     read start to end without chrome competing with the photograph. There
-     is no grid to fall back to any more either (except on /saved/, which
-     has its own contact-sheet grid on this same page — see exitToGrid
-     above), so these one or two quiet corner marks are the entire chrome
-     browse mode has. */
+  /* Browse mode has no nav of its own beyond this one corner mark — the
+     site-wide nameplate/collections list lives in Base.astro's .masthead
+     now, which stays visible and on top in browse mode too (see its
+     z-index comment there) instead of being replaced by a floating copy
+     here. This corner is only ever the /saved//share/ "back to grid"
+     button; every other page renders nothing in this corner at all. */
 }
 {
-  exitToGrid ? (
+  exitToGrid && (
     <button type="button" class="browse-home" data-exit-grid>
       {exitToGrid}
     </button>
-  ) : (
-    <a class="browse-home" href="/" aria-label={`${site.title} — Home`}>
-      {site.title}
-    </a>
   )
 }
 {
@@ -186,3 +181,18 @@ const { view, next = null, intro = true, exitToGrid = false, photoMaxWidth } = A
     }
   </div>
 </div>
+
+{
+  /* Pinch-to-zoom, self-contained and independent of browse.ts (imports
+     nothing from it, isn't imported by it) — every page that renders
+     <Browse> gets it for free with no per-page wiring, the same reasoning
+     PhotographyNav.astro's own inline <script> uses. See zoom.ts. The
+     collections nameplate above needs no script at all: it's plain links,
+     always visible. */
+}
+<script>
+  import { initZoom } from './zoom.ts';
+
+  const root = document.querySelector<HTMLElement>('[data-browse]');
+  if (root !== null) initZoom(root);
+</script>

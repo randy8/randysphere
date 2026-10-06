@@ -116,7 +116,10 @@ function previewOf(photo: ManifestPhoto): PhotoPreview {
  * link-preview bot, which never sees the hash at all) — resolved to its
  * own OG crop. null if the id doesn't match any current photograph.
  */
-export async function findPhotoPreview(albumsDir: string, id: string): Promise<PhotoPreview | null> {
+export async function findPhotoPreview(
+  albumsDir: string,
+  id: string,
+): Promise<PhotoPreview | null> {
   const byId = await readPhotosById(albumsDir);
   const photo = byId.get(id);
   return photo === undefined ? null : previewOf(photo);
