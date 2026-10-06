@@ -1,0 +1,189 @@
+# Captions and alt text.
+#
+# `pnpm ingest` maintains which files are listed here and nothing else.
+# The order, the fields, and every comment are yours; re-running ingest will
+# not touch them. A photo is identified by its content (`sourceId`) first,
+# so moving or renaming a file in originals/ — even into a different roll —
+# keeps its entry below, alt text, caption, and tags intact. Only a photo
+# actually deleted from originals/ loses its entry.
+photos:
+  - file: 000048530001.tif
+    sourceId: 66423201cfbbf35c
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530002.tif
+    sourceId: 3107afcfe345fcf0
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530003.tif
+    sourceId: c985af38c1b54c0a
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530004.tif
+    sourceId: 6e2b819a99835d06
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530005.tif
+    sourceId: a43c1acb08a4ffb6
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530006.tif
+    sourceId: 62e23b60ad22e915
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530007.tif
+    sourceId: 35fba42efb15bab0
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530008.tif
+    sourceId: 1b8d83bed4deaa31
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530009.tif
+    sourceId: 668f10f179a4519b
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530010.tif
+    sourceId: c90868d537a55e6f
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530011.tif
+    sourceId: 35a04249f9a9d1a9
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530012.tif
+    sourceId: d9aaeb872e1437d0
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530013.tif
+    sourceId: fc653d9e49b01a4e
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530014.tif
+    sourceId: 323f294ab27eaa51
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530015.tif
+    sourceId: 2ae3e89e15bb61fa
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530016.tif
+    sourceId: 732854ad3f7e62cc
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530017.tif
+    sourceId: 5ef482ab33ad2226
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530018.tif
+    sourceId: cc57c0e4d152fcd5
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530019.tif
+    sourceId: 0e50f8d9001afa26
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530020.tif
+    sourceId: 011371cb96815867
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530021.tif
+    sourceId: 9db00d2ce934ca1b
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530022.tif
+    sourceId: 15df8dcb010ff4ad
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530023.tif
+    sourceId: 1514dd1d7bee0d94
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530024.tif
+    sourceId: df7de13b556e7abc
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530025.tif
+    sourceId: 168bdfa9a6c31ab3
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530026.tif
+    sourceId: a818ad053fa544e6
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530027.tif
+    sourceId: 0da98f1948598b43
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530028.tif
+    sourceId: f2c98d7d5b02a980
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530029.tif
+    sourceId: c1e4c58a1ab2f201
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530030.tif
+    sourceId: 74a640992ec554d8
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530031.tif
+    sourceId: 8a59c9f661075858
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530032.tif
+    sourceId: 74f453c8fde00f42
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530033.tif
+    sourceId: 0ebfd0f0bbf7f2ce
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530034.tif
+    sourceId: c1b4410f4111b7a3
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530035.tif
+    sourceId: fbe2d43a729cb17f
+    alt: ''
+    tags:
+      - liang
+  - file: 000048530036.tif
+    sourceId: 3b3f07673db72ab0
+    alt: ''
+    tags:
+      - liang
