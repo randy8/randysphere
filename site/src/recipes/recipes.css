@@ -9,6 +9,33 @@
  * box, no border below this point.
  */
 
+/* Centred as a column within .wrap, not flush against its left padding —
+   a reading-width block left flush left on a wide viewport would leave dead
+   space down its whole right side, a visibly lopsided page next to how
+   symmetrically the photography collection's own full-bleed, centred photo
+   fills the same frame. Centring the column, magazine-article style, means
+   arriving here from a centred photograph is a shorter, gentler move for
+   the eye than jumping all the way to the left edge. The masthead above no
+   longer lines up its left edge with this column as a result, which is the
+   one deliberate trade: two different fixed points (the header always
+   flush left, this article always centred) rather than one that's flush
+   left on every page but leaves half of it empty. See docs/decisions.md,
+   2026-09-02.
+
+   This (and .recipe-doc/.recipe-index below) used to cap at --measure
+   (64ch) — on this serif's actual glyph metrics that renders to roughly
+   34rem, under half of .wrap's 76rem, which read as a narrow column
+   stranded in an oversized page rather than a deliberate magazine column.
+   46rem is a fixed rem value instead of a font-relative ch one (so it
+   doesn't move if the typeface's own metrics ever do) and keeps the column
+   within a normal prose reading width while giving the page noticeably
+   less dead margin on anything wider than a tablet. Below ~49rem (46rem
+   plus .wrap's own padding) this is already the full available width, so
+   phones and small tablets are unaffected either way. */
+.recipe-scope {
+  max-width: 46rem;
+  margin-inline: auto;
+}
 /* Recipes are read for the task, not lingered over the way a photograph's
    title page is — the site-wide h1 scale (built for a chapter-opener
    moment) reads as dead air here. Capped back to a confident but working
@@ -26,7 +53,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  max-width: var(--measure);
+  max-width: 46rem;
   border-bottom: 1px solid var(--rule);
 }
 .recipe-index li {
@@ -64,7 +91,7 @@
 }
 
 .recipe-doc {
-  max-width: var(--measure);
+  max-width: 46rem;
 }
 .recipe-doc-description {
   color: var(--muted);
