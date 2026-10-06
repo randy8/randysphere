@@ -1,0 +1,15 @@
+# Roll-level notes.
+#
+# `pnpm ingest` maintains which roll ids are listed here and nothing else.
+# The order, the fields, and every comment are yours; re-running ingest
+# will not touch them.
+rolls:
+  - id: '4852'
+    filmStock: 'ilfordhp5plus400'
+    notes: ''
+  - id: '4853'
+    filmStock: 'kodaktrix400'
+    notes: ''
+  - id: '4854'
+    filmStock: 'kodakultramax400'
+    notes: ''
