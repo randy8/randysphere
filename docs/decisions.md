@@ -2079,3 +2079,58 @@ to still be wanted for some specific context (a slideshow mode, say) —
 that would be a new, clearly-scoped addition on top of the lightbox, not a
 reason to resurrect Browse mode's machinery, which this decision treats as
 gone for good.
+
+---
+
+## 2026-10-06 — The lightbox's open photo was rendering uncapped, not contained
+
+**Decision.** `.lightbox-item` (base.css) gets an explicit `height: 100%`
+on top of the `max-height: 100%` it already had.
+
+**Why.** Direct user report, right after the lightbox shipped: "the
+lightbox preview is bad i want it to be in the original aspect ratio" /
+"don't stretch it out to fit the screen." The photo wasn't actually
+distorted — it was uncapped. `max-height: 100%` only resolves against a
+containing block with a _definite_ height; `.lightbox-item` had no height
+of its own (just a max-height), so that percentage — and every
+`max-height: 100%` further down the chain, including the `<img>`'s own —
+computed to `none`. The image fell back to its natural intrinsic size
+with only its width capped by `.lightbox-frame`'s (fully definite) width,
+so a landscape photo rendered at full stage width with its height
+following proportionally, often taller than the viewport. The old Browse
+mode never hit this: `.browse-item` had a real `height: 100%`, inherited
+from a `position: fixed` box with explicit `top`/`right`/`bottom`/`left`,
+so every percentage down its chain was already definite. The lightbox's
+`.lightbox-item` copied the `max-height` but not the `height` that made
+it resolvable.
+
+**Revisit if.** Never — this is a correctness fix, not a design choice to
+reconsider.
+
+---
+
+## 2026-10-06 — A secret, unlinked `/photography/archives/` page
+
+**Decision.** `site/src/pages/photography/archives/index.astro` — every
+photograph in the collection (433, flat, not one cover per tag like
+`/photography/archive/`), sorted newest-batch-first. Not in
+`PhotographyNav`, not in `collections.ts`'s `urls()` (so `sitemap.xml.ts`
+never lists it), the exact same "secret by omission" treatment
+`/photography/archive/` already gets — confirmed directly rather than
+built as a password-gated route like `/private`: a real page at a URL
+nothing advertises, not actual authentication.
+
+"Sort by date added" has no per-photo timestamp to sort by — nothing in
+the manifest or `photos.yaml` records when a photo was added. `album.md`'s
+`date:` field does, though, if accidentally: `pnpm ingest` scaffolds it
+once, the moment a batch is first ingested, and never touches it again
+(see `album-files.ts`), so it's a genuine, stable "date this batch was
+added" record, just never meant to be read back as one. The page reads
+each distinct batch's `album.md` directly (not through `archive.ts`) and
+sorts by that, newest first, keeping each batch's own roll/frame order
+within it — a one-off need for one secret page, not promoted into
+`archive.ts`'s general API.
+
+**Revisit if.** A second page wants the same "date added" sort — at that
+point it's worth promoting into `archive.ts` properly instead of a second
+copy of this file-reading code.

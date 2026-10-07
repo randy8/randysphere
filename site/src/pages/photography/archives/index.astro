@@ -1,0 +1,76 @@
+---
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { parse } from 'yaml';
+import Lightbox from '../../../photography/Lightbox.astro';
+import Photo from '../../../photography/Photo.astro';
+import Base from '../../../layouts/Base.astro';
+import PhotographyNav from '../../../photography/PhotographyNav.astro';
+import { loadArchive } from '../../../photography/archive.ts';
+
+// Deliberately unlinked — not in PhotographyNav, not in collections.ts's
+// urls() (so sitemap.xml.ts never lists it either), the same "secret by
+// omission" treatment /photography/archive/ already gets. Every single
+// photograph in the collection, flattened, not one cover per tag the way
+// that page is — this is the real "everything" view, for one visitor who
+// already knows the URL.
+const archive = loadArchive();
+
+// "Sort by date added" — there's no per-photo "added" timestamp anywhere
+// (CLAUDE.md's album.md note: `date:` is hand-scaffolded once, the moment
+// a batch is first ingested, and pnpm ingest never touches it again), so
+// this reads as "newest batch first," each batch's own photos keeping
+// their existing roll/frame order within it. Read directly here rather
+// than added to archive.ts: this is the one secret page that wants it,
+// not a general Archive concern.
+function batchAddedDate(batch: string): string {
+  try {
+    const raw = readFileSync(join(process.cwd(), '..', 'albums', batch, 'album.md'), 'utf8');
+    const match = /^---\n([\s\S]*?)\n---/.exec(raw);
+    const data = match?.[1] ? (parse(match[1]) as { date?: string }) : {};
+    return typeof data.date === 'string' ? data.date : '';
+  } catch {
+    return '';
+  }
+}
+const addedDates = new Map(
+  [...new Set(archive.photos.map((entry) => entry.batch))].map((batch) => [
+    batch,
+    batchAddedDate(batch),
+  ]),
+);
+const photos = [...archive.photos].sort(
+  (a, b) => (addedDates.get(b.batch) ?? '').localeCompare(addedDates.get(a.batch) ?? ''),
+);
+---
+
+<Base title="Archives — Photography" description="Every photograph in the collection.">
+  <PhotographyNav current="archive" />
+  <header class="album-header">
+    <h1>Archives</h1>
+    <p class="lede">
+      {photos.length} photograph{photos.length === 1 ? '' : 's'}, every batch.
+    </p>
+  </header>
+
+  <div class="grid" data-grid>
+    {
+      photos.map((entry, index) => (
+        <figure data-photo-id={entry.photo.sourceId}>
+          <Photo
+            entry={entry}
+            sizes="(min-width: 64rem) 11vw, (min-width: 40rem) 17vw, 45vw"
+            priority={index === 0}
+            maxWidth={1280}
+          />
+        </figure>
+      ))
+    }
+  </div>
+
+  <Lightbox photos={photos} />
+
+  <script>
+    import '../../../photography/lightbox.ts';
+  </script>
+</Base>
