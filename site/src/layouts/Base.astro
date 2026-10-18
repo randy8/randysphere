@@ -55,21 +55,12 @@ const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
     <div class="wrap">
       <header class="masthead">
         {
-          /* The exact same nameplate Browse.astro floats over a photo in
-             browse mode (title, a thin rule, every collection underneath,
-             the current one inert) — same markup, same
-             nameplate-title/-list/-current classes, so the two literally
-             cannot drift apart visually. Only the wrapper differs: no
-             position:fixed, no mix-blend-mode, no opacity fade, because
-             this one sits in a normal (if sticky) header with its own
-             opaque background rather than floating over arbitrary photo
-             content — see .masthead-nameplate in base.css. Browse mode
-             hides this whole header and shows its own floating copy
-             instead, because browse mode hides ALL of Base's chrome to
-             stay full-bleed over the photograph; everywhere else (recipes,
-             films, music, /collections/, and photography before/without
-             JS) this is the only such list, so it needs to actually be
-             here. See docs/decisions.md, 2026-08-28. */
+          /* The one collections list every page shares (title, a thin
+             rule, every collection, the current one inert). An ordinary
+             in-flow header that scrolls away with the page — not sticky,
+             so it never sits over a photograph; the lightbox paints over
+             it while open. See .masthead-nameplate in base.css and
+             docs/decisions.md, 2026-08-28, 2026-10-06, and 2026-10-16. */
         }
         <div class="masthead-nameplate">
           <p class="nameplate-title">{site.title}</p>

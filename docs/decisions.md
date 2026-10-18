@@ -2134,3 +2134,26 @@ within it — a one-off need for one secret page, not promoted into
 **Revisit if.** A second page wants the same "date added" sort — at that
 point it's worth promoting into `archive.ts` properly instead of a second
 copy of this file-reading code.
+
+---
+
+## 2026-10-16 — The masthead stops being sticky
+
+**Decision.** `.masthead` in `base.css` is an ordinary in-flow header that
+scrolls away with the page: `position: sticky`, `top`, `z-index`, and the
+opaque background that sticky required are gone. `position: relative`
+remains only to anchor the accent rule in `::after`. Direct user feedback:
+a persistent bar felt unnatural on mobile (Safari and Brave on iOS) and
+clipped photographs as they scrolled underneath it, which is exactly the
+"chrome competing with the pictures" the site is meant to avoid.
+
+This reverses 2026-08-28's "the collections nav needs to stay reachable"
+call. Since the sticky header was always in normal flow, nothing else
+(spacers, `padding-top`, `scroll-padding`) had been added to compensate,
+so there was nothing else to remove. The lightbox is unaffected — it's a
+`position: fixed` overlay at its own z-index. The films page's fixed
+controls panel is unrelated page-specific UI, not the masthead, and stays.
+
+**Revisit if.** Pages grow long enough that scrolling back to the top for
+navigation becomes a real complaint — then a "back to top" link at the
+foot of the page is the next step, not a return to a sticky bar.

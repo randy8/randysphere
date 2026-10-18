@@ -202,13 +202,13 @@ site/                       Astro application
   src/layouts/Base.astro    shared shell (masthead, footer, typography) —
                              collection-agnostic on purpose; never learns
                              about any one collection's specifics. Its
-                             sticky masthead renders the site title, a
+                             masthead (not sticky — it scrolls away with
+                             the page) renders the site title, a
                              thin rule, and every collection from the
                              generic collections.ts registry (current one
-                             inert) — never hidden, not even while the
-                             lightbox is open (it paints on top, same as
-                             any ordinary modal) — see docs/decisions.md,
-                             2026-08-28 and 2026-10-06
+                             inert) — the lightbox paints over it while
+                             open, same as any ordinary modal — see docs/decisions.md,
+                             2026-08-28, 2026-10-06, and 2026-10-16
   src/styles/base.css       shared design tokens/typography, all collections
   src/pages/photography/    index + /photography/<tag>/ (one route per tag,
                              not per trip), plus selected/, archive/,

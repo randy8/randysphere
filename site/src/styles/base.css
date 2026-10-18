@@ -127,23 +127,15 @@ body {
   padding: 0 1.5rem;
 }
 
-/* Sticky, not just a header that scrolls away with the rest of the page —
-   direct user feedback: the collections nav needs to stay reachable no
-   matter how far down a page you've scrolled. Renders in normal flow (so
-   it reserves its own height automatically, no manual clearance padding
-   needed) and then pins itself to the top the moment a page scrolls past
-   it. An explicit background is required even though it happens to match
-   the page's own (var(--paper)) — sticky content is otherwise transparent,
-   which would let whatever's scrolling underneath show straight through.
-   See docs/decisions.md, 2026-08-28. */
+/* An ordinary header that scrolls away with the page, not a sticky one —
+   a persistent bar competed with the photographs and clipped them as they
+   scrolled underneath it, most noticeably on mobile Safari/Brave. Every
+   page is reachable by scrolling back to the top. position: relative only
+   anchors the accent rule in ::after below. See docs/decisions.md,
+   2026-10-16, which reverses 2026-08-28's sticky masthead. */
 .masthead {
-  position: sticky;
-  top: 0;
-  /* Below the lightbox (z-index 50) — the lightbox is a true full-viewport
-     overlay and covers this entirely while open, same as any modal would. */
-  z-index: 45;
+  position: relative;
   padding: 2rem 0 1.0625rem;
-  background: var(--paper);
   border-bottom: 2px solid var(--ink);
 }
 /* A second, slender rule in the accent — a letterhead's colophon line, the
@@ -160,7 +152,7 @@ body {
 }
 /* The site title, a thin rule, and every collection from collections.ts
    (the current one inert) — the one navigation element every page shares,
-   sitting in .masthead's own sticky, in-flow header. justify-content:
+   sitting in .masthead's own in-flow header. justify-content:
    space-between pushes the collections list to the far side of the
    full-width bar. See docs/decisions.md, 2026-08-28 and its two
    follow-ups for the history of this shape going vertical, then
@@ -800,7 +792,7 @@ a:focus-visible,
    The lightbox — a standard overlay, not a second "mode": the grid behind
    it never changes or hides, this just paints on top when a photo is
    clicked and clears away when it closes. Full-viewport and above
-   everything else (z-index 50, above .masthead's 45), the same as any
+   everything else (z-index 50), the same as any
    ordinary modal. Scoped on-dark colour tokens below (--lightbox-ink/
    -muted) rather than reusing the page's --ink/--muted, which assume a
    light paper background: the old mix-blend-mode trick existed only
