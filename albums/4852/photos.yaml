@@ -22,11 +22,13 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520004.TIF
     sourceId: 9a41cb9279369b50
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520005.TIF
     sourceId: cc35028e19fa7146
     alt: ''
@@ -52,11 +54,13 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520010.TIF
     sourceId: c0f59e675f6343fd
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520011.TIF
     sourceId: 67c14161a274ed55
     alt: ''
@@ -67,6 +71,7 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520013.TIF
     sourceId: 3f2ec367cd5343d6
     alt: ''
@@ -82,11 +87,13 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520016.TIF
     sourceId: ba265c4e92a82960
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520017.TIF
     sourceId: 2bf60e96f996a59e
     alt: ''
@@ -107,11 +114,13 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520021.TIF
     sourceId: 16a6ce05fa617c69
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520022.TIF
     sourceId: 38cca5f712f26c72
     alt: ''
@@ -142,16 +151,19 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520028.TIF
     sourceId: 55ee3db687abc0e7
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520029.TIF
     sourceId: 28f263db603d88f4
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520030.TIF
     sourceId: 08c828f0fa985d54
     alt: ''
@@ -162,6 +174,7 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520032.TIF
     sourceId: 46374ac9ae877324
     alt: ''
@@ -177,11 +190,13 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520035.TIF
     sourceId: 034ecc27494f7b0f
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520036.TIF
     sourceId: 519703c71f79b3fc
     alt: ''

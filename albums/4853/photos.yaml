@@ -22,16 +22,19 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530004.tif
     sourceId: 6e2b819a99835d06
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530005.tif
     sourceId: a43c1acb08a4ffb6
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530006.tif
     sourceId: 62e23b60ad22e915
     alt: ''
@@ -57,16 +60,19 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530011.tif
     sourceId: 35a04249f9a9d1a9
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530012.tif
     sourceId: d9aaeb872e1437d0
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530013.tif
     sourceId: fc653d9e49b01a4e
     alt: ''
@@ -82,21 +88,25 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530016.tif
     sourceId: 732854ad3f7e62cc
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530017.tif
     sourceId: 5ef482ab33ad2226
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530018.tif
     sourceId: cc57c0e4d152fcd5
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530019.tif
     sourceId: 0e50f8d9001afa26
     alt: ''
@@ -112,11 +122,13 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: false
   - file: 000048530022.tif
     sourceId: 15df8dcb010ff4ad
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530023.tif
     sourceId: 1514dd1d7bee0d94
     alt: ''
@@ -127,6 +139,7 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530025.tif
     sourceId: 168bdfa9a6c31ab3
     alt: ''
@@ -137,16 +150,19 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530027.tif
     sourceId: 0da98f1948598b43
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530028.tif
     sourceId: f2c98d7d5b02a980
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530029.tif
     sourceId: c1e4c58a1ab2f201
     alt: ''
@@ -157,16 +173,19 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530031.tif
     sourceId: 8a59c9f661075858
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530032.tif
     sourceId: 74f453c8fde00f42
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530033.tif
     sourceId: 0ebfd0f0bbf7f2ce
     alt: ''
@@ -182,8 +201,10 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530036.tif
     sourceId: 3b3f07673db72ab0
     alt: ''
     tags:
       - liang
+    featured: true
