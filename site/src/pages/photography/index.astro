@@ -4,8 +4,6 @@ import Photo from '../../photography/Photo.astro';
 import Base from '../../layouts/Base.astro';
 import PhotographyNav from '../../photography/PhotographyNav.astro';
 import { loadArchive, selectedWork } from '../../photography/archive.ts';
-import { ogImageOf } from '../../photography/image.ts';
-import { photography } from '../../photography/config.ts';
 
 const archive = loadArchive();
 const photos = selectedWork(archive);
@@ -14,16 +12,11 @@ const photos = selectedWork(archive);
 const filmStocks = [
   ...new Set(photos.map((entry) => entry.roll.filmStock).filter((stock) => stock.length > 0)),
 ].sort();
-const hero = photos[0]?.photo;
-const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefined;
 ---
 
 <Base
   title="Photography"
   description="A curated sequence of photographs."
-  image={og?.image}
-  imageWidth={og?.imageWidth}
-  imageHeight={og?.imageHeight}
 >
   <PhotographyNav current="selected" />
 

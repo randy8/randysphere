@@ -5,8 +5,6 @@ import Base from '../../layouts/Base.astro';
 import PhotographyNav from '../../photography/PhotographyNav.astro';
 import { allTags, loadArchive, viewForTag } from '../../photography/archive.ts';
 import type { View } from '../../photography/archive.ts';
-import { ogImageOf } from '../../photography/image.ts';
-import { photography } from '../../photography/config.ts';
 
 export function getStaticPaths() {
   const archive = loadArchive();
@@ -33,14 +31,12 @@ interface Props {
 }
 
 const { view, nextView } = Astro.props;
-const hero = view.photos[0]?.photo;
-const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefined;
 const next = nextView
   ? { tag: nextView.tag, title: nextView.title, date: nextView.date, count: nextView.photos.length }
   : null;
 ---
 
-<Base title={view.title} description={view.title} image={og?.image} imageWidth={og?.imageWidth} imageHeight={og?.imageHeight}>
+<Base title={view.title} description={view.title}>
   <PhotographyNav current="archive" />
   <header class="album-header">
     {
