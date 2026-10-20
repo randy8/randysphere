@@ -47,11 +47,11 @@ before(async () => {
   // that.
   await writeFile(
     join(distDir, 'index.html'),
-    '<!doctype html><title>Redirecting to: /photography/selected/</title>' +
-      '<meta http-equiv="refresh" content="0;url=/photography/selected/">',
+    '<!doctype html><title>Redirecting to: /photography/</title>' +
+      '<meta http-equiv="refresh" content="0;url=/photography/">',
   );
-  await mkdir(join(distDir, 'photography', 'selected'), { recursive: true });
-  await writeFile(join(distDir, 'photography', 'selected', 'index.html'), '<h1>Public home</h1>');
+  await mkdir(join(distDir, 'photography'), { recursive: true });
+  await writeFile(join(distDir, 'photography', 'index.html'), '<h1>Public home</h1>');
   await writeFile(join(distDir, '404.html'), '<h1>Not found, distinctively</h1>');
   await mkdir(join(distDir, 'p', 'abc123'), { recursive: true });
   await writeFile(join(distDir, 'p', 'abc123', '1200-deadbeef.avif'), 'not really avif bytes');
@@ -148,7 +148,7 @@ after(async () => {
 });
 
 test('the public site is served for an ordinary path', async () => {
-  const response = await fetch(`${baseUrl}/photography/selected/`);
+  const response = await fetch(`${baseUrl}/photography/`);
   assert.equal(response.status, 200);
   assert.match(await response.text(), /Public home/);
 });
@@ -156,7 +156,7 @@ test('the public site is served for an ordinary path', async () => {
 test('"/" issues a real HTTP redirect to Selected Work rather than serving Astro\'s meta-refresh flash page', async () => {
   const response = await fetch(`${baseUrl}/`, { redirect: 'manual' });
   assert.equal(response.status, 301);
-  assert.equal(response.headers.get('location'), '/photography/selected/');
+  assert.equal(response.headers.get('location'), '/photography/');
   const body = await response.text();
   assert.doesNotMatch(body, /Redirecting/);
 });

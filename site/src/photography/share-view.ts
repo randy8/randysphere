@@ -44,7 +44,7 @@ if (grid !== null) {
     );
 
     // Reorder into the shared sequence (not archive order) by re-appending
-    // in that order — the same technique selected/index.astro's own
+    // in that order — the same technique photography/index.astro's own
     // shuffle script already uses. Anything not in `ids` is simply never
     // re-appended, and gets removed below.
     ids.forEach((id) => {

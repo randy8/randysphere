@@ -33,6 +33,20 @@ export function openPhoto(id: string): boolean {
   return openHandler !== null && openHandler(id);
 }
 
+// Same escape hatch, for a page that reorders or filters its own grid
+// after load (Selected Work's shuffle and film-stock filter, see
+// selected-view.ts) — prev/next should step through exactly what the grid
+// now shows, in the order it shows it. An order set before init() has run
+// is held here and applied the moment it does.
+let orderHandler: ((ids: readonly string[]) => void) | null = null;
+let pendingOrder: readonly string[] | null = null;
+
+/** Restricts the lightbox to these photos, in this order. Unknown ids are ignored. */
+export function setLightboxOrder(ids: readonly string[]): void {
+  if (orderHandler === null) pendingOrder = ids;
+  else orderHandler(ids);
+}
+
 function applySaveButtonState(button: HTMLElement, saved: boolean): void {
   button.setAttribute('aria-pressed', String(saved));
   const icon = button.querySelector('[data-save-icon]');
@@ -48,16 +62,17 @@ function init(): void {
   const stage = root.querySelector<HTMLElement>('[data-lightbox-stage]');
   if (stage === null) return;
 
-  const items = Array.from(stage.querySelectorAll<HTMLElement>('[data-photo-id]'));
-  const ids = items.map((item) => item.dataset['photoId'] ?? '');
+  const allItems = Array.from(stage.querySelectorAll<HTMLElement>('[data-photo-id]'));
+  let items = allItems;
+  let ids = items.map((item) => item.dataset['photoId'] ?? '');
   const position = root.querySelector<HTMLElement>('[data-lightbox-position]');
 
   // Every save button starts server-rendered as unsaved (the server has no
   // way to know what's in this visitor's localStorage) — reconcile once,
   // on load, against whatever's actually saved.
-  items.forEach((item, i) => {
+  allItems.forEach((item) => {
     const button = item.querySelector<HTMLElement>('[data-save]');
-    if (button !== null) applySaveButtonState(button, isSaved(ids[i] ?? ''));
+    if (button !== null) applySaveButtonState(button, isSaved(item.dataset['photoId'] ?? ''));
   });
 
   let currentIndex = -1;
@@ -192,6 +207,18 @@ function init(): void {
     return true;
   };
 
+  const byId = new Map(allItems.map((item) => [item.dataset['photoId'] ?? '', item]));
+  orderHandler = (order) => {
+    allItems.forEach((item) => item.classList.remove('is-active'));
+    items = order.flatMap((id) => byId.get(id) ?? []);
+    ids = items.map((item) => item.dataset['photoId'] ?? '');
+    for (const item of items) stage.appendChild(item);
+  };
+  if (pendingOrder !== null) {
+    orderHandler(pendingOrder);
+    pendingOrder = null;
+  }
+
   // The plain grid's own tiles intercept here directly — Saved/Share render
   // a different grid ([data-saved-grid]/[data-share-grid]) with their own
   // click handling that calls openPhoto() after pruning, so this only ever
@@ -226,7 +253,7 @@ function init(): void {
 // synchronous script that queued it finishes — which on these two pages
 // includes the rest of that importing script's body, the pruning included
 // — so by the time init() actually reads the DOM, it's already down to the
-// right subset. The other pages ([tag].astro, selected/index.astro,
+// right subset. The other pages ([tag].astro, photography/index.astro,
 // film/[stock].astro) see no change: init() still runs before anything
 // else touches the page.
 const deferredInit = (): void => {

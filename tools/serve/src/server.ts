@@ -243,14 +243,14 @@ async function route(
   // real page (dist/index.html) that only redirects via
   // `<meta http-equiv="refresh">` — there's no server at build time to issue
   // a real HTTP redirect. Serving that page as-is means a visitor briefly
-  // sees its own title/body ("Redirecting to: /photography/selected/")
+  // sees its own title/body ("Redirecting to: /photography/")
   // before the refresh fires. This process *is* a server, so it redirects
   // "/" for real instead, before that file is ever read. Must match
-  // astro.config.mjs's own `'/': '/photography/selected/'` entry, which
+  // astro.config.mjs's own `'/': '/photography/'` entry, which
   // still matters for `astro dev` (a real redirect there too) and for a
   // generic static host serving dist/ directly.
   if (pathname === '/' && (method === 'GET' || method === 'HEAD')) {
-    res.writeHead(301, { location: '/photography/selected/' });
+    res.writeHead(301, { location: '/photography/' });
     res.end();
     return;
   }

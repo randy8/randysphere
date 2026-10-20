@@ -1,0 +1,73 @@
+---
+import Lightbox from '../../photography/Lightbox.astro';
+import Photo from '../../photography/Photo.astro';
+import Base from '../../layouts/Base.astro';
+import PhotographyNav from '../../photography/PhotographyNav.astro';
+import { loadArchive, selectedWork } from '../../photography/archive.ts';
+import { ogImageOf } from '../../photography/image.ts';
+import { photography } from '../../photography/config.ts';
+
+const archive = loadArchive();
+const photos = selectedWork(archive);
+// Only stocks that actually appear in Selected Work — a choice that would
+// filter down to nothing is just a dead end.
+const filmStocks = [
+  ...new Set(photos.map((entry) => entry.roll.filmStock).filter((stock) => stock.length > 0)),
+].sort();
+const hero = photos[0]?.photo;
+const og = hero ? ogImageOf(photography.imageBaseUrl, hero, Astro.site) : undefined;
+---
+
+<Base
+  title="Photography"
+  description="A curated sequence of photographs."
+  image={og?.image}
+  imageWidth={og?.imageWidth}
+  imageHeight={og?.imageHeight}
+>
+  <PhotographyNav current="selected" />
+
+  {
+    photos.length === 0 ? (
+      <p class="lede">
+        Nothing is featured yet — mark a photo <code>featured: true</code> in its
+        batch's photos.yaml to have it appear here.
+      </p>
+    ) : (
+      <Fragment>
+        <div class="selected-toolbar" data-selected-toolbar hidden>
+          <label class="selected-filter">
+            <select data-film-filter aria-label="Film stock">
+              <option value="">Select film stock</option>
+              {filmStocks.map((stock) => (
+                <option value={stock}>{stock}</option>
+              ))}
+            </select>
+          </label>
+          <button type="button" class="selected-shuffle" data-shuffle>
+            Shuffle
+          </button>
+        </div>
+
+        <div class="grid" data-grid>
+          {photos.map((entry, index) => (
+            <figure data-photo-id={entry.photo.sourceId} data-film-stock={entry.roll.filmStock}>
+              <Photo
+                entry={entry}
+                sizes="(min-width: 64rem) 11vw, (min-width: 40rem) 17vw, 45vw"
+                priority={index === 0}
+                maxWidth={1280}
+              />
+            </figure>
+          ))}
+        </div>
+
+        <Lightbox photos={photos} />
+
+        <script>
+          import '../../photography/selected-view.ts';
+        </script>
+      </Fragment>
+    )
+  }
+</Base>

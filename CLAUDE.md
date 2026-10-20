@@ -184,7 +184,7 @@ bump. See `docs/decisions.md`, 2026-08-03, "Selected Work is editorial."
 
 ```
 site/                       Astro application
-  astro.config.mjs           "/" -> /photography/selected/ lives here
+  astro.config.mjs           "/" -> /photography/ lives here
                              (redirects), not as a page — see
                              docs/decisions.md, 2026-08-24
   src/pages/collections/     the collections homepage — introduces every

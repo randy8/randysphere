@@ -6,35 +6,24 @@
  * rest of the page chrome (see body.is-browsing in base.css).
  */
 interface Props {
-  current: 'selected' | 'archive' | 'about' | 'saved';
+  current: 'selected' | 'archive' | 'saved';
 }
 
 const { current } = Astro.props;
 
-// No separate "Photography"/home link — Selected Work is the collection's
-// entry point (collections.ts's href points straight here), so it already
-// fills that role without a second, redundant nav item pointing at the
-// same destination twice under two different labels.
+// No "Selected Work" (or "Photography"/home) link — /photography/
+// is simply the collection's front page (collections.ts's href and "/" both
+// land there, as does the masthead's Photography entry), not a section a
+// visitor needs to be told the name of.
 //
 // Archive deliberately has no nav entry — the page and its route are
 // untouched and still build/serve normally at /photography/archive/, it's
 // just not advertised anywhere a visitor would click. `current` still
 // accepts 'archive' (the page itself still passes it) so nothing breaks;
 // it simply never matches a link here any more.
-const links = [
-  { key: 'selected', label: 'Selected Work', href: '/photography/selected/' },
-  { key: 'about', label: 'About', href: '/photography/about/' },
-] as const;
 ---
 
 <nav class="photography-nav" aria-label="Photography">
-  {
-    links.map((link) => (
-      <a href={link.href} aria-current={link.key === current ? 'page' : undefined}>
-        {link.label}
-      </a>
-    ))
-  }
   {
     /* Hidden until a first photograph is actually saved (see saved.ts's
        syncSavedUI, which every [data-saved-link] on a page defers to,

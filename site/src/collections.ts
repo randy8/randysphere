@@ -39,7 +39,7 @@ export const collections: readonly Collection[] = [
     // Straight into Selected Work, not a preview page a visitor has to
     // click through a second time to reach the same photographs — see
     // docs/decisions.md.
-    href: '/photography/selected/',
+    href: '/photography/',
     stats: () => {
       const archive = loadArchive();
       const photographs = archive.photos.length;
@@ -49,11 +49,10 @@ export const collections: readonly Collection[] = [
     urls: () => {
       const archive = loadArchive();
       return [
-        '/photography/selected/',
+        '/photography/',
         // Deliberately not '/photography/archive/' — it's not linked from
         // the nav any more either (PhotographyNav.astro); the route still
         // builds and serves, it's just not advertised to a sitemap crawler.
-        '/photography/about/',
         ...allTags(archive).map((tag) => `/photography/${tag}/`),
         ...allFilmStocks(archive).map((stock) => `/photography/film/${stock}/`),
       ];
