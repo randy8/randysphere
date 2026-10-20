@@ -18,7 +18,7 @@ const items = loadRecipes();
       {
         items.map((recipe) => (
           <li>
-            <a href={`/recipes/${recipe.slug}/`}>
+            <a href={`/dishes/${recipe.slug}/`}>
               <h2>{recipe.title}</h2>
               <p class="recipe-index-description">{recipe.description}</p>
               <p class="recipe-index-meta">

@@ -213,8 +213,8 @@ site/                       Astro application
   src/pages/exposures/      index + /exposures/<tag>/ (one route per tag,
                              not per trip), plus selected/, archive/,
                              about/, and film/<stock>/
-  src/pages/recipes/        index + /recipes/<slug>/, reading recipes/*.yaml
-  src/pages/films/          index only, reading films/five-star-ratings.csv
+  src/pages/dishes/         index + /dishes/<slug>/, reading recipes/*.yaml
+  src/pages/pictures/        index only, reading films/five-star-ratings.csv
   src/photography/          everything specific to the photography
                              collection — not shared, not reusable by a
                              future collection with a different content shape
@@ -569,7 +569,7 @@ every tsconfig's own directory). A handful of genuine
   in-app undo (renaming one, and ordinary batch tag edits, do); `git` is the
   recovery path for that one action. Numbered quick-tag hotkey slots
   (Photo Mechanic-style) are deferred, not built.
-- The films collection (`/films/`) now has poster art, plot summaries,
+- The films collection (`/pictures/`) now has poster art, plot summaries,
   runtime, and director for all 773 rated films (772 with a poster) via
   `pnpm films:posters` and TMDB (see `docs/decisions.md`, 2026-08-04,
   "why it isn't scraped"). `films/tmdb.json` is a committed cache the site
