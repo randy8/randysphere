@@ -9,7 +9,7 @@ import type { View } from '../../photography/archive.ts';
 export function getStaticPaths() {
   const archive = loadArchive();
   const tags = allTags(archive);
-  // Same order /photography/archive/ lists albums in (allTags is
+  // Same order /exposures/archive/ lists albums in (allTags is
   // alphabetical) — "next" reuses the sequence a visitor already sees
   // there rather than inventing a second ordering. The last tag gets no
   // next view, same as a book's last chapter.
@@ -42,7 +42,7 @@ const next = nextView
     {
       view.roll?.filmStock && (
         <p class="eyebrow">
-          <a href={`/photography/film/${view.roll.filmStock}/`}>{view.roll.filmStock}</a>
+          <a href={`/exposures/film/${view.roll.filmStock}/`}>{view.roll.filmStock}</a>
           {view.date && ` · ${view.date}`}
         </p>
       )
@@ -72,7 +72,7 @@ const next = nextView
   {
     next && (
       <p class="next-album">
-        <a href={`/photography/${next.tag}/`}>Next: {next.title} →</a>
+        <a href={`/exposures/${next.tag}/`}>Next: {next.title} →</a>
       </p>
     )
   }

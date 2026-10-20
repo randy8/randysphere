@@ -25,7 +25,7 @@ binaries; recipes are hand-written YAML read straight off disk, with no
 pipeline, no manifest, and no images. That asymmetry is the design, not a
 gap to be closed — resist hoisting one collection's shape onto another.
 
-**Photography** (`site/src/photography/`, routed at `/photography/`) is
+**Photography** (`site/src/photography/`, routed at `/exposures/`) is
 where everything below about "the archive," "a tag," "a view" applies — those
 are photography-collection concepts, not site-wide ones. It should feel
 closer to reading a well-designed photography book than operating a web app:
@@ -162,7 +162,7 @@ exception to the model above — each is still a query, just not one keyed on
 
 - **Film stock** is roll-level archival fact, read from `rolls.yaml`, not
   photographer-authored per photo. `byFilmStock`/`viewForFilmStock` power
-  `/photography/film/<stock>/`. `allFilmStocks()` excludes rolls with no
+  `/exposures/film/<stock>/`. `allFilmStocks()` excludes rolls with no
   stock noted rather than showing an empty one.
 - **Selected Work** (`featured` / `featuredOrder` in `photos.yaml` →
   `selectedWork()`) is a hand-picked, hand-ordered sequence across the whole
@@ -184,7 +184,7 @@ bump. See `docs/decisions.md`, 2026-08-03, "Selected Work is editorial."
 
 ```
 site/                       Astro application
-  astro.config.mjs           "/" -> /photography/ lives here
+  astro.config.mjs           "/" -> /exposures/ lives here
                              (redirects), not as a page — see
                              docs/decisions.md, 2026-08-24
   src/pages/collections/     the collections homepage — introduces every
@@ -210,7 +210,7 @@ site/                       Astro application
                              open, same as any ordinary modal — see docs/decisions.md,
                              2026-08-28, 2026-10-06, and 2026-10-16
   src/styles/base.css       shared design tokens/typography, all collections
-  src/pages/photography/    index + /photography/<tag>/ (one route per tag,
+  src/pages/exposures/      index + /exposures/<tag>/ (one route per tag,
                              not per trip), plus selected/, archive/,
                              about/, and film/<stock>/
   src/pages/recipes/        index + /recipes/<slug>/, reading recipes/*.yaml
@@ -543,7 +543,7 @@ every tsconfig's own directory). A handful of genuine
   refusal handling are unverified.
 - No dedicated roll _route_ exists (see film-roll section) — intentional. Film
   stock, which is roll-level data, does now have one at
-  `/photography/film/<stock>/`; only `llfl01`'s roll has a `filmStock` noted
+  `/exposures/film/<stock>/`; only `llfl01`'s roll has a `filmStock` noted
   so far, so most of the archive is absent from those views.
 - Selected Work currently holds **four** photographs, chosen as a smoke test
   of `featured`/`featuredOrder` rather than as a real edit. It needs a real
@@ -616,7 +616,7 @@ every tsconfig's own directory). A handful of genuine
    `originals/` across batch boundaries is simply expected to require a
    manual retag going forward.
 5. Note `filmStock` in each batch's `rolls.yaml` — only `llfl01`'s roll has
-   one, so `/photography/film/<stock>/` currently covers 37 of 289
+   one, so `/exposures/film/<stock>/` currently covers 37 of 289
    photographs. The data is roll-level and hand-authored; nothing derives it
    from EXIF.
 6. Make a real Selected Work pass (currently four photographs) once the

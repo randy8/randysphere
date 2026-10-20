@@ -30,7 +30,7 @@ export interface Collection {
 
 export const collections: readonly Collection[] = [
   {
-    slug: 'photography',
+    slug: 'exposures',
     title: photography.title,
     // Read from photography/config.ts, not duplicated here — a second copy
     // of the same string is exactly how "I edited it and nothing changed"
@@ -39,7 +39,7 @@ export const collections: readonly Collection[] = [
     // Straight into Selected Work, not a preview page a visitor has to
     // click through a second time to reach the same photographs — see
     // docs/decisions.md.
-    href: '/photography/',
+    href: '/exposures/',
     stats: () => {
       const archive = loadArchive();
       const photographs = archive.photos.length;
@@ -49,12 +49,12 @@ export const collections: readonly Collection[] = [
     urls: () => {
       const archive = loadArchive();
       return [
-        '/photography/',
-        // Deliberately not '/photography/archive/' — it's not linked from
+        '/exposures/',
+        // Deliberately not '/exposures/archive/' — it's not linked from
         // the nav any more either (PhotographyNav.astro); the route still
         // builds and serves, it's just not advertised to a sitemap crawler.
-        ...allTags(archive).map((tag) => `/photography/${tag}/`),
-        ...allFilmStocks(archive).map((stock) => `/photography/film/${stock}/`),
+        ...allTags(archive).map((tag) => `/exposures/${tag}/`),
+        ...allFilmStocks(archive).map((stock) => `/exposures/film/${stock}/`),
       ];
     },
   },

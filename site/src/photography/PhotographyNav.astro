@@ -11,13 +11,13 @@ interface Props {
 
 const { current } = Astro.props;
 
-// No "Selected Work" (or "Photography"/home) link — /photography/
+// No "Selected Work" (or "Photography"/home) link — /exposures/
 // is simply the collection's front page (collections.ts's href and "/" both
 // land there, as does the masthead's Photography entry), not a section a
 // visitor needs to be told the name of.
 //
 // Archive deliberately has no nav entry — the page and its route are
-// untouched and still build/serve normally at /photography/archive/, it's
+// untouched and still build/serve normally at /exposures/archive/, it's
 // just not advertised anywhere a visitor would click. `current` still
 // accepts 'archive' (the page itself still passes it) so nothing breaks;
 // it simply never matches a link here any more.
@@ -31,7 +31,7 @@ const { current } = Astro.props;
        clutter on a page a browsing-only visitor never uses. */
   }
   <a
-    href="/photography/saved/"
+    href="/exposures/saved/"
     class="saved-nav-link"
     data-saved-link
     aria-current={current === 'saved' ? 'page' : undefined}

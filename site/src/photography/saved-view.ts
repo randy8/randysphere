@@ -1,5 +1,5 @@
 /**
- * Page-specific glue for /photography/saved/ alone — never imported
+ * Page-specific glue for /exposures/saved/ alone — never imported
  * anywhere else. The page server-renders the entire archive twice (a grid
  * of thumbnails, the full lightbox markup) because it has no way to know
  * what's saved at build time; this module is what actually prunes both
@@ -108,7 +108,7 @@ shareButton?.addEventListener('click', () => {
   // share-view.ts); a query string survives
   // history.replaceState(null, '', '#photo-xyz') untouched (that call only
   // ever replaces the fragment), so the two never collide.
-  const url = `${location.origin}/photography/share/?s=${encodeIds(savedIds())}`;
+  const url = `${location.origin}/exposures/share/?s=${encodeIds(savedIds())}`;
   navigator.clipboard.writeText(url).then(
     () => {
       const original = shareButton.textContent;

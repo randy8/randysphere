@@ -253,7 +253,7 @@ function init(): void {
 // synchronous script that queued it finishes — which on these two pages
 // includes the rest of that importing script's body, the pruning included
 // — so by the time init() actually reads the DOM, it's already down to the
-// right subset. The other pages ([tag].astro, photography/index.astro,
+// right subset. The other pages ([tag].astro, exposures/index.astro,
 // film/[stock].astro) see no change: init() still runs before anything
 // else touches the page.
 const deferredInit = (): void => {

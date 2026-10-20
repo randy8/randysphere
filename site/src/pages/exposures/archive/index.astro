@@ -23,7 +23,7 @@ const views = allTags(archive).map((tag) => viewForTag(archive, tag));
     {
       views.map((view, index) => (
         <li class="archive-entry">
-          <a href={`/photography/${view.tag}/`}>
+          <a href={`/exposures/${view.tag}/`}>
             <Photo
               entry={coverPhoto(view.photos)}
               sizes="(min-width: 64rem) 31vw, (min-width: 40rem) 47vw, 92vw"

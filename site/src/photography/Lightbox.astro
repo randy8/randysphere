@@ -7,8 +7,8 @@ interface Props {
   photos: readonly ArchivePhoto[];
   /**
    * Passed straight through to each photograph's own Photo.astro maxWidth
-   * (see there) — unset everywhere except /photography/saved/ and
-   * /photography/share/, which each render every photo in the archive into
+   * (see there) — unset everywhere except /exposures/saved/ and
+   * /exposures/share/, which each render every photo in the archive into
    * this overlay (most of them destined to be pruned away client-side
    * before a visitor ever opens one, see saved-view.ts/share-view.ts) and
    * so pay for the full 2560-wide tier — deliberately kept for every other
@@ -65,7 +65,7 @@ const { photos, photoMaxWidth } = Astro.props;
           {
             entry.roll.filmStock && (
               <p class="lightbox-item-meta">
-                <a href={`/photography/film/${entry.roll.filmStock}/`}>{entry.roll.filmStock}</a>
+                <a href={`/exposures/film/${entry.roll.filmStock}/`}>{entry.roll.filmStock}</a>
               </p>
             )
           }

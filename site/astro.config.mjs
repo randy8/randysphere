@@ -17,7 +17,7 @@ export default defineConfig({
   // which is the same string for the same reason (straight into Selected
   // Work, not a preview page). See docs/decisions.md, 2026-08-24.
   redirects: {
-    '/': '/photography/',
+    '/': '/exposures/',
   },
 
   server: { port: 4321 },

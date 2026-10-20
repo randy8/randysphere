@@ -68,7 +68,7 @@ const archive = loadArchive();
        subset — it has to run, and finish, before lightbox.ts reads that
        same markup to build its own items/ids. Both are plain type="module"
        scripts, which execute in document order (the same ordering trick
-       photography/index.astro's own inline shuffle script already relies on,
+       exposures/index.astro's own inline shuffle script already relies on,
        just ahead of its lightbox.ts import too), so listing this one first
        is what makes that guarantee hold. */
   }

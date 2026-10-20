@@ -139,7 +139,7 @@ async function sendNotFoundPage(res: ServerResponse, distDir: string): Promise<v
  * whatever's in the raw HTML without ever running JavaScript, so no
  * client-side script can do this. Regex-replaces the *content* of
  * whichever `<meta property="og:image">` tag is already there, whatever
- * it currently points at (the site default on /photography/share/, but a
+ * it currently points at (the site default on /exposures/share/, but a
  * page-specific cover photo on a tag/film-stock/Selected-Work page — see
  * each of those pages' own `image` prop to `<Base>`) rather than matching
  * one known default string, so this works uniformly across every page
@@ -163,7 +163,7 @@ function rewriteOgImage(html: string, config: ServeConfig, preview: PhotoPreview
     );
 }
 
-/** Replaces both description tags' content — only used for /photography/share/'s own count-based text, which has no better page-specific default to preserve (unlike a tag/film-stock page's description, left untouched). */
+/** Replaces both description tags' content — only used for /exposures/share/'s own count-based text, which has no better page-specific default to preserve (unlike a tag/film-stock page's description, left untouched). */
 function rewriteDescription(html: string, description: string): string {
   return html
     .replace(
@@ -243,14 +243,14 @@ async function route(
   // real page (dist/index.html) that only redirects via
   // `<meta http-equiv="refresh">` — there's no server at build time to issue
   // a real HTTP redirect. Serving that page as-is means a visitor briefly
-  // sees its own title/body ("Redirecting to: /photography/")
+  // sees its own title/body ("Redirecting to: /exposures/")
   // before the refresh fires. This process *is* a server, so it redirects
   // "/" for real instead, before that file is ever read. Must match
-  // astro.config.mjs's own `'/': '/photography/'` entry, which
+  // astro.config.mjs's own `'/': '/exposures/'` entry, which
   // still matters for `astro dev` (a real redirect there too) and for a
   // generic static host serving dist/ directly.
   if (pathname === '/' && (method === 'GET' || method === 'HEAD')) {
-    res.writeHead(301, { location: '/photography/' });
+    res.writeHead(301, { location: '/exposures/' });
     res.end();
     return;
   }
@@ -268,13 +268,13 @@ async function route(
 
     // A visitor's own copied address-bar URL (?photo=<id>, set by
     // browse.ts's replaceHash alongside the #photo-<id> hash it's always
-    // kept) or a generated share link (?s=..., /photography/share/ only)
+    // kept) or a generated share link (?s=..., /exposures/share/ only)
     // each name real content a link-preview bot can never decode itself —
     // this is the one place either gets reflected into the static HTML,
     // per request, before it's served.
     const query = new URL(req.url ?? '/', 'http://localhost').searchParams;
     const photoId = query.get('photo');
-    const sharedIds = pathname === '/photography/share/' ? query.get('s') : null;
+    const sharedIds = pathname === '/exposures/share/' ? query.get('s') : null;
     if (relativeWithoutSlash.endsWith('.html') && (photoId !== null || sharedIds !== null)) {
       let html: string;
       try {

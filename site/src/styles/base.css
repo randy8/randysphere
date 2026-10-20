@@ -427,7 +427,7 @@ main:has(> .saved-header) {
 }
 
 /*
- * The Saved contact sheet (/photography/saved/) — real CSS Grid, not
+ * The Saved contact sheet (/exposures/saved/) — real CSS Grid, not
  * .archive-composition's multi-column flow: multi-column reads down each
  * column before moving to the next, which would visually scramble a
  * photo's position relative to its actual place in the (archive-ordered)
@@ -537,7 +537,7 @@ main:has(> .home-header) {
 
 /* Every photography subpage (a tag view, Archive, Selected Work, a film
    stock, About) names what you're looking at, not a title-page moment —
-   the site-wide h1 scale (built for /photography/'s own landing header)
+   the site-wide h1 scale (built for /exposures/'s own landing header)
    reads oversized repeated on every view. `.photography-nav` is the one
    element every one of these headers directly follows in markup, so this
    scopes without needing a wrapper class on each page. */

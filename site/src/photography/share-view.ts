@@ -1,5 +1,5 @@
 /**
- * Page-specific glue for /photography/share/ alone — never imported
+ * Page-specific glue for /exposures/share/ alone — never imported
  * anywhere else. Mirrors saved-view.ts's shape closely, but the subset it
  * prunes down to comes from the URL's own ?s= query param (share-code.ts),
  * not localStorage, and it's shown in exactly the order the sender shared
@@ -44,7 +44,7 @@ if (grid !== null) {
     );
 
     // Reorder into the shared sequence (not archive order) by re-appending
-    // in that order — the same technique photography/index.astro's own
+    // in that order — the same technique exposures/index.astro's own
     // shuffle script already uses. Anything not in `ids` is simply never
     // re-appended, and gets removed below.
     ids.forEach((id) => {
