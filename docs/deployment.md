@@ -35,10 +35,21 @@ pnpm deploy
 ```
 
 This is `pnpm sync && pnpm build && sudo systemctl restart photography-serve`
-— it re-encodes/publishes any new photographs (a no-op if nothing changed
-under `originals/`), rebuilds the static site, and restarts the server so it
-picks up the new `site/dist/`. `sudo` will prompt for your password unless
-you've set up passwordless `systemctl restart` for this one unit.
+— it encodes any new photographs and fetches TMDB details for any new films
+(about 2 seconds when nothing changed), rebuilds the static site, and
+restarts the server so it picks up the new `site/dist/`. About 6 seconds in
+all; the site is briefly unavailable only during the restart itself.
+
+The restart needs no password: `/etc/sudoers.d/photography-deploy` allows
+exactly that one command for `randy`, nothing else:
+
+```
+randy ALL=(root) NOPASSWD: /usr/bin/systemctl restart photography-serve
+```
+
+Set up on a new machine with
+`echo '<that line>' | sudo tee /etc/sudoers.d/photography-deploy && sudo chmod 440 /etc/sudoers.d/photography-deploy && sudo visudo -cf /etc/sudoers.d/photography-deploy`;
+remove with `sudo rm /etc/sudoers.d/photography-deploy`.
 
 It's just those three commands chained — nothing stops you from running
 them individually, e.g. to `pnpm build` and eyeball `site/dist/` before
