@@ -3,7 +3,7 @@ import Lightbox from '../../../photography/Lightbox.astro';
 import Photo from '../../../photography/Photo.astro';
 import Base from '../../../layouts/Base.astro';
 import PhotographyNav from '../../../photography/PhotographyNav.astro';
-import { batchAddedDates, byDateAdded, loadArchive } from '../../../photography/archive.ts';
+import { loadArchive } from '../../../photography/archive.ts';
 
 // Deliberately unlinked — not in PhotographyNav, not in collections.ts's
 // urls() (so sitemap.xml.ts never lists it either), the same "secret by
@@ -13,9 +13,8 @@ import { batchAddedDates, byDateAdded, loadArchive } from '../../../photography/
 // already knows the URL.
 const archive = loadArchive();
 
-// Newest batch first (see batchAddedDates — when each batch entered the
-// repository), each batch's own photos keeping their roll/frame order.
-const photos = byDateAdded(archive.photos, batchAddedDates(), 'newest-first');
+// Archival order here; shuffle-on-load.ts deals a random one in the browser.
+const { photos } = archive;
 ---
 
 <Base title="Archives — Exposures" description="Every photograph in the collection.">
@@ -47,5 +46,6 @@ const photos = byDateAdded(archive.photos, batchAddedDates(), 'newest-first');
   <script>
     import '../../../photography/lightbox.ts';
     import '../../../photography/masonry.ts';
+    import '../../../photography/shuffle-on-load.ts';
   </script>
 </Base>

@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
@@ -280,17 +279,12 @@ export function joinBatch(
  * build — unlike photos.yaml/rolls.yaml, album.md is never validated against
  * the manifest.
  */
-/** One string field from an album.md's frontmatter, or null if absent/empty. */
-function readAlbumField(path: string, field: 'cover' | 'added'): string | null {
+function readAlbumCover(path: string): string | null {
   if (!existsSync(path)) return null;
   const match = /^---\n([\s\S]*?)\n---/.exec(readFileSync(path, 'utf8'));
   if (match?.[1] === undefined) return null;
-  const value = ((parse(match[1]) ?? {}) as Record<string, unknown>)[field];
-  return typeof value === 'string' && value.length > 0 ? value : null;
-}
-
-function readAlbumCover(path: string): string | null {
-  return readAlbumField(path, 'cover');
+  const data = (parse(match[1]) ?? {}) as { cover?: string };
+  return typeof data.cover === 'string' && data.cover.length > 0 ? data.cover : null;
 }
 
 function loadBatch(slug: string): ArchivePhoto[] {
@@ -449,70 +443,6 @@ export function viewForFilmStock(archive: Archive, filmStock: string): View {
  * archive's own chronological order — so marking a photo Selected Work is
  * never blocked on also deciding exactly where it goes.
  */
-/**
- * When each batch was added, as a sortable date string. A hand-set
- * `added: YYYY-MM-DD` in the batch's album.md wins — the repository only
- * began on 2026-07-28, so batches that existed before then (or went in
- * together during the site's first week) need their real dates stated.
- * Otherwise it's when the batch first entered this repository: the commit
- * that first added its manifest under generated/albums/. Not when a
- * photograph was taken (EXIF), and not album.md's scaffolded `date:`.
- *
- * A batch with neither (not committed yet, no `added:`) is absent, and
- * callers treat it as the newest of all. Read once per build.
- */
-export function batchAddedDates(): ReadonlyMap<string, string> {
-  const dates = new Map<string, string>(gitAddedDates());
-  if (existsSync(ALBUM_DIRECTORY)) {
-    for (const slug of readdirSync(ALBUM_DIRECTORY)) {
-      const added = readAlbumField(join(ALBUM_DIRECTORY, slug, 'album.md'), 'added');
-      if (added !== null) dates.set(slug, added);
-    }
-  }
-  return dates;
-}
-
-function gitAddedDates(): Map<string, string> {
-  let log: string;
-  try {
-    log = execFileSync(
-      'git',
-      ['log', '--diff-filter=A', '--format=%cI', '--name-only', '--', 'generated/albums/'],
-      { cwd: ROOT, encoding: 'utf8' },
-    );
-  } catch {
-    return new Map();
-  }
-  const dates = new Map<string, string>();
-  let date = '';
-  // Newest commit first, so a later line for the same batch (a manifest
-  // deleted and re-added) is an earlier add — the last one seen wins.
-  for (const line of log.split('\n')) {
-    const match = /^generated\/albums\/(.+)\.json$/.exec(line);
-    if (match?.[1] !== undefined) dates.set(match[1], date);
-    else if (line.trim() !== '') date = line.trim();
-  }
-  return dates;
-}
-
-/**
- * `photos` re-sequenced by when their batch was added, oldest first — a
- * photographer's progression, in the order the work actually arrived — or
- * newest first. Stable either way: within one batch, the input order
- * (archival or editorial) holds; only batches swap places.
- */
-export function byDateAdded(
-  photos: readonly ArchivePhoto[],
-  dates: ReadonlyMap<string, string>,
-  order: 'oldest-first' | 'newest-first' = 'oldest-first',
-): ArchivePhoto[] {
-  // ISO timestamps compare as plain strings (not localeCompare); "~" sorts
-  // after every digit, so an uncommitted batch counts as the newest.
-  const key = (entry: ArchivePhoto): string => dates.get(entry.batch) ?? '~';
-  const direction = order === 'oldest-first' ? 1 : -1;
-  return [...photos].sort((a, b) => direction * (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
-}
-
 export function selectedWork(archive: Archive): ArchivePhoto[] {
   return archive.photos
     .filter((photo) => photo.featured)

@@ -59,9 +59,11 @@ tools/serve/            production server: site/dist/ + /p/ straight from
   "trip"/"album" type that owns photographs.
 - Non-tag queries: film stock (`rolls.yaml` → `/exposures/film/<stock>/`),
   Selected Work (`featured`/`featuredOrder` → `selectedWork()`, the
-  `/exposures/` front page, which opens in a random order on every visit —
-  the editorial order is the no-JS fallback), cover (`album.md`), date added
-  (`batchAddedDates()`, used only by `/exposures/archives/`).
+  `/exposures/` front page), and cover (`album.md`).
+- **Every photo page opens in a random order** on each visit — tag, film
+  stock, Archives, Saved, Share (`shuffle-on-load.ts`) and Selected Work
+  (`selected-view.ts`, plus its Shuffle button). The server renders
+  archival/editorial order, which is what a no-JS visitor gets.
 - **Presentation order never disturbs archival order.** `(roll, frame)` is
   chronological; `featuredOrder` and shuffle are read on top.
 - **Rolls**: any directory directly containing images, at any depth. A

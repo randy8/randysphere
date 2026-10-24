@@ -2338,3 +2338,14 @@ at its real proportions, instead of the 1200×630 `fit: cover` crop.
 iMessage, Slack and the rest show the whole frame — a portrait stays
 portrait. The crop remains the fallback for a photo without a JPEG, and
 the default card for pages that aren't one photograph.
+
+---
+
+## 2026-10-24 — Every photo page opens in a random order; date-added is gone
+
+**Decision.** Tag, film-stock, Archives, Saved and Share pages deal their
+grid into a fresh random order on each load (`shuffle-on-load.ts`), as
+Selected Work already did; the lightbox follows that order. The server
+still renders archival order, the no-JS fallback. With Archives no longer
+newest-first, `batchAddedDates()`, `byDateAdded()` and album.md's `added:`
+had no caller and are removed.

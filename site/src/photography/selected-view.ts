@@ -16,18 +16,10 @@
  */
 
 import { setLightboxOrder } from './lightbox.ts';
+import { shuffled } from './shuffle-grid.ts';
 
 const FILM_PARAM = 'film';
 const LOCATION_PARAM = 'location';
-
-function shuffled<T>(values: readonly T[]): T[] {
-  const result = [...values];
-  for (let i = result.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j] as T, result[i] as T];
-  }
-  return result;
-}
 
 function init(): void {
   const grid = document.querySelector<HTMLElement>('[data-grid]');
