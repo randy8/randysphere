@@ -9,44 +9,12 @@
  * box, no border below this point.
  */
 
-/* Centred as a column within .wrap, not flush against its left padding —
-   a reading-width block left flush left on a wide viewport would leave dead
-   space down its whole right side, a visibly lopsided page next to how
-   symmetrically the photography collection's own full-bleed, centred photo
-   fills the same frame. Centring the column, magazine-article style, means
-   arriving here from a centred photograph is a shorter, gentler move for
-   the eye than jumping all the way to the left edge. The masthead above no
-   longer lines up its left edge with this column as a result, which is the
-   one deliberate trade: two different fixed points (the header always
-   flush left, this article always centred) rather than one that's flush
-   left on every page but leaves half of it empty. See docs/decisions.md,
-   2026-09-02.
-
-   This (and .recipe-doc/.recipe-index below) used to cap at --measure
-   (64ch) — on this serif's actual glyph metrics that renders to roughly
-   34rem, under half of .wrap's 76rem, which read as a narrow column
-   stranded in an oversized page rather than a deliberate magazine column.
-   A first pass widened this to 46rem; direct follow-up feedback was that
-   it was still too narrow, so this is 58rem now — comfortably inside
-   .wrap's own 76rem rather than pushed right up against it, but a page
-   that reads as using its own width rather than one with a narrow column
-   adrift in it. A fixed rem value rather than a font-relative ch one, so
-   it doesn't move if the typeface's own metrics ever do. Below ~61rem
-   (58rem plus .wrap's own padding) this is already the full available
-   width, so phones and most tablets are unaffected either way. */
+/* Flush left with the masthead, the same left edge every other
+   collection's page uses — it was centred (docs/decisions.md, 2026-09-02)
+   until every page was made to share one set of margins. 58rem keeps a
+   reading-width column inside .wrap's 76rem. */
 .recipe-scope {
   max-width: 58rem;
-  margin-inline: auto;
-}
-/* Recipes are read for the task, not lingered over the way a photograph's
-   title page is — the site-wide h1 scale (built for a chapter-opener
-   moment) reads as dead air here. Capped back to a confident but working
-   headline size, NYT-Cooking-scale rather than photobook-scale. */
-.recipe-scope h1 {
-  font-size: clamp(2.25rem, 1rem + 3vw, 3.25rem);
-  font-weight: 400;
-  line-height: 1.05;
-  letter-spacing: -0.015em;
 }
 
 .recipe-index {

@@ -22,7 +22,7 @@ const { view } = Astro.props;
 ---
 
 <Base
-  title={`${view.title} — Photography`}
+  title={`${view.title} — Exposures`}
   description={`Photographs shot on ${view.title}.`}
 >
   <PhotographyNav current="archive" />
@@ -53,5 +53,6 @@ const { view } = Astro.props;
 
   <script>
     import '../../../photography/lightbox.ts';
+    import '../../../photography/masonry.ts';
   </script>
 </Base>

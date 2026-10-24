@@ -3,7 +3,6 @@ import { readFile, stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 import { extname, join } from 'node:path';
-import { text } from 'node:stream/consumers';
 
 import { clearSessionCookie, readSessionCookie, setSessionCookie } from './cookies.ts';
 import { loadNotes } from './notes.ts';
@@ -19,6 +18,12 @@ export interface ServeConfig {
   readonly privatePhotosDir: string;
   readonly password: string;
   readonly sessionSecret: string;
+  /**
+   * generated/derivatives — served directly at /p/..., so the build never
+   * copies gigabytes of images into dist/ (see docs/decisions.md,
+   * 2026-10-24, "Derivatives are served from where ingest writes them").
+   */
+  readonly derivativesDir: string;
   /** generated/albums — read to resolve a shared link's ?s= into a real photograph's OG crop. */
   readonly generatedAlbumsDir: string;
   /** Matches astro.config.mjs's `site` — used to build absolute og:image URLs. */
@@ -181,8 +186,17 @@ function isAuthenticated(config: ServeConfig, req: IncomingMessage): boolean {
   return verifySessionToken(config.sessionSecret, token);
 }
 
-async function readPassword(req: IncomingMessage): Promise<string> {
-  const body = await text(req);
+/** A login form is a few dozen bytes; anything past this is not one. */
+const MAX_LOGIN_BODY_BYTES = 4096;
+
+async function readPassword(req: IncomingMessage): Promise<string | null> {
+  const declared = Number(req.headers['content-length'] ?? 0);
+  if (declared > MAX_LOGIN_BODY_BYTES) return null;
+  let body = '';
+  for await (const chunk of req) {
+    body += String(chunk);
+    if (body.length > MAX_LOGIN_BODY_BYTES) return null;
+  }
   return new URLSearchParams(body).get('password') ?? '';
 }
 
@@ -209,6 +223,10 @@ async function route(
 
   if (pathname === '/private/login' && method === 'POST') {
     const password = await readPassword(req);
+    if (password === null) {
+      sendText(res, 413, 'Payload too large');
+      return;
+    }
     if (passwordMatches(config.sessionSecret, password, config.password)) {
       const token = createSessionToken(config.sessionSecret);
       res.writeHead(303, { 'set-cookie': setSessionCookie(token), location: '/private' });
@@ -249,8 +267,13 @@ async function route(
   // astro.config.mjs's own `'/': '/exposures/'` entry, which
   // still matters for `astro dev` (a real redirect there too) and for a
   // generic static host serving dist/ directly.
+  //
+  // 302, not 301: browsers cache a 301 indefinitely, and this target has
+  // already moved three times (/photography/, /photography/selected/,
+  // /exposures/) — a cached 301 kept returning visitors on a URL that no
+  // longer exists.
   if (pathname === '/' && (method === 'GET' || method === 'HEAD')) {
-    res.writeHead(301, { location: '/exposures/' });
+    res.writeHead(302, { location: '/exposures/' });
     res.end();
     return;
   }
@@ -297,9 +320,10 @@ async function route(
       return;
     }
 
+    const root = relativeWithoutSlash.startsWith('p/') ? config.derivativesDir : config.distDir;
     await sendFile(
       res,
-      join(config.distDir, relativeWithoutSlash),
+      join(root, relativeWithoutSlash),
       cacheControlFor(relativeWithoutSlash),
       () => sendNotFoundPage(res, config.distDir),
     );

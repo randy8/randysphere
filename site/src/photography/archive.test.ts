@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import {
   allFilmStocks,
   allTags,
+  byDateAdded,
   byFilmStock,
   byTag,
   coverPhoto,
@@ -325,5 +326,28 @@ test('selectedWork places photos with no featuredOrder after every ordered one, 
   assert.deepEqual(
     selectedWork(archive).map((p) => p.photo.file),
     ['ordered.tif', 'unordered.tif'],
+  );
+});
+
+test('byDateAdded orders by batch add date, oldest first, uncommitted last, stable within a batch', () => {
+  const batch = (slug: string, files: string[]): ArchivePhoto[] => {
+    const m = manifest(
+      files.map((file) => photo(file, '.')),
+      [{ id: '.', photoCount: files.length }],
+    );
+    return joinBatch(m, [], joinRolls(m, [], slug), slug, null);
+  };
+  const newer = batch('newer', ['a.tif', 'b.tif']);
+  const older = batch('older', ['c.tif']);
+  const pending = batch('pending', ['d.tif']);
+  const dates = new Map([
+    ['newer', '2026-10-06T19:43:39-04:00'],
+    ['older', '2026-07-29T11:12:53-04:00'],
+  ]);
+
+  const ordered = byDateAdded([...pending, ...newer, ...older], dates);
+  assert.deepEqual(
+    ordered.map((entry) => entry.photo.file),
+    ['c.tif', 'a.tif', 'b.tif', 'd.tif'],
   );
 });

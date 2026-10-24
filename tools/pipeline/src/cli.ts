@@ -214,7 +214,8 @@ const DEFAULT_EDITOR_PORT = 4500;
  */
 async function runEditor(port: number): Promise<number> {
   const paths = resolvePaths(repositoryRoot());
-  const server = createEditorServer(paths);
+  const config = await loadConfig(paths.configFile);
+  const server = createEditorServer(paths, config);
 
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject);

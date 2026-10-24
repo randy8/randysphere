@@ -2157,3 +2157,70 @@ controls panel is unrelated page-specific UI, not the masthead, and stays.
 **Revisit if.** Pages grow long enough that scrolling back to the top for
 navigation becomes a real complaint — then a "back to top" link at the
 foot of the page is the next step, not a return to a sticky bar.
+
+---
+
+## 2026-10-24 — Derivatives are served from where ingest writes them
+
+**Decision.** `tools/serve` serves `/p/...` directly from
+`generated/derivatives/`, and `astro dev`/`preview` do the same through a
+few lines of Vite middleware in `site/astro.config.mjs`. `pnpm sync` is now
+just `pnpm ingest`; the `publish:local` script is gone (the CLI's
+`publish --local` remains for a generic static host).
+
+**Why.** `site/public/p/` held a full copy of every derivative (5.9 GB),
+and Astro copied all of it again into `site/dist/` on every build — three
+copies of the same bytes, minutes per build, and, because Astro empties
+`dist/` first while `tools/serve` keeps serving from it, the live site was
+broken for the length of every deploy.
+
+**Not a return of the symlink.** The symlink removed earlier in this project broke production
+because a git-ignored path leaked into `dist/`. Here nothing reaches the
+build output at all: the build never sees an image.
+
+**Rejected.** R2 (the existing `pnpm run publish` path) — it works and
+offloads bandwidth, but adds credentials and a second place images live
+for a site served from one home machine. Still the next step if bandwidth
+ever matters.
+
+---
+
+## 2026-10-24 — Rotation is a photos.yaml field, baked in at ingest
+
+**Decision.** `rotate: 90|180|270` (clockwise) per photo in `photos.yaml`,
+set from the editor (`[` / `]`). Ingest applies it on top of the EXIF
+orientation and records the turn in each derivative's encode spec — only
+when non-zero, so no existing key moved and only rotated photos re-encode.
+The editor previews a pending turn in CSS, working out which turn is
+already baked in by recomputing the Open Graph key for each candidate.
+
+**Why.** Lab scans arrive with no orientation tag and are often sideways.
+
+**Rejected.** Rotating the original file (or writing its EXIF orientation):
+breaks "originals are immutable," gives the photo a new `sourceId`, and
+needs a new dependency. Filebrowser has no image editing at all.
+
+---
+
+## 2026-10-24 — Masonry placement for the photography grid
+
+**Decision.** `masonry.ts` positions each grid figure absolutely in the
+shortest column. The CSS grid underneath is unchanged and is what a no-JS
+visitor sees; column count is one custom property (`--grid-columns`).
+
+**Rejected.** CSS `columns` (fills top-to-bottom, scrambling frame order and
+Selected Work's sequence); native CSS masonry (not reliably shipped); a grid
+of 1px rows with spans (a 500-photo page needs tens of thousands of implicit
+rows, past browser limits); a layout library (unneeded for ~60 lines).
+
+---
+
+## 2026-10-24 — "Date added" means first committed to the repository
+
+**Decision.** `batchAddedDates()` reads, from git at build time, when each
+batch's manifest was first added. Selected Work gains a "Date added" toggle
+(oldest first — a progression), and `/exposures/archives/` uses the same
+helper newest-first, replacing its own read of `album.md`'s `date:` (which
+is scaffolded from EXIF, i.e. when the photo was taken, not added).
+Uncommitted batches count as newest; without git, order falls back to
+archival order.

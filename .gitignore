@@ -34,3 +34,15 @@ dist/
 .DS_Store
 Thumbs.db
 *.log
+
+# Scan deliveries from the lab, downloaded before being unpacked into
+# originals/ by hand. Gigabytes each; never something to commit.
+/*.zip
+
+# Filebrowser's own state (its user database holds login hashes). The compose
+# file next to it is fine to keep; this is not.
+/filebrowser/database/
+
+# Images referenced by private/notes.yaml — served only behind /private's
+# password, never committed (same as notes.yaml itself).
+/private/photos/

@@ -4,7 +4,7 @@ import sharp from 'sharp';
 import { averageColorHex } from './color.ts';
 import type { PipelineConfig } from './config.ts';
 import { PipelineError } from './errors.ts';
-import type { Dimensions } from './orientation.ts';
+import type { Dimensions, Rotation } from './orientation.ts';
 import { displayedDimensions } from './orientation.ts';
 import type { VariantPlan } from './recipe.ts';
 
@@ -84,11 +84,14 @@ export async function normalise(
   file: string,
   config: PipelineConfig,
   maximumWidth: number,
+  rotate: Rotation = 0,
 ): Promise<NormalisedImage> {
   const { data, info } = await sharp(file, { failOn: 'error' })
-    // No arguments: apply the EXIF orientation and discard it. Everything
-    // downstream, including the dimensions in the manifest, is post-rotation.
-    .rotate()
+    // Apply the EXIF orientation and discard it, then the photographer's own
+    // quarter turn from photos.yaml on top. Everything downstream, including
+    // the dimensions in the manifest, is post-rotation.
+    .autoOrient()
+    .rotate(rotate)
     // Photographs do not have transparency, and flattening here means the raw
     // buffer is always three channels.
     .flatten({ background: '#ffffff' })

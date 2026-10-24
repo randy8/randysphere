@@ -6,6 +6,7 @@ import { test } from 'node:test';
 
 import {
   applyPhotoEdits,
+  readPhotosFile,
   scaffoldAlbumMarkdown,
   setPhotoDescription,
   StaleAlbumFileError,
@@ -517,4 +518,32 @@ test('updateAlbumCover throws when the file has no frontmatter block', async () 
     () => updateAlbumCover(directory, '002.jpg'),
     /expected to start with a "---" YAML frontmatter block/,
   );
+});
+
+test('applyPhotoEdits sets rotate, 0 clears it, and readPhotosFile reads it back', async () => {
+  const directory = await emptyAlbumDirectory();
+  await syncPhotosFile(directory, refs(['001.jpg', '002.jpg']), 'paris-2025');
+
+  await applyPhotoEdits(directory, [{ file: '001.jpg', rotate: 90 }], null);
+  let entries = await readPhotosFile(directory);
+  assert.deepEqual(
+    entries.map((entry) => entry.rotate),
+    [90, 0],
+  );
+
+  await applyPhotoEdits(directory, [{ file: '001.jpg', rotate: 0 }], null);
+  assert.doesNotMatch(await readFile(join(directory, 'photos.yaml'), 'utf8'), /rotate/);
+  entries = await readPhotosFile(directory);
+  assert.equal(entries[0]?.rotate, 0);
+});
+
+test('a hand-typed rotate that is not a quarter turn is refused, naming the photo', async () => {
+  const directory = await emptyAlbumDirectory();
+  await syncPhotosFile(directory, refs(['001.jpg']), 'paris-2025');
+  const path = join(directory, 'photos.yaml');
+  await writeFileAtomic(
+    path,
+    (await readFile(path, 'utf8')).replace('  alt:', '  rotate: 45\n    alt:'),
+  );
+  await assert.rejects(readPhotosFile(directory), /001\.jpg has rotate: 45/);
 });

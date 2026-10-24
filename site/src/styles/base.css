@@ -220,12 +220,15 @@ body {
   border-color: var(--accent);
 }
 
+/* One title size for every page in every collection — a page names what
+   you're looking at rather than staging a title-page moment, and every
+   collection's header reads the same way. */
 h1 {
-  font-size: clamp(2.75rem, 1rem + 8vw, 6.5rem);
-  font-weight: 340;
-  line-height: 0.98;
+  font-size: clamp(2.25rem, 1rem + 3vw, 3.25rem);
+  font-weight: 400;
+  line-height: 1.05;
   margin: 0 0 0.75rem;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.015em;
 }
 h2 {
   font-size: 1.375rem;
@@ -346,21 +349,6 @@ main {
   color: var(--rule);
 }
 
-/* The Saved page's own header rhythm — scoped off the shared .album-header
-   (used, unchanged, by every other page's header) via :has() on main, the
-   same technique the homepage's .home-header already uses. A utility page
-   showing a visitor's own photographs back to them doesn't want a title
-   page's worth of air before the first one — it should read closer to a
-   contact sheet's own label than a chapter opener. */
-main:has(> .saved-header) {
-  padding: 2rem 0 4rem;
-}
-.saved-header {
-  margin-bottom: 1.75rem;
-}
-.saved-header h1 {
-  font-size: clamp(1.5rem, 1rem + 1.5vw, 2rem);
-}
 .saved-meta {
   display: flex;
   align-items: baseline;
@@ -516,34 +504,6 @@ main:has(> .saved-header) {
  * ranked in collections.ts's own order. No image ever appears here: the
  * homepage introduces the archive, it never shows what's inside it.
  */
-/* The homepage announces a table of contents, not a photobook's title page
-   — the site-wide h1 scale (built for that moment) reads oversized here.
-   Sized down again from its first pass: still the dominant thing on the
-   page, just short of a splash-screen hero. */
-.home-header h1 {
-  font-size: clamp(1.5rem, 1rem + 1.6vw, 2rem);
-}
-/* The homepage's own, tighter rhythm — scoped off the shared .album-header
-   (used, unchanged, by every other page's header) via :has() on main
-   rather than a second wrapper element, since .home-header already exists
-   only here. A little less air than the site-wide defaults throughout:
-   still a spacious, unhurried page, just not an oversized one on a phone. */
-main:has(> .home-header) {
-  padding: 2.25rem 0 4.5rem;
-}
-.home-header {
-  margin-bottom: 2.75rem;
-}
-
-/* Every photography subpage (a tag view, Archive, Selected Work, a film
-   stock, About) names what you're looking at, not a title-page moment —
-   the site-wide h1 scale (built for /exposures/'s own landing header)
-   reads oversized repeated on every view. `.photography-nav` is the one
-   element every one of these headers directly follows in markup, so this
-   scopes without needing a wrapper class on each page. */
-.photography-nav + .album-header h1 {
-  font-size: clamp(2.25rem, 1.1rem + 3.5vw, 3.5rem);
-}
 
 .archive-index {
   /* A lighter tint of the same rule colour, not a second variable added to
@@ -639,20 +599,38 @@ main:has(> .home-header) {
  * and each column simply gets wider as the viewport grows.
  */
 .grid {
+  /* Read by masonry.ts, so the column count lives in exactly one place. */
+  --grid-columns: 2;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(var(--grid-columns), 1fr);
   align-items: start;
   gap: 1rem;
 }
 @media (min-width: 40rem) {
   .grid {
-    grid-template-columns: repeat(3, 1fr);
+    --grid-columns: 3;
   }
 }
 @media (min-width: 64rem) {
   .grid {
-    grid-template-columns: repeat(4, 1fr);
+    --grid-columns: 4;
   }
+}
+/*
+ * With JavaScript, masonry.ts takes over placement: each figure goes into
+ * the shortest column at its own aspect ratio, so a portrait no longer
+ * leaves a gap under the landscapes beside it. Same columns, same gap, same
+ * DOM order — only positions change. Without it, the grid above stands.
+ */
+.grid.is-masonry {
+  display: block;
+  position: relative;
+}
+.grid.is-masonry > * {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
 }
 .grid figure {
   transition: opacity 0.3s ease;
@@ -715,6 +693,10 @@ main:has(> .home-header) {
 }
 .selected-filter select:hover,
 .selected-filter select:focus-visible,
+.selected-shuffle[aria-pressed='true'] {
+  color: var(--ink);
+  border-color: var(--ink);
+}
 .selected-shuffle:hover,
 .selected-shuffle:focus-visible {
   color: var(--accent);

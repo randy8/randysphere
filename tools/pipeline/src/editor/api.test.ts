@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { validateConfig } from '../config.ts';
 import { mkdir, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -17,6 +18,21 @@ import {
   renameTagEverywhere,
   setCover,
 } from './api.ts';
+
+const config = validateConfig({
+  recipeVersion: 1,
+  widths: [400, 800, 1600],
+  kernel: 'lanczos3',
+  avif: { quality: 55, effort: 4 },
+  webp: { quality: 76, effort: 5 },
+  jpeg: { quality: 80, widths: [800] },
+  og: { width: 1200, height: 630, quality: 82 },
+  lqip: { width: 20, quality: 35 },
+  cameraMetadata: true,
+  copyright: null,
+  r2: { bucket: 'photographs' },
+  localPublishDir: 'site/public',
+});
 
 function variant(width: number): VariantRecord {
   return {
@@ -76,7 +92,7 @@ async function fixtureAlbum(slug: string, files: string[]): Promise<Paths> {
 test('listPhotos returns joined photos with media URLs and album versions', async () => {
   const paths = await fixtureAlbum('paris-2025', ['001.jpg']);
 
-  const response = await listPhotos(paths);
+  const response = await listPhotos(paths, config);
 
   assert.equal(response.photos.length, 1);
   const [photoView] = response.photos;
@@ -96,7 +112,7 @@ test('listTags returns the global vocabulary with counts', async () => {
 
 test('applyEdits groups edits by album into one write and reports fresh versions', async () => {
   const paths = await fixtureAlbum('paris-2025', ['001.jpg', '002.jpg']);
-  const before = await listPhotos(paths);
+  const before = await listPhotos(paths, config);
 
   const result = await applyEdits(paths, {
     edits: [
@@ -110,7 +126,7 @@ test('applyEdits groups edits by album into one write and reports fresh versions
   assert.deepEqual(result.conflicts, []);
   assert.notEqual(result.albumVersions['paris-2025'], before.albumVersions['paris-2025']);
 
-  const after = await listPhotos(paths);
+  const after = await listPhotos(paths, config);
   const first = after.photos.find((p) => p.file === '001.jpg');
   const second = after.photos.find((p) => p.file === '002.jpg');
   assert.deepEqual(first?.tags, ['paris-2025', 'street']);
@@ -119,7 +135,7 @@ test('applyEdits groups edits by album into one write and reports fresh versions
 
 test('applyEdits reports a conflict, not a thrown error, when a version is stale', async () => {
   const paths = await fixtureAlbum('paris-2025', ['001.jpg']);
-  const before = await listPhotos(paths);
+  const before = await listPhotos(paths, config);
 
   // Something else changes the album first.
   await applyEdits(paths, {
@@ -141,13 +157,13 @@ test('renameTagEverywhere swaps a tag across every affected photo in one pass', 
   const paths = await fixtureAlbum('paris-2025', ['001.jpg', '002.jpg']);
   await applyEdits(paths, {
     edits: [{ album: 'paris-2025', file: '001.jpg', addTags: ['streeet'] }],
-    expectedVersions: (await listPhotos(paths)).albumVersions,
+    expectedVersions: (await listPhotos(paths, config)).albumVersions,
   });
 
   const result = await renameTagEverywhere(paths, 'streeet', 'street');
 
   assert.equal(result.affected, 1);
-  const after = await listPhotos(paths);
+  const after = await listPhotos(paths, config);
   const first = after.photos.find((p) => p.file === '001.jpg');
   assert.deepEqual(first?.tags, ['paris-2025', 'street']);
 });
@@ -158,7 +174,7 @@ test('deleteTagEverywhere removes a tag from every photo that carries it', async
   const result = await deleteTagEverywhere(paths, 'paris-2025');
 
   assert.equal(result.affected, 2);
-  const after = await listPhotos(paths);
+  const after = await listPhotos(paths, config);
   for (const photo of after.photos) assert.deepEqual(photo.tags, []);
 });
 
@@ -167,10 +183,10 @@ test('listPhotos reports featured and cover status from photos.yaml and album.md
   await scaffoldAlbumMarkdown(join(paths.albums, 'paris-2025'), 'paris-2025', null, '001.jpg');
   await applyEdits(paths, {
     edits: [{ album: 'paris-2025', file: '002.jpg', featured: true, featuredOrder: 1 }],
-    expectedVersions: (await listPhotos(paths)).albumVersions,
+    expectedVersions: (await listPhotos(paths, config)).albumVersions,
   });
 
-  const response = await listPhotos(paths);
+  const response = await listPhotos(paths, config);
   const first = response.photos.find((p) => p.file === '001.jpg');
   const second = response.photos.find((p) => p.file === '002.jpg');
   assert.equal(first?.cover, true);
@@ -186,7 +202,7 @@ test('setCover changes album.md without touching photos.yaml', async () => {
 
   await setCover(paths, { album: 'paris-2025', file: '002.jpg' });
 
-  const response = await listPhotos(paths);
+  const response = await listPhotos(paths, config);
   const first = response.photos.find((p) => p.file === '001.jpg');
   const second = response.photos.find((p) => p.file === '002.jpg');
   assert.equal(first?.cover, false);

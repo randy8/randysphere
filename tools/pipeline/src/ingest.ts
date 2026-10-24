@@ -2,7 +2,13 @@ import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import { availableParallelism } from 'node:os';
 import { join } from 'node:path';
 
-import { scaffoldAlbumMarkdown, syncPhotosFile, syncRollsFile } from './album-files.ts';
+import {
+  readPhotosFile,
+  scaffoldAlbumMarkdown,
+  syncPhotosFile,
+  syncRollsFile,
+} from './album-files.ts';
+import type { PhotosFileEntry } from './album-files.ts';
 import { mapWithConcurrency } from './concurrency.ts';
 import type { PipelineConfig } from './config.ts';
 import { pathExists, writeFileAtomic } from './files.ts';
@@ -24,6 +30,8 @@ import {
   writeAlbumManifest,
   writeRepositoryIndex,
 } from './manifest.ts';
+import type { Rotation } from './orientation.ts';
+import { rotatedDimensions } from './orientation.ts';
 import { derivativePath } from './paths.ts';
 import type { Paths } from './paths.ts';
 import { planOpenGraph, planVariants, SOURCE_ID_LENGTH } from './recipe.ts';
@@ -115,20 +123,50 @@ export function resolvePriorRecord(
   return previous.byPath.get(relPath) ?? previous.bySourceId.get(sourceId);
 }
 
+/**
+ * Each photo's `rotate:` from photos.yaml, read before encoding because it
+ * changes the derivatives' bytes. Looked up the same way photos.yaml entries
+ * are matched to photos — content first, path second — so a turn survives
+ * a move, and a same-path re-export keeps it too.
+ */
+export interface Rotations {
+  readonly bySourceId: ReadonlyMap<string, Rotation>;
+  readonly byPath: ReadonlyMap<string, Rotation>;
+}
+
+export function rotationsFrom(entries: readonly PhotosFileEntry[]): Rotations {
+  return {
+    bySourceId: new Map(
+      entries.flatMap((entry) =>
+        entry.sourceId === null ? [] : [[entry.sourceId, entry.rotate] as const],
+      ),
+    ),
+    byPath: new Map(entries.map((entry) => [entry.file, entry.rotate])),
+  };
+}
+
+export function resolveRotation(rotations: Rotations, relPath: string, sourceId: string): Rotation {
+  return rotations.bySourceId.get(sourceId) ?? rotations.byPath.get(relPath) ?? 0;
+}
+
 async function ingestPhoto(
   paths: Paths,
   config: PipelineConfig,
   albumDirectory: string,
   photo: SourcePhoto,
   previous: PreviousRecords,
+  rotations: Rotations,
 ): Promise<PhotoOutcome> {
   const sourcePath = join(albumDirectory, photo.relPath);
   const sourceId = (await sha256File(sourcePath)).slice(0, SOURCE_ID_LENGTH);
   const priorRecord = resolvePriorRecord(previous, photo.relPath, sourceId);
-  const { displayed, exif } = await inspectSource(sourcePath);
+  const rotate = resolveRotation(rotations, photo.relPath, sourceId);
+  const inspection = await inspectSource(sourcePath);
+  const displayed = rotatedDimensions(inspection.displayed, rotate);
+  const { exif } = inspection;
 
-  const plans = planVariants(sourceId, displayed, config);
-  const openGraph = planOpenGraph(sourceId, config);
+  const plans = planVariants(sourceId, displayed, config, rotate);
+  const openGraph = planOpenGraph(sourceId, config, rotate);
   const everyPlan = [...plans, openGraph];
 
   const missing: VariantPlan[] = [];
@@ -157,7 +195,7 @@ async function ingestPhoto(
   }
 
   const widest = plans.reduce((maximum, plan) => Math.max(maximum, plan.width), 0);
-  const base = await normalise(sourcePath, config, Math.max(widest, config.og.width));
+  const base = await normalise(sourcePath, config, Math.max(widest, config.og.width), rotate);
 
   const encodedByKey = new Map<string, { width: number; height: number; bytes: number }>();
   for (const plan of missing) {
@@ -312,10 +350,12 @@ export async function ingest(options: IngestOptions): Promise<IngestReport> {
 
     const manifestPath = join(paths.manifests, `${slug}.json`);
     const previous = await readPreviousRecords(manifestPath);
+    const albumDirectory = join(paths.albums, slug);
+    const rotations = rotationsFrom(await readPhotosFile(albumDirectory));
 
     let completed = 0;
     const outcomes = await mapWithConcurrency(photos, concurrency, async (photo) => {
-      const outcome = await ingestPhoto(paths, config, albumOriginals, photo, previous);
+      const outcome = await ingestPhoto(paths, config, albumOriginals, photo, previous, rotations);
       completed += 1;
       onProgress?.(slug, completed, photos.length);
       return outcome;
@@ -333,7 +373,6 @@ export async function ingest(options: IngestOptions): Promise<IngestReport> {
     };
     await writeAlbumManifest(manifestPath, manifest);
 
-    const albumDirectory = join(paths.albums, slug);
     await mkdir(albumDirectory, { recursive: true });
     const files = photos.map((photo) => photo.relPath);
     const photoRefs = outcomes.map((outcome) => ({

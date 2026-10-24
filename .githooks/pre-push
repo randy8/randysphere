@@ -1,0 +1,6 @@
+#!/bin/sh
+# Runs the same checks as `pnpm verify` (format, lint, typecheck, tests,
+# build) before anything leaves this machine. Enabled per clone with:
+#   git config core.hooksPath .githooks
+# Skip once, deliberately, with `git push --no-verify`.
+exec pnpm verify

@@ -2,7 +2,9 @@ import { join } from 'node:path';
 
 import { applyPhotoEdits, StaleAlbumFileError, updateAlbumCover } from '../album-files.ts';
 import type { PhotoEdit } from '../album-files.ts';
+import type { PipelineConfig } from '../config.ts';
 import { PipelineError } from '../errors.ts';
+import type { Rotation } from '../orientation.ts';
 import type { Paths } from '../paths.ts';
 import { loadEditorArchive, tagCounts } from './archive-reader.ts';
 import { withAlbumLock } from './lock.ts';
@@ -25,6 +27,8 @@ export interface EditorPhotoView {
   readonly tags: readonly string[];
   readonly featured: boolean;
   readonly featuredOrder: number | null;
+  readonly rotate: Rotation;
+  readonly appliedRotate: Rotation;
   readonly cover: boolean;
 }
 
@@ -34,8 +38,11 @@ export interface ListPhotosResponse {
 }
 
 /** Everything the grid, inspector, and batch bar need, joined across every album. */
-export async function listPhotos(paths: Paths): Promise<ListPhotosResponse> {
-  const archive = await loadEditorArchive(paths);
+export async function listPhotos(
+  paths: Paths,
+  config: PipelineConfig,
+): Promise<ListPhotosResponse> {
+  const archive = await loadEditorArchive(paths, config);
   return {
     photos: archive.photos.map((photo) => ({
       album: photo.album,
@@ -51,6 +58,8 @@ export async function listPhotos(paths: Paths): Promise<ListPhotosResponse> {
       tags: photo.tags,
       featured: photo.featured,
       featuredOrder: photo.featuredOrder,
+      rotate: photo.rotate,
+      appliedRotate: photo.appliedRotate,
       cover: photo.cover,
     })),
     albumVersions: archive.albumVersions,

@@ -4,25 +4,11 @@
  * own player chrome) already carries the title, artist, and cover art, so
  * the entry around it stays quiet: a date, an optional note, nothing else.
  */
-/* Centred, not flush left against .wrap's padding, for the same reason
-   recipes.css's .recipe-scope now is — see its own comment. Was a flat
-   30rem, sized to a Spotify embed's own native width — technically exact,
-   but stark on anything wider than a phone: a 480px-wide island adrift in
-   a 76rem page with no other content to anchor it. A first pass moved
-   this to 38rem; direct follow-up feedback was that it was still too
-   narrow, so this is 44rem now, matching recipes.css's own second pass —
-   big enough that a single embed reads as a deliberate column rather than
-   leftover space, while a 16:9 YouTube embed at this width still lands at
-   a reasonable ~396px tall rather than oversized. */
+/* Flush left, for the same reason recipes.css's .recipe-scope is — see
+   its own comment. 44rem keeps a single embed reading as a deliberate
+   column; a 16:9 YouTube embed at this width lands around ~396px tall. */
 .music-scope {
   max-width: 44rem;
-  margin-inline: auto;
-}
-.music-scope h1 {
-  font-size: clamp(2.25rem, 1rem + 3vw, 3.25rem);
-  font-weight: 400;
-  line-height: 1.05;
-  letter-spacing: -0.015em;
 }
 
 .music-list {

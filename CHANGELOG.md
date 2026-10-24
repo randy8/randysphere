@@ -909,3 +909,26 @@ plain grid that opens a lightbox on click, the way most photo sites
 already work. See `docs/decisions.md` for the full reasoning, including
 why this is a deliberate reversal of the Browse-mode direction rather than
 another layer on top of it.
+
+## 2026-10-24 — Masonry grid, date-added order, rotation, and images served in place
+
+The photography grid stops being rows. A portrait used to set the height
+of its whole row and leave a gap under every landscape beside it; now each
+photograph drops into whichever column is shortest, at its own proportions,
+uncropped. It's an enhancement over the same CSS grid as before — without
+JavaScript the old grid still stands — and it moves photographs only
+visually, so the lightbox, keyboard order, and Selected Work's filter and
+shuffle behave exactly as they did.
+
+Selected Work gains a "Date added" toggle next to Shuffle: the same
+photographs, re-sequenced by when each batch entered the repository, oldest
+first — a way to see the work develop. The unlinked archives page uses the
+same definition, newest first.
+
+Behind the scenes, two practical changes. Sideways lab scans can be turned
+in the editor (`[` / `]`); the turn lives in `photos.yaml` and is baked into
+the images at the next ingest, never into the originals. And the encoded
+images are no longer copied into the site at all — the server and the dev
+server read them where ingest writes them — which removes 5.9 GB from every
+build and, with it, the window during each deploy when the live site was
+half-built.

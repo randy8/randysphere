@@ -11,7 +11,9 @@ keeps working and the new site reads the same JSON.
 pnpm ingest                    # encode derivatives, rewrite manifests
 pnpm ingest --album lisbon     # just one album
 pnpm run publish               # upload to R2
-pnpm run publish --local       # write into site/public/ instead
+pnpm run publish --local       # write a self-contained copy into site/public/
+                               # (only for a generic static host; dev and
+                               # tools/serve read generated/derivatives/ directly)
 pnpm doctor                    # report drift, change nothing
 ```
 

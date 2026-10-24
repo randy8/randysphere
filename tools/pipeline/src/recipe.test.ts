@@ -95,3 +95,21 @@ test('open graph crops are keyed separately from the responsive set', () => {
   assert.ok(og.key.includes('/og-'));
   assert.equal(keysFor(base).includes(og.key), false);
 });
+
+test('an unrotated plan is keyed exactly as before rotation existed', () => {
+  const unrotated = planVariants(SOURCE_ID, large, base, 0);
+  assert.deepEqual(
+    unrotated.map((plan) => plan.key),
+    planVariants(SOURCE_ID, large, base).map((plan) => plan.key),
+  );
+  assert.ok(unrotated.every((plan) => !('rotate' in plan.spec)));
+});
+
+test('each rotation gets its own keys, for both the responsive set and the open graph crop', () => {
+  const keys = ([0, 90, 180, 270] as const).map((rotate) => ({
+    variants: planVariants(SOURCE_ID, large, base, rotate).map((plan) => plan.key),
+    og: planOpenGraph(SOURCE_ID, base, rotate).key,
+  }));
+  assert.equal(new Set(keys.map((entry) => entry.og)).size, 4);
+  assert.equal(new Set(keys.map((entry) => entry.variants.join())).size, 4);
+});

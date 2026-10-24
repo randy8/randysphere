@@ -2,9 +2,13 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { PHOTOS_FILE, readAlbumCover, readPhotosFile } from '../album-files.ts';
+import type { PipelineConfig } from '../config.ts';
 import { sha256Hex } from '../hash.ts';
 import type { PhotoRecord, VariantRecord } from '../manifest.ts';
+import type { Rotation } from '../orientation.ts';
+import { ROTATIONS } from '../orientation.ts';
 import type { Paths } from '../paths.ts';
+import { planOpenGraph } from '../recipe.ts';
 import { readAllManifests } from '../publish.ts';
 
 /**
@@ -30,6 +34,14 @@ export interface EditorPhoto {
   readonly tags: readonly string[];
   readonly featured: boolean;
   readonly featuredOrder: number | null;
+  /** The turn photos.yaml asks for. */
+  readonly rotate: Rotation;
+  /**
+   * The turn the derivatives on disk actually carry — differs from `rotate`
+   * until the next `pnpm ingest`, which is what lets the editor preview a
+   * pending turn without double-rotating an already-baked thumbnail.
+   */
+  readonly appliedRotate: Rotation;
   /** True if this photo is its album's current cover (album.md's `cover:`). */
   readonly cover: boolean;
 }
@@ -61,8 +73,28 @@ function previewKey(photo: PhotoRecord): string {
   return (webp.find((variant) => variant.width >= 1200) ?? webp.at(-1) ?? photo.og).key;
 }
 
-/** Reads every manifest and every album's `photos.yaml`, joined into one flat, editable list. */
-export async function loadEditorArchive(paths: Paths): Promise<EditorArchive> {
+/**
+ * Which turn produced the derivatives on disk, recovered without a manifest
+ * field: the rotation is part of the Open Graph key's digest, so whichever
+ * candidate reproduces the recorded key is the one that was encoded.
+ */
+export function appliedRotation(photo: PhotoRecord, config: PipelineConfig): Rotation {
+  return (
+    ROTATIONS.find(
+      (rotate) => planOpenGraph(photo.sourceId, config, rotate).key === photo.og.key,
+    ) ?? 0
+  );
+}
+
+/**
+ * Reads every manifest and every album's `photos.yaml`, joined into one flat,
+ * editable list. `config` is only needed to work out `appliedRotate`; without
+ * it (tag maintenance, which never looks), a photo's turn is taken as applied.
+ */
+export async function loadEditorArchive(
+  paths: Paths,
+  config?: PipelineConfig,
+): Promise<EditorArchive> {
   const manifests = await readAllManifests(paths);
   const photos: EditorPhoto[] = [];
   const albumVersions: Record<string, string> = {};
@@ -92,6 +124,8 @@ export async function loadEditorArchive(paths: Paths): Promise<EditorArchive> {
         tags: entry?.tags ?? [],
         featured: entry?.featured ?? false,
         featuredOrder: entry?.featuredOrder ?? null,
+        rotate: entry?.rotate ?? 0,
+        appliedRotate: config === undefined ? (entry?.rotate ?? 0) : appliedRotation(photo, config),
         cover: cover === photo.file,
       });
     }

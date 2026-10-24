@@ -30,3 +30,25 @@ export function displayedDimensions(
 export function scaledHeight(source: Dimensions, width: number): number {
   return Math.max(1, Math.round((width * source.height) / source.width));
 }
+
+/**
+ * A photographer-chosen quarter turn, clockwise, applied on top of whatever
+ * EXIF orientation the original already carries — `rotate:` in photos.yaml.
+ * Exists for scans, which arrive with no orientation tag at all and are as
+ * often sideways as not. The original is never touched; the turn is baked
+ * into the derivatives only.
+ */
+export type Rotation = 0 | 90 | 180 | 270;
+
+export const ROTATIONS: readonly Rotation[] = [0, 90, 180, 270];
+
+export function isRotation(value: unknown): value is Rotation {
+  return ROTATIONS.includes(value as Rotation);
+}
+
+/** `displayed` after a further clockwise `rotate` — a quarter turn swaps the edges. */
+export function rotatedDimensions(displayed: Dimensions, rotate: Rotation): Dimensions {
+  return rotate === 90 || rotate === 270
+    ? { width: displayed.height, height: displayed.width }
+    : displayed;
+}

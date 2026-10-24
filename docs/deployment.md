@@ -13,6 +13,7 @@ browser
   → Cloudflare Tunnel                      (cloudflared-tunnel.service)
   → http://localhost:4322                  (photography-serve.service, i.e. `pnpm serve`)
   → tools/serve reads site/dist/           (built by `pnpm build`)
+                    and /p/... from generated/derivatives/ (written by `pnpm ingest`)
 ```
 
 Both services are `systemd` units, `enable`d (so they start on boot) with

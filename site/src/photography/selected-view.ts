@@ -1,5 +1,6 @@
 /**
- * Selected Work's two controls — a film-stock filter and Shuffle — both
+ * Selected Work's three controls — a film-stock filter, Date added, and
+ * Shuffle — all
  * progressive enhancement over a grid that already renders complete, in
  * featuredOrder, with no script at all. The toolbar is server-rendered
  * `hidden` and only revealed here, so a no-JS visitor never sees a control
@@ -9,8 +10,11 @@
  * <figure>s in place and hand the resulting order to the lightbox
  * (setLightboxOrder), so prev/next always steps through exactly what the
  * grid shows. The filter lives in `?film=<stock>` so a filtered view
- * survives a reload and can be shared; shuffle order is deliberately not
- * kept anywhere — a reload goes back to the editorial sequence.
+ * survives a reload and can be shared; shuffle and date-added order are
+ * deliberately not kept anywhere — a reload goes back to the editorial
+ * sequence. Date added is a toggle: pressed, the grid runs oldest batch
+ * first (the order is computed at build time, see batchAddedDates);
+ * pressed again, it returns to the editorial sequence.
  */
 
 import { setLightboxOrder } from './lightbox.ts';
@@ -33,7 +37,13 @@ function init(): void {
 
   const select = toolbar.querySelector<HTMLSelectElement>('[data-film-filter]');
   const shuffleButton = toolbar.querySelector<HTMLButtonElement>('[data-shuffle]');
+  const dateButton = toolbar.querySelector<HTMLButtonElement>('[data-date-added]');
   const figures = Array.from(grid.querySelectorAll<HTMLElement>(':scope > [data-photo-id]'));
+  const byId = new Map(figures.map((figure) => [figure.dataset['photoId'] ?? '', figure]));
+  const dateOrder = (dateButton?.dataset['dateAdded'] ?? '')
+    .split(' ')
+    .map((id) => byId.get(id))
+    .filter((figure): figure is HTMLElement => figure !== undefined);
 
   const apply = (): void => {
     const stock = select?.value ?? '';
@@ -62,8 +72,20 @@ function init(): void {
     });
   }
 
+  const setDatePressed = (pressed: boolean): void => {
+    dateButton?.setAttribute('aria-pressed', String(pressed));
+  };
+
+  dateButton?.addEventListener('click', () => {
+    const pressed = dateButton.getAttribute('aria-pressed') !== 'true';
+    for (const figure of pressed ? dateOrder : figures) grid.appendChild(figure);
+    setDatePressed(pressed);
+    apply();
+  });
+
   shuffleButton?.addEventListener('click', () => {
     for (const figure of shuffled(figures)) grid.appendChild(figure);
+    setDatePressed(false);
     apply();
   });
 

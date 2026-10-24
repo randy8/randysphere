@@ -39,6 +39,7 @@ before(async () => {
   const privatePhotosDir = join(root, 'private-photos');
   const notesPath = join(root, 'notes.yaml');
   const generatedAlbumsDir = join(root, 'albums');
+  const derivativesDir = join(root, 'derivatives');
 
   await mkdir(distDir, { recursive: true });
   // The real build's dist/index.html is Astro's meta-refresh redirect page
@@ -53,8 +54,12 @@ before(async () => {
   await mkdir(join(distDir, 'exposures'), { recursive: true });
   await writeFile(join(distDir, 'exposures', 'index.html'), '<h1>Public home</h1>');
   await writeFile(join(distDir, '404.html'), '<h1>Not found, distinctively</h1>');
-  await mkdir(join(distDir, 'p', 'abc123'), { recursive: true });
-  await writeFile(join(distDir, 'p', 'abc123', '1200-deadbeef.avif'), 'not really avif bytes');
+  // Derivatives live outside dist/ entirely — served from where ingest wrote them.
+  await mkdir(join(derivativesDir, 'p', 'abc123'), { recursive: true });
+  await writeFile(
+    join(derivativesDir, 'p', 'abc123', '1200-deadbeef.avif'),
+    'not really avif bytes',
+  );
   await mkdir(join(distDir, '_astro'), { recursive: true });
   await writeFile(join(distDir, '_astro', 'Base.aaaa1111.css'), 'body{}');
   await mkdir(join(distDir, 'fonts'), { recursive: true });
@@ -73,7 +78,7 @@ before(async () => {
     join(distDir, 'exposures', 'share', 'index.html'),
     `<!doctype html><html><head>` +
       `<meta name="description" content="A shared selection of photographs.">` +
-      `<meta property="og:title" content="Shared — Photography — Randy Liang">` +
+      `<meta property="og:title" content="Shared — Exposures — Randy Liang">` +
       `<meta property="og:description" content="A shared selection of photographs.">` +
       `<meta property="og:image" content="${SITE_ORIGIN}/og-default.png">` +
       `</head><body><h1>Shared</h1></body></html>`,
@@ -89,7 +94,7 @@ before(async () => {
     join(distDir, 'exposures', 'paris-2025', 'index.html'),
     `<!doctype html><html><head>` +
       `<meta name="description" content="Paris 2025">` +
-      `<meta property="og:title" content="Paris 2025 — Photography — Randy Liang">` +
+      `<meta property="og:title" content="Paris 2025 — Exposures — Randy Liang">` +
       `<meta property="og:description" content="Paris 2025">` +
       `<meta property="og:image" content="${SITE_ORIGIN}/p/coverphoto1234567/og-cover.jpg">` +
       `<meta property="og:image:width" content="1200">` +
@@ -134,6 +139,7 @@ before(async () => {
     privatePhotosDir,
     password: PASSWORD,
     sessionSecret: SECRET,
+    derivativesDir,
     generatedAlbumsDir,
     siteOrigin: SITE_ORIGIN,
   });
@@ -155,7 +161,7 @@ test('the public site is served for an ordinary path', async () => {
 
 test('"/" issues a real HTTP redirect to Selected Work rather than serving Astro\'s meta-refresh flash page', async () => {
   const response = await fetch(`${baseUrl}/`, { redirect: 'manual' });
-  assert.equal(response.status, 301);
+  assert.equal(response.status, 302);
   assert.equal(response.headers.get('location'), '/exposures/');
   const body = await response.text();
   assert.doesNotMatch(body, /Redirecting/);
@@ -171,6 +177,21 @@ test('a photo derivative under /p/ gets a long, immutable cache header', async (
   const response = await fetch(`${baseUrl}/p/abc123/1200-deadbeef.avif`);
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+});
+
+test('a /p/ path that is not a derivative 404s rather than falling through to dist/', async () => {
+  const response = await fetch(`${baseUrl}/p/abc123/missing.avif`);
+  assert.equal(response.status, 404);
+  assert.match(await response.text(), /Not found, distinctively/);
+});
+
+test('an oversized login body is refused before it is read in full', async () => {
+  const response = await fetch(`${baseUrl}/private/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: `password=${'x'.repeat(10_000)}`,
+  });
+  assert.equal(response.status, 413);
 });
 
 test("Astro's own hashed build output under /_astro/ gets the same long, immutable cache header", async () => {

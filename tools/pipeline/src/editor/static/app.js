@@ -122,7 +122,59 @@ function applyLocally(edits) {
     if (edit.caption !== undefined) photo.caption = edit.caption;
     if (edit.featured !== undefined) photo.featured = edit.featured;
     if (edit.featuredOrder !== undefined) photo.featuredOrder = edit.featuredOrder;
+    if (edit.rotate !== undefined) photo.rotate = edit.rotate;
   }
+}
+
+/**
+ * The turn photos.yaml asks for that the derivatives on disk don't carry yet
+ * — what the grid and inspector rotate by in CSS until the next `pnpm sync`
+ * bakes it in, after which this is 0 again and nothing is double-rotated.
+ */
+function pendingRotation(photo) {
+  return (photo.rotate - photo.appliedRotate + 360) % 360;
+}
+
+/** Turns every selected photo (or just the focused one) by `delta` degrees clockwise, as one undoable edit. */
+async function rotatePhotos(photos, delta) {
+  if (photos.length === 0) return;
+  const forward = photos.map((p) => ({
+    album: p.album,
+    file: p.file,
+    rotate: (p.rotate + delta + 360) % 360,
+  }));
+  const inverse = photos.map((p) => ({ album: p.album, file: p.file, rotate: p.rotate }));
+  const ok = await sendEdits(forward);
+  if (!ok) return;
+  pushUndo(`rotate ${String(photos.length)} photo(s)`, async () => {
+    await sendEdits(inverse);
+  });
+  setStatus('Rotated — run pnpm sync to bake it into the images');
+  renderAll();
+}
+
+function rotationTargets() {
+  const selected = selectedPhotos();
+  if (selected.length > 0) return selected;
+  const focused = state.photos.find((p) => p.key === state.focusKey);
+  return focused ? [focused] : [];
+}
+
+function rotateButtons(photos) {
+  const row = document.createElement('div');
+  row.className = 'rotate-row';
+  for (const [label, delta, title] of [
+    ['⟲ Rotate left', -90, 'Rotate 90° counter-clockwise ( [ )'],
+    ['⟳ Rotate right', 90, 'Rotate 90° clockwise ( ] )'],
+  ]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+    button.title = title;
+    button.addEventListener('click', () => void rotatePhotos(photos, delta));
+    row.appendChild(button);
+  }
+  return row;
 }
 
 /** Selected Work — toggling off clears featuredOrder too, since an unfeatured photo has no place in an order. */
@@ -340,7 +392,17 @@ function renderGrid() {
     img.src = photo.thumbnailUrl;
     img.loading = 'lazy';
     img.alt = '';
+    const pending = pendingRotation(photo);
+    if (pending !== 0) img.style.transform = `rotate(${String(pending)}deg)`;
     cell.appendChild(img);
+
+    if (pending !== 0) {
+      const mark = document.createElement('span');
+      mark.className = 'rotate-mark';
+      mark.title = 'Rotation saved, not yet applied — run pnpm sync';
+      mark.textContent = '↻ pending';
+      cell.appendChild(mark);
+    }
 
     if (photo.alt.trim() === '') {
       const dot = document.createElement('span');
@@ -524,11 +586,26 @@ function renderInspector(photo) {
   document.getElementById('batch-bar').hidden = true;
   panel.innerHTML = '';
 
+  // A frame shaped like the photo will be once the pending turn is applied,
+  // with the image rotated inside it — a quarter turn swaps the edges, so
+  // the image is sized to the frame's height rather than its width.
+  const pending = pendingRotation(photo);
+  const quarter = pending === 90 || pending === 270;
+  const frame = document.createElement('div');
+  frame.className = 'preview-frame';
+  frame.style.aspectRatio = quarter
+    ? `${String(photo.height)} / ${String(photo.width)}`
+    : `${String(photo.width)} / ${String(photo.height)}`;
   const img = document.createElement('img');
   img.className = 'preview';
   img.src = photo.previewUrl;
   img.alt = photo.alt;
-  panel.appendChild(img);
+  img.style.width = quarter ? `${String((photo.width / photo.height) * 100)}%` : '100%';
+  img.style.transform = `translate(-50%, -50%) rotate(${String(pending)}deg)`;
+  frame.appendChild(img);
+  panel.appendChild(frame);
+
+  panel.appendChild(rotateButtons([photo]));
 
   const meta = document.createElement('div');
   meta.className = 'section-label';
@@ -657,6 +734,7 @@ function renderBatchBar(photos) {
   const heading = document.createElement('h3');
   heading.textContent = `${String(photos.length)} photos selected`;
   panel.appendChild(heading);
+  panel.appendChild(rotateButtons(photos));
 
   const label = document.createElement('div');
   label.className = 'section-label';
@@ -968,6 +1046,11 @@ function attachKeyboard() {
       const visible = visiblePhotos();
       const key = state.focusKey ?? visible[0]?.key;
       if (key) openReview(key);
+      return;
+    }
+    if (event.key === '[' || event.key === ']') {
+      event.preventDefault();
+      void rotatePhotos(rotationTargets(), event.key === ']' ? 90 : -90);
       return;
     }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'a') {

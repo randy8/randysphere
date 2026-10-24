@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { validateConfig } from '../config.ts';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -11,6 +12,21 @@ import type { AlbumManifest, PhotoRecord, VariantRecord } from '../manifest.ts';
 import type { Paths } from '../paths.ts';
 import { derivativePath, resolvePaths } from '../paths.ts';
 import { createEditorServer, isSafeRelativePath } from './server.ts';
+
+const config = validateConfig({
+  recipeVersion: 1,
+  widths: [400, 800, 1600],
+  kernel: 'lanczos3',
+  avif: { quality: 55, effort: 4 },
+  webp: { quality: 76, effort: 5 },
+  jpeg: { quality: 80, widths: [800] },
+  og: { width: 1200, height: 630, quality: 82 },
+  lqip: { width: 20, quality: 35 },
+  cameraMetadata: true,
+  copyright: null,
+  r2: { bucket: 'photographs' },
+  localPublishDir: 'site/public',
+});
 
 function variant(width: number): VariantRecord {
   return {
@@ -74,7 +90,7 @@ before(async () => {
   await mkdir(join(derivative, '..'), { recursive: true });
   await writeFile(derivative, 'fake-webp-bytes');
 
-  const server = createEditorServer(paths);
+  const server = createEditorServer(paths, config);
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const address = server.address() as AddressInfo;
   baseUrl = `http://127.0.0.1:${String(address.port)}`;

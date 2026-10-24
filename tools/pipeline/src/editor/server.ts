@@ -8,6 +8,7 @@ import { json } from 'node:stream/consumers';
 import { PipelineError } from '../errors.ts';
 import { derivativePath } from '../paths.ts';
 import type { Paths } from '../paths.ts';
+import type { PipelineConfig } from '../config.ts';
 import type { ApplyEditsRequest, SetCoverRequest } from './api.ts';
 import {
   applyEdits,
@@ -78,11 +79,16 @@ async function readJsonBody(req: IncomingMessage): Promise<unknown> {
   }
 }
 
-async function route(paths: Paths, req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function route(
+  paths: Paths,
+  config: PipelineConfig,
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
   const { pathname } = new URL(req.url ?? '/', 'http://127.0.0.1');
 
   if (req.method === 'GET' && pathname === '/api/photos') {
-    sendJson(res, 200, await listPhotos(paths));
+    sendJson(res, 200, await listPhotos(paths, config));
     return;
   }
   if (req.method === 'GET' && pathname === '/api/tags') {
@@ -132,8 +138,13 @@ async function route(paths: Paths, req: IncomingMessage, res: ServerResponse): P
   sendText(res, 404, 'Not found');
 }
 
-function handleRequest(paths: Paths, req: IncomingMessage, res: ServerResponse): void {
-  route(paths, req, res).catch((error: unknown) => {
+function handleRequest(
+  paths: Paths,
+  config: PipelineConfig,
+  req: IncomingMessage,
+  res: ServerResponse,
+): void {
+  route(paths, config, req, res).catch((error: unknown) => {
     if (error instanceof PipelineError) {
       sendJson(res, 400, { ok: false, message: error.message });
       return;
@@ -144,8 +155,8 @@ function handleRequest(paths: Paths, req: IncomingMessage, res: ServerResponse):
 }
 
 /** Creates the editor's HTTP server. Binding it to `127.0.0.1` only (never `0.0.0.0`) is the caller's job — this writes to disk with no authentication. */
-export function createEditorServer(paths: Paths): Server {
+export function createEditorServer(paths: Paths, config: PipelineConfig): Server {
   return createServer((req, res) => {
-    handleRequest(paths, req, res);
+    handleRequest(paths, config, req, res);
   });
 }

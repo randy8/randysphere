@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
@@ -411,6 +412,57 @@ export function viewForFilmStock(archive: Archive, filmStock: string): View {
  * archive's own chronological order — so marking a photo Selected Work is
  * never blocked on also deciding exactly where it goes.
  */
+/**
+ * When each batch first entered this repository — the commit that first
+ * added its manifest under generated/albums/ — as an ISO timestamp. The
+ * honest answer to "date added": not when a photograph was taken (EXIF)
+ * and not album.md's hand-scaffolded `date:`. A batch not committed yet
+ * is simply absent, and callers treat it as the newest of all.
+ *
+ * Read from git at build time, once. Without git (a tarball checkout) the
+ * map is empty and every date-added order degrades to archival order.
+ */
+export function batchAddedDates(): ReadonlyMap<string, string> {
+  let log: string;
+  try {
+    log = execFileSync(
+      'git',
+      ['log', '--diff-filter=A', '--format=%cI', '--name-only', '--', 'generated/albums/'],
+      { cwd: ROOT, encoding: 'utf8' },
+    );
+  } catch {
+    return new Map();
+  }
+  const dates = new Map<string, string>();
+  let date = '';
+  // Newest commit first, so a later line for the same batch (a manifest
+  // deleted and re-added) is an earlier add — the last one seen wins.
+  for (const line of log.split('\n')) {
+    const match = /^generated\/albums\/(.+)\.json$/.exec(line);
+    if (match?.[1] !== undefined) dates.set(match[1], date);
+    else if (line.trim() !== '') date = line.trim();
+  }
+  return dates;
+}
+
+/**
+ * `photos` re-sequenced by when their batch was added, oldest first — a
+ * photographer's progression, in the order the work actually arrived — or
+ * newest first. Stable either way: within one batch, the input order
+ * (archival or editorial) holds; only batches swap places.
+ */
+export function byDateAdded(
+  photos: readonly ArchivePhoto[],
+  dates: ReadonlyMap<string, string>,
+  order: 'oldest-first' | 'newest-first' = 'oldest-first',
+): ArchivePhoto[] {
+  // ISO timestamps compare as plain strings (not localeCompare); "~" sorts
+  // after every digit, so an uncommitted batch counts as the newest.
+  const key = (entry: ArchivePhoto): string => dates.get(entry.batch) ?? '~';
+  const direction = order === 'oldest-first' ? 1 : -1;
+  return [...photos].sort((a, b) => direction * (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
+}
+
 export function selectedWork(archive: Archive): ArchivePhoto[] {
   return archive.photos
     .filter((photo) => photo.featured)

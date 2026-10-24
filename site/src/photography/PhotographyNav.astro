@@ -81,4 +81,10 @@ const { current } = Astro.props;
   .saved-nav-link.is-shown {
     display: inline;
   }
+  /* With nothing saved the nav has no visible link, so it takes no room
+     either — every page's title then starts at the same height as every
+     other collection's, instead of 3rem lower behind an empty nav. */
+  .photography-nav:not(:has(.saved-nav-link.is-shown)) {
+    display: none;
+  }
 </style>

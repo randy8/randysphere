@@ -7,6 +7,8 @@ import type { Document, YAMLMap, YAMLSeq } from 'yaml';
 import { writeFileAtomic } from './files.ts';
 import { PipelineError } from './errors.ts';
 import { sha256Hex } from './hash.ts';
+import type { Rotation } from './orientation.ts';
+import { isRotation } from './orientation.ts';
 
 /** Exported so the editor can locate the file directly, e.g. to hash its raw content for the staleness guard. */
 export const PHOTOS_FILE = 'photos.yaml';
@@ -120,6 +122,20 @@ export interface PhotosFileEntry {
   readonly tags: readonly string[];
   readonly featured: boolean;
   readonly featuredOrder: number | null;
+  /** Clockwise quarter turn baked into the derivatives by `pnpm ingest`; 0 when absent. */
+  readonly rotate: Rotation;
+}
+
+/** A hand-typed `rotate: 45` fails loudly rather than being silently ignored. */
+function readRotate(item: YAMLMap, source: string, file: string): Rotation {
+  const value: unknown = item.get('rotate');
+  if (value === undefined) return 0;
+  if (!isRotation(value)) {
+    throw new PipelineError(
+      `${source}: ${file} has rotate: ${JSON.stringify(value)}; it must be 0, 90, 180, or 270.`,
+    );
+  }
+  return value;
 }
 
 /** Read-only. Used by `pnpm describe` to see what's already written before deciding whether to generate anything. */
@@ -153,6 +169,7 @@ export async function readPhotosFile(albumDirectory: string): Promise<PhotosFile
       tags: readTags(map),
       featured: map.get('featured') === true,
       featuredOrder: typeof featuredOrder === 'number' ? featuredOrder : null,
+      rotate: readRotate(map, source, file),
     };
   });
 }
@@ -575,6 +592,8 @@ export interface PhotoEdit {
   readonly featured?: boolean;
   /** Present & number => replace. Present & null => delete the key entirely (unordered, sorts after every ordered photo). Absent => leave untouched. */
   readonly featuredOrder?: number | null;
+  /** Present & non-zero => replace. Present & 0 => delete the key entirely. Absent => leave untouched. */
+  readonly rotate?: Rotation;
 }
 
 export interface ApplyPhotoEditsResult {
@@ -660,6 +679,13 @@ export async function applyPhotoEdits(
     if (edit.featuredOrder !== undefined) {
       if (edit.featuredOrder === null) item.delete('featuredOrder');
       else item.set('featuredOrder', edit.featuredOrder);
+    }
+    if (edit.rotate !== undefined) {
+      if (!isRotation(edit.rotate)) {
+        throw new PipelineError(`rotate must be 0, 90, 180, or 270, got ${String(edit.rotate)}.`);
+      }
+      if (edit.rotate === 0) item.delete('rotate');
+      else item.set('rotate', edit.rotate);
     }
   }
 

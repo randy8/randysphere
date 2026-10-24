@@ -81,12 +81,14 @@ add one.
 Files sort by name and that becomes the album's default sequence, so number
 them if the order matters. JPEG, PNG, TIFF and WebP are read; HEIC is not.
 
-### 4. Ingest, then publish locally
+### 4. Ingest
 
 ```sh
 pnpm ingest              # encode derivatives, write generated/albums/*.json
-pnpm publish:local       # copy them into site/public/ so the dev server sees them
 ```
+
+The dev server and `pnpm serve` both read images straight from
+`generated/derivatives/`; nothing is copied into the site.
 
 `ingest` is safe to re-run: the second run encodes nothing.
 
@@ -156,7 +158,7 @@ grep -A4 '"file": "003.jpg"' generated/albums/sample-album.json
 grep -ri 'GPS\|Latitude\|Longitude' generated/albums/ ; echo "exit $? — 1 means clean"
 
 # Only content-addressed derivatives are public; no original filenames.
-find site/public/p -type f | head
+find generated/derivatives/p -type f | head
 ```
 
 ---
@@ -169,8 +171,7 @@ pnpm dev:host          # same, bound to 0.0.0.0
 pnpm build             # static site into site/dist/
 pnpm preview           # serve the built site
 pnpm ingest            # encode derivatives, rewrite manifests
-pnpm publish:local     # publish into site/public/ instead of a bucket
-pnpm sync              # ingest + publish:local, one command
+pnpm sync              # same as pnpm ingest
 pnpm run publish       # publish to Cloudflare R2 (needs .env)
 pnpm describe          # draft alt text/captions for photos missing one (needs .env)
 pnpm doctor            # report drift, change nothing

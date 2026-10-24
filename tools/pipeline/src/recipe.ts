@@ -1,6 +1,6 @@
 import type { PipelineConfig } from './config.ts';
 import { canonicalJson, sha256Hex } from './hash.ts';
-import type { Dimensions } from './orientation.ts';
+import type { Dimensions, Rotation } from './orientation.ts';
 
 export type VariantFormat = 'avif' | 'webp' | 'jpeg';
 
@@ -55,8 +55,17 @@ export type EncodeSpec = {
   readonly kernel: string;
   readonly colorspace: string;
   readonly orientation: 'applied';
+  /**
+   * Present only when non-zero, so that adding this field moved no existing
+   * key: an unrotated photograph's spec is byte-for-byte what it was before.
+   */
+  readonly rotate?: Exclude<Rotation, 0>;
   readonly copyright: { readonly artist: string; readonly notice: string } | null;
 };
+
+function rotateField(rotate: Rotation): { readonly rotate?: Exclude<Rotation, 0> } {
+  return rotate === 0 ? {} : { rotate };
+}
 
 export interface VariantPlan {
   readonly kind: 'scaled' | 'og';
@@ -108,6 +117,7 @@ export function planVariants(
   sourceId: string,
   source: Dimensions,
   config: PipelineConfig,
+  rotate: Rotation = 0,
 ): VariantPlan[] {
   const plans: VariantPlan[] = [];
 
@@ -155,6 +165,7 @@ export function planVariants(
         kernel: config.kernel,
         colorspace: 'srgb',
         orientation: 'applied',
+        ...rotateField(rotate),
         copyright: config.copyright,
       };
       plans.push({
@@ -171,7 +182,11 @@ export function planVariants(
   return plans;
 }
 
-export function planOpenGraph(sourceId: string, config: PipelineConfig): VariantPlan {
+export function planOpenGraph(
+  sourceId: string,
+  config: PipelineConfig,
+  rotate: Rotation = 0,
+): VariantPlan {
   const spec: EncodeSpec = {
     recipeVersion: config.recipeVersion,
     sourceId,
@@ -184,6 +199,7 @@ export function planOpenGraph(sourceId: string, config: PipelineConfig): Variant
     kernel: config.kernel,
     colorspace: 'srgb',
     orientation: 'applied',
+    ...rotateField(rotate),
     copyright: config.copyright,
   };
   return {
