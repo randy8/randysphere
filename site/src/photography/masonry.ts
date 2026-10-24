@@ -70,5 +70,6 @@ function init(grid: HTMLElement): void {
   });
 }
 
-const grid = document.querySelector<HTMLElement>('.grid[data-grid]');
-if (grid !== null) init(grid);
+// The main grid ([data-grid]) and Saved/Share's contact sheets
+// ([data-saved-grid]/[data-share-grid]) all carry `.grid`.
+for (const grid of document.querySelectorAll<HTMLElement>('.grid')) init(grid);

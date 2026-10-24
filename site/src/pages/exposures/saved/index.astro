@@ -43,13 +43,13 @@ const archive = loadArchive();
     <p class="saved-empty">Saving photographs requires JavaScript.</p>
   </noscript>
 
-  <ul class="saved-grid" data-saved-grid>
+  <ul class="grid saved-grid" data-saved-grid>
     {
       archive.photos.map((entry, index) => (
         <li data-photo-id={entry.photo.sourceId}>
           <Photo
             entry={entry}
-            sizes="(min-width: 40rem) 30vw, 46vw"
+            sizes="(min-width: 64rem) 22vw, (min-width: 40rem) 30vw, 46vw"
             priority={index === 0}
             maxWidth={960}
           />
@@ -77,5 +77,6 @@ const archive = loadArchive();
   </script>
   <script>
     import '../../../photography/lightbox.ts';
+    import '../../../photography/masonry.ts';
   </script>
 </Base>

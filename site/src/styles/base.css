@@ -430,32 +430,14 @@ main {
 }
 
 /*
- * The Saved contact sheet (/exposures/saved/) — real CSS Grid, not
- * .archive-composition's multi-column flow: multi-column reads down each
- * column before moving to the next, which would visually scramble a
- * photo's position relative to its actual place in the (archive-ordered)
- * saved list. Grid keeps left-to-right, top-to-bottom reading order
- * instead. align-items:start (grid's default is stretch) keeps every
- * photo at its own natural height — no crop, no forced aspect ratio, same
- * rule every other photo grid on this site follows; a shorter photo just
- * leaves a little air below it in a mixed row, like a real contact sheet.
- * Two columns on a phone, a generous three from tablet up — deliberately
- * not four: the photographs stay the point, not a wall of thumbnails.
+ * The Saved and Share contact sheets lay out exactly like every other
+ * photograph grid: the <ul> also carries `.grid` (same columns, same gap)
+ * and masonry.ts places it. These rules only undo the list styling.
  */
 .saved-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  align-items: start;
-  gap: 1.5rem 1rem;
   margin: 0;
   padding: 0;
   list-style: none;
-}
-@media (min-width: 40rem) {
-  .saved-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2.5rem 1.75rem;
-  }
 }
 .saved-grid li {
   position: relative;

@@ -30,7 +30,7 @@ const archive = loadArchive();
     <p class="saved-empty">Viewing a shared selection requires JavaScript.</p>
   </noscript>
 
-  <ul class="saved-grid" data-share-grid>
+  <ul class="grid saved-grid" data-share-grid>
     {
       archive.photos.map((entry) => (
         <li data-photo-id={entry.photo.sourceId}>
@@ -52,5 +52,6 @@ const archive = loadArchive();
   </script>
   <script>
     import '../../../photography/lightbox.ts';
+    import '../../../photography/masonry.ts';
   </script>
 </Base>

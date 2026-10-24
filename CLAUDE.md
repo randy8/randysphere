@@ -73,7 +73,8 @@ tools/serve/            production server: site/dist/ + /p/ straight from
 - **Rotation**: `rotate: 90|180|270` (clockwise) in `photos.yaml`, set from
   the editor. Baked into derivatives at ingest; part of each derivative's
   encode spec (only when non-zero), so only rotated photos re-encode.
-- **Gallery**: `.grid` is a plain CSS grid with no JS; `masonry.ts` then
+- **Gallery**: every photo grid — tag/film/Selected Work pages, and Saved/
+  Share's contact sheets — is one `.grid`, a plain CSS grid with no JS; `masonry.ts` then
   places each figure in the shortest column (positions only, never DOM
   order — the lightbox, tab order, and Selected Work's filter/shuffle depend
   on DOM order). Column count lives in `--grid-columns` in `base.css`.
