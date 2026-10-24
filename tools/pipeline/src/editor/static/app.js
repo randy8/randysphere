@@ -50,9 +50,21 @@ async function loadAll() {
 // Filtering
 // ---------------------------------------------------------------------------
 
+/**
+ * A photo id pasted into the filter — bare (`16927ed67d682fd8`) or inside a
+ * link copied from the site (`…/exposures/?photo=<id>#photo-<id>`) — so a
+ * photo spotted on the live site can be found here in one paste.
+ */
+function pastedPhotoId(text) {
+  const match = /(?:photo[=-]|^)([0-9a-f]{16})(?![0-9a-f])/i.exec(text.trim());
+  return match ? match[1].toLowerCase() : null;
+}
+
 function filteredPhotos() {
   const needle = state.filterText.trim().toLowerCase();
   if (needle === '') return state.photos;
+  const id = pastedPhotoId(needle);
+  if (id !== null) return state.photos.filter((p) => p.sourceId === id);
   return state.photos.filter((p) => {
     if (p.file.toLowerCase().includes(needle)) return true;
     if (p.album.toLowerCase().includes(needle)) return true;
@@ -1132,6 +1144,15 @@ function init() {
   const filter = document.getElementById('filter');
   filter.addEventListener('input', () => {
     state.filterText = filter.value;
+    // A pasted photo link or id that finds its photo selects it and hands
+    // the keyboard back to the grid, so [ / ] rotates it (and the side
+    // panel's buttons act on it) straight away — paste, then one key.
+    const matches = pastedPhotoId(filter.value) === null ? [] : filteredPhotos();
+    if (matches.length === 1) {
+      selectOnly(matches[0].key);
+      filter.blur();
+      setStatus('Found it — press [ or ] to rotate it');
+    }
     renderAll();
   });
 

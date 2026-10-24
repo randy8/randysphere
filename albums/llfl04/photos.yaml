@@ -39,6 +39,7 @@ photos:
     tags:
       - llfl04
     featured: true
+    rotate: 270
   - file: RLiang10232637.tif
     sourceId: 5e98115810c7dd7b
     alt: ''
