@@ -2250,3 +2250,23 @@ manifest without WebP entries and without decoding a single original.
 **Rejected.** Lowering AVIF effort: faster encodes at the same quality
 setting but larger files, and it would change every AVIF key, forcing a
 full re-encode that costs more time than it saves.
+
+---
+
+## 2026-10-24 — The lightbox is gesture-driven on touch screens
+
+**Decision.** On a coarse pointer, `swipe.ts` makes the photo itself the
+control: drag left/right to move between photographs (the neighbour slides
+in beside it; release past a fifth of the width, or flick, to commit),
+drag down to close (the scrim fades with it). The arrow buttons are hidden
+there, a tap on the scrim no longer closes, and the overlay takes every
+touch (`touch-action: none`, `overscroll-behavior: contain`) so nothing
+behind it scrolls or pulls to refresh. Pinch-zoom (`zoom.ts`) is
+untouched; swipes are ignored while a photo is zoomed. Desktop keeps its
+arrows, keys, and click-the-scrim-to-close.
+
+**Why.** On a phone, a stray tap beside a photograph dropped you back on
+the grid, and the small arrow buttons were the only way forward.
+
+**Rejected.** A carousel library — one ~200-line module covers it, with no
+dependency and full control over how it feels.

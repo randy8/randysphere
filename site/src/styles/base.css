@@ -848,27 +848,47 @@ body.lightbox-open {
   inset: 0;
   z-index: 50;
   display: flex;
-  background: color-mix(in srgb, var(--ink) 92%, transparent);
+  /* --lightbox-backdrop (0–1) is set by swipe.ts while a photo is pulled
+     down to close, fading the scrim with it. */
+  background: color-mix(in srgb, var(--ink) calc(92% * var(--lightbox-backdrop, 1)), transparent);
   color: var(--lightbox-ink);
+  /* Nothing behind the lightbox scrolls, rubber-bands, or pulls to refresh
+     while it's open — every touch in here is the lightbox's own. */
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 .lightbox[hidden] {
   display: none;
 }
 
 .lightbox-stage {
+  --stage-padding: 4.5rem 1.5rem 2rem;
   position: relative;
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4.5rem 1.5rem 2rem;
+  padding: var(--stage-padding);
   overflow: hidden;
 }
 @media (max-width: 39.9375rem) {
   .lightbox-stage {
-    padding: 3.5rem 1rem 1.5rem;
+    --stage-padding: 3.5rem 1rem 1.5rem;
   }
+}
+/* The neighbour swipe.ts slides in beside the open photo while a finger
+   drags — laid over the same box as the active item, then translated. */
+.lightbox-item.is-peek {
+  display: flex;
+  position: absolute;
+  inset: 0;
+  padding: var(--stage-padding);
+  pointer-events: none;
+}
+.lightbox-item.is-active,
+.lightbox-item.is-peek {
+  will-change: transform;
 }
 
 .lightbox-item {
@@ -1036,6 +1056,13 @@ body.lightbox-open {
 }
 .lightbox-nav-prev {
   left: 1rem;
+}
+/* On a touch screen the photo itself is the control — swipe between,
+   swipe down to close — so the arrows would only crowd it. */
+@media (hover: none) and (pointer: coarse) {
+  .lightbox-nav {
+    display: none;
+  }
 }
 .lightbox-nav-next {
   right: 1rem;

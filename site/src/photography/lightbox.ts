@@ -14,6 +14,7 @@
  */
 
 import { hasSeenHint, isSaved, markHintSeen, savedCount, toggleSaved } from './saved.ts';
+import { initSwipe } from './swipe.ts';
 
 const PHOTO_HASH_PREFIX = '#photo-';
 
@@ -159,8 +160,22 @@ function init(): void {
 
   // Clicking the scrim itself (not a photo, caption, or control) closes —
   // the standard lightbox dismissal, alongside Escape and the × button.
+  // Not on a touch screen: there a stray tap beside a photo is far too easy,
+  // and swipe-down (swipe.ts) and × are the deliberate ways out.
+  const coarsePointer = window.matchMedia('(pointer: coarse)');
   root.addEventListener('click', (event) => {
+    if (coarsePointer.matches) return;
     if (event.target === root || event.target === stage) close();
+  });
+
+  initSwipe(root, {
+    current: () => items[currentIndex] ?? null,
+    neighbours: () => ({
+      prev: items[(currentIndex - 1 + items.length) % items.length] ?? null,
+      next: items[(currentIndex + 1) % items.length] ?? null,
+    }),
+    advance,
+    close,
   });
 
   stage.addEventListener('click', (event) => {
