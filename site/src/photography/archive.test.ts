@@ -7,6 +7,7 @@ import {
   byDateAdded,
   byFilmStock,
   byTag,
+  citiesOf,
   coverPhoto,
   joinBatch,
   joinRolls,
@@ -186,7 +187,7 @@ test('joinBatch leaves every photo uncovered when album.md names a file that no 
 });
 
 function archiveOf(photos: readonly ArchivePhoto[]): Archive {
-  return { photos };
+  return { photos, cities: [] };
 }
 
 function stubPhoto(
@@ -350,4 +351,21 @@ test('byDateAdded orders by batch add date, oldest first, uncommitted last, stab
     ordered.map((entry) => entry.photo.file),
     ['c.tif', 'a.tif', 'b.tif', 'd.tif'],
   );
+});
+
+test('a city tag is titled by its cities.yaml name, and citiesOf finds it on a photo', () => {
+  const m = manifest([photo('001.tif', '.')], [{ id: '.', photoCount: 1 }]);
+  const photos = joinBatch(
+    m,
+    [{ file: '001.tif', tags: ['nyc', 'night'] }],
+    joinRolls(m, [], 'b'),
+    'b',
+    null,
+  );
+  const archive: Archive = { photos, cities: [{ tag: 'nyc', name: 'NYC' }] };
+  assert.equal(viewForTag(archive, 'nyc').title, 'NYC');
+  assert.equal(viewForTag(archive, 'night').title, 'Night');
+  assert.deepEqual(photos[0] === undefined ? [] : citiesOf(archive, photos[0]), [
+    { tag: 'nyc', name: 'NYC' },
+  ]);
 });

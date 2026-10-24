@@ -1,0 +1,17 @@
+# City tags. Each one is an ordinary tag in photos.yaml (`tag`), listed here
+# so that:
+#   - `pnpm run edit` offers it as a one-click button for the selected photos,
+#   - Selected Work offers it in the Location filter, and
+#   - its page (/exposures/<tag>/) is titled `name` rather than the raw tag.
+# Add a city by adding a line; order here is the order the buttons appear.
+cities:
+  - tag: nyc
+    name: NYC
+  - tag: chicago
+    name: Chicago
+  - tag: paris
+    name: Paris
+  - tag: norfolk
+    name: Norfolk
+  - tag: nova
+    name: NOVA

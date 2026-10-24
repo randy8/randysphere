@@ -19,6 +19,7 @@ const state = {
   saving: false,
   selectedWorkMode: false, // reorder view: shows only featured photos, sorted by featuredOrder, draggable
   reviewKey: null, // set while the full-size review overlay is open
+  cities: [], // albums/cities.yaml — [{tag, name}], one-click tag buttons
 };
 
 const KEY_SEP = ' ';
@@ -40,6 +41,7 @@ async function loadAll() {
   const tagsBody = await tagsResponse.json();
   state.photos = photosBody.photos.map((p) => ({ ...p, key: photoKey(p, p.file) }));
   state.albumVersions = photosBody.albumVersions;
+  state.cities = photosBody.cities ?? [];
   state.tagVocabulary = tagsBody.tags;
   renderAll();
 }
@@ -297,6 +299,33 @@ async function addTagToSelection(tag) {
   const ok = await sendEdits(forward);
   if (ok) pushUndo(`add "${tag}" to ${String(forward.length)} photo(s)`, () => sendEdits(inverse));
   renderAll();
+}
+
+/**
+ * One button per albums/cities.yaml entry for the selected photos — pressed
+ * when every one of them already carries that city. Clicking a pressed
+ * button removes the city from all of them; otherwise it adds it to all.
+ * Ordinary tag edits underneath, so Ctrl+Z undoes them like any other.
+ */
+function cityButtons(photos) {
+  const row = document.createElement('div');
+  row.className = 'city-row';
+  for (const city of state.cities) {
+    const count = photos.filter((p) => p.tags.includes(city.tag)).length;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = city.name;
+    button.className =
+      count === photos.length ? 'city is-on' : count > 0 ? 'city is-mixed' : 'city';
+    button.setAttribute('aria-pressed', String(count === photos.length));
+    button.title = count === photos.length ? `Remove "${city.tag}"` : `Tag "${city.tag}"`;
+    button.addEventListener('click', () => {
+      if (count === photos.length) void removeTagFromSelection(city.tag);
+      else void addTagToSelection(city.tag);
+    });
+    row.appendChild(button);
+  }
+  return row;
 }
 
 async function removeTagFromSelection(tag) {
@@ -695,6 +724,7 @@ function renderInspector(photo) {
   tagsLabel.textContent = 'Tags';
   panel.appendChild(tagsLabel);
 
+  if (state.cities.length > 0) panel.appendChild(cityButtons([photo]));
   const chips = document.createElement('div');
   chips.className = 'tag-chips';
   for (const tag of photo.tags) {
@@ -735,6 +765,7 @@ function renderBatchBar(photos) {
   heading.textContent = `${String(photos.length)} photos selected`;
   panel.appendChild(heading);
   panel.appendChild(rotateButtons(photos));
+  if (state.cities.length > 0) panel.appendChild(cityButtons(photos));
 
   const label = document.createElement('div');
   label.className = 'section-label';

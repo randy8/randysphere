@@ -57,8 +57,16 @@ export interface ArchivePhoto {
   readonly cover: boolean;
 }
 
+/** One entry of albums/cities.yaml: a tag that names a city, and how to display it. */
+export interface City {
+  readonly tag: string;
+  readonly name: string;
+}
+
 export interface Archive {
   readonly photos: readonly ArchivePhoto[];
+  /** albums/cities.yaml — which tags are cities. A city is still just a tag on each photo. */
+  readonly cities: readonly City[];
 }
 
 /**
@@ -308,7 +316,28 @@ export function loadArchive(): Archive {
       `No manifests in ${MANIFEST_DIRECTORY}.\nPut photographs in originals/<batch>/ and run \`pnpm ingest\`.`,
     );
   }
-  return { photos: slugs.flatMap(loadBatch) };
+  return {
+    photos: slugs.flatMap(loadBatch),
+    cities: readCities(join(ALBUM_DIRECTORY, 'cities.yaml')),
+  };
+}
+
+/** Missing file means no cities yet, not an error; a malformed entry is skipped. */
+function readCities(path: string): City[] {
+  if (!existsSync(path)) return [];
+  const data = parse(readFileSync(path, 'utf8')) as { cities?: unknown } | null;
+  const entries = Array.isArray(data?.cities) ? (data.cities as unknown[]) : [];
+  return entries.flatMap((entry) => {
+    const { tag, name } = (entry ?? {}) as { tag?: unknown; name?: unknown };
+    return typeof tag === 'string' && tag.length > 0
+      ? [{ tag, name: typeof name === 'string' && name.length > 0 ? name : tag }]
+      : [];
+  });
+}
+
+/** The cities a photograph is tagged with, in cities.yaml order. */
+export function citiesOf(archive: Archive, entry: ArchivePhoto): City[] {
+  return archive.cities.filter((city) => entry.tags.includes(city.tag));
 }
 
 function byRollAndFrame(a: ArchivePhoto, b: ArchivePhoto): number {
@@ -352,13 +381,16 @@ export function allFilmStocks(archive: Archive): string[] {
 }
 
 /**
- * A tag like `paris-2025` is already a name and is humanised as one. A tag
+ * A city tag (albums/cities.yaml) is titled by its own `name`, so `nyc`
+ * reads NYC. A tag like `paris-2025` is already a name and is humanised as one. A tag
  * that's still a raw batch id (`0827`, all digits — see CLAUDE.md's known
  * limitations) isn't a name yet, so it's labelled honestly as what it
  * actually is — a roll — rather than presented bare, as if "0827" were a
  * considered title.
  */
-function titleFromTag(tag: string): string {
+function titleFromTag(tag: string, cities: readonly City[]): string {
+  const city = cities.find((entry) => entry.tag === tag);
+  if (city !== undefined) return city.name;
   if (/^\d+$/.test(tag)) return `Roll ${tag}`;
   return tag
     .split('-')
@@ -393,7 +425,7 @@ function buildView(key: string, title: string, photos: readonly ArchivePhoto[]):
 export function viewForTag(archive: Archive, tag: string): View {
   const photos = byTag(archive, tag);
   if (photos.length === 0) throw new Error(`No photographs are tagged "${tag}".`);
-  return buildView(tag, titleFromTag(tag), photos);
+  return buildView(tag, titleFromTag(tag, archive.cities), photos);
 }
 
 /** A film stock page is the same query and the same View shape as a tag page — see byFilmStock. */

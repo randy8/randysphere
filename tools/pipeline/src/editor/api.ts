@@ -2,6 +2,8 @@ import { join } from 'node:path';
 
 import { applyPhotoEdits, StaleAlbumFileError, updateAlbumCover } from '../album-files.ts';
 import type { PhotoEdit } from '../album-files.ts';
+import { readCities } from '../cities.ts';
+import type { City } from '../cities.ts';
 import type { PipelineConfig } from '../config.ts';
 import { PipelineError } from '../errors.ts';
 import type { Rotation } from '../orientation.ts';
@@ -34,6 +36,8 @@ export interface EditorPhotoView {
 
 export interface ListPhotosResponse {
   readonly photos: readonly EditorPhotoView[];
+  /** albums/cities.yaml, offered as one-click tag buttons. */
+  readonly cities: readonly City[];
   readonly albumVersions: Readonly<Record<string, string>>;
 }
 
@@ -63,6 +67,7 @@ export async function listPhotos(
       cover: photo.cover,
     })),
     albumVersions: archive.albumVersions,
+    cities: await readCities(paths.albums),
   };
 }
 

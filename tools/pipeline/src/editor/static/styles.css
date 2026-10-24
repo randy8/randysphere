@@ -274,6 +274,36 @@ textarea {
   border-color: var(--accent);
 }
 
+.city-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.city-row .city {
+  background: var(--chip);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+}
+
+.city-row .city:hover {
+  border-color: var(--accent);
+}
+
+.city-row .city.is-mixed {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+
+.city-row .city.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0b0c0e;
+}
+
 .cell .rotate-mark {
   position: absolute;
   top: 4px;

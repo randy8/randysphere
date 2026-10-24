@@ -6,6 +6,7 @@ import PhotographyNav from '../../photography/PhotographyNav.astro';
 import {
   batchAddedDates,
   byDateAdded,
+  citiesOf,
   loadArchive,
   selectedWork,
 } from '../../photography/archive.ts';
@@ -21,6 +22,11 @@ const dateAddedOrder = byDateAdded(photos, batchAddedDates()).map((entry) => ent
 const filmStocks = [
   ...new Set(photos.map((entry) => entry.roll.filmStock).filter((stock) => stock.length > 0)),
 ].sort();
+// Same rule for places: only cities some Selected Work photo is tagged with,
+// in albums/cities.yaml's order.
+const locations = archive.cities.filter((city) =>
+  photos.some((entry) => entry.tags.includes(city.tag)),
+);
 ---
 
 <Base
@@ -41,6 +47,16 @@ const filmStocks = [
     ) : (
       <Fragment>
         <div class="selected-toolbar" data-selected-toolbar hidden>
+          {locations.length > 0 && (
+            <label class="selected-filter">
+              <select data-location-filter aria-label="Location">
+                <option value="">Select location</option>
+                {locations.map((city) => (
+                  <option value={city.tag}>{city.name}</option>
+                ))}
+              </select>
+            </label>
+          )}
           <label class="selected-filter">
             <select data-film-filter aria-label="Film stock">
               <option value="">Select film stock</option>
@@ -64,7 +80,13 @@ const filmStocks = [
 
         <div class="grid" data-grid>
           {photos.map((entry, index) => (
-            <figure data-photo-id={entry.photo.sourceId} data-film-stock={entry.roll.filmStock}>
+            <figure
+              data-photo-id={entry.photo.sourceId}
+              data-film-stock={entry.roll.filmStock}
+              data-cities={citiesOf(archive, entry)
+                .map((city) => city.tag)
+                .join(' ')}
+            >
               <Photo
                 entry={entry}
                 sizes="(min-width: 64rem) 11vw, (min-width: 40rem) 17vw, 45vw"

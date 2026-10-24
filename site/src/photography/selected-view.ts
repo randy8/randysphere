@@ -1,6 +1,6 @@
 /**
- * Selected Work's three controls — a film-stock filter, Date added, and
- * Shuffle — all
+ * Selected Work's controls — location and film-stock filters, Date added,
+ * and Shuffle — all
  * progressive enhancement over a grid that already renders complete, in
  * featuredOrder, with no script at all. The toolbar is server-rendered
  * `hidden` and only revealed here, so a no-JS visitor never sees a control
@@ -9,8 +9,9 @@
  * Neither control reloads the page: both rearrange the grid's own
  * <figure>s in place and hand the resulting order to the lightbox
  * (setLightboxOrder), so prev/next always steps through exactly what the
- * grid shows. The filter lives in `?film=<stock>` so a filtered view
- * survives a reload and can be shared; shuffle and date-added order are
+ * grid shows. The filters live in `?location=<city>` and `?film=<stock>`
+ * (both apply at once) so a filtered view survives a reload and can be
+ * shared; shuffle and date-added order are
  * deliberately not kept anywhere — a reload goes back to the editorial
  * sequence. Date added is a toggle: pressed, the grid runs oldest batch
  * first (the order is computed at build time, see batchAddedDates);
@@ -20,6 +21,7 @@
 import { setLightboxOrder } from './lightbox.ts';
 
 const FILM_PARAM = 'film';
+const LOCATION_PARAM = 'location';
 
 function shuffled<T>(values: readonly T[]): T[] {
   const result = [...values];
@@ -36,6 +38,7 @@ function init(): void {
   if (grid === null || toolbar === null) return;
 
   const select = toolbar.querySelector<HTMLSelectElement>('[data-film-filter]');
+  const locationSelect = toolbar.querySelector<HTMLSelectElement>('[data-location-filter]');
   const shuffleButton = toolbar.querySelector<HTMLButtonElement>('[data-shuffle]');
   const dateButton = toolbar.querySelector<HTMLButtonElement>('[data-date-added]');
   const figures = Array.from(grid.querySelectorAll<HTMLElement>(':scope > [data-photo-id]'));
@@ -47,26 +50,35 @@ function init(): void {
 
   const apply = (): void => {
     const stock = select?.value ?? '';
+    const place = locationSelect?.value ?? '';
     const visible: string[] = [];
     for (const figure of Array.from(
       grid.querySelectorAll<HTMLElement>(':scope > [data-photo-id]'),
     )) {
-      const shown = stock === '' || figure.dataset['filmStock'] === stock;
+      const shown =
+        (stock === '' || figure.dataset['filmStock'] === stock) &&
+        (place === '' || (figure.dataset['cities'] ?? '').split(' ').includes(place));
       figure.hidden = !shown;
       if (shown) visible.push(figure.dataset['photoId'] ?? '');
     }
     setLightboxOrder(visible);
   };
 
-  if (select !== null) {
-    const requested = new URL(location.href).searchParams.get(FILM_PARAM) ?? '';
-    if (Array.from(select.options).some((option) => option.value === requested)) {
-      select.value = requested;
+  // Each filter mirrors itself into one query parameter, so a filtered view
+  // survives a reload and can be shared.
+  for (const [control, param] of [
+    [select, FILM_PARAM],
+    [locationSelect, LOCATION_PARAM],
+  ] as const) {
+    if (control === null) continue;
+    const requested = new URL(location.href).searchParams.get(param) ?? '';
+    if (Array.from(control.options).some((option) => option.value === requested)) {
+      control.value = requested;
     }
-    select.addEventListener('change', () => {
+    control.addEventListener('change', () => {
       const url = new URL(location.href);
-      if (select.value === '') url.searchParams.delete(FILM_PARAM);
-      else url.searchParams.set(FILM_PARAM, select.value);
+      if (control.value === '') url.searchParams.delete(param);
+      else url.searchParams.set(param, control.value);
       history.replaceState(null, '', url);
       apply();
     });
