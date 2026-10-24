@@ -13,6 +13,8 @@ const grid = document.querySelector<HTMLElement>('[data-share-grid]');
 const stage = document.querySelector<HTMLElement>('[data-lightbox-stage]');
 const emptyMessage = document.querySelector<HTMLElement>('[data-share-empty]');
 const summary = document.querySelector<HTMLElement>('[data-share-summary]');
+const missingNote = document.querySelector<HTMLElement>('[data-share-missing]');
+const more = document.querySelector<HTMLElement>('[data-share-more]');
 
 if (grid !== null) {
   const validIds = new Set(
@@ -25,7 +27,9 @@ if (grid !== null) {
   const encoded = new URLSearchParams(location.search).get('s') ?? '';
   // Gracefully ignore ids for photographs that no longer exist — a link
   // shared before an archive change simply shows whatever's left.
-  const ids = decodeIds(encoded).filter((id) => validIds.has(id));
+  const named = decodeIds(encoded);
+  const ids = named.filter((id) => validIds.has(id));
+  const missing = named.length - ids.length;
 
   if (ids.length > 0) {
     emptyMessage?.remove();
@@ -65,6 +69,11 @@ if (grid !== null) {
       summary.textContent = `${String(ids.length)} photograph${ids.length === 1 ? '' : 's'}`;
       summary.hidden = false;
     }
+    if (missingNote !== null && missing > 0) {
+      missingNote.textContent = `${String(missing)} photograph${missing === 1 ? ' in this link is' : 's in this link are'} no longer in the archive.`;
+      missingNote.hidden = false;
+    }
+    if (more !== null) more.hidden = false;
 
     grid.addEventListener('click', (event) => {
       if (!(event.target instanceof Element)) return;
@@ -74,6 +83,14 @@ if (grid !== null) {
       if (link === null || id === undefined) return;
       event.preventDefault();
       openPhoto(id);
+    });
+  } else {
+    // Nothing in the link resolves (empty, mangled, or every photograph
+    // since removed): show only the message, never the whole archive the
+    // page was rendered with.
+    grid.replaceChildren();
+    stage?.querySelectorAll('[data-photo-id]').forEach((item) => {
+      item.remove();
     });
   }
 }

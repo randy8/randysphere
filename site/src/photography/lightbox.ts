@@ -203,6 +203,11 @@ function init(): void {
     // A modified arrow key is a browser/OS shortcut passing through (Cmd+Left
     // for history back on Mac, most notably) — never ours to intercept.
     if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.key === 's' || event.key === 'S') {
+      event.preventDefault();
+      items[currentIndex]?.querySelector<HTMLElement>('[data-save]')?.click();
+      return;
+    }
     if (event.key === 'ArrowRight') {
       event.preventDefault();
       advance(true);

@@ -110,7 +110,27 @@ export function markHintSeen(): void {
  * on the page immediately.
  */
 export function syncSavedUI(): void {
-  const count = savedCount();
+  const ids = new Set(readIds());
+  const count = ids.size;
+  // Every per-photo save control on the page: grid marks (grid-save.ts) and
+  // the lightbox's Save buttons, whichever one was actually used.
+  document.querySelectorAll<HTMLElement>('[data-tile-save]').forEach((button) => {
+    const saved = ids.has(button.dataset['tileSave'] ?? '');
+    button.setAttribute('aria-pressed', String(saved));
+    button.setAttribute('aria-label', saved ? 'Saved — remove from Saved' : 'Save');
+    button.title = saved ? 'Saved — click to remove' : 'Save';
+    button.textContent = saved ? '✓' : '+';
+  });
+  document.querySelectorAll<HTMLElement>('.lightbox-item[data-photo-id]').forEach((item) => {
+    const button = item.querySelector<HTMLElement>('[data-save]');
+    if (button === null) return;
+    const saved = ids.has(item.dataset['photoId'] ?? '');
+    button.setAttribute('aria-pressed', String(saved));
+    const icon = button.querySelector('[data-save-icon]');
+    const label = button.querySelector('[data-save-label]');
+    if (icon !== null) icon.textContent = saved ? '✓' : '+';
+    if (label !== null) label.textContent = saved ? 'Saved' : 'Save';
+  });
   document.querySelectorAll<HTMLElement>('[data-saved-count]').forEach((el) => {
     el.textContent = String(count);
   });

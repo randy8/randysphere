@@ -2,124 +2,261 @@
  * Page-specific glue for /exposures/saved/ alone — never imported
  * anywhere else. The page server-renders the entire archive twice (a grid
  * of thumbnails, the full lightbox markup) because it has no way to know
- * what's saved at build time; this module is what actually prunes both
- * down to the saved subset, before lightbox.ts ever reads it (see the
- * ordering note in saved/index.astro).
+ * what's saved at build time; this module prunes both down to the saved
+ * subset before lightbox.ts ever reads it (see the ordering note in
+ * saved/index.astro), then runs the page's three modes:
+ *
+ * - browse: tiles open the lightbox; × unsaves one; Share all; Select; Clear.
+ * - select: tiles toggle a tick instead of opening (click, Enter or Space),
+ *   with a live "N of M selected" and Share selected (disabled at 0).
+ * - confirm-clear: Clear asks once before wiping the list.
+ *
+ * Sharing never touches the Saved list: it only encodes ids into a link
+ * (share-code.ts) and shows it in the share panel — copyable by hand if the
+ * clipboard is unavailable, with Copy, the system share sheet where there
+ * is one, and Open.
  */
 
 import { openPhoto } from './lightbox.ts';
 import { encodeIds } from './share-code.ts';
 import { clearSaved, pruneStale, removeSaved, savedIds } from './saved.ts';
 
-const SHARE_LABEL_RESET_MS = 2000;
+type Mode = 'browse' | 'select' | 'confirm-clear';
 
-const grid = document.querySelector<HTMLElement>('[data-saved-grid]');
-const stage = document.querySelector<HTMLElement>('[data-lightbox-stage]');
-const emptyMessage = document.querySelector<HTMLElement>('[data-saved-empty]');
-const summary = document.querySelector<HTMLElement>('[data-saved-summary]');
-const actions = document.querySelector<HTMLElement>('[data-saved-actions]');
-const clearButton = document.querySelector<HTMLElement>('[data-clear-saved]');
-const shareButton = document.querySelector<HTMLElement>('[data-share-saved]');
+const COPIED_RESET_MS = 2000;
+const SHARE_NOTE =
+  "Anyone with this link sees exactly these photographs. Your Saved list isn't changed.";
 
-if (grid !== null) {
+const $ = <T extends HTMLElement = HTMLElement>(selector: string): T | null =>
+  document.querySelector<T>(selector);
+
+const grid = $('[data-saved-grid]');
+const stage = $('[data-lightbox-stage]');
+const emptyMessage = $('[data-saved-empty]');
+const summary = $('[data-saved-summary]');
+const actions = $('[data-saved-actions]');
+const panel = $('[data-share-panel]');
+const panelTitle = $('[data-share-title]');
+const panelUrl = $<HTMLInputElement>('[data-share-url]');
+const panelStatus = $('[data-share-status]');
+const copyButton = $<HTMLButtonElement>('[data-share-copy]');
+const nativeButton = $<HTMLButtonElement>('[data-share-native]');
+const openLink = $<HTMLAnchorElement>('[data-share-open]');
+const shareSelectedButton = $<HTMLButtonElement>('[data-share-selected]');
+
+const plural = (count: number): string => `${String(count)} photograph${count === 1 ? '' : 's'}`;
+
+function init(gridElement: HTMLElement): void {
   const validIds = new Set(
     Array.from(
-      grid.querySelectorAll<HTMLElement>('[data-photo-id]'),
+      gridElement.querySelectorAll<HTMLElement>('[data-photo-id]'),
       (el) => el.dataset['photoId'] ?? '',
     ),
   );
   pruneStale(validIds);
-
   const saved = new Set(savedIds());
-  let remaining = saved.size;
+  if (saved.size === 0) return;
 
-  // Called once up front and again after every individual removal — the
-  // grid can go from "has photos" to "empty" without a reload (Clear still
-  // reloads; a single × doesn't need to).
-  const refreshSummary = (): void => {
-    if (remaining === 0) {
-      if (summary !== null) summary.hidden = true;
+  emptyMessage?.setAttribute('hidden', '');
+  gridElement.querySelectorAll<HTMLElement>('[data-photo-id]').forEach((tile) => {
+    if (!saved.has(tile.dataset['photoId'] ?? '')) tile.remove();
+  });
+  stage?.querySelectorAll<HTMLElement>('[data-photo-id]').forEach((item) => {
+    if (!saved.has(item.dataset['photoId'] ?? '')) item.remove();
+  });
+
+  let mode: Mode = 'browse';
+  const selected = new Set<string>();
+
+  const tiles = (): HTMLElement[] =>
+    Array.from(gridElement.querySelectorAll<HTMLElement>(':scope > [data-photo-id]'));
+  const tileLink = (tile: HTMLElement): HTMLElement | null => tile.querySelector('a');
+
+  const render = (): void => {
+    const total = tiles().length;
+    if (total === 0) {
+      summary?.setAttribute('hidden', '');
       actions?.setAttribute('hidden', '');
+      panel?.setAttribute('hidden', '');
       emptyMessage?.removeAttribute('hidden');
       return;
     }
-    if (summary !== null) {
-      summary.textContent = `${String(remaining)} photograph${remaining === 1 ? '' : 's'}`;
-      summary.hidden = false;
-    }
     actions?.removeAttribute('hidden');
+    for (const group of document.querySelectorAll<HTMLElement>('[data-mode]')) {
+      group.hidden = group.dataset['mode'] !== mode;
+    }
+    const question = $('[data-clear-question]');
+    if (question !== null) question.textContent = `Clear all ${plural(total)}?`;
+
+    if (summary !== null) {
+      summary.hidden = false;
+      summary.textContent =
+        mode === 'select' ? `${String(selected.size)} of ${String(total)} selected` : plural(total);
+    }
+    if (shareSelectedButton !== null) {
+      shareSelectedButton.disabled = selected.size === 0;
+      shareSelectedButton.textContent =
+        selected.size === 0 ? 'Share selected' : `Share ${String(selected.size)}`;
+      shareSelectedButton.title = selected.size === 0 ? 'Select photographs to share' : '';
+    }
+
+    gridElement.classList.toggle('is-selecting', mode === 'select');
+    for (const tile of tiles()) {
+      const id = tile.dataset['photoId'] ?? '';
+      const isSelected = mode === 'select' && selected.has(id);
+      tile.classList.toggle('is-selected', isSelected);
+      const link = tileLink(tile);
+      if (link === null) continue;
+      // While selecting, each tile *is* a checkbox — announced and operated
+      // as one; back in browse mode it's the plain link it always was.
+      if (mode === 'select') {
+        link.setAttribute('role', 'checkbox');
+        link.setAttribute('aria-checked', String(isSelected));
+      } else {
+        link.removeAttribute('role');
+        link.removeAttribute('aria-checked');
+      }
+    }
   };
 
-  if (saved.size > 0) {
-    emptyMessage?.setAttribute('hidden', '');
+  const setMode = (next: Mode): void => {
+    mode = next;
+    if (next !== 'select') selected.clear();
+    render();
+  };
 
-    grid.querySelectorAll<HTMLElement>('[data-photo-id]').forEach((tile) => {
-      if (!saved.has(tile.dataset['photoId'] ?? '')) tile.remove();
+  const toggle = (tile: HTMLElement): void => {
+    const id = tile.dataset['photoId'] ?? '';
+    if (selected.has(id)) selected.delete(id);
+    else selected.add(id);
+    render();
+  };
+
+  const showShare = (ids: readonly string[]): void => {
+    if (panel === null || panelUrl === null || ids.length === 0) return;
+    const url = `${location.origin}/exposures/share/?s=${encodeIds(ids)}`;
+    if (panelTitle !== null) panelTitle.textContent = `A link to ${plural(ids.length)}`;
+    panelUrl.value = url;
+    if (openLink !== null) openLink.href = url;
+    if (panelStatus !== null) panelStatus.textContent = SHARE_NOTE;
+    if (copyButton !== null) copyButton.textContent = 'Copy';
+    if (nativeButton !== null) nativeButton.hidden = typeof navigator.share !== 'function';
+    panel.hidden = false;
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    panelUrl.focus();
+    panelUrl.select();
+  };
+
+  // Share all: in the order the grid currently shows.
+  $('[data-share-all]')?.addEventListener('click', () => {
+    showShare(tiles().map((tile) => tile.dataset['photoId'] ?? ''));
+  });
+  shareSelectedButton?.addEventListener('click', () => {
+    showShare(
+      tiles()
+        .map((tile) => tile.dataset['photoId'] ?? '')
+        .filter((id) => selected.has(id)),
+    );
+  });
+
+  $('[data-select-start]')?.addEventListener('click', () => {
+    setMode('select');
+    tileLink(tiles()[0] ?? document.body)?.focus();
+  });
+  $('[data-select-all]')?.addEventListener('click', () => {
+    const all = tiles().map((tile) => tile.dataset['photoId'] ?? '');
+    if (selected.size === all.length) selected.clear();
+    else for (const id of all) selected.add(id);
+    render();
+  });
+  $('[data-select-done]')?.addEventListener('click', () => {
+    setMode('browse');
+  });
+
+  $('[data-clear-saved]')?.addEventListener('click', () => {
+    setMode('confirm-clear');
+    $('[data-clear-no]')?.focus();
+  });
+  $('[data-clear-no]')?.addEventListener('click', () => {
+    setMode('browse');
+  });
+  $('[data-clear-yes]')?.addEventListener('click', () => {
+    clearSaved();
+    location.reload();
+  });
+
+  copyButton?.addEventListener('click', () => {
+    const url = panelUrl?.value ?? '';
+    navigator.clipboard.writeText(url).then(
+      () => {
+        copyButton.textContent = 'Copied ✓';
+        if (panelStatus !== null) panelStatus.textContent = 'Link copied to the clipboard.';
+        window.setTimeout(() => {
+          copyButton.textContent = 'Copy';
+        }, COPIED_RESET_MS);
+      },
+      () => {
+        // No clipboard (an insecure context, a denied permission): the link
+        // is right there, selected, to copy by hand.
+        panelUrl?.focus();
+        panelUrl?.select();
+        if (panelStatus !== null)
+          panelStatus.textContent =
+            "Couldn't copy automatically — the link is selected, copy it from the box.";
+      },
+    );
+  });
+  nativeButton?.addEventListener('click', () => {
+    const url = panelUrl?.value ?? '';
+    navigator.share({ title: 'Photographs — Randy Liang', url }).catch(() => {
+      // Dismissed the share sheet — nothing to do.
     });
-    stage?.querySelectorAll<HTMLElement>('[data-photo-id]').forEach((item) => {
-      if (!saved.has(item.dataset['photoId'] ?? '')) item.remove();
-    });
+  });
+  $('[data-share-close]')?.addEventListener('click', () => {
+    panel?.setAttribute('hidden', '');
+  });
 
-    refreshSummary();
+  gridElement.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const tile = event.target.closest<HTMLElement>('[data-photo-id]');
+    const id = tile?.dataset['photoId'];
+    if (tile === null || id === undefined) return;
 
-    grid.addEventListener('click', (event) => {
-      if (!(event.target instanceof Element)) return;
+    const removeButton = event.target.closest<HTMLElement>('[data-remove-saved]');
+    if (removeButton !== null && mode !== 'select') {
+      // Only the grid tile — the matching photo in the (already built)
+      // lightbox markup is left in place rather than spliced out of
+      // lightbox.ts's own bookkeeping; it won't reappear next load.
+      removeSaved(id);
+      selected.delete(id);
+      tile.remove();
+      render();
+      return;
+    }
 
-      const removeButton = event.target.closest<HTMLElement>('[data-remove-saved]');
-      if (removeButton !== null) {
-        const tile = removeButton.closest<HTMLElement>('[data-photo-id]');
-        const id = tile?.dataset['photoId'];
-        if (id === undefined) return;
-        // Only the grid tile — the corresponding photo inside the (already
-        // built, by the time any click can happen) lightbox markup is left
-        // in place rather than spliced out of lightbox.ts's own index
-        // bookkeeping. It simply won't reappear next time this page loads;
-        // see the same trade-off documented for unsaving from inside the
-        // open viewer.
-        removeSaved(id);
-        tile?.remove();
-        remaining -= 1;
-        refreshSummary();
-        return;
-      }
+    if (event.target.closest('a') === null) return;
+    event.preventDefault();
+    if (mode === 'select') toggle(tile);
+    else openPhoto(id);
+  });
 
-      const link = event.target.closest('a');
-      const tile = event.target.closest<HTMLElement>('[data-photo-id]');
-      const id = tile?.dataset['photoId'];
-      if (link === null || id === undefined) return;
-      event.preventDefault();
-      openPhoto(id);
-    });
-  }
+  // Space toggles a checkbox; a link only answers Enter on its own.
+  gridElement.addEventListener('keydown', (event) => {
+    if (mode !== 'select' || event.key !== ' ') return;
+    const tile = (event.target as Element | null)?.closest<HTMLElement>('[data-photo-id]');
+    if (tile === null || tile === undefined) return;
+    event.preventDefault();
+    toggle(tile);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    if (!document.querySelector<HTMLElement>('[data-lightbox]')?.hidden) return;
+    if (mode !== 'browse') setMode('browse');
+    else if (panel !== null && !panel.hidden) panel.hidden = true;
+  });
+
+  render();
 }
 
-clearButton?.addEventListener('click', () => {
-  clearSaved();
-  location.reload();
-});
-
-// Whole-list only, in current-order — no subset selection yet (that needs
-// multi-select, a separate pass). The same quiet text-swap the Save button
-// itself already uses for feedback, not a toast.
-shareButton?.addEventListener('click', () => {
-  if (shareButton === null) return;
-  // A query param, not a hash — lightbox.ts's own #photo-<id> already owns
-  // the hash on every page that renders one, /share/ included (see
-  // share-view.ts); a query string survives
-  // history.replaceState(null, '', '#photo-xyz') untouched (that call only
-  // ever replaces the fragment), so the two never collide.
-  const url = `${location.origin}/exposures/share/?s=${encodeIds(savedIds())}`;
-  navigator.clipboard.writeText(url).then(
-    () => {
-      const original = shareButton.textContent;
-      shareButton.textContent = 'Copied';
-      setTimeout(() => {
-        shareButton.textContent = original;
-      }, SHARE_LABEL_RESET_MS);
-    },
-    () => {
-      // Clipboard access denied/unavailable — nothing to silently fail
-      // into, so just leave the button's label alone.
-    },
-  );
-});
+if (grid !== null) init(grid);

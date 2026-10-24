@@ -23,18 +23,58 @@ const archive = loadArchive();
   <header class="album-header saved-header">
     <h1>Saved</h1>
     <p class="saved-meta">
-      <span class="saved-summary" data-saved-summary hidden></span>
+      <span class="saved-summary" data-saved-summary aria-live="polite" hidden></span>
       <span class="saved-actions" data-saved-actions hidden>
-        <button type="button" class="saved-share" data-share-saved>
-          Share
-        </button>
-        <span class="saved-actions-sep" aria-hidden="true">·</span>
-        <button type="button" class="saved-clear" data-clear-saved>
-          Clear
-        </button>
+        {/* Browsing: share everything, start selecting, or clear. */}
+        <span class="saved-action-group" data-mode="browse">
+          <button type="button" class="saved-share" data-share-all>Share all</button>
+          <span class="saved-actions-sep" aria-hidden="true">·</span>
+          <button type="button" class="saved-clear" data-select-start>Select</button>
+          <span class="saved-actions-sep" aria-hidden="true">·</span>
+          <button type="button" class="saved-clear" data-clear-saved>Clear</button>
+        </span>
+        {/* Selecting: tap photographs to tick them, then share just those. */}
+        <span class="saved-action-group" data-mode="select" hidden>
+          <button type="button" class="saved-clear" data-select-all>Select all</button>
+          <span class="saved-actions-sep" aria-hidden="true">·</span>
+          <button type="button" class="saved-share" data-share-selected disabled>Share selected</button>
+          <span class="saved-actions-sep" aria-hidden="true">·</span>
+          <button type="button" class="saved-clear" data-select-done>Done</button>
+        </span>
+        {/* Clearing is the one destructive action here, so it asks first. */}
+        <span class="saved-action-group" data-mode="confirm-clear" hidden>
+          <span data-clear-question>Clear everything?</span>
+          <button type="button" class="saved-share" data-clear-yes>Clear</button>
+          <span class="saved-actions-sep" aria-hidden="true">·</span>
+          <button type="button" class="saved-clear" data-clear-no>Keep</button>
+        </span>
       </span>
     </p>
   </header>
+
+  {/* The outcome of sharing, made explicit: the link itself, copyable by
+      hand if the clipboard is unavailable, plus Copy / Share… / Open. */}
+  <section class="share-panel" data-share-panel aria-labelledby="share-panel-title" hidden>
+    <p class="share-panel-title" id="share-panel-title" data-share-title></p>
+    <div class="share-panel-row">
+      <input
+        class="share-panel-url"
+        type="text"
+        readonly
+        aria-label="Share link"
+        data-share-url
+      />
+      <button type="button" class="share-panel-button" data-share-copy>Copy</button>
+      <button type="button" class="share-panel-button" data-share-native hidden>Share…</button>
+      <a class="share-panel-button" data-share-open target="_blank" rel="noopener">Open</a>
+    </div>
+    <p class="share-panel-note" data-share-status aria-live="polite">
+      Anyone with this link sees exactly these photographs. Your Saved list isn't changed.
+    </p>
+    <button type="button" class="share-panel-close" data-share-close aria-label="Close share link">
+      <span aria-hidden="true">×</span>
+    </button>
+  </section>
 
   <p class="saved-empty" data-saved-empty>
     Nothing saved yet — saved photographs are stored only in this browser.
@@ -56,6 +96,7 @@ const archive = loadArchive();
           <button type="button" class="saved-grid-remove" data-remove-saved aria-label="Remove from Saved">
             <span aria-hidden="true">×</span>
           </button>
+          <span class="saved-grid-check" aria-hidden="true"></span>
         </li>
       ))
     }

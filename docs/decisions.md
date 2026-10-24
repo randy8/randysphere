@@ -2349,3 +2349,30 @@ Selected Work already did; the lightbox follows that order. The server
 still renders archival order, the no-JS fallback. With Archives no longer
 newest-first, `batchAddedDates()`, `byDateAdded()` and album.md's `added:`
 had no caller and are removed.
+
+---
+
+## 2026-10-24 — Saved gets selection and an explicit share step
+
+**Decision.** Save marks on every grid photograph (`grid-save.ts`: hover/
+focus on pointer devices, only a ✓ on saved photos on touch) plus `S` in
+the lightbox. The Saved page gains a selection mode (tiles become
+checkboxes — click, Enter or Space; "N of M selected"; Share N, disabled at
+0; Esc/Done exits) and Share all. Sharing opens an inline panel with the
+link in a selectable box, Copy (with feedback), the system share sheet
+where `navigator.share` exists, and Open — the link is always visible, so
+a blocked clipboard is never a dead end. Clear confirms first. The shared
+page gets a heading, a count, a note for ids no longer in the archive, a
+message (and no photographs) for a link that resolves to nothing — before,
+an empty or mangled link showed the whole archive under its error — and a
+way on into Exposures.
+
+**How links persist.** Unchanged: the ids are encoded in the URL itself.
+No database, no accounts, nothing to expire; a link is as permanent as the
+photographs it names. The cost is length (~11 characters per photograph)
+and that a link can't be edited after it's sent — a new selection is a new
+link. Sharing never writes to Saved.
+
+**Rejected.** Server-stored short links (a database and an API on a site
+that has neither); a modal dialog for the share step (an inline, ruled
+panel fits the page and keeps the grid in view).

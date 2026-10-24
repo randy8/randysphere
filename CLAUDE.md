@@ -80,6 +80,14 @@ tools/serve/            production server: site/dist/ + /p/ straight from
   places each figure in the shortest column (positions only, never DOM
   order — the lightbox, tab order, and Selected Work's filter/shuffle depend
   on DOM order). Column count lives in `--grid-columns` in `base.css`.
+- **Saved & Share**: Saved is a list of ids in localStorage (`saved.ts`);
+  `syncSavedUI` keeps every save control on the page in step (grid marks
+  from `grid-save.ts`, the lightbox's Save / `S`, the nav count). The Saved
+  page (`saved-view.ts`) has browse / select / confirm-clear modes; sharing
+  encodes the chosen ids into `/exposures/share/?s=` (`share-code.ts`) and
+  shows the link in a panel — it never modifies Saved. The link _is_ the
+  data: no server state, permanent, ~11 chars per photo; ids since removed
+  from the archive are skipped and counted on the recipient's page.
 - **Lightbox** (`Lightbox.astro`, `lightbox.ts`, `zoom.ts`): progressive
   enhancement over each tile's plain `<a>` to the full-size JPEG. State in
   the URL (`#photo-<sourceId>`).

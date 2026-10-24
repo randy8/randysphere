@@ -19,12 +19,17 @@ const archive = loadArchive();
   title={`Shared — ${photography.title}`}
   description="A shared selection of photographs."
 >
-  <header class="album-header">
-    <p class="saved-summary" data-share-summary hidden></p>
+  <header class="album-header saved-header">
+    <h1>Shared photographs</h1>
+    <p class="saved-meta">
+      <span class="saved-summary" data-share-summary hidden></span>
+    </p>
   </header>
 
+  <p class="saved-empty" data-share-missing hidden></p>
   <p class="saved-empty" data-share-empty>
-    This link doesn't point to any photographs anymore.
+    This link doesn't point to any photographs — it may be incomplete, or
+    they're no longer in the archive. <a href="/exposures/">Browse Exposures</a>.
   </p>
   <noscript>
     <p class="saved-empty">Viewing a shared selection requires JavaScript.</p>
@@ -39,6 +44,10 @@ const archive = loadArchive();
       ))
     }
   </ul>
+
+  <p class="next-album share-more" data-share-more hidden>
+    <a href="/exposures/">More photographs in Exposures →</a>
+  </p>
 
   <Lightbox photos={archive.photos} photoMaxWidth={1920} />
 
