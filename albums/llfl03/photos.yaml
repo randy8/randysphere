@@ -12,26 +12,31 @@ photos:
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang10232610.tif
     sourceId: 021bffe2306096c1
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang10232611.tif
     sourceId: 80569a1fd5be41c8
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang10232612.tif
     sourceId: 2e90cd68933b6129
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang10232613.tif
     sourceId: 3e7324e7accf6480
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang10232614.tif
     sourceId: cb0b72f2fc29269b
     alt: ''
@@ -42,16 +47,19 @@ photos:
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang10232616.tif
     sourceId: cfff7cb1807797aa
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang10232617.tif
     sourceId: 504c5805eca27495
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang10232618.tif
     sourceId: 60d811d1ea97d51e
     alt: ''
@@ -67,6 +75,7 @@ photos:
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang10232620.tif
     sourceId: 27f138416b79c2cc
     alt: ''
@@ -82,21 +91,25 @@ photos:
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang10232623.tif
     sourceId: 7a0bd97751ddf2c4
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang10232624.tif
     sourceId: 1c58c03566b6f085
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang10232625.tif
     sourceId: 4ab8fb5bc81b27fc
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang10232626.tif
     sourceId: 655d2d4df5cd554a
     alt: ''
@@ -117,36 +130,43 @@ photos:
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang1023263.tif
     sourceId: 9ac231a3e0ec4613
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang10232630.tif
     sourceId: d01e938331c52577
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang1023264.tif
     sourceId: 46946755c565a349
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang1023265.tif
     sourceId: '03988185e9848429'
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang1023266.tif
     sourceId: 80caf26b9dacca52
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang1023267.tif
     sourceId: 6ee7e8e64a8d21fe
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang1023268.tif
     sourceId: 7140b7131a79573d
     alt: ''

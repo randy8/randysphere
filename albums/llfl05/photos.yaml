@@ -22,6 +22,7 @@ photos:
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232661.tif
     sourceId: e3f3724b5a13f370
     alt: ''
@@ -32,6 +33,7 @@ photos:
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232663.tif
     sourceId: 3952ee2e28d30f87
     alt: ''
@@ -62,11 +64,13 @@ photos:
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232669.tif
     sourceId: 567527f96141a1f9
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232670.tif
     sourceId: 1ba170a70085175d
     alt: ''
@@ -77,16 +81,19 @@ photos:
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232672.tif
     sourceId: bbbba175a6307ff8
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232673.tif
     sourceId: a8e2873e537cdfad
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232674.tif
     sourceId: a76bc47d1a7dd934
     alt: ''
@@ -147,31 +154,37 @@ photos:
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232686.tif
     sourceId: 881a5750de2aa1c0
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232687.tif
     sourceId: c6e8cf9978cbf523
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232688.tif
     sourceId: 4c29935dd86b3323
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232689.tif
     sourceId: d8b0b364f39f35ca
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232690.tif
     sourceId: 3754377109a99567
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232691.tif
     sourceId: 95ccaa5bbd44351f
     alt: ''
@@ -182,11 +195,13 @@ photos:
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232693.tif
     sourceId: b7bbc0fcd0878b73
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232694.tif
     sourceId: 7f650fcb0922af7b
     alt: ''
@@ -207,6 +222,7 @@ photos:
     alt: ''
     tags:
       - llfl05
+    featured: false
   - file: RLiang10232698.tif
     sourceId: f064bb3c3be583ff
     alt: ''

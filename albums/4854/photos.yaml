@@ -68,6 +68,7 @@ photos:
     sourceId: 63c0304bc5dde867
     alt: ''
     tags: []
+    featured: true
   - file: 000048540016.tif
     sourceId: 169b75f03bd90b01
     alt: ''
@@ -92,6 +93,7 @@ photos:
     sourceId: 1dcf96d145a801d8
     alt: ''
     tags: []
+    featured: true
   - file: 000048540022.tif
     sourceId: a0ca037d41141946
     alt: ''
@@ -117,6 +119,7 @@ photos:
     sourceId: b10ad014d9988661
     alt: ''
     tags: []
+    featured: true
   - file: 000048540028.tif
     sourceId: af9772c44d4feeab
     alt: ''
@@ -146,6 +149,7 @@ photos:
     sourceId: 27bf1230a0b63d4b
     alt: ''
     tags: []
+    featured: true
   - file: 000048540035.tif
     sourceId: 3ca013a81bbc86d6
     alt: ''
