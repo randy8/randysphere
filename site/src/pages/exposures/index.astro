@@ -14,9 +14,15 @@ import { photography } from '../../photography/config.ts';
 
 const archive = loadArchive();
 const photos = selectedWork(archive);
-// The same photographs in the order their batches entered the repository —
-// a progression, offered as an alternative to the editorial sequence.
-const dateAddedOrder = byDateAdded(photos, batchAddedDates()).map((entry) => entry.photo.sourceId);
+// The same photographs as a progression: batches in the order they were
+// added to the site, and within each batch, frame order — archive.photos'
+// own (roll, frame) order, not the editorial sequence, so nothing about
+// when or in what order a photo was starred leaks into it.
+const featured = new Set(photos.map((entry) => entry.photo.sourceId));
+const dateAddedOrder = byDateAdded(
+  archive.photos.filter((entry) => featured.has(entry.photo.sourceId)),
+  batchAddedDates(),
+).map((entry) => entry.photo.sourceId);
 // Only stocks that actually appear in Selected Work — a choice that would
 // filter down to nothing is just a dead end.
 const filmStocks = [
