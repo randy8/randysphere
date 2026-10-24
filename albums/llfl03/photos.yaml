@@ -42,6 +42,7 @@ photos:
     alt: ''
     tags:
       - llfl03
+    rotate: 270
   - file: RLiang10232615.tif
     sourceId: 2210ba8daf1e6435
     alt: ''
