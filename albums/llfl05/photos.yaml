@@ -17,6 +17,7 @@ photos:
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232660.tif
     sourceId: cd6cda3391eb1add
     alt: ''
@@ -59,6 +60,7 @@ photos:
     alt: ''
     tags:
       - llfl05
+    featured: true
   - file: RLiang10232668.tif
     sourceId: d5a209bcddc1c994
     alt: ''
@@ -185,6 +187,7 @@ photos:
     tags:
       - llfl05
     featured: true
+    rotate: 270
   - file: RLiang10232691.tif
     sourceId: 95ccaa5bbd44351f
     alt: ''
