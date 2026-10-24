@@ -280,12 +280,17 @@ export function joinBatch(
  * build — unlike photos.yaml/rolls.yaml, album.md is never validated against
  * the manifest.
  */
-function readAlbumCover(path: string): string | null {
+/** One string field from an album.md's frontmatter, or null if absent/empty. */
+function readAlbumField(path: string, field: 'cover' | 'added'): string | null {
   if (!existsSync(path)) return null;
   const match = /^---\n([\s\S]*?)\n---/.exec(readFileSync(path, 'utf8'));
   if (match?.[1] === undefined) return null;
-  const data = (parse(match[1]) ?? {}) as { cover?: string };
-  return typeof data.cover === 'string' && data.cover.length > 0 ? data.cover : null;
+  const value = ((parse(match[1]) ?? {}) as Record<string, unknown>)[field];
+  return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+function readAlbumCover(path: string): string | null {
+  return readAlbumField(path, 'cover');
 }
 
 function loadBatch(slug: string): ArchivePhoto[] {
@@ -445,16 +450,29 @@ export function viewForFilmStock(archive: Archive, filmStock: string): View {
  * never blocked on also deciding exactly where it goes.
  */
 /**
- * When each batch first entered this repository — the commit that first
- * added its manifest under generated/albums/ — as an ISO timestamp. The
- * honest answer to "date added": not when a photograph was taken (EXIF)
- * and not album.md's hand-scaffolded `date:`. A batch not committed yet
- * is simply absent, and callers treat it as the newest of all.
+ * When each batch was added, as a sortable date string. A hand-set
+ * `added: YYYY-MM-DD` in the batch's album.md wins — the repository only
+ * began on 2026-07-28, so batches that existed before then (or went in
+ * together during the site's first week) need their real dates stated.
+ * Otherwise it's when the batch first entered this repository: the commit
+ * that first added its manifest under generated/albums/. Not when a
+ * photograph was taken (EXIF), and not album.md's scaffolded `date:`.
  *
- * Read from git at build time, once. Without git (a tarball checkout) the
- * map is empty and every date-added order degrades to archival order.
+ * A batch with neither (not committed yet, no `added:`) is absent, and
+ * callers treat it as the newest of all. Read once per build.
  */
 export function batchAddedDates(): ReadonlyMap<string, string> {
+  const dates = new Map<string, string>(gitAddedDates());
+  if (existsSync(ALBUM_DIRECTORY)) {
+    for (const slug of readdirSync(ALBUM_DIRECTORY)) {
+      const added = readAlbumField(join(ALBUM_DIRECTORY, slug, 'album.md'), 'added');
+      if (added !== null) dates.set(slug, added);
+    }
+  }
+  return dates;
+}
+
+function gitAddedDates(): Map<string, string> {
   let log: string;
   try {
     log = execFileSync(
