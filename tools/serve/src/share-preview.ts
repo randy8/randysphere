@@ -39,9 +39,20 @@ export function decodeIds(encoded: string): string[] {
   return ids;
 }
 
+interface ManifestImage {
+  readonly key: string;
+  readonly width: number;
+  readonly height: number;
+}
+
+interface ManifestVariant extends ManifestImage {
+  readonly format: string;
+}
+
 interface ManifestPhoto {
   readonly sourceId: string;
-  readonly og: { readonly key: string; readonly width: number; readonly height: number };
+  readonly og: ManifestImage;
+  readonly variants?: readonly ManifestVariant[];
 }
 
 interface Manifest {
@@ -105,8 +116,24 @@ export interface SharePreview extends PhotoPreview {
   readonly count: number;
 }
 
+/** Long edge a link preview is asked to show — sharp in an iMessage bubble, still a light download. */
+const PREVIEW_LONG_EDGE = 1200;
+
+/**
+ * The photograph itself, uncropped, as a link preview: the smallest JPEG
+ * variant whose long edge reaches PREVIEW_LONG_EDGE (JPEG because every
+ * preview bot reads it; AVIF isn't safe there). A portrait stays portrait.
+ * Falls back to the 1200×630 Open Graph crop only for a photo with no JPEG.
+ */
 function previewOf(photo: ManifestPhoto): PhotoPreview {
-  return { imagePath: `/${photo.og.key}`, width: photo.og.width, height: photo.og.height };
+  const jpegs = (photo.variants ?? [])
+    .filter((variant) => variant.format === 'jpeg')
+    .sort((a, b) => Math.max(a.width, a.height) - Math.max(b.width, b.height));
+  const image =
+    jpegs.find((variant) => Math.max(variant.width, variant.height) >= PREVIEW_LONG_EDGE) ??
+    jpegs.at(-1) ??
+    photo.og;
+  return { imagePath: `/${image.key}`, width: image.width, height: image.height };
 }
 
 /**

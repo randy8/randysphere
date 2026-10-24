@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-import { decodeIds, findSharePreview } from './share-preview.ts';
+import { decodeIds, findPhotoPreview, findSharePreview } from './share-preview.ts';
 
 const ID_A = '0123456789abcdef';
 const ID_B = 'fedcba9876543210';
@@ -95,4 +95,30 @@ test('an empty or garbage ?s= resolves to null without throwing', async () => {
 test('a missing albums directory resolves to null rather than throwing', async () => {
   const preview = await findSharePreview('/nonexistent/albums/dir', encodeIdsForTest([ID_A]));
   assert.equal(preview, null);
+});
+
+test('a photo with JPEG variants previews as itself, uncropped, at its own proportions', async () => {
+  const albumsDir = await mkdtemp(join(tmpdir(), 'photo-preview-'));
+  const id = 'abcdefabcdef0123';
+  await writeFile(
+    join(albumsDir, 'portrait.json'),
+    JSON.stringify({
+      photos: [
+        {
+          sourceId: id,
+          og: { key: `p/${id}/og-1.jpg`, width: 1200, height: 630 },
+          variants: [
+            { format: 'avif', key: `p/${id}/1280-a.avif`, width: 853, height: 1280 },
+            { format: 'jpeg', key: `p/${id}/2560-b.jpg`, width: 1707, height: 2560 },
+            { format: 'jpeg', key: `p/${id}/1200-c.jpg`, width: 800, height: 1200 },
+          ],
+        },
+      ],
+    }),
+  );
+  assert.deepEqual(await findPhotoPreview(albumsDir, id), {
+    imagePath: `/p/${id}/1200-c.jpg`,
+    width: 800,
+    height: 1200,
+  });
 });

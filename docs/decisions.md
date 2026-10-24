@@ -2327,3 +2327,14 @@ entry above are removed before ever shipping.
 **Why.** Every rating given is five stars, so there is nothing to trim —
 the export already _is_ the five-star list, and an import step that
 rewrote it into a second file was machinery with no job.
+
+---
+
+## 2026-10-24 — A shared photo link previews as the photograph, uncropped
+
+**Decision.** For `?photo=<id>` (and the first photo of a `?s=` share),
+`tools/serve` now points `og:image` at the photo's own 1200px JPEG variant,
+at its real proportions, instead of the 1200×630 `fit: cover` crop.
+iMessage, Slack and the rest show the whole frame — a portrait stays
+portrait. The crop remains the fallback for a photo without a JPEG, and
+the default card for pages that aren't one photograph.
