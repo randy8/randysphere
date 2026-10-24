@@ -181,6 +181,32 @@ function rewriteDescription(html: string, description: string): string {
     );
 }
 
+/**
+ * URLs from before the 2026-10-20 renames, mapped to where that content
+ * lives now. These are permanent moves (301): browsers that cached the old
+ * `/` → `/photography/selected/` 301 land here and are sent on, and so is
+ * anyone following an old shared link. Selected Work moved to the
+ * photography front page, so `/photography/selected/` goes to `/exposures/`.
+ */
+const LEGACY_PREFIXES: readonly (readonly [string, string])[] = [
+  ['/photography/selected/', '/exposures/'],
+  ['/photography/', '/exposures/'],
+  ['/films/', '/pictures/'],
+  ['/recipes/', '/dishes/'],
+  ['/music/', '/tunes/'],
+];
+
+export function legacyRedirect(pathname: string): string | null {
+  const path = pathname.endsWith('/') ? pathname : `${pathname}/`;
+  for (const [from, to] of LEGACY_PREFIXES) {
+    if (path === from) return to;
+    if (from !== '/photography/selected/' && path.startsWith(from)) {
+      return `${to}${pathname.slice(from.length)}`;
+    }
+  }
+  return null;
+}
+
 function isAuthenticated(config: ServeConfig, req: IncomingMessage): boolean {
   const token = readSessionCookie(req.headers.cookie);
   return verifySessionToken(config.sessionSecret, token);
@@ -272,6 +298,14 @@ async function route(
   // already moved three times (/photography/, /photography/selected/,
   // /exposures/) — a cached 301 kept returning visitors on a URL that no
   // longer exists.
+  const legacy = method === 'GET' || method === 'HEAD' ? legacyRedirect(pathname) : null;
+  if (legacy !== null) {
+    const { search } = new URL(req.url ?? '/', 'http://localhost');
+    res.writeHead(301, { location: `${legacy}${search}` });
+    res.end();
+    return;
+  }
+
   if (pathname === '/' && (method === 'GET' || method === 'HEAD')) {
     res.writeHead(302, { location: '/exposures/' });
     res.end();

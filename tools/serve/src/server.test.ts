@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 
-import { createPrivateSiteServer } from './server.ts';
+import { createPrivateSiteServer, legacyRedirect } from './server.ts';
 
 const PASSWORD = 'letmein';
 const SECRET = 'test-session-secret';
@@ -349,4 +349,25 @@ test('a page with no ?photo= or ?s= at all is streamed unchanged (the common cas
   assert.equal(response.status, 200);
   const body = await response.text();
   assert.match(body, /coverphoto1234567/);
+});
+
+test('pre-rename URLs map to where their content lives now', () => {
+  assert.equal(legacyRedirect('/photography/selected/'), '/exposures/');
+  assert.equal(legacyRedirect('/photography/'), '/exposures/');
+  assert.equal(legacyRedirect('/photography'), '/exposures/');
+  assert.equal(legacyRedirect('/photography/0271/'), '/exposures/0271/');
+  assert.equal(legacyRedirect('/photography/film/portra400/'), '/exposures/film/portra400/');
+  assert.equal(legacyRedirect('/films/'), '/pictures/');
+  assert.equal(legacyRedirect('/recipes/miso-soup/'), '/dishes/miso-soup/');
+  assert.equal(legacyRedirect('/music/'), '/tunes/');
+  assert.equal(legacyRedirect('/exposures/'), null);
+  assert.equal(legacyRedirect('/photographyx/'), null);
+});
+
+test('an old URL gets a permanent redirect, keeping its query string', async () => {
+  const response = await fetch(`${baseUrl}/photography/selected/?film=portra400`, {
+    redirect: 'manual',
+  });
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get('location'), '/exposures/?film=portra400');
 });
