@@ -2296,3 +2296,19 @@ unchanged file reuses it. A nothing-changed ingest — every `pnpm deploy` —
 drops from ~45s (19 GB of TIFFs re-read) to ~1s, with byte-identical
 output. A changed size or mtime always rehashes; deleting the file forces
 a full rehash.
+
+---
+
+## 2026-10-24 — Films update from a dropped Letterboxd export
+
+**Decision.** Drop Letterboxd's `ratings.csv` into `films/inbox/`
+(git-ignored); `pnpm films:import` — run by `pnpm sync`, so by every
+deploy — keeps the five-star rows, rewrites `films/five-star-ratings.csv`
+in exactly the format it was hand-trimmed to (a test round-trips the
+committed file byte for byte), and runs the TMDB lookup for new films only.
+A file without the ratings columns is refused rather than half-imported.
+
+**Why in sync, though it touches the network.** The TMDB step is the
+same opt-in enrichment as `pnpm films:posters`, in its own workspace, and
+never fails the import: no token or no network just leaves new films
+without a poster until the next run. `pnpm ingest` itself stays offline.

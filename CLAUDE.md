@@ -86,7 +86,8 @@ tools/serve/            production server: site/dist/ + /p/ straight from
 ```sh
 pnpm dev                 # Astro dev server, :4321 (images served from generated/derivatives)
 pnpm build / preview
-pnpm sync                # = pnpm ingest: encode new/changed photos, rewrite manifests
+pnpm sync                # pnpm ingest + pnpm films:import: encode new/changed photos,
+                         # rewrite manifests, import a dropped Letterboxd export
                          # (~1s when nothing changed: originals' hashes are cached
                          # by size+mtime in generated/source-hashes.json)
 pnpm run edit            # local editor, 127.0.0.1:4500: tags, alt, captions,
@@ -96,7 +97,9 @@ pnpm run edit            # local editor, 127.0.0.1:4500: tags, alt, captions,
                          # pnpm's own reserved command — always `pnpm run edit`.
 pnpm doctor              # report drift, change nothing
 pnpm describe            # optional: draft alt text via Claude (ANTHROPIC_API_KEY)
-pnpm films:posters       # optional: TMDB lookups (TMDB_READ_ACCESS_TOKEN)
+pnpm films:import        # films/inbox/ratings.csv -> films/five-star-ratings.csv, then
+                         # TMDB details for new films only (no-op if inbox empty)
+pnpm films:posters       # TMDB lookups by hand (TMDB_READ_ACCESS_TOKEN): --only, --regenerate
 pnpm serve               # production server (needs PRIVATE_SITE_PASSWORD,
                          # PRIVATE_SESSION_SECRET in .env)
 pnpm deploy              # sync + build + restart photography-serve (sudo)
