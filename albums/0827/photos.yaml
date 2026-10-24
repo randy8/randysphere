@@ -17,6 +17,7 @@ photos:
     alt: ''
     tags:
       - '0827'
+    featured: true
   - file: 000008270006.tif
     sourceId: 3e952236334d447b
     alt: ''
@@ -108,6 +109,7 @@ photos:
     alt: ''
     tags:
       - '0827'
+    featured: true
   - file: 000008270023.tif
     sourceId: fcbd3623c055ecf9
     alt: ''
@@ -129,6 +131,7 @@ photos:
     alt: ''
     tags:
       - '0827'
+    featured: true
   - file: 000008270027.tif
     sourceId: 9dc2676b85239a35
     alt: ''
@@ -150,12 +153,13 @@ photos:
     alt: ''
     tags:
       - '0827'
-    featured: false
+    featured: true
   - file: 000008270031.tif
     sourceId: ccf278c7e0ba98d5
     alt: ''
     tags:
       - '0827'
+    featured: true
   - file: 000008270032.tif
     sourceId: 7de2a96676718583
     alt: ''
@@ -181,6 +185,7 @@ photos:
     alt: ''
     tags:
       - '0827'
+    featured: true
   - file: 000008270037.tif
     sourceId: ef416a2473cf8705
     alt: ''

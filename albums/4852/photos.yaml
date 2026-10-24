@@ -109,6 +109,7 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520020.TIF
     sourceId: 04c12963f8a2223f
     alt: ''
@@ -126,6 +127,7 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520023.TIF
     sourceId: 9cc152fba19a72d9
     alt: ''
@@ -136,6 +138,7 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 48520025.TIF
     sourceId: 789a8dbd14da467c
     alt: ''

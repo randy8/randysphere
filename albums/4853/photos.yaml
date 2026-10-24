@@ -12,6 +12,7 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530002.tif
     sourceId: 3107afcfe345fcf0
     alt: ''
@@ -40,21 +41,25 @@ photos:
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530007.tif
     sourceId: 35fba42efb15bab0
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530008.tif
     sourceId: 1b8d83bed4deaa31
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530009.tif
     sourceId: 668f10f179a4519b
     alt: ''
     tags:
       - liang
+    featured: true
   - file: 000048530010.tif
     sourceId: c90868d537a55e6f
     alt: ''

@@ -1,0 +1,144 @@
+# Captions and alt text.
+#
+# `pnpm ingest` maintains which files are listed here and nothing else.
+# The order, the fields, and every comment are yours; re-running ingest will
+# not touch them. A photo is identified by its content (`sourceId`) first,
+# so moving or renaming a file in originals/ — even into a different roll —
+# keeps its entry below, alt text, caption, and tags intact. Only a photo
+# actually deleted from originals/ loses its entry.
+photos:
+  - file: RLiang10232631.tif
+    sourceId: e538da0e232047f8
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232632.tif
+    sourceId: 66fc9b2e07e3f8bd
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232633.tif
+    sourceId: 135d671c25003417
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232634.tif
+    sourceId: 450ffb5ef8663f2e
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232635.tif
+    sourceId: adb9f749e885ca95
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232636.tif
+    sourceId: 16927ed67d682fd8
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232637.tif
+    sourceId: 5e98115810c7dd7b
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232638.tif
+    sourceId: f490accc6dfe07cd
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232639.tif
+    sourceId: 6c1d5a22ab552c73
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232640.tif
+    sourceId: bf8a27857f9a18a9
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232641.tif
+    sourceId: d61ecb4bb284d06c
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232642.tif
+    sourceId: f1e4168140c87e52
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232643.tif
+    sourceId: 720e25a1be4dfc57
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232644.tif
+    sourceId: 6d49bae176b1c52f
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232645.tif
+    sourceId: bf5b356cb3bd2555
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232646.tif
+    sourceId: 9f760d0acc85d48d
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232647.tif
+    sourceId: 97dcc8c6c8cc04c2
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232648.tif
+    sourceId: 37ecd36bc64fece7
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232649.tif
+    sourceId: 680177ca6ab306d2
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232650.tif
+    sourceId: f7cc6118f7ee14a0
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232651.tif
+    sourceId: bb165e9603926e19
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232652.tif
+    sourceId: 1d5ef595df511986
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232653.tif
+    sourceId: 4e870c1221c784aa
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232654.tif
+    sourceId: eb60e279401d69f6
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232655.tif
+    sourceId: a4fd470d986c4c77
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232656.tif
+    sourceId: 92fded69b38e0d91
+    alt: ''
+    tags:
+      - llfl04
+  - file: RLiang10232657.tif
+    sourceId: 0ad0a25a534c9f25
+    alt: ''
+    tags:
+      - llfl04
