@@ -41,7 +41,7 @@ const hasPosters = films.some((film) => film.posterPath !== null);
         }
         {
           groups.length > 1 && (
-            <p class="film-control">
+            <p class="film-control" data-film-year-control>
               <label for="film-year-select">Year</label>
               <select id="film-year-select" data-film-year-select>
                 {groups.map((group) => (
@@ -53,8 +53,8 @@ const hasPosters = films.some((film) => film.posterPath !== null);
             </p>
           )
         }
-        <button type="button" class="film-random-button" data-random-film>
-          Random film
+        <button type="button" class="film-shuffle-button" data-film-shuffle>
+          Shuffle
         </button>
       </div>
     )
@@ -174,28 +174,42 @@ const hasPosters = films.some((film) => film.posterPath !== null);
             card.hidden = genre !== '' && !cardGenres.includes(genre);
           }
           for (const group of yearGroups) {
+            // Also hides a year emptied by Shuffle, which moves every card out.
             const cardsInGroup = Array.from(group.querySelectorAll<HTMLElement>('.film-card'));
-            group.hidden = cardsInGroup.length > 0 && cardsInGroup.every((card) => card.hidden);
+            group.hidden = cardsInGroup.every((card) => card.hidden);
           }
         };
         genreSelect?.addEventListener('change', applyGenreFilter);
 
-        // A "what should I watch" nudge: picks among whatever the genre
-        // filter currently leaves visible, so narrowing to one genre first
-        // and then asking for a random pick compose naturally.
-        const randomButton = document.querySelector<HTMLButtonElement>('[data-random-film]');
-        randomButton?.addEventListener('click', () => {
-          const visible = cards.filter((card) => !card.hidden);
-          const pick = visible[Math.floor(Math.random() * visible.length)];
-          if (pick === undefined) return;
-          pick.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          pick.classList.remove('is-highlighted');
-          // Reflow between removing and re-adding the class, so clicking
-          // the button twice in a row on the same film restarts the
-          // highlight animation instead of it being a no-op the second time.
-          void pick.offsetWidth;
-          pick.classList.add('is-highlighted');
-        });
+        // Shuffle deals the whole library into one grid in random order —
+        // the year sections step aside (and the Year jump with them, since
+        // there are no years to jump to), the genre filter keeps applying on
+        // top, and every press deals again. A reload returns to by-year.
+        const shuffleButton = document.querySelector<HTMLButtonElement>('[data-film-shuffle]');
+        const firstGroup = yearGroups[0];
+        if (shuffleButton && firstGroup) {
+          const shuffled = document.createElement('section');
+          shuffled.className = 'film-shuffled';
+          shuffled.hidden = true;
+          const grid = document.createElement('ul');
+          grid.className = 'film-grid';
+          shuffled.appendChild(grid);
+          firstGroup.before(shuffled);
+
+          shuffleButton.addEventListener('click', () => {
+            const order = [...cards];
+            for (let i = order.length - 1; i > 0; i -= 1) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [order[i], order[j]] = [order[j] as HTMLElement, order[i] as HTMLElement];
+            }
+            for (const card of order) grid.appendChild(card);
+            shuffled.hidden = false;
+            const yearControl = document.querySelector<HTMLElement>('[data-film-year-control]');
+            if (yearControl) yearControl.hidden = true;
+            applyGenreFilter();
+            shuffled.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+        }
       </script>
     )
   }

@@ -18,7 +18,7 @@
    "one quiet mark, fixed in a corner" convention as photography's
    browse-home link, just in the opposite corner (this page has nothing
    else fixed there to collide with). One panel for all three controls
-   (genre, year, a random pick) rather than three floating separately,
+   (genre, year, shuffle) rather than three floating separately,
    which reads as chrome scattered around the edges instead of one place
    to look. */
 .film-controls {
@@ -52,6 +52,9 @@
   align-items: baseline;
   gap: 0.625rem;
   margin: 0;
+}
+.film-control[hidden] {
+  display: none;
 }
 .film-control label {
   font-family: var(--serif);
@@ -93,7 +96,7 @@
     background: color-mix(in srgb, var(--paper) 94%, transparent);
   }
 }
-.film-random-button {
+.film-shuffle-button {
   appearance: none;
   background: none;
   border: 0;
@@ -109,8 +112,8 @@
     color 0.2s ease,
     border-color 0.2s ease;
 }
-.film-random-button:hover,
-.film-random-button:focus-visible {
+.film-shuffle-button:hover,
+.film-shuffle-button:focus-visible {
   color: var(--accent);
   border-color: var(--accent);
 }
@@ -226,32 +229,6 @@
 }
 .film-card:hover .film-poster[data-cropped='true'] {
   transform: scale(calc(var(--focal-zoom, 1) * 1.02));
-}
-/* The "Random film" button's whole point is pointing at one card among
-   hundreds — a brief ring in the accent colour (never at rest anywhere
-   else on this site, only ever a hover/interaction moment, and this is
-   exactly that) draws the eye there the instant the scroll settles, then
-   recedes on its own rather than leaving a permanent marker behind. */
-@keyframes film-highlight-ring {
-  from {
-    outline-color: var(--accent);
-    outline-offset: 0.5rem;
-  }
-  to {
-    outline-color: transparent;
-    outline-offset: 0.875rem;
-  }
-}
-.film-card.is-highlighted .film-poster-frame {
-  outline: 2px solid var(--accent);
-  outline-offset: 0.5rem;
-  animation: film-highlight-ring 1.6s ease-out forwards;
-}
-@media (prefers-reduced-motion: reduce) {
-  .film-card.is-highlighted .film-poster-frame {
-    animation: none;
-    outline-color: var(--accent);
-  }
 }
 /* A film TMDB matched but has no poster for — a quiet placeholder within
    the same mat, not a broken image icon and not silently skipped. */

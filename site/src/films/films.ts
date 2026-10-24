@@ -4,9 +4,9 @@ import { dirname, join } from 'node:path';
 import { parse } from 'yaml';
 
 /**
- * One committed CSV — `films/five-star-ratings.csv`, Letterboxd's own
- * "export your data" file, trimmed to ratings and left otherwise
- * untouched — not one file per film the way recipes are. 773 films is not
+ * One committed CSV — `films/ratings.csv`, Letterboxd's own "export your
+ * data" ratings file, dropped in as-is (every rating in it is five stars:
+ * that's the only rating given) — not one file per film the way recipes are. 773 films is not
  * 773 hand-written documents; a single file a spreadsheet or a script can
  * still open is the honest shape for data of this size, same as why
  * photography's manifest is one JSON file per batch rather than one per
@@ -55,7 +55,7 @@ function repositoryRoot(): string {
 }
 
 const ROOT = repositoryRoot();
-const RATINGS_FILE = join(ROOT, 'films', 'five-star-ratings.csv');
+const RATINGS_FILE = join(ROOT, 'films', 'ratings.csv');
 const TMDB_FILE = join(ROOT, 'films', 'tmdb.json');
 const OVERRIDES_FILE = join(ROOT, 'films', 'poster-overrides.yaml');
 

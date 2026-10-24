@@ -37,10 +37,7 @@ test('parseCsv handles the last row with no trailing newline', () => {
 
 test('loadFilms reads the real committed export and every entry has a title, a year, and a Letterboxd link', () => {
   const films = loadFilms();
-  assert.ok(
-    films.length > 0,
-    'expected at least one five-star film in films/five-star-ratings.csv',
-  );
+  assert.ok(films.length > 0, 'expected at least one film in films/ratings.csv');
   for (const film of films) {
     assert.ok(film.title.length > 0);
     assert.ok(film.year > 0);

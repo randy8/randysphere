@@ -9,7 +9,7 @@ import { parseCsv } from './csv.ts';
  * A separate, explicitly-run enrichment step for the films collection —
  * the same relationship `pnpm describe` has to the photography pipeline.
  * `pnpm ingest` must stay offline; this script is never called by it.
- * Reads `films/five-star-ratings.csv`, looks each title up against TMDB's
+ * Reads `films/ratings.csv`, looks each title up against TMDB's
  * search API, and writes `films/tmdb.json`, a committed cache of poster art
  * and plot text the site reads at build time (`site/src/films/films.ts`) —
  * the site itself never makes a network call, same boundary photography's
@@ -40,7 +40,7 @@ function repositoryRoot(): string {
 }
 
 const ROOT = repositoryRoot();
-const RATINGS_FILE = join(ROOT, 'films', 'five-star-ratings.csv');
+const RATINGS_FILE = join(ROOT, 'films', 'ratings.csv');
 const TMDB_FILE = join(ROOT, 'films', 'tmdb.json');
 const CORRECTIONS_FILE = join(ROOT, 'films', 'tmdb-corrections.yaml');
 const CONCURRENCY = 4;
@@ -190,11 +190,13 @@ async function main(): Promise<void> {
   const envFile = join(ROOT, '.env');
   if (existsSync(envFile)) process.loadEnvFile(envFile);
   const token = process.env['TMDB_READ_ACCESS_TOKEN'];
+  // Optional enrichment, run by every `pnpm sync`/`pnpm deploy`: without a
+  // token, new films simply show without a poster — never a failed deploy.
   if (token === undefined || token.length === 0) {
-    console.error(
-      'TMDB_READ_ACCESS_TOKEN is not set in .env. Get a free key at https://www.themoviedb.org/settings/api.',
+    console.warn(
+      'films: TMDB_READ_ACCESS_TOKEN is not set in .env, skipping poster lookup. ' +
+        'Get a free key at https://www.themoviedb.org/settings/api.',
     );
-    process.exitCode = 1;
     return;
   }
 
@@ -251,7 +253,14 @@ async function main(): Promise<void> {
   });
 
   const sorted = Object.fromEntries(Object.entries(cache).sort(([a], [b]) => a.localeCompare(b)));
-  writeFileSync(TMDB_FILE, `${JSON.stringify(sorted, null, 2)}\n`);
+  const text = `${JSON.stringify(sorted, null, 2)}\n`;
+  // Every deploy runs this; with nothing new it must leave the committed
+  // file byte-for-byte alone, not dirty the working tree.
+  if (existsSync(TMDB_FILE) && readFileSync(TMDB_FILE, 'utf8') === text) {
+    console.log('films: nothing new from TMDB.');
+    return;
+  }
+  writeFileSync(TMDB_FILE, text);
 
   const unmatched = Object.values(cache).filter((entry) => entry === null).length;
   console.log(

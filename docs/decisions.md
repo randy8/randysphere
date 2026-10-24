@@ -2312,3 +2312,18 @@ A file without the ratings columns is refused rather than half-imported.
 same opt-in enrichment as `pnpm films:posters`, in its own workspace, and
 never fails the import: no token or no network just leaves new films
 without a poster until the next run. `pnpm ingest` itself stays offline.
+
+---
+
+## 2026-10-24 — Films read Letterboxd's ratings.csv as-is (supersedes the inbox, same day)
+
+**Decision.** `films/ratings.csv` is Letterboxd's ratings export, committed
+exactly as downloaded, and the site reads it directly. Updating `/pictures/`
+is: replace that file, deploy. `pnpm sync` runs `pnpm films:posters`, which
+only looks up films not already in `films/tmdb.json` and skips with a
+warning when no TMDB token is set. The inbox and `films:import` from the
+entry above are removed before ever shipping.
+
+**Why.** Every rating given is five stars, so there is nothing to trim —
+the export already _is_ the five-star list, and an import step that
+rewrote it into a second file was machinery with no job.

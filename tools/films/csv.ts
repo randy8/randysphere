@@ -1,7 +1,6 @@
 /**
- * RFC 4180 CSV, both ways — Letterboxd titles contain commas and quotes
- * ("Synecdoche, New York"). Shared by import-ratings.ts and
- * fetch-posters.ts.
+ * RFC 4180 CSV — Letterboxd titles contain commas and quotes
+ * ("Synecdoche, New York"), so a real parser earns its keep over split(',').
  */
 
 // Duplicated from site/src/films/films.ts rather than imported — this
@@ -45,11 +44,4 @@ export function parseCsv(text: string): string[][] {
     rows.push(row);
   }
   return rows;
-}
-
-/** One CSV line: a field is quoted only when it has to be, the way Letterboxd's own export writes it. */
-export function formatCsvRow(cells: readonly string[]): string {
-  return cells
-    .map((cell) => (/[",\r\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell))
-    .join(',');
 }

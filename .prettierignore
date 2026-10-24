@@ -8,3 +8,7 @@ originals/
 dist/
 .astro/
 .wrangler/
+
+# Written by `pnpm films:posters` as JSON.stringify output; reformatting it
+# would make every lookup rewrite the whole file.
+films/tmdb.json

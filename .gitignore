@@ -50,7 +50,3 @@ Thumbs.db
 # Cache of each original's SHA-256 by size+mtime, so an ingest with nothing
 # new skips reading every original (see tools/pipeline/src/source-hashes.ts).
 /generated/source-hashes.json
-
-# A dropped Letterboxd export — every rating, not just the five-star ones
-# that films/five-star-ratings.csv keeps. See films/inbox/README.md.
-/films/inbox/*.csv

@@ -17,12 +17,12 @@ each bringing only the machinery its own content needs — the asymmetry is the
 design; don't hoist one collection's shape onto another, and don't add a
 shared `src/lib/`:
 
-| Collection  | Route         | Content                                             | Code                    |
-| ----------- | ------------- | --------------------------------------------------- | ----------------------- |
-| Photography | `/exposures/` | `originals/` → pipeline → `generated/albums/*.json` | `site/src/photography/` |
-| Recipes     | `/dishes/`    | `recipes/*.yaml`, hand-written, read off disk       | `site/src/recipes/`     |
-| Music       | `/tunes/`     | `music/tracks.yaml`, hand-written                   | `site/src/music/`       |
-| Films       | `/pictures/`  | `films/five-star-ratings.csv` + `films/tmdb.json`   | `site/src/films/`       |
+| Collection  | Route         | Content                                                              | Code                    |
+| ----------- | ------------- | -------------------------------------------------------------------- | ----------------------- |
+| Photography | `/exposures/` | `originals/` → pipeline → `generated/albums/*.json`                  | `site/src/photography/` |
+| Recipes     | `/dishes/`    | `recipes/*.yaml`, hand-written, read off disk                        | `site/src/recipes/`     |
+| Music       | `/tunes/`     | `music/tracks.yaml`, hand-written                                    | `site/src/music/`       |
+| Films       | `/pictures/`  | `films/ratings.csv` (Letterboxd's export, as-is) + `films/tmdb.json` | `site/src/films/`       |
 
 Adding a collection: one entry in `collections.ts`, its own `src/pages/<slug>/`,
 and (if needed) its own `src/<slug>/`. `Base.astro` stays collection-agnostic.
@@ -86,8 +86,8 @@ tools/serve/            production server: site/dist/ + /p/ straight from
 ```sh
 pnpm dev                 # Astro dev server, :4321 (images served from generated/derivatives)
 pnpm build / preview
-pnpm sync                # pnpm ingest + pnpm films:import: encode new/changed photos,
-                         # rewrite manifests, import a dropped Letterboxd export
+pnpm sync                # pnpm ingest + pnpm films:posters: encode new/changed photos,
+                         # rewrite manifests, fetch TMDB details for new films
                          # (~1s when nothing changed: originals' hashes are cached
                          # by size+mtime in generated/source-hashes.json)
 pnpm run edit            # local editor, 127.0.0.1:4500: tags, alt, captions,
@@ -97,9 +97,8 @@ pnpm run edit            # local editor, 127.0.0.1:4500: tags, alt, captions,
                          # pnpm's own reserved command — always `pnpm run edit`.
 pnpm doctor              # report drift, change nothing
 pnpm describe            # optional: draft alt text via Claude (ANTHROPIC_API_KEY)
-pnpm films:import        # films/inbox/ratings.csv -> films/five-star-ratings.csv, then
-                         # TMDB details for new films only (no-op if inbox empty)
-pnpm films:posters       # TMDB lookups by hand (TMDB_READ_ACCESS_TOKEN): --only, --regenerate
+pnpm films:posters       # TMDB details for films not looked up yet (TMDB_READ_ACCESS_TOKEN;
+                         # skipped with a warning if unset): --only, --regenerate
 pnpm serve               # production server (needs PRIVATE_SITE_PASSWORD,
                          # PRIVATE_SESSION_SECRET in .env)
 pnpm deploy              # sync + build + restart photography-serve (sudo)

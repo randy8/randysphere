@@ -7,7 +7,7 @@ import { parse } from 'yaml';
  * Not a playlist library — a running log of whatever I'm genuinely into
  * right now, one hand-written entry per "wow I'm really into this," read
  * straight from a single committed `music/tracks.yaml` the same way
- * `films/five-star-ratings.csv` is: no pipeline, no images, no per-item
+ * `films/ratings.csv` is: no pipeline, no images, no per-item
  * file. `postedAt` is when the entry was logged, not when the track came
  * out — the point is the moment, not a discography.
  */
