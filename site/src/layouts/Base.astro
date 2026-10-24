@@ -57,9 +57,10 @@ const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
         {
           /* The one collections list every page shares (title, a thin
              rule, every collection). The site name always links home; the
-             current collection is marked as current, and is a link back
-             to its own front page from anywhere below it (a tag page, a
-             film stock) — inert only on that front page itself. An ordinary
+             current collection is marked as current and still links to its
+             own front page — from a tag or film page, and from the front
+             page itself, where it clears a filter (?film=…) and, on
+             Selected Work, deals a fresh order. An ordinary
              in-flow header that scrolls away with the page — not sticky,
              so it never sits over a photograph; the lightbox paints over
              it while open. See .masthead-nameplate in base.css and
@@ -73,12 +74,12 @@ const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
             {
               collections.map((collection) => (
                 <li>
-                  {pathname === collection.href ? (
-                    <span class="nameplate-current" aria-current="page">
-                      {collection.title}
-                    </span>
-                  ) : pathname.startsWith(`/${collection.slug}/`) ? (
-                    <a class="nameplate-current" href={collection.href} aria-current="true">
+                  {pathname.startsWith(`/${collection.slug}/`) ? (
+                    <a
+                      class="nameplate-current"
+                      href={collection.href}
+                      aria-current={pathname === collection.href ? 'page' : 'true'}
+                    >
                       {collection.title}
                     </a>
                   ) : (

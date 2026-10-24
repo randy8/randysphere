@@ -1,21 +1,18 @@
 /**
- * Selected Work's controls — location and film-stock filters, Date added,
- * and Shuffle — all
- * progressive enhancement over a grid that already renders complete, in
- * featuredOrder, with no script at all. The toolbar is server-rendered
- * `hidden` and only revealed here, so a no-JS visitor never sees a control
- * that can't do anything.
+ * Selected Work's controls — location and film-stock filters, and Shuffle —
+ * all progressive enhancement over a grid that already renders complete,
+ * in featuredOrder, with no script at all. With script, every visit opens
+ * on a fresh random order (and Shuffle deals another); a no-JS visitor
+ * gets the editorial sequence. The toolbar is server-rendered `hidden` and
+ * only revealed here, so a no-JS visitor never sees a control that can't
+ * do anything.
  *
- * Neither control reloads the page: both rearrange the grid's own
- * <figure>s in place and hand the resulting order to the lightbox
+ * Nothing reloads the page: shuffling rearranges the grid's own <figure>s
+ * in place, and every change hands the resulting order to the lightbox
  * (setLightboxOrder), so prev/next always steps through exactly what the
  * grid shows. The filters live in `?location=<city>` and `?film=<stock>`
  * (both apply at once) so a filtered view survives a reload and can be
- * shared; shuffle and date-added order are
- * deliberately not kept anywhere — a reload goes back to the editorial
- * sequence. Date added is a toggle: pressed, the grid runs oldest batch
- * first (the order is computed at build time, see batchAddedDates);
- * pressed again, it returns to the editorial sequence.
+ * shared; the order deliberately isn't kept anywhere.
  */
 
 import { setLightboxOrder } from './lightbox.ts';
@@ -40,13 +37,7 @@ function init(): void {
   const select = toolbar.querySelector<HTMLSelectElement>('[data-film-filter]');
   const locationSelect = toolbar.querySelector<HTMLSelectElement>('[data-location-filter]');
   const shuffleButton = toolbar.querySelector<HTMLButtonElement>('[data-shuffle]');
-  const dateButton = toolbar.querySelector<HTMLButtonElement>('[data-date-added]');
   const figures = Array.from(grid.querySelectorAll<HTMLElement>(':scope > [data-photo-id]'));
-  const byId = new Map(figures.map((figure) => [figure.dataset['photoId'] ?? '', figure]));
-  const dateOrder = (dateButton?.dataset['dateAdded'] ?? '')
-    .split(' ')
-    .map((id) => byId.get(id))
-    .filter((figure): figure is HTMLElement => figure !== undefined);
 
   const apply = (): void => {
     const stock = select?.value ?? '';
@@ -84,23 +75,15 @@ function init(): void {
     });
   }
 
-  const setDatePressed = (pressed: boolean): void => {
-    dateButton?.setAttribute('aria-pressed', String(pressed));
-  };
-
-  dateButton?.addEventListener('click', () => {
-    const pressed = dateButton.getAttribute('aria-pressed') !== 'true';
-    for (const figure of pressed ? dateOrder : figures) grid.appendChild(figure);
-    setDatePressed(pressed);
-    apply();
-  });
-
-  shuffleButton?.addEventListener('click', () => {
+  const shuffle = (): void => {
     for (const figure of shuffled(figures)) grid.appendChild(figure);
-    setDatePressed(false);
+  };
+  shuffleButton?.addEventListener('click', () => {
+    shuffle();
     apply();
   });
 
+  shuffle();
   toolbar.hidden = false;
   apply();
 }

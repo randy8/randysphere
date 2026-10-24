@@ -708,10 +708,6 @@ main {
 }
 .selected-filter select:hover,
 .selected-filter select:focus-visible,
-.selected-shuffle[aria-pressed='true'] {
-  color: var(--ink);
-  border-color: var(--ink);
-}
 .selected-shuffle:hover,
 .selected-shuffle:focus-visible {
   color: var(--accent);

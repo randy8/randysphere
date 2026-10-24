@@ -46,3 +46,7 @@ Thumbs.db
 # Images referenced by private/notes.yaml — served only behind /private's
 # password, never committed (same as notes.yaml itself).
 /private/photos/
+
+# Cache of each original's SHA-256 by size+mtime, so an ingest with nothing
+# new skips reading every original (see tools/pipeline/src/source-hashes.ts).
+/generated/source-hashes.json

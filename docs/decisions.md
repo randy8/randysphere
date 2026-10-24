@@ -2270,3 +2270,29 @@ the grid, and the small arrow buttons were the only way forward.
 
 **Rejected.** A carousel library — one ~200-line module covers it, with no
 dependency and full control over how it feels.
+
+---
+
+## 2026-10-24 — Selected Work opens shuffled; the "Date added" toggle is gone
+
+**Decision.** Selected Work deals a fresh random order on every visit (the
+editorial `featuredOrder` sequence remains the no-JS fallback), Shuffle
+deals another, and the "Date added" toggle is removed. `batchAddedDates()`
+and album.md's `added:` override stay, used only by `/exposures/archives/`.
+
+**Why.** Commit dates only go back to the repository's creation
+(2026-07-28), so the first week's batches all bunched together and the
+order never matched when the work was actually made. A random order on
+every visit serves the same goal — the whole body of work, not just the
+first screen — without claiming a chronology it can't back up.
+
+---
+
+## 2026-10-24 — Ingest caches each original's hash by size and mtime
+
+**Decision.** `generated/source-hashes.json` (git-ignored) holds each
+original's SHA-256 with the size and mtime it was computed at; an
+unchanged file reuses it. A nothing-changed ingest — every `pnpm deploy` —
+drops from ~45s (19 GB of TIFFs re-read) to ~1s, with byte-identical
+output. A changed size or mtime always rehashes; deleting the file forces
+a full rehash.

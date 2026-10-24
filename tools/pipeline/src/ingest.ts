@@ -22,7 +22,6 @@ import {
 } from './encode.ts';
 import { PipelineError } from './errors.ts';
 import { parseExif, selectCameraMetadata } from './exif.ts';
-import { sha256File } from './hash.ts';
 import type { AlbumManifest, PhotoRecord, RollRecord, VariantRecord } from './manifest.ts';
 import {
   readAlbumManifest,
@@ -36,6 +35,8 @@ import { derivativePath } from './paths.ts';
 import type { Paths } from './paths.ts';
 import { planOpenGraph, planVariants, SOURCE_ID_LENGTH } from './recipe.ts';
 import type { VariantPlan } from './recipe.ts';
+import { loadSourceHashes } from './source-hashes.ts';
+import type { SourceHashes } from './source-hashes.ts';
 import { flattenRolls, listAlbumSlugs, listRolls, SOURCE_EXTENSIONS } from './sources.ts';
 
 /** A photograph located during the roll walk, before anything is decoded. */
@@ -163,9 +164,10 @@ async function ingestPhoto(
   photo: SourcePhoto,
   previous: PreviousRecords,
   rotations: Rotations,
+  hashes: SourceHashes,
 ): Promise<PhotoOutcome> {
   const sourcePath = join(albumDirectory, photo.relPath);
-  const sourceId = (await sha256File(sourcePath)).slice(0, SOURCE_ID_LENGTH);
+  const sourceId = (await hashes.hash(sourcePath)).slice(0, SOURCE_ID_LENGTH);
   const priorRecord = resolvePriorRecord(previous, photo.relPath, sourceId);
   const rotate = resolveRotation(rotations, photo.relPath, sourceId);
   const inspection = await inspectSource(sourcePath);
@@ -353,6 +355,7 @@ export async function ingest(options: IngestOptions): Promise<IngestReport> {
     onlyAlbums === null ? allSlugs : allSlugs.filter((slug) => onlyAlbums.includes(slug));
 
   await mkdir(paths.manifests, { recursive: true });
+  const hashes = await loadSourceHashes(paths.sourceHashesFile);
   const reports: AlbumReport[] = [];
 
   for (const [albumIndex, slug] of slugs.entries()) {
@@ -373,7 +376,15 @@ export async function ingest(options: IngestOptions): Promise<IngestReport> {
 
     let completed = 0;
     const outcomes = await mapWithConcurrency(photos, concurrency, async (photo) => {
-      const outcome = await ingestPhoto(paths, config, albumOriginals, photo, previous, rotations);
+      const outcome = await ingestPhoto(
+        paths,
+        config,
+        albumOriginals,
+        photo,
+        previous,
+        rotations,
+        hashes,
+      );
       completed += 1;
       onProgress?.({
         slug,
@@ -436,6 +447,8 @@ export async function ingest(options: IngestOptions): Promise<IngestReport> {
       albumFileCreated,
     });
   }
+
+  await hashes.save();
 
   await writeRepositoryIndex(paths.indexFile, {
     schemaVersion: SCHEMA_VERSION,

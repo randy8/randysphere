@@ -59,10 +59,11 @@ tools/serve/            production server: site/dist/ + /p/ straight from
   "trip"/"album" type that owns photographs.
 - Non-tag queries: film stock (`rolls.yaml` → `/exposures/film/<stock>/`),
   Selected Work (`featured`/`featuredOrder` → `selectedWork()`, the
-  `/exposures/` front page), cover (`album.md`), date added
-  (`batchAddedDates()` — when a batch's manifest was first committed to git).
+  `/exposures/` front page, which opens in a random order on every visit —
+  the editorial order is the no-JS fallback), cover (`album.md`), date added
+  (`batchAddedDates()`, used only by `/exposures/archives/`).
 - **Presentation order never disturbs archival order.** `(roll, frame)` is
-  chronological; `featuredOrder`, shuffle and date-added are read on top.
+  chronological; `featuredOrder` and shuffle are read on top.
 - **Rolls**: any directory directly containing images, at any depth. A
   photo's manifest `file` is relative to its batch (`0827/001.tif`). No roll
   routes until there's a product reason.
@@ -86,8 +87,12 @@ tools/serve/            production server: site/dist/ + /p/ straight from
 pnpm dev                 # Astro dev server, :4321 (images served from generated/derivatives)
 pnpm build / preview
 pnpm sync                # = pnpm ingest: encode new/changed photos, rewrite manifests
+                         # (~1s when nothing changed: originals' hashes are cached
+                         # by size+mtime in generated/source-hashes.json)
 pnpm run edit            # local editor, 127.0.0.1:4500: tags, alt, captions,
-                         # Selected Work, rotation ([ / ]). Bare `pnpm edit` is
+                         # Selected Work, city tags, rotation ([ / ]); paste a
+                         # live-site photo link into the filter to jump to it.
+                         # Bare `pnpm edit` is
                          # pnpm's own reserved command — always `pnpm run edit`.
 pnpm doctor              # report drift, change nothing
 pnpm describe            # optional: draft alt text via Claude (ANTHROPIC_API_KEY)

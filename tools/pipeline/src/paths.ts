@@ -12,6 +12,8 @@ export interface Paths {
   readonly configFile: string;
   /** Cache of generated descriptions, keyed by sourceId. Git-ignored; rebuildable, at the cost of calling the provider again. */
   readonly descriptionsFile: string;
+  /** Cached SHA-256 of each original by size+mtime — see source-hashes.ts. Git-ignored. */
+  readonly sourceHashesFile: string;
 }
 
 export function resolvePaths(root: string): Paths {
@@ -27,6 +29,7 @@ export function resolvePaths(root: string): Paths {
     publishedFile: join(generated, 'published.json'),
     configFile: join(root, 'pipeline.config.ts'),
     descriptionsFile: join(generated, 'descriptions.json'),
+    sourceHashesFile: join(generated, 'source-hashes.json'),
   };
 }
 
