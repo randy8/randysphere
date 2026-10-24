@@ -12,7 +12,6 @@ export interface PipelineConfig {
   readonly widths: readonly number[];
   readonly kernel: 'nearest' | 'cubic' | 'mitchell' | 'lanczos2' | 'lanczos3';
   readonly avif: { readonly quality: number; readonly effort: number };
-  readonly webp: { readonly quality: number; readonly effort: number };
   readonly jpeg: { readonly quality: number; readonly widths: readonly number[] };
   readonly og: { readonly width: number; readonly height: number; readonly quality: number };
   readonly lqip: { readonly width: number; readonly quality: number };
@@ -86,7 +85,6 @@ export function validateConfig(input: unknown): PipelineConfig {
   const root = readObject(input, 'the default export');
 
   const avif = readObject(root['avif'], 'avif');
-  const webp = readObject(root['webp'], 'webp');
   const jpeg = readObject(root['jpeg'], 'jpeg');
   const og = readObject(root['og'], 'og');
   const lqip = readObject(root['lqip'], 'lqip');
@@ -108,10 +106,6 @@ export function validateConfig(input: unknown): PipelineConfig {
     avif: {
       quality: readInteger(avif['quality'], 'avif.quality', 1, 100),
       effort: readInteger(avif['effort'], 'avif.effort', 0, 9),
-    },
-    webp: {
-      quality: readInteger(webp['quality'], 'webp.quality', 1, 100),
-      effort: readInteger(webp['effort'], 'webp.effort', 0, 6),
     },
     jpeg: {
       quality: readInteger(jpeg['quality'], 'jpeg.quality', 1, 100),

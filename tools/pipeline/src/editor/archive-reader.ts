@@ -59,18 +59,17 @@ function variantsOf(photo: PhotoRecord, format: VariantRecord['format']): Varian
 }
 
 /**
- * webp specifically (not avif) for both thumbnail and preview: this is an
- * always-local editing tool, not the public site, so there's no payload-size
- * pressure worth trading for avif's narrower decode support — boring and
- * reliable beats marginally smaller here.
+ * AVIF for both thumbnail and preview — the only responsive format still
+ * encoded (WebP was dropped 2026-10-24), and every browser the editor runs
+ * in decodes it. The Open Graph JPEG is the fallback for a photo with none.
  */
 function thumbnailKey(photo: PhotoRecord): string {
-  return (variantsOf(photo, 'webp')[0] ?? photo.og).key;
+  return (variantsOf(photo, 'avif')[0] ?? photo.og).key;
 }
 
 function previewKey(photo: PhotoRecord): string {
-  const webp = variantsOf(photo, 'webp');
-  return (webp.find((variant) => variant.width >= 1200) ?? webp.at(-1) ?? photo.og).key;
+  const avif = variantsOf(photo, 'avif');
+  return (avif.find((variant) => variant.width >= 1200) ?? avif.at(-1) ?? photo.og).key;
 }
 
 /**

@@ -5,10 +5,16 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 
 import { formatJson, writeFileAtomic } from './files.ts';
-import { readPreviousRecords, removeOrphanAlbums, resolvePriorRecord } from './ingest.ts';
+import {
+  readPreviousRecords,
+  removeOrphanAlbums,
+  resolvePriorRecord,
+  reusableVariants,
+} from './ingest.ts';
 import type { PreviousRecords } from './ingest.ts';
 import type { AlbumManifest, PhotoRecord, VariantRecord } from './manifest.ts';
 import { resolvePaths } from './paths.ts';
+import type { VariantPlan } from './recipe.ts';
 
 function variant(width: number): VariantRecord {
   return {
@@ -178,4 +184,18 @@ test('a duplicate sourceId across two previous records collapses to one in the s
   assert.equal(previous.bySourceId.size, 1);
   const resolved = resolvePriorRecord(previous, '003.jpg', 'dddddddddddddddd');
   assert.ok(resolved?.file === '001.jpg' || resolved?.file === '002.jpg');
+});
+
+test('reusableVariants keeps a record that covers every plan, dropping variants no longer planned', () => {
+  const record = photo('001.jpg', 'aaaaaaaaaaaaaaaa');
+  const [kept] = record.variants;
+  assert.ok(kept !== undefined);
+  const plans = [{ key: kept.key } as VariantPlan];
+
+  const reused = reusableVariants(record, 'aaaaaaaaaaaaaaaa', plans, record.og.key);
+  assert.deepEqual(reused, [kept]);
+
+  const missing = [{ key: 'p/aaaaaaaaaaaaaaaa/9999-01234567.avif' } as VariantPlan];
+  assert.equal(reusableVariants(record, 'aaaaaaaaaaaaaaaa', missing, record.og.key), null);
+  assert.equal(reusableVariants(record, 'bbbbbbbbbbbbbbbb', plans, record.og.key), null);
 });

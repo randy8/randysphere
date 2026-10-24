@@ -18,7 +18,6 @@ const config = validateConfig({
   widths: [400, 800, 1600],
   kernel: 'lanczos3',
   avif: { quality: 55, effort: 4 },
-  webp: { quality: 76, effort: 5 },
   jpeg: { quality: 80, widths: [800] },
   og: { width: 1200, height: 630, quality: 82 },
   lqip: { width: 20, quality: 35 },
@@ -30,11 +29,11 @@ const config = validateConfig({
 
 function variant(width: number): VariantRecord {
   return {
-    format: 'webp',
+    format: 'avif',
     width,
     height: Math.round((width * 3) / 4),
     bytes: 1000,
-    key: `p/0123456789abcdef/${String(width)}-01234567.webp`,
+    key: `p/0123456789abcdef/${String(width)}-01234567.avif`,
   };
 }
 
@@ -86,9 +85,9 @@ before(async () => {
     'paris-2025',
   );
 
-  const derivative = derivativePath(paths, 'p/0123456789abcdef/400-01234567.webp');
+  const derivative = derivativePath(paths, 'p/0123456789abcdef/400-01234567.avif');
   await mkdir(join(derivative, '..'), { recursive: true });
-  await writeFile(derivative, 'fake-webp-bytes');
+  await writeFile(derivative, 'fake-avif-bytes');
 
   const server = createEditorServer(paths, config);
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -193,10 +192,10 @@ test('POST /api/edits returns 409 with a conflict when the version is stale', as
 });
 
 test('GET /media/<key> streams the derivative straight off disk', async () => {
-  const response = await fetch(`${baseUrl}/media/p/0123456789abcdef/400-01234567.webp`);
+  const response = await fetch(`${baseUrl}/media/p/0123456789abcdef/400-01234567.avif`);
   assert.equal(response.status, 200);
-  assert.equal(response.headers.get('content-type'), 'image/webp');
-  assert.equal(await response.text(), 'fake-webp-bytes');
+  assert.equal(response.headers.get('content-type'), 'image/avif');
+  assert.equal(await response.text(), 'fake-avif-bytes');
 });
 
 test('isSafeRelativePath rejects any ".." segment and accepts an ordinary relative path', () => {
@@ -206,7 +205,7 @@ test('isSafeRelativePath rejects any ".." segment and accepts an ordinary relati
   assert.equal(isSafeRelativePath('../etc/passwd'), false);
   assert.equal(isSafeRelativePath('p/0123456789abcdef/..'), false);
   assert.equal(isSafeRelativePath(''), false);
-  assert.equal(isSafeRelativePath('p/0123456789abcdef/400-01234567.webp'), true);
+  assert.equal(isSafeRelativePath('p/0123456789abcdef/400-01234567.avif'), true);
 });
 
 test('GET / serves the static index page', async () => {

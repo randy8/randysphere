@@ -9,6 +9,7 @@ import { doctor } from './doctor.ts';
 import { createEditorServer } from './editor/server.ts';
 import { PipelineError } from './errors.ts';
 import { defaultConcurrency, ingest } from './ingest.ts';
+import type { IngestProgress } from './ingest.ts';
 import { resolvePaths, repositoryRoot } from './paths.ts';
 import { publish } from './publish.ts';
 import { createLocalStorage } from './storage/local.ts';
@@ -27,7 +28,7 @@ Usage: pnpm <command> [options]
 Options:
   --album <slug>           Restrict to one album. Repeatable.
   --local                  Publish into a directory instead of R2.
-  --concurrency <n>        Photographs or uploads in flight. Default: half your cores.
+  --concurrency <n>        Photographs or uploads in flight. Default: every core.
   --regenerate             describe: re-generate photos already described, unless hand-edited since.
   --model <id>             describe: override the Claude model (default claude-opus-5).
   --port <n>               edit: port to listen on (default 4500). Always binds 127.0.0.1 only.
@@ -50,19 +51,57 @@ function plural(count: number, singular: string, pluralForm = `${singular}s`): s
 const PROGRESS_BAR_WIDTH = 24;
 
 /**
- * A single overwriting line, not scrolling log spam — `\r` with no trailing
- * newline until the bar reaches 100%. Only when stdout is a real terminal:
- * piped to a file or captured by another process, `\r` would just corrupt
- * the log instead of animating, so this is silent there and the run is still
- * fully observable from the final per-album summary either way.
+ * A single overwriting line on a real terminal — `\r` with no trailing
+ * newline until the bar reaches 100%. Piped to a file or captured by another
+ * process, `\r` would just corrupt the log, so there it prints a plain line
+ * at each tenth instead (and at the end), which still shows a run moving.
  */
-function renderProgressBar(label: string, completed: number, total: number): void {
-  if (!process.stdout.isTTY) return;
+function renderProgressBar(label: string, completed: number, total: number, suffix = ''): void {
+  const counts = `${label}: ${completed.toString()}/${total.toString()}${suffix}`;
+  if (!process.stdout.isTTY) {
+    const step = Math.max(1, Math.ceil(total / 10));
+    if (completed % step === 0 || completed === total) console.log(`  ${counts}`);
+    return;
+  }
   const filled = Math.round((completed / total) * PROGRESS_BAR_WIDTH);
   const bar = '#'.repeat(filled) + '-'.repeat(PROGRESS_BAR_WIDTH - filled);
-  const line = `  [${bar}] ${label}: ${completed.toString()}/${total.toString()}`;
-  process.stdout.write(`\r${line.padEnd(72)}`);
+  process.stdout.write(`\r${`  [${bar}] ${counts}`.padEnd(90)}`);
   if (completed === total) process.stdout.write('\n');
+}
+
+function formatDuration(seconds: number): string {
+  const whole = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(whole / 60);
+  return minutes > 0
+    ? `${minutes.toString()}m${(whole % 60).toString().padStart(2, '0')}s`
+    : `${whole.toString()}s`;
+}
+
+/**
+ * Elapsed time for the current album and a rough time left, from the average
+ * of the photographs that actually needed encoding — reused ones finish
+ * instantly and would make the estimate meaningless.
+ */
+function ingestProgressReporter(): (event: IngestProgress) => void {
+  let slug = '';
+  let started = 0;
+  let encoded = 0;
+  return (event) => {
+    if (event.slug !== slug) {
+      slug = event.slug;
+      started = performance.now();
+      encoded = 0;
+    }
+    if (!event.reused) encoded += 1;
+    const elapsed = (performance.now() - started) / 1000;
+    const remaining = event.total - event.completed;
+    const eta =
+      encoded > 0 && remaining > 0
+        ? ` · ~${formatDuration((elapsed / encoded) * remaining)} left`
+        : '';
+    const label = `${event.slug} (batch ${event.album.toString()}/${event.albums.toString()})`;
+    renderProgressBar(label, event.completed, event.total, ` · ${formatDuration(elapsed)}${eta}`);
+  };
 }
 
 async function runIngest(onlyAlbums: string[] | null, concurrency: number): Promise<void> {
@@ -73,9 +112,7 @@ async function runIngest(onlyAlbums: string[] | null, concurrency: number): Prom
     config,
     onlyAlbums,
     concurrency,
-    onProgress: (slug, completed, total) => {
-      renderProgressBar(slug, completed, total);
-    },
+    onProgress: ingestProgressReporter(),
   });
 
   for (const album of report.albums) {

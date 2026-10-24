@@ -9,7 +9,6 @@ const base: PipelineConfig = {
   widths: [400, 800, 1200],
   kernel: 'lanczos3',
   avif: { quality: 55, effort: 4 },
-  webp: { quality: 76, effort: 5 },
   jpeg: { quality: 80, widths: [1200] },
   og: { width: 1200, height: 630, quality: 82 },
   lqip: { width: 20, quality: 35 },
@@ -79,7 +78,7 @@ test('widths wider than the source are dropped, and the native width is offered'
 
 test('a small source never yields two variants of the same width', () => {
   const plans = planVariants(SOURCE_ID, { width: 900, height: 600 }, base);
-  for (const format of ['avif', 'webp', 'jpeg'] as const) {
+  for (const format of ['avif', 'jpeg'] as const) {
     const widths = plans.filter((plan) => plan.format === format).map((plan) => plan.width);
     assert.equal(
       new Set(widths).size,
@@ -112,4 +111,9 @@ test('each rotation gets its own keys, for both the responsive set and the open 
   }));
   assert.equal(new Set(keys.map((entry) => entry.og)).size, 4);
   assert.equal(new Set(keys.map((entry) => entry.variants.join())).size, 4);
+});
+
+test('WebP is never planned — AVIF with a JPEG fallback is the whole responsive set', () => {
+  const formats = new Set(planVariants(SOURCE_ID, large, base).map((plan) => plan.format));
+  assert.deepEqual([...formats].sort(), ['avif', 'jpeg']);
 });

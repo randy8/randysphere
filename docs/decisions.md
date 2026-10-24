@@ -2224,3 +2224,29 @@ helper newest-first, replacing its own read of `album.md`'s `date:` (which
 is scaffolded from EXIF, i.e. when the photo was taken, not added).
 Uncommitted batches count as newest; without git, order falls back to
 archival order.
+
+---
+
+## 2026-10-24 — WebP is no longer encoded; ingest uses every core
+
+**Decision.** `planVariants` produces AVIF (five widths) plus the two JPEGs
+and nothing else; `webp` stays a valid manifest format so older manifests
+still load. `defaultConcurrency()` is every core, not half.
+
+**Why.** Ingest was the slow step for each new lab delivery (~2.7 minutes of
+encoding per scan). Every current browser decodes AVIF, and anything that
+doesn't falls back to the JPEG `<img>` — the five WebP files per photograph
+were almost never served. And at half the cores, measured on this 12-core
+machine, the load sat around 4: sharp's own pool is pinned to one thread,
+so photographs in flight are the only parallelism there is. Neither change
+touches quality: the AVIF and JPEG recipes, and therefore their keys, are
+unchanged.
+
+**How the switch costs nothing.** A previous record that covers every
+planned key now counts as reusable even if it lists extra variants
+(`reusableVariants`), so the first ingest after this rewrites every
+manifest without WebP entries and without decoding a single original.
+
+**Rejected.** Lowering AVIF effort: faster encodes at the same quality
+setting but larger files, and it would change every AVIF key, forcing a
+full re-encode that costs more time than it saves.

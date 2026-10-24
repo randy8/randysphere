@@ -78,17 +78,24 @@ function toVariantRecord(
   return { format: plan.format, width, height, bytes, key: plan.key };
 }
 
-function recordMatchesPlan(
+/**
+ * The previous record's variants for exactly these plans, in plan order, or
+ * null if it doesn't cover every one of them. A record carrying *extra*
+ * variants (a format or width since dropped from the recipe) still counts:
+ * the extras are simply left out, so trimming the recipe rewrites manifests
+ * without decoding a single original.
+ */
+export function reusableVariants(
   record: PhotoRecord,
   sourceId: string,
   plans: readonly VariantPlan[],
   ogKey: string,
-): boolean {
-  if (record.sourceId !== sourceId) return false;
-  if (record.og.key !== ogKey) return false;
-  if (record.variants.length !== plans.length) return false;
-  const recorded = new Set(record.variants.map((variant) => variant.key));
-  return plans.every((plan) => recorded.has(plan.key));
+): VariantRecord[] | null {
+  if (record.sourceId !== sourceId) return null;
+  if (record.og.key !== ogKey) return null;
+  const byKey = new Map(record.variants.map((variant) => [variant.key, variant]));
+  const variants = plans.map((plan) => byKey.get(plan.key));
+  return variants.every((variant) => variant !== undefined) ? variants : null;
 }
 
 interface PhotoOutcome {
@@ -181,13 +188,13 @@ async function ingestPhoto(
   // path a rerun over an unchanged collection takes for every single file,
   // and — since `priorRecord` is found by content as well as path — the path
   // a moved-but-unchanged photograph takes too.
-  if (
-    missing.length === 0 &&
-    priorRecord !== undefined &&
-    recordMatchesPlan(priorRecord, sourceId, plans, openGraph.key)
-  ) {
+  const reusable =
+    missing.length === 0 && priorRecord !== undefined
+      ? reusableVariants(priorRecord, sourceId, plans, openGraph.key)
+      : null;
+  if (priorRecord !== undefined && reusable !== null) {
     return {
-      record: { ...priorRecord, file: photo.relPath, roll: photo.roll },
+      record: { ...priorRecord, file: photo.relPath, roll: photo.roll, variants: reusable },
       encoded: 0,
       reused: true,
       newIdentity: false,
@@ -308,13 +315,24 @@ export async function removeOrphanAlbums(
   return orphanSlugs;
 }
 
+export interface IngestProgress {
+  readonly slug: string;
+  /** 1-based position of this album among the ones being ingested this run. */
+  readonly album: number;
+  readonly albums: number;
+  readonly completed: number;
+  readonly total: number;
+  /** True if the photograph just finished needed nothing encoded. */
+  readonly reused: boolean;
+}
+
 export interface IngestOptions {
   readonly paths: Paths;
   readonly config: PipelineConfig;
   readonly onlyAlbums: readonly string[] | null;
   readonly concurrency: number;
   /** Called after each photograph in an album finishes, whether encoded or reused. */
-  readonly onProgress?: (slug: string, completed: number, total: number) => void;
+  readonly onProgress?: (event: IngestProgress) => void;
 }
 
 export async function ingest(options: IngestOptions): Promise<IngestReport> {
@@ -337,7 +355,7 @@ export async function ingest(options: IngestOptions): Promise<IngestReport> {
   await mkdir(paths.manifests, { recursive: true });
   const reports: AlbumReport[] = [];
 
-  for (const slug of slugs) {
+  for (const [albumIndex, slug] of slugs.entries()) {
     const albumOriginals = join(paths.originals, slug);
     const rolls = await listRolls(albumOriginals);
     const photos = flattenRolls(rolls);
@@ -357,7 +375,14 @@ export async function ingest(options: IngestOptions): Promise<IngestReport> {
     const outcomes = await mapWithConcurrency(photos, concurrency, async (photo) => {
       const outcome = await ingestPhoto(paths, config, albumOriginals, photo, previous, rotations);
       completed += 1;
-      onProgress?.(slug, completed, photos.length);
+      onProgress?.({
+        slug,
+        album: albumIndex + 1,
+        albums: slugs.length,
+        completed,
+        total: photos.length,
+        reused: outcome.reused,
+      });
       return outcome;
     });
 
@@ -424,8 +449,10 @@ export async function ingest(options: IngestOptions): Promise<IngestReport> {
 }
 
 export function defaultConcurrency(): number {
-  // Half the cores: libvips holds a decoded frame per photograph in flight, and
-  // a 2400 x 3600 raw buffer is 26 MB. Saturating every core on a large machine
-  // buys little and can cost a lot of memory.
-  return Math.max(1, Math.floor(availableParallelism() / 2));
+  // Every core. sharp's own thread pool is pinned to 1 (configureSharp), so
+  // this is the only parallelism there is — and at half the cores, measured
+  // on a 12-core machine, ingest sat at a load of ~4 with most of the CPU
+  // idle. Memory is not the limit: a photograph in flight is ~300 MB at
+  // worst (a 75 MB TIFF plus a 2560px raw buffer), well under 4 GB at 12.
+  return Math.max(1, availableParallelism());
 }

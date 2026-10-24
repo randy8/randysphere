@@ -180,8 +180,7 @@ export async function encodeVariant(
       image = image.avif({ quality: config.avif.quality, effort: config.avif.effort });
       break;
     case 'webp':
-      image = image.webp({ quality: config.webp.quality, effort: config.webp.effort });
-      break;
+      throw new PipelineError('WebP is no longer encoded; planVariants never plans it.');
     case 'jpeg':
       image = image.jpeg({ quality: config.jpeg.quality, progressive: true, mozjpeg: true });
       break;

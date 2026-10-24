@@ -53,9 +53,6 @@ const config: PipelineConfig = {
    */
   avif: { quality: 82, effort: 4 },
 
-  /** The fallback for anything without AVIF, held to a similarly high quality rather than a bandwidth-optimised one. */
-  webp: { quality: 90, effort: 5 },
-
   /**
    * A genuine legacy fallback, not a primary path, so only two widths: one for
    * normal viewing and one for the lightbox and the no-JavaScript "open the

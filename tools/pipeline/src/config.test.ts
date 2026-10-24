@@ -8,7 +8,6 @@ const valid = {
   widths: [400, 800, 1200],
   kernel: 'lanczos3',
   avif: { quality: 55, effort: 4 },
-  webp: { quality: 76, effort: 5 },
   jpeg: { quality: 80, widths: [1200] },
   og: { width: 1200, height: 630, quality: 82 },
   lqip: { width: 20, quality: 35 },

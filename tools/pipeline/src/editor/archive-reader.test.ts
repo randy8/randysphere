@@ -13,11 +13,11 @@ import { loadEditorArchive, tagCounts } from './archive-reader.ts';
 
 function variant(width: number): VariantRecord {
   return {
-    format: 'webp',
+    format: 'avif',
     width,
     height: Math.round((width * 3) / 4),
     bytes: 1000,
-    key: `p/0123456789abcdef/${String(width)}-01234567.webp`,
+    key: `p/0123456789abcdef/${String(width)}-01234567.avif`,
   };
 }
 
@@ -89,8 +89,8 @@ test('loadEditorArchive joins one album manifest with its photos.yaml', async ()
   assert.deepEqual(entry?.tags, ['paris-2025']);
   assert.equal(entry?.alt, '');
   assert.equal(entry?.caption, null);
-  assert.equal(entry?.thumbnailKey, 'p/0123456789abcdef/400-01234567.webp');
-  assert.equal(entry?.previewKey, 'p/0123456789abcdef/1600-01234567.webp');
+  assert.equal(entry?.thumbnailKey, 'p/0123456789abcdef/400-01234567.avif');
+  assert.equal(entry?.previewKey, 'p/0123456789abcdef/1600-01234567.avif');
   assert.ok(archive.albumVersions['paris-2025']);
 });
 

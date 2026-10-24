@@ -24,7 +24,6 @@ const config = validateConfig({
   widths: [400, 800, 1600],
   kernel: 'lanczos3',
   avif: { quality: 55, effort: 4 },
-  webp: { quality: 76, effort: 5 },
   jpeg: { quality: 80, widths: [800] },
   og: { width: 1200, height: 630, quality: 82 },
   lqip: { width: 20, quality: 35 },
@@ -36,11 +35,11 @@ const config = validateConfig({
 
 function variant(width: number): VariantRecord {
   return {
-    format: 'webp',
+    format: 'avif',
     width,
     height: Math.round((width * 3) / 4),
     bytes: 1000,
-    key: `p/0123456789abcdef/${String(width)}-01234567.webp`,
+    key: `p/0123456789abcdef/${String(width)}-01234567.avif`,
   };
 }
 
@@ -96,8 +95,8 @@ test('listPhotos returns joined photos with media URLs and album versions', asyn
 
   assert.equal(response.photos.length, 1);
   const [photoView] = response.photos;
-  assert.equal(photoView?.thumbnailUrl, '/media/p/0123456789abcdef/400-01234567.webp');
-  assert.equal(photoView?.previewUrl, '/media/p/0123456789abcdef/1600-01234567.webp');
+  assert.equal(photoView?.thumbnailUrl, '/media/p/0123456789abcdef/400-01234567.avif');
+  assert.equal(photoView?.previewUrl, '/media/p/0123456789abcdef/1600-01234567.avif');
   assert.deepEqual(photoView?.tags, ['paris-2025']);
   assert.ok(response.albumVersions['paris-2025']);
 });

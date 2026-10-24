@@ -2,6 +2,11 @@ import type { PipelineConfig } from './config.ts';
 import { canonicalJson, sha256Hex } from './hash.ts';
 import type { Dimensions, Rotation } from './orientation.ts';
 
+/**
+ * `webp` stays a valid format for manifests written before 2026-10-24, when
+ * it stopped being encoded (every current browser takes AVIF; anything
+ * older falls back to the JPEG). `planVariants` never plans one now.
+ */
 export type VariantFormat = 'avif' | 'webp' | 'jpeg';
 
 export const FILE_EXTENSION: Record<VariantFormat, string> = {
@@ -132,12 +137,6 @@ export function planVariants(
       widths: config.widths,
       quality: config.avif.quality,
       effort: config.avif.effort,
-    },
-    {
-      format: 'webp',
-      widths: config.widths,
-      quality: config.webp.quality,
-      effort: config.webp.effort,
     },
     { format: 'jpeg', widths: config.jpeg.widths, quality: config.jpeg.quality, effort: null },
   ];
