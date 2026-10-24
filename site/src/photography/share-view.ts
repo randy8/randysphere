@@ -7,7 +7,7 @@
  */
 
 import { openPhoto } from './lightbox.ts';
-import { decodeIds } from './share-code.ts';
+import { resolveIds, sharedPrefixes } from './share-code.ts';
 
 const grid = document.querySelector<HTMLElement>('[data-share-grid]');
 const stage = document.querySelector<HTMLElement>('[data-lightbox-stage]');
@@ -24,11 +24,10 @@ if (grid !== null) {
     ),
   );
 
-  const encoded = new URLSearchParams(location.search).get('s') ?? '';
   // Gracefully ignore ids for photographs that no longer exist — a link
   // shared before an archive change simply shows whatever's left.
-  const named = decodeIds(encoded);
-  const ids = named.filter((id) => validIds.has(id));
+  const named = sharedPrefixes(new URLSearchParams(location.search));
+  const ids = resolveIds(named, validIds);
   const missing = named.length - ids.length;
 
   if (ids.length > 0) {

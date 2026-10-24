@@ -2376,3 +2376,21 @@ link. Sharing never writes to Saved.
 **Rejected.** Server-stored short links (a database and an API on a site
 that has neither); a modal dialog for the share step (an inline, ruled
 panel fits the page and keeps the grid in view).
+
+---
+
+## 2026-10-24 — Share links carry 4-byte id prefixes
+
+**Decision.** New share links are `?p=` with each photograph's first 4
+bytes of `sourceId` — an abbreviated hash, as Git abbreviates commits —
+about 5.3 characters per photo instead of 10.7. A prefix resolves to the
+one photograph it starts; none or several resolve to nothing.
+`share-code.test.ts` fails the build if two current photographs ever share
+a prefix (no collisions at 532; ~1% chance of any at 10,000). Old `?s=`
+links (full ids) still decode, on the page and in `tools/serve`'s previews.
+
+**Rejected.** 3-byte prefixes (4 characters, but an 11% chance of a clash
+by 2,000 photos); numbering photographs by position in a committed,
+append-only list (~2.7 characters each, but a registry file the pipeline
+must maintain forever, and a link that silently changes meaning if it's
+ever reordered).

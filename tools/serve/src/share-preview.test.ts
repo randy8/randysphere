@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-import { decodeIds, findPhotoPreview, findSharePreview } from './share-preview.ts';
+import { decodeIds, findPhotoPreview, findSharePreview, PREFIX_BYTES } from './share-preview.ts';
 
 const ID_A = '0123456789abcdef';
 const ID_B = 'fedcba9876543210';
@@ -13,11 +13,11 @@ const ID_MISSING = '1111111111111111';
 // Same fixed-width byte-packing scheme site/src/photography/share-code.ts's
 // encodeIds uses — reimplemented here (not imported, same cross-workspace
 // boundary share-preview.ts itself respects) purely to build test input.
-function encodeIdsForTest(ids: readonly string[]): string {
-  const bytes = new Uint8Array(ids.length * 8);
+function encodeIdsForTest(ids: readonly string[], bytesPerId = 8): string {
+  const bytes = new Uint8Array(ids.length * bytesPerId);
   ids.forEach((id, index) => {
-    for (let i = 0; i < 8; i += 1) {
-      bytes[index * 8 + i] = Number.parseInt(id.slice(i * 2, i * 2 + 2), 16);
+    for (let i = 0; i < bytesPerId; i += 1) {
+      bytes[index * bytesPerId + i] = Number.parseInt(id.slice(i * 2, i * 2 + 2), 16);
     }
   });
   let binary = '';
@@ -121,4 +121,12 @@ test('a photo with JPEG variants previews as itself, uncropped, at its own propo
     width: 800,
     height: 1200,
   });
+});
+
+test('a ?p= link of 4-byte prefixes resolves the same photographs as the full ids', async () => {
+  const albumsDir = await fixtureAlbumsDir();
+  const short = encodeIdsForTest([ID_B, ID_A], PREFIX_BYTES);
+  const preview = await findSharePreview(albumsDir, short, PREFIX_BYTES);
+  assert.equal(preview?.count, 2);
+  assert.deepEqual(preview, await findSharePreview(albumsDir, encodeIdsForTest([ID_B, ID_A])));
 });

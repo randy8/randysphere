@@ -134,7 +134,7 @@ function init(gridElement: HTMLElement): void {
 
   const showShare = (ids: readonly string[]): void => {
     if (panel === null || panelUrl === null || ids.length === 0) return;
-    const url = `${location.origin}/exposures/share/?s=${encodeIds(ids)}`;
+    const url = `${location.origin}/exposures/share/?p=${encodeIds(ids)}`;
     if (panelTitle !== null) panelTitle.textContent = `A link to ${plural(ids.length)}`;
     panelUrl.value = url;
     if (openLink !== null) openLink.href = url;

@@ -11,7 +11,10 @@ import { join } from 'node:path';
  * reason) — a ~15-line, dependency-free, DOM-free function is cheaper to
  * duplicate once than to justify a cross-workspace import for.
  */
-const ID_BYTES = 8;
+/** A full id (original `?s=` links). */
+export const FULL_ID_BYTES = 8;
+/** A 4-byte id prefix (`?p=` links) — see site/src/photography/share-code.ts. */
+export const PREFIX_BYTES = 4;
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
@@ -29,12 +32,12 @@ function base64UrlToBytes(encoded: string): Uint8Array | null {
   }
 }
 
-export function decodeIds(encoded: string): string[] {
+export function decodeIds(encoded: string, bytesPerId = FULL_ID_BYTES): string[] {
   const bytes = base64UrlToBytes(encoded);
   if (bytes === null) return [];
   const ids: string[] = [];
-  for (let offset = 0; offset + ID_BYTES <= bytes.length; offset += ID_BYTES) {
-    ids.push(bytesToHex(bytes.subarray(offset, offset + ID_BYTES)));
+  for (let offset = 0; offset + bytesPerId <= bytes.length; offset += bytesPerId) {
+    ids.push(bytesToHex(bytes.subarray(offset, offset + bytesPerId)));
   }
   return ids;
 }
@@ -163,14 +166,18 @@ export async function findPhotoPreview(
 export async function findSharePreview(
   albumsDir: string,
   encoded: string,
+  bytesPerId = FULL_ID_BYTES,
 ): Promise<SharePreview | null> {
-  const ids = decodeIds(encoded);
-  if (ids.length === 0) return null;
+  const prefixes = decodeIds(encoded, bytesPerId);
+  if (prefixes.length === 0) return null;
   const byId = await readPhotosById(albumsDir);
+  const all = [...byId.values()];
   let first: ManifestPhoto | null = null;
   let count = 0;
-  for (const id of ids) {
-    const photo = byId.get(id);
+  for (const prefix of prefixes) {
+    // A full id is a prefix that matches itself; an ambiguous one matches nothing.
+    const matches = all.filter((photo) => photo.sourceId.startsWith(prefix));
+    const photo = matches.length === 1 ? matches[0] : undefined;
     if (photo === undefined) continue;
     count += 1;
     if (first === null) first = photo;

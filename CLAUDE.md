@@ -84,9 +84,11 @@ tools/serve/            production server: site/dist/ + /p/ straight from
   `syncSavedUI` keeps every save control on the page in step (grid marks
   from `grid-save.ts`, the lightbox's Save / `S`, the nav count). The Saved
   page (`saved-view.ts`) has browse / select / confirm-clear modes; sharing
-  encodes the chosen ids into `/exposures/share/?s=` (`share-code.ts`) and
+  encodes the chosen ids into `/exposures/share/?p=` (`share-code.ts`) and
   shows the link in a panel — it never modifies Saved. The link _is_ the
-  data: no server state, permanent, ~11 chars per photo; ids since removed
+  data: no server state, permanent. `?p=` carries each id's 4-byte prefix
+  (~5 chars per photo; a test fails the build if two photos ever share one);
+  older `?s=` links carry full ids and still work. Ids since removed
   from the archive are skipped and counted on the recipient's page.
 - **Lightbox** (`Lightbox.astro`, `lightbox.ts`, `zoom.ts`): progressive
   enhancement over each tile's plain `<a>` to the full-size JPEG. State in

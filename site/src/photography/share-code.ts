@@ -8,12 +8,21 @@
  * delimiters needed, and decodes back by chunking in 8-byte groups.
  */
 
-const ID_BYTES = 8;
+/** A full id: 8 bytes. What `?s=` links (the original format) carry. */
+export const FULL_ID_BYTES = 8;
+/**
+ * What `?p=` links carry: each id's first 4 bytes — a short prefix, the
+ * way Git abbreviates a commit hash. Half the length of a full id (~5.3
+ * characters per photograph instead of ~10.7), and unambiguous across
+ * this archive: share-code.test.ts fails the build if two current
+ * photographs ever share a prefix (about a 1% chance at 10,000 photos).
+ */
+export const PREFIX_BYTES = 4;
 
-function hexToBytes(hex: string): Uint8Array | null {
-  if (hex.length !== ID_BYTES * 2 || !/^[0-9a-f]+$/i.test(hex)) return null;
-  const bytes = new Uint8Array(ID_BYTES);
-  for (let i = 0; i < ID_BYTES; i += 1) {
+function hexToBytes(hex: string, length: number): Uint8Array | null {
+  if (hex.length < length * 2 || !/^[0-9a-f]+$/i.test(hex)) return null;
+  const bytes = new Uint8Array(length);
+  for (let i = 0; i < length; i += 1) {
     bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
   }
   return bytes;
@@ -43,23 +52,54 @@ function base64UrlToBytes(encoded: string): Uint8Array | null {
   }
 }
 
-/** Deterministic — the same ordered id list always encodes to the same string. */
-export function encodeIds(ids: readonly string[]): string {
-  const bytes = new Uint8Array(ids.length * ID_BYTES);
+/**
+ * Deterministic — the same ordered id list always encodes to the same
+ * string. Each id contributes its first `bytesPerId` bytes.
+ */
+export function encodeIds(ids: readonly string[], bytesPerId = PREFIX_BYTES): string {
+  const bytes = new Uint8Array(ids.length * bytesPerId);
   ids.forEach((id, index) => {
-    const idBytes = hexToBytes(id);
-    if (idBytes !== null) bytes.set(idBytes, index * ID_BYTES);
+    const idBytes = hexToBytes(id, bytesPerId);
+    if (idBytes !== null) bytes.set(idBytes, index * bytesPerId);
   });
   return bytesToBase64Url(bytes);
 }
 
-/** Never throws — malformed or truncated input just decodes to as much as fits, or []. */
-export function decodeIds(encoded: string): string[] {
+/**
+ * The hex prefixes (or, with FULL_ID_BYTES, the full ids) packed into
+ * `encoded`, in order. Never throws — malformed or truncated input just
+ * decodes to as much as fits, or [].
+ */
+export function decodeIds(encoded: string, bytesPerId = PREFIX_BYTES): string[] {
   const bytes = base64UrlToBytes(encoded);
   if (bytes === null) return [];
   const ids: string[] = [];
-  for (let offset = 0; offset + ID_BYTES <= bytes.length; offset += ID_BYTES) {
-    ids.push(bytesToHex(bytes.subarray(offset, offset + ID_BYTES)));
+  for (let offset = 0; offset + bytesPerId <= bytes.length; offset += bytesPerId) {
+    ids.push(bytesToHex(bytes.subarray(offset, offset + bytesPerId)));
   }
   return ids;
+}
+
+/**
+ * Decoded prefixes resolved against the photographs that exist, in order,
+ * duplicates dropped. A prefix matching no photograph (since removed) or
+ * more than one (never, while the collision test holds) resolves to
+ * nothing — the caller counts those as no longer available.
+ */
+export function resolveIds(prefixes: readonly string[], validIds: Iterable<string>): string[] {
+  const all = [...validIds];
+  const resolved: string[] = [];
+  for (const prefix of prefixes) {
+    const matches = all.filter((id) => id.startsWith(prefix));
+    const [only] = matches;
+    if (matches.length === 1 && only !== undefined && !resolved.includes(only)) resolved.push(only);
+  }
+  return resolved;
+}
+
+/** The ids a share page's query names: `?p=` (short prefixes), else the original `?s=` (full ids). */
+export function sharedPrefixes(search: URLSearchParams): string[] {
+  const short = search.get('p');
+  if (short !== null) return decodeIds(short, PREFIX_BYTES);
+  return decodeIds(search.get('s') ?? '', FULL_ID_BYTES);
 }

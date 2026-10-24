@@ -9,7 +9,12 @@ import { loadNotes } from './notes.ts';
 import { renderArchive, renderGate } from './pages.ts';
 import { createSessionToken, passwordMatches, verifySessionToken } from './session.ts';
 import type { PhotoPreview } from './share-preview.ts';
-import { findPhotoPreview, findSharePreview } from './share-preview.ts';
+import {
+  findPhotoPreview,
+  findSharePreview,
+  FULL_ID_BYTES,
+  PREFIX_BYTES,
+} from './share-preview.ts';
 
 export interface ServeConfig {
   /** site/dist — the public, prebuilt static site. Never contains anything under private/. */
@@ -331,7 +336,9 @@ async function route(
     // per request, before it's served.
     const query = new URL(req.url ?? '/', 'http://localhost').searchParams;
     const photoId = query.get('photo');
-    const sharedIds = pathname === '/exposures/share/' ? query.get('s') : null;
+    // `?p=` carries 4-byte id prefixes (current links); `?s=` full ids (older ones).
+    const shortShare = pathname === '/exposures/share/' ? query.get('p') : null;
+    const sharedIds = pathname === '/exposures/share/' ? (shortShare ?? query.get('s')) : null;
     if (relativeWithoutSlash.endsWith('.html') && (photoId !== null || sharedIds !== null)) {
       let html: string;
       try {
@@ -344,7 +351,11 @@ async function route(
         const preview = await findPhotoPreview(config.generatedAlbumsDir, photoId);
         if (preview !== null) html = rewriteOgImage(html, config, preview);
       } else if (sharedIds !== null) {
-        const preview = await findSharePreview(config.generatedAlbumsDir, sharedIds);
+        const preview = await findSharePreview(
+          config.generatedAlbumsDir,
+          sharedIds,
+          shortShare === null ? FULL_ID_BYTES : PREFIX_BYTES,
+        );
         if (preview !== null) {
           const description = `A shared selection of ${preview.count.toString()} photograph${preview.count === 1 ? '' : 's'}.`;
           html = rewriteDescription(rewriteOgImage(html, config, preview), description);
