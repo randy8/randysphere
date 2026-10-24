@@ -146,14 +146,11 @@ export async function doctor(paths: Paths, config: PipelineConfig): Promise<Find
     }
   }
 
+  // No record is the normal state: tools/serve and `astro dev` serve
+  // derivatives straight from generated/derivatives/. Only once something
+  // has been published (R2, or a `publish --local` copy) is it checked.
   const published = await readPublishedRecord(paths.publishedFile);
-  if (published === null) {
-    findings.push({
-      severity: 'warning',
-      where: 'generated/published.json',
-      message: 'does not exist, so nothing has been published yet.',
-    });
-  } else {
+  if (published !== null) {
     for (const manifest of manifests) {
       const recorded = published.albums[manifest.slug];
       if (recorded === undefined) {

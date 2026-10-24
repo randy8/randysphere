@@ -1,0 +1,2868 @@
+{
+  "schemaVersion": 2,
+  "slug": "llfl05",
+  "photos": [
+    {
+      "file": "RLiang10232658.tif",
+      "roll": ".",
+      "sourceId": "3ada01ceb08b78f5",
+      "width": 6774,
+      "height": 4492,
+      "color": "#89846c",
+      "lqip": "data:image/webp;base64,UklGRk4AAABXRUJQVlA4IEIAAADQAwCdASoUAA0APwFqrE6rJiQiMAgBYCAJQBdgBC8+EZHmbpLoWQAA/u1ajU9vZ8PLbZ+iRmzAAtl6gQuA4NUAAAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 42599,
+          "key": "p/3ada01ceb08b78f5/640-9369e520.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 114802,
+          "key": "p/3ada01ceb08b78f5/960-4f2b401e.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 198658,
+          "key": "p/3ada01ceb08b78f5/1280-f1c094d9.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 412649,
+          "key": "p/3ada01ceb08b78f5/1920-624d6243.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 692374,
+          "key": "p/3ada01ceb08b78f5/2560-fd32946c.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 146680,
+          "key": "p/3ada01ceb08b78f5/1200-99fa116f.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 682567,
+          "key": "p/3ada01ceb08b78f5/2560-6c78093f.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 119886,
+        "key": "p/3ada01ceb08b78f5/og-6c048d78.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232659.tif",
+      "roll": ".",
+      "sourceId": "9846aab49f025342",
+      "width": 6774,
+      "height": 4492,
+      "color": "#716b4d",
+      "lqip": "data:image/webp;base64,UklGRn4AAABXRUJQVlA4IHIAAADwAwCdASoUAA0APwFqrU8rJaQiMAgBYCAJYgCdMoADKw8HegX2XOt0AP3jZA8GQfpQm04gVbDJGg6KciWWeMv8zuXFEqGi41YCTrJf6HPt7gZB5Nsgk0tw5jsz0ErNVR1MiZgprtovR0+umJUnRkIAAAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 84792,
+          "key": "p/9846aab49f025342/640-b01e89d3.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 196729,
+          "key": "p/9846aab49f025342/960-7c5ad953.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 344588,
+          "key": "p/9846aab49f025342/1280-247bebba.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 675222,
+          "key": "p/9846aab49f025342/1920-4168f53d.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1089761,
+          "key": "p/9846aab49f025342/2560-4487249b.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 274655,
+          "key": "p/9846aab49f025342/1200-4617607e.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1076240,
+          "key": "p/9846aab49f025342/2560-c1c2c6dc.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 220593,
+        "key": "p/9846aab49f025342/og-605eee87.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232660.tif",
+      "roll": ".",
+      "sourceId": "cd6cda3391eb1add",
+      "width": 6774,
+      "height": 4492,
+      "color": "#494615",
+      "lqip": "data:image/webp;base64,UklGRmYAAABXRUJQVlA4IFoAAADwAwCdASoUAA0APwFqrE8rJaQiMAgBYCAJYgCsAB4av0sTgnZfU4IAAP7ZWj3gg9ETDI9idoTNjTLmmxqbOiJgGUFftJdOFs2NQKygBLKc1vkT8rCmS/RFCAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 63476,
+          "key": "p/cd6cda3391eb1add/640-fb6c3c48.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 160357,
+          "key": "p/cd6cda3391eb1add/960-5ef31e9f.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 284606,
+          "key": "p/cd6cda3391eb1add/1280-0ab6c191.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 546206,
+          "key": "p/cd6cda3391eb1add/1920-b0b0964d.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 915452,
+          "key": "p/cd6cda3391eb1add/2560-25edcc17.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 218764,
+          "key": "p/cd6cda3391eb1add/1200-2fc4fcca.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 954574,
+          "key": "p/cd6cda3391eb1add/2560-e21e071a.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 179881,
+        "key": "p/cd6cda3391eb1add/og-6d2958c2.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232661.tif",
+      "roll": ".",
+      "sourceId": "e3f3724b5a13f370",
+      "width": 6774,
+      "height": 4492,
+      "color": "#6a5c40",
+      "lqip": "data:image/webp;base64,UklGRmIAAABXRUJQVlA4IFYAAACQAwCdASoUAA0APwFqrU8rJiQiMAgBYCAJYgAAW+sniB8NDS0gAP7p7cNxIzH0/T1QbzdVvk6JksvPuVYkZuEdVdBFO8KY51V1lUyVALDK/w4jA6AAAA==",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 60577,
+          "key": "p/e3f3724b5a13f370/640-075cd333.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 159313,
+          "key": "p/e3f3724b5a13f370/960-193e4a6c.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 286163,
+          "key": "p/e3f3724b5a13f370/1280-ddf1e1ff.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 576713,
+          "key": "p/e3f3724b5a13f370/1920-ee024ba0.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 962694,
+          "key": "p/e3f3724b5a13f370/2560-465b6742.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 215683,
+          "key": "p/e3f3724b5a13f370/1200-691ae140.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 949711,
+          "key": "p/e3f3724b5a13f370/2560-83d6394e.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 164902,
+        "key": "p/e3f3724b5a13f370/og-912089c0.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232662.tif",
+      "roll": ".",
+      "sourceId": "4373fc252490b3d8",
+      "width": 6774,
+      "height": 4492,
+      "color": "#65622e",
+      "lqip": "data:image/webp;base64,UklGRnYAAABXRUJQVlA4IGoAAADQAwCdASoUAA0APwForE6rJaQiMAgBYCAJZgC06CPQO/dWdK669IAA99bOZq95tRndBFQ8MFB9vyrFx29RKd8gPOhL9FZ4k82SnWDZnb6diMyTObbhHpLfPUAZEe+YyZGRoCMp3CJHeAAA",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 66036,
+          "key": "p/4373fc252490b3d8/640-a399fd96.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 164793,
+          "key": "p/4373fc252490b3d8/960-898eaea7.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 295052,
+          "key": "p/4373fc252490b3d8/1280-23757846.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 581727,
+          "key": "p/4373fc252490b3d8/1920-82044334.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 973500,
+          "key": "p/4373fc252490b3d8/2560-f0e607c6.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 219129,
+          "key": "p/4373fc252490b3d8/1200-70ca50ac.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 962180,
+          "key": "p/4373fc252490b3d8/2560-80846120.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 177884,
+        "key": "p/4373fc252490b3d8/og-d920b933.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232663.tif",
+      "roll": ".",
+      "sourceId": "3952ee2e28d30f87",
+      "width": 6774,
+      "height": 4492,
+      "color": "#645a3c",
+      "lqip": "data:image/webp;base64,UklGRnoAAABXRUJQVlA4IG4AAAAQBACdASoUAA0APwForE6rJiQiMAgBYCAJZgCdMoAB2AF3YykHWs3eAAD+cbm/HYBnHZSlqZ0+3R4Ah7X3/4XHBXm0hgoiUjRvCW45upUBlu3S8b+c2dOdWT82V0Eu8XRBc0+DTBNcysUE7kAAAA==",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 87094,
+          "key": "p/3952ee2e28d30f87/640-bc84832d.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 199168,
+          "key": "p/3952ee2e28d30f87/960-2d43936c.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 341843,
+          "key": "p/3952ee2e28d30f87/1280-2164e80a.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 656171,
+          "key": "p/3952ee2e28d30f87/1920-6708e96f.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1051466,
+          "key": "p/3952ee2e28d30f87/2560-63cb3012.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 270182,
+          "key": "p/3952ee2e28d30f87/1200-2bde38f8.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1049119,
+          "key": "p/3952ee2e28d30f87/2560-45be57fb.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 217521,
+        "key": "p/3952ee2e28d30f87/og-34e364f0.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232664.tif",
+      "roll": ".",
+      "sourceId": "8b2ea666b888415b",
+      "width": 6774,
+      "height": 4492,
+      "color": "#66624c",
+      "lqip": "data:image/webp;base64,UklGRmYAAABXRUJQVlA4IFoAAADQAwCdASoUAA0APwForE6rJiQiMAgBYCAJZACdACBXwjzu2+ndmsAA+1qR2Zmv+F+/llTZzG9chEg/mXLJjVKHN2L9S1JCNCUiaDE9f4/F71WUD633uZjUAAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 56020,
+          "key": "p/8b2ea666b888415b/640-458d0861.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 148976,
+          "key": "p/8b2ea666b888415b/960-9ee9c5a6.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 270707,
+          "key": "p/8b2ea666b888415b/1280-f97594a2.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 541503,
+          "key": "p/8b2ea666b888415b/1920-a067ac3d.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 891611,
+          "key": "p/8b2ea666b888415b/2560-3c2793c9.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 197566,
+          "key": "p/8b2ea666b888415b/1200-42573029.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 896538,
+          "key": "p/8b2ea666b888415b/2560-2848a111.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 159555,
+        "key": "p/8b2ea666b888415b/og-81a1ed45.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232665.tif",
+      "roll": ".",
+      "sourceId": "d80b355e1c82e891",
+      "width": 6774,
+      "height": 4492,
+      "color": "#6f694a",
+      "lqip": "data:image/webp;base64,UklGRmIAAABXRUJQVlA4IFYAAACQAwCdASoUAA0APwFqrE6rJiQiMAgBYCAJaACdABbSextwe9SYAPxUVq/H7kxza4Hhbc6PocByAXmnvyVXRwwLTzYAmxVXoNr9QlmNsEQtiALudQ02AA==",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 76548,
+          "key": "p/d80b355e1c82e891/640-3dc2f101.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 177049,
+          "key": "p/d80b355e1c82e891/960-63628d55.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 311259,
+          "key": "p/d80b355e1c82e891/1280-0295bb9a.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 610663,
+          "key": "p/d80b355e1c82e891/1920-b342b4fc.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 983228,
+          "key": "p/d80b355e1c82e891/2560-5ead7094.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 245903,
+          "key": "p/d80b355e1c82e891/1200-f91bc3a6.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1001758,
+          "key": "p/d80b355e1c82e891/2560-8a60c714.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 196506,
+        "key": "p/d80b355e1c82e891/og-54846966.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232666.tif",
+      "roll": ".",
+      "sourceId": "931231f6eb490f5a",
+      "width": 6774,
+      "height": 4492,
+      "color": "#4b4c26",
+      "lqip": "data:image/webp;base64,UklGRmQAAABXRUJQVlA4IFgAAACwAwCdASoUAA0APwFqrE6rJiQiMAgBYCAJYgDCgBhnb2+A1ECAAAD+2ViyMuNGjqBxVxYuKhDkucc1TQXWdhAZ3i5wJEv829/Z79DuqzGCUaFZhPvqAAAA",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 79780,
+          "key": "p/931231f6eb490f5a/640-5cb74c46.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 183996,
+          "key": "p/931231f6eb490f5a/960-aa8b0540.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 314743,
+          "key": "p/931231f6eb490f5a/1280-904e081f.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 587743,
+          "key": "p/931231f6eb490f5a/1920-e08f409b.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 921034,
+          "key": "p/931231f6eb490f5a/2560-ffe487c4.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 255367,
+          "key": "p/931231f6eb490f5a/1200-4794d19c.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 998007,
+          "key": "p/931231f6eb490f5a/2560-c2537970.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 220313,
+        "key": "p/931231f6eb490f5a/og-58b79250.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232667.tif",
+      "roll": ".",
+      "sourceId": "f61efae8ab5016ec",
+      "width": 6774,
+      "height": 4492,
+      "color": "#79705f",
+      "lqip": "data:image/webp;base64,UklGRn4AAABXRUJQVlA4IHIAAADwAwCdASoUAA0APwFsrU6rJiQiMAgBYCAJZgCdMoADTMtlYlqEqiqYAM2slY2Tglayfoaag2/et75UbZD7aVYpb2kasNKEXrQiiBstv0Z+2HSCN2f2uH78LRniIyDdCZhQmI8wqlxDNUSRAiBIlN2qAAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 59647,
+          "key": "p/f61efae8ab5016ec/640-95922437.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 149055,
+          "key": "p/f61efae8ab5016ec/960-b52e77af.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 270664,
+          "key": "p/f61efae8ab5016ec/1280-700eb4e0.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 554154,
+          "key": "p/f61efae8ab5016ec/1920-593151cf.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 915151,
+          "key": "p/f61efae8ab5016ec/2560-70da4484.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 205674,
+          "key": "p/f61efae8ab5016ec/1200-dca768e3.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 889163,
+          "key": "p/f61efae8ab5016ec/2560-866f8a05.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 171871,
+        "key": "p/f61efae8ab5016ec/og-b68d2853.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232668.tif",
+      "roll": ".",
+      "sourceId": "d5a209bcddc1c994",
+      "width": 6774,
+      "height": 4492,
+      "color": "#3d401c",
+      "lqip": "data:image/webp;base64,UklGRlgAAABXRUJQVlA4IEwAAAAwAwCdASoUAA0APwFqrE8rJaQjMAgBYCAJQBfnA0VZCY8AAP7mYDMjgLLMFOkXQsPX6ZtaScnaJ36zzCHE9NfQg1Of9xjfKEdyAAAA",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 64079,
+          "key": "p/d5a209bcddc1c994/640-9a6058f6.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 157799,
+          "key": "p/d5a209bcddc1c994/960-421293c8.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 278635,
+          "key": "p/d5a209bcddc1c994/1280-c1425147.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 538216,
+          "key": "p/d5a209bcddc1c994/1920-51c2cdce.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 863936,
+          "key": "p/d5a209bcddc1c994/2560-42fbe752.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 215941,
+          "key": "p/d5a209bcddc1c994/1200-b4376ef4.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 912074,
+          "key": "p/d5a209bcddc1c994/2560-b75fcff3.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 174540,
+        "key": "p/d5a209bcddc1c994/og-78dadbc2.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232669.tif",
+      "roll": ".",
+      "sourceId": "567527f96141a1f9",
+      "width": 6774,
+      "height": 4492,
+      "color": "#47492e",
+      "lqip": "data:image/webp;base64,UklGRmAAAABXRUJQVlA4IFQAAACwAwCdASoUAA0APwFqrk8rJiQiMAgBYCAJQBhQBHvyEiExXuhAAAD+6/rYeoRZ99HuEQtyR+xXct523SGRatr+xFf2l82LiYUjrVAronhc10AAAAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 46495,
+          "key": "p/567527f96141a1f9/640-e8381164.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 119431,
+          "key": "p/567527f96141a1f9/960-54b83ebc.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 214942,
+          "key": "p/567527f96141a1f9/1280-5ea2594f.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 420861,
+          "key": "p/567527f96141a1f9/1920-691ad9db.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 661950,
+          "key": "p/567527f96141a1f9/2560-b59c4fbe.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 164040,
+          "key": "p/567527f96141a1f9/1200-fab78836.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 741650,
+          "key": "p/567527f96141a1f9/2560-70a89ca6.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 133104,
+        "key": "p/567527f96141a1f9/og-fb3fc240.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232670.tif",
+      "roll": ".",
+      "sourceId": "1ba170a70085175d",
+      "width": 6774,
+      "height": 4492,
+      "color": "#404735",
+      "lqip": "data:image/webp;base64,UklGRnIAAABXRUJQVlA4IGYAAABwAwCdASoUAA0APwFqrE6rJiQiMAgBYCAJQAADfjowhuPYfkAA/txf1g1wBFy3zvpF27aoOCkUr5FqT1G463aP8p3JuOZZ8kT+Vn48/TVbxJtZN+qT1ul470B+Bgn1lo/eKnC2nAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 75776,
+          "key": "p/1ba170a70085175d/640-a8ae9c3c.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 191851,
+          "key": "p/1ba170a70085175d/960-74301a75.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 340881,
+          "key": "p/1ba170a70085175d/1280-51185597.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 682337,
+          "key": "p/1ba170a70085175d/1920-837494c3.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1139092,
+          "key": "p/1ba170a70085175d/2560-9bbd4482.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 242768,
+          "key": "p/1ba170a70085175d/1200-b138c4d4.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1059243,
+          "key": "p/1ba170a70085175d/2560-95e23ef2.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 193981,
+        "key": "p/1ba170a70085175d/og-48321779.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232671.tif",
+      "roll": ".",
+      "sourceId": "8125656bf3075bee",
+      "width": 6774,
+      "height": 4492,
+      "color": "#303417",
+      "lqip": "data:image/webp;base64,UklGRloAAABXRUJQVlA4IE4AAACQAwCdASoUAA0APwFqrE6rJiQiMAgBYCAJZQAAUqtzsjMoM3pgAP7r/PW4xl8OgJumTOlHvxB37AOwat6Dwq0P0HxLhb7Ck/19tqusAAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 49425,
+          "key": "p/8125656bf3075bee/640-2e6a4377.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 134248,
+          "key": "p/8125656bf3075bee/960-d26402d8.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 244255,
+          "key": "p/8125656bf3075bee/1280-93561ea1.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 480000,
+          "key": "p/8125656bf3075bee/1920-ab6d9d09.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 777430,
+          "key": "p/8125656bf3075bee/2560-9a02e538.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 174732,
+          "key": "p/8125656bf3075bee/1200-a513fc8d.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 811708,
+          "key": "p/8125656bf3075bee/2560-bee328c0.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 142212,
+        "key": "p/8125656bf3075bee/og-68f02906.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232672.tif",
+      "roll": ".",
+      "sourceId": "bbbba175a6307ff8",
+      "width": 6774,
+      "height": 4492,
+      "color": "#202203",
+      "lqip": "data:image/webp;base64,UklGRlAAAABXRUJQVlA4IEQAAACQAwCdASoUAA0APwFqrE8rJiQiMAgBYCAJQBdgBDwAWho/yBgAAP7r0E5jYldxJ+PD9F4rNm8IPizNH/FlsXfqRBAAAA==",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 44558,
+          "key": "p/bbbba175a6307ff8/640-cf0c59b9.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 125673,
+          "key": "p/bbbba175a6307ff8/960-3e8c1c04.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 229247,
+          "key": "p/bbbba175a6307ff8/1280-ca074b98.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 445659,
+          "key": "p/bbbba175a6307ff8/1920-15b868aa.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 713648,
+          "key": "p/bbbba175a6307ff8/2560-b4de1831.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 169153,
+          "key": "p/bbbba175a6307ff8/1200-4a47ad70.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 795126,
+          "key": "p/bbbba175a6307ff8/2560-eef01b6a.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 137046,
+        "key": "p/bbbba175a6307ff8/og-fd392be1.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232673.tif",
+      "roll": ".",
+      "sourceId": "a8e2873e537cdfad",
+      "width": 6774,
+      "height": 4492,
+      "color": "#41411c",
+      "lqip": "data:image/webp;base64,UklGRnIAAABXRUJQVlA4IGYAAACQAwCdASoUAA0APwFqrE6rJiQiMAgBYCAJQAAJ3qC5ZnH+svewAP7l1lOqv6D5pWAVwNpf+gd+IcdCjIP7aZSoYxL/tMaSW6X+WZfrvo9bJ1aZ4ZshozBejc45j0u9HCbPeLgAAAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 79443,
+          "key": "p/a8e2873e537cdfad/640-902b8829.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 177003,
+          "key": "p/a8e2873e537cdfad/960-8e60a7ab.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 301092,
+          "key": "p/a8e2873e537cdfad/1280-138fe81d.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 580740,
+          "key": "p/a8e2873e537cdfad/1920-7bd6fbcf.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 913945,
+          "key": "p/a8e2873e537cdfad/2560-be29ce33.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 254717,
+          "key": "p/a8e2873e537cdfad/1200-bcd08dd4.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 986085,
+          "key": "p/a8e2873e537cdfad/2560-721270f2.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 205003,
+        "key": "p/a8e2873e537cdfad/og-15a848eb.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232674.tif",
+      "roll": ".",
+      "sourceId": "a76bc47d1a7dd934",
+      "width": 6774,
+      "height": 4492,
+      "color": "#4a4a21",
+      "lqip": "data:image/webp;base64,UklGRmgAAABXRUJQVlA4IFwAAABQAwCdASoUAA0APwFqrE8rJiQiMAgBYCAJYgCsAA7Z/Q8SQAD+vY1YOPNvTUiu4pgyVC/YOsXQIrcb8zHgUrDS38cXDHsDuC9Auyo0wmTTcwc9G7fichYwc9AAAA==",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 82228,
+          "key": "p/a76bc47d1a7dd934/640-43c07601.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 181635,
+          "key": "p/a76bc47d1a7dd934/960-a4f08486.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 312563,
+          "key": "p/a76bc47d1a7dd934/1280-8b4bc83b.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 608735,
+          "key": "p/a76bc47d1a7dd934/1920-e133e385.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 966587,
+          "key": "p/a76bc47d1a7dd934/2560-5c5be8c9.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 271811,
+          "key": "p/a76bc47d1a7dd934/1200-aa16e30e.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1038284,
+          "key": "p/a76bc47d1a7dd934/2560-750a72aa.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 215636,
+        "key": "p/a76bc47d1a7dd934/og-1948a400.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232675.tif",
+      "roll": ".",
+      "sourceId": "a784fc402af79dce",
+      "width": 6774,
+      "height": 4492,
+      "color": "#444f30",
+      "lqip": "data:image/webp;base64,UklGRnAAAABXRUJQVlA4IGQAAAAQBACdASoUAA0APwFqrU8rJiQiMAgBYCAJaAC7LwABgxXbsCnno9A1gAD+26M87u+sxynpaJtVh5ymPugDuiTxfIx3pluycMU6wn6yOAFFe7h4Z7a/jWIm87dda9L4DS3xAAAA",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 91520,
+          "key": "p/a784fc402af79dce/640-ce4d2f12.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 213503,
+          "key": "p/a784fc402af79dce/960-9e859f27.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 368728,
+          "key": "p/a784fc402af79dce/1280-746759cb.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 700016,
+          "key": "p/a784fc402af79dce/1920-958bfcc9.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1126826,
+          "key": "p/a784fc402af79dce/2560-1a117466.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 288673,
+          "key": "p/a784fc402af79dce/1200-42874f29.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1149165,
+          "key": "p/a784fc402af79dce/2560-725edc5d.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 222979,
+        "key": "p/a784fc402af79dce/og-5e88c90f.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232676.tif",
+      "roll": ".",
+      "sourceId": "def057adb3836461",
+      "width": 6774,
+      "height": 4492,
+      "color": "#4d402c",
+      "lqip": "data:image/webp;base64,UklGRnIAAABXRUJQVlA4IGYAAACQAwCdASoUAA0APwFqrU8rJiQiMAgBYCAJQBYdgwWx+Ej7eAqgAP7p0TQxR+ZPufEcjBmAOnIo1eEPJX+2V8lsmX4mgKcHDp81CjeciuD6pZCrBGJsWNEQgHCGijYyec0mpPQAAAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 71767,
+          "key": "p/def057adb3836461/640-4d471467.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 172110,
+          "key": "p/def057adb3836461/960-cd1a7027.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 300772,
+          "key": "p/def057adb3836461/1280-8457c616.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 581452,
+          "key": "p/def057adb3836461/1920-92ef161a.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 931742,
+          "key": "p/def057adb3836461/2560-e5b4a4b8.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 236336,
+          "key": "p/def057adb3836461/1200-781d549c.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 977822,
+          "key": "p/def057adb3836461/2560-3af8edbf.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 199201,
+        "key": "p/def057adb3836461/og-9b760d23.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232677.tif",
+      "roll": ".",
+      "sourceId": "3cd4600501e82518",
+      "width": 6774,
+      "height": 4492,
+      "color": "#584a36",
+      "lqip": "data:image/webp;base64,UklGRnAAAABXRUJQVlA4IGQAAACwAwCdASoUAA0APwFqrE8rJiQiMAgBYCAJQBWAAvcFLEY/2zgXSAD8ASmkWX0T152ibX0pe4n6d+IFeiqH1L/0DDU8YvrMDC1BRkuy8erb3oNvfPwEnfcOqEGlnRGTG13WQAAA",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 70577,
+          "key": "p/3cd4600501e82518/640-fcd0d698.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 165992,
+          "key": "p/3cd4600501e82518/960-5b073b32.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 291542,
+          "key": "p/3cd4600501e82518/1280-caa529d8.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 566354,
+          "key": "p/3cd4600501e82518/1920-03e68601.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 894753,
+          "key": "p/3cd4600501e82518/2560-eb914bea.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 230666,
+          "key": "p/3cd4600501e82518/1200-cac0511d.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 949911,
+          "key": "p/3cd4600501e82518/2560-0882145c.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 178437,
+        "key": "p/3cd4600501e82518/og-afdf03ed.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232678.tif",
+      "roll": ".",
+      "sourceId": "5a267a73e3f3e1a4",
+      "width": 6774,
+      "height": 4492,
+      "color": "#3f440f",
+      "lqip": "data:image/webp;base64,UklGRl4AAABXRUJQVlA4IFIAAABwAwCdASoUAA0APwForE6rJiQiMAgBYCAJZAAAWsftC0F6ewAA/tDwBvPBlmF7GlTFQPJj8URpqfCztxl/5JXKmjofjZoT0Js0piIJ8gp44AAA",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 65620,
+          "key": "p/5a267a73e3f3e1a4/640-b175dbb0.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 174267,
+          "key": "p/5a267a73e3f3e1a4/960-5c732549.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 315190,
+          "key": "p/5a267a73e3f3e1a4/1280-b8619e99.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 614229,
+          "key": "p/5a267a73e3f3e1a4/1920-aec2e502.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1045560,
+          "key": "p/5a267a73e3f3e1a4/2560-9877aa33.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 236574,
+          "key": "p/5a267a73e3f3e1a4/1200-eb27d4b6.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1060040,
+          "key": "p/5a267a73e3f3e1a4/2560-41a44535.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 191445,
+        "key": "p/5a267a73e3f3e1a4/og-d818ab62.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232679.tif",
+      "roll": ".",
+      "sourceId": "f4027bcccb7a3381",
+      "width": 6774,
+      "height": 4492,
+      "color": "#222110",
+      "lqip": "data:image/webp;base64,UklGRlwAAABXRUJQVlA4IFAAAACwAwCdASoUAA0APwForE6rJaQiMAgBYCAJZQAAW+uTLYF4HOA4AAD+7oSfZYHXJb2F7Jjg4Xsf9iwR4ZTswqT3L5dqRswEvPA11C5cSGAAAA==",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 48843,
+          "key": "p/f4027bcccb7a3381/640-b47844a1.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 130617,
+          "key": "p/f4027bcccb7a3381/960-5ea92acc.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 238187,
+          "key": "p/f4027bcccb7a3381/1280-82ef154f.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 470672,
+          "key": "p/f4027bcccb7a3381/1920-65379152.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 747575,
+          "key": "p/f4027bcccb7a3381/2560-1758c196.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 175617,
+          "key": "p/f4027bcccb7a3381/1200-83af4427.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 824762,
+          "key": "p/f4027bcccb7a3381/2560-9b2be3dd.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 144381,
+        "key": "p/f4027bcccb7a3381/og-c1642fa1.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232680.tif",
+      "roll": ".",
+      "sourceId": "09adcf59c3061d66",
+      "width": 6774,
+      "height": 4492,
+      "color": "#302d19",
+      "lqip": "data:image/webp;base64,UklGRmQAAABXRUJQVlA4IFgAAADwAwCdASoUAA0APwForE6rJaQiMAgBYCAJYwAAXfBFTupnCNPCxuQAAP7o4sRvkZCb4z16Vy8ol0T9JKVTiwvdRaNhPoPDTK4sQweqVueBWkhF048u+AAA",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 75524,
+          "key": "p/09adcf59c3061d66/640-c872ac84.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 181964,
+          "key": "p/09adcf59c3061d66/960-9267195d.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 314556,
+          "key": "p/09adcf59c3061d66/1280-fb418b36.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 590537,
+          "key": "p/09adcf59c3061d66/1920-48eaf7cc.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 933472,
+          "key": "p/09adcf59c3061d66/2560-6667c96f.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 244391,
+          "key": "p/09adcf59c3061d66/1200-f90ea34d.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1017912,
+          "key": "p/09adcf59c3061d66/2560-8373c3f8.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 201766,
+        "key": "p/09adcf59c3061d66/og-aaba6b47.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232681.tif",
+      "roll": ".",
+      "sourceId": "388189f47dafbe83",
+      "width": 6774,
+      "height": 4492,
+      "color": "#2d2f13",
+      "lqip": "data:image/webp;base64,UklGRl4AAABXRUJQVlA4IFIAAACwAwCdASoUAA0APwFqrE8rJiQiMAgBYCAJYwC/OBjzliZ/EuggAAD+6O/mIR/kVduj5D0b+CIK0cqPkwWU3JH2QzTBZj85plF2sgAKiNQ9gAAA",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 67810,
+          "key": "p/388189f47dafbe83/640-980ec8c4.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 169354,
+          "key": "p/388189f47dafbe83/960-f96885d6.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 298226,
+          "key": "p/388189f47dafbe83/1280-6e0bc3c7.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 565264,
+          "key": "p/388189f47dafbe83/1920-dfb9d33b.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 916042,
+          "key": "p/388189f47dafbe83/2560-8754df19.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 223313,
+          "key": "p/388189f47dafbe83/1200-18bbb30f.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 984356,
+          "key": "p/388189f47dafbe83/2560-78b1cb92.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 185290,
+        "key": "p/388189f47dafbe83/og-9351815d.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232682.tif",
+      "roll": ".",
+      "sourceId": "176ded0eeac04aa1",
+      "width": 6774,
+      "height": 4492,
+      "color": "#292917",
+      "lqip": "data:image/webp;base64,UklGRmIAAABXRUJQVlA4IFYAAABwAwCdASoUAA0APwFwrk+rJqQiMAgBYCAJQAALffM6Gv3qpaAA/u6OwQejD4snhzi1AcD6IOF4QOrCGcuB+ilaUMIZMQ9A+xIk6cwP3l0JS73TmsAAAA==",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 62186,
+          "key": "p/176ded0eeac04aa1/640-10a4c87d.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 158065,
+          "key": "p/176ded0eeac04aa1/960-e544b29d.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 279138,
+          "key": "p/176ded0eeac04aa1/1280-83c077f5.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 535780,
+          "key": "p/176ded0eeac04aa1/1920-7e1b1f97.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 853596,
+          "key": "p/176ded0eeac04aa1/2560-d5716450.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 210081,
+          "key": "p/176ded0eeac04aa1/1200-7d8dddb5.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 930049,
+          "key": "p/176ded0eeac04aa1/2560-b733832e.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 174558,
+        "key": "p/176ded0eeac04aa1/og-7db7ea10.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232683.tif",
+      "roll": ".",
+      "sourceId": "bd77a683a206d718",
+      "width": 6774,
+      "height": 4492,
+      "color": "#282d15",
+      "lqip": "data:image/webp;base64,UklGRlwAAABXRUJQVlA4IFAAAACQAwCdASoUAA0APwFqrE8rJiQiMAgBYCAJQAAJUYJ7/4J+GrUAAP7dtS227mGKsH0QHenZxG3N28X/KadqqgZLJE7P8raJ7HpFo78XYOAAAA==",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 62990,
+          "key": "p/bd77a683a206d718/640-198f3cea.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 160863,
+          "key": "p/bd77a683a206d718/960-401542d0.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 283628,
+          "key": "p/bd77a683a206d718/1280-b9900a1b.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 539928,
+          "key": "p/bd77a683a206d718/1920-c70c11e1.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 860962,
+          "key": "p/bd77a683a206d718/2560-31276be5.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 212257,
+          "key": "p/bd77a683a206d718/1200-82beeb70.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 934175,
+          "key": "p/bd77a683a206d718/2560-83f21d79.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 176835,
+        "key": "p/bd77a683a206d718/og-01e0954a.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232684.tif",
+      "roll": ".",
+      "sourceId": "fdcdc5658dc01d52",
+      "width": 6774,
+      "height": 4492,
+      "color": "#303113",
+      "lqip": "data:image/webp;base64,UklGRlQAAABXRUJQVlA4IEgAAABQAwCdASoUAA0APwFqrE8rJiQiMAgBYCAJQBhQBDv8vH86AAD+2xVBFoINo4rw6s0nFhKLM/+snfqRuhnvDymm31Co0RzAAAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 54209,
+          "key": "p/fdcdc5658dc01d52/640-726f5585.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 145940,
+          "key": "p/fdcdc5658dc01d52/960-b717e02a.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 265477,
+          "key": "p/fdcdc5658dc01d52/1280-2a597b43.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 522346,
+          "key": "p/fdcdc5658dc01d52/1920-2d7194ba.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 858196,
+          "key": "p/fdcdc5658dc01d52/2560-bff59c83.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 194104,
+          "key": "p/fdcdc5658dc01d52/1200-e826a2c6.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 905437,
+          "key": "p/fdcdc5658dc01d52/2560-4de9176e.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 156458,
+        "key": "p/fdcdc5658dc01d52/og-225ed38c.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232685.tif",
+      "roll": ".",
+      "sourceId": "3f79dd56d8c6069a",
+      "width": 6774,
+      "height": 4492,
+      "color": "#5d4f38",
+      "lqip": "data:image/webp;base64,UklGRnwAAABXRUJQVlA4IHAAAACwAwCdASoUAA0APwFqrE8rJiQiMAgBYCAJQBYdglcowsyguekWAADeZnv2EH7iLK8DwMbze8RS5KQ4KHZ1itxKeqaBnGCTl91Zn6FP0keDklozG8lD+E4EYYNPTqj2Gx79dCkMQZBGgERWBWoEgAAA",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 68547,
+          "key": "p/3f79dd56d8c6069a/640-075c29d3.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 165843,
+          "key": "p/3f79dd56d8c6069a/960-934f58f5.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 293093,
+          "key": "p/3f79dd56d8c6069a/1280-6a38f41e.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 583209,
+          "key": "p/3f79dd56d8c6069a/1920-a1447a87.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 949195,
+          "key": "p/3f79dd56d8c6069a/2560-43edd549.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 219270,
+          "key": "p/3f79dd56d8c6069a/1200-3ec45835.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 950061,
+          "key": "p/3f79dd56d8c6069a/2560-b822a22e.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 175867,
+        "key": "p/3f79dd56d8c6069a/og-9fe2a8ad.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232686.tif",
+      "roll": ".",
+      "sourceId": "881a5750de2aa1c0",
+      "width": 6774,
+      "height": 4492,
+      "color": "#5b5333",
+      "lqip": "data:image/webp;base64,UklGRn4AAABXRUJQVlA4IHIAAABwAwCdASoUAA0APwFqrE8rJiQiMAgBYCAJQBYdgfOcrAQAyUAAzjuFcbEuzHdSZz3PikwwCoQleFx0LDhpCdJ2OP7iAKf2dKw0K+tnvWyfjrWjdU5P0i/NqyFN8nxDMOJ39p08RV3bTPXNAnEsOqGPcAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 96346,
+          "key": "p/881a5750de2aa1c0/640-c46092b6.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 214973,
+          "key": "p/881a5750de2aa1c0/960-4e4ae13a.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 359802,
+          "key": "p/881a5750de2aa1c0/1280-43296e4c.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 673989,
+          "key": "p/881a5750de2aa1c0/1920-9809a033.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1046806,
+          "key": "p/881a5750de2aa1c0/2560-c0a12cb8.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 289939,
+          "key": "p/881a5750de2aa1c0/1200-dc109d10.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1106439,
+          "key": "p/881a5750de2aa1c0/2560-77548336.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 241111,
+        "key": "p/881a5750de2aa1c0/og-244c619d.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232687.tif",
+      "roll": ".",
+      "sourceId": "c6e8cf9978cbf523",
+      "width": 6774,
+      "height": 4492,
+      "color": "#5d5329",
+      "lqip": "data:image/webp;base64,UklGRnoAAABXRUJQVlA4IG4AAACwAwCdASoUAA0APwForE6rJaQiMAgBYCAJZACdABwpCw3XobYbAAD+L5sKKnNLIxe8dxX+CedP76vj5x9mwGhtKCzwHltGitQkh+VAQT5kBOtQGw+mq7Rlvqg36e4NKSFRcPJzL4sxfIbSEvAAAA==",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 120238,
+          "key": "p/c6e8cf9978cbf523/640-4734a72c.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 258320,
+          "key": "p/c6e8cf9978cbf523/960-c3f9aaea.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 424852,
+          "key": "p/c6e8cf9978cbf523/1280-0b1a0bf7.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 793455,
+          "key": "p/c6e8cf9978cbf523/1920-eaefd207.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1219147,
+          "key": "p/c6e8cf9978cbf523/2560-bba8a90b.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 347000,
+          "key": "p/c6e8cf9978cbf523/1200-0e4842b5.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1268710,
+          "key": "p/c6e8cf9978cbf523/2560-09e63f99.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 261040,
+        "key": "p/c6e8cf9978cbf523/og-431cf34a.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232688.tif",
+      "roll": ".",
+      "sourceId": "4c29935dd86b3323",
+      "width": 6774,
+      "height": 4492,
+      "color": "#3f4213",
+      "lqip": "data:image/webp;base64,UklGRm4AAABXRUJQVlA4IGIAAABQAwCdASoUAA0APwFqrE8rJiQiMAgBYCAJQAAIu3raudfAwAD+flAl3y9KPkf9vNu1b32vFwRxHdrpV8tFW3/e5aKQXiFaodl7Lx036chlnOdSlZw7Zlvt0iMEyNG9EgoAAA==",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 112601,
+          "key": "p/4c29935dd86b3323/640-4d80dfec.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 237916,
+          "key": "p/4c29935dd86b3323/960-12a52ef5.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 390081,
+          "key": "p/4c29935dd86b3323/1280-4a3ef381.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 717921,
+          "key": "p/4c29935dd86b3323/1920-28ee3645.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1134243,
+          "key": "p/4c29935dd86b3323/2560-699ac3c9.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 323229,
+          "key": "p/4c29935dd86b3323/1200-6acbce65.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1181065,
+          "key": "p/4c29935dd86b3323/2560-c08b6780.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 269647,
+        "key": "p/4c29935dd86b3323/og-f17722d5.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232689.tif",
+      "roll": ".",
+      "sourceId": "d8b0b364f39f35ca",
+      "width": 6774,
+      "height": 4492,
+      "color": "#574e34",
+      "lqip": "data:image/webp;base64,UklGRnAAAABXRUJQVlA4IGQAAADQAwCdASoUAA0APwFqrU8rJiQiMAgBYCAJYwCdACHErQN1d48cGaAA/uLrc9bVKeUCBZTdDweRG9tmldEPdOnlBJzx/s+2CLvLgSso3ADiHim4L/F/LkyZ6DeYGIBe6RO8SQAA",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 78844,
+          "key": "p/d8b0b364f39f35ca/640-d57458de.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 187605,
+          "key": "p/d8b0b364f39f35ca/960-605b4d3b.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 330194,
+          "key": "p/d8b0b364f39f35ca/1280-022f6064.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 650103,
+          "key": "p/d8b0b364f39f35ca/1920-ba4466aa.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1069664,
+          "key": "p/d8b0b364f39f35ca/2560-e0ea43fb.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 260982,
+          "key": "p/d8b0b364f39f35ca/1200-1db462c3.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1063739,
+          "key": "p/d8b0b364f39f35ca/2560-c5a89a60.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 216554,
+        "key": "p/d8b0b364f39f35ca/og-3c9913da.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232690.tif",
+      "roll": ".",
+      "sourceId": "3754377109a99567",
+      "width": 6774,
+      "height": 4492,
+      "color": "#62584b",
+      "lqip": "data:image/webp;base64,UklGRmIAAABXRUJQVlA4IFYAAACQAwCdASoUAA0APwFqrE6rJiQiMAgBYCAJYwCdABeiU+LfehAAAP2w6slYIo4obw/BhBBHoIWf5gC/9Os5jh1zFlBFqq4femzbWU6byD7QQAXCEgAAAA==",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 59549,
+          "key": "p/3754377109a99567/640-d30a2dd0.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 158640,
+          "key": "p/3754377109a99567/960-4ddd5871.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 293963,
+          "key": "p/3754377109a99567/1280-e81189f2.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 600029,
+          "key": "p/3754377109a99567/1920-a089a44d.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 989801,
+          "key": "p/3754377109a99567/2560-1ca71bca.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 205213,
+          "key": "p/3754377109a99567/1200-a762e5b6.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 950972,
+          "key": "p/3754377109a99567/2560-649dad4f.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 166301,
+        "key": "p/3754377109a99567/og-85472db9.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232691.tif",
+      "roll": ".",
+      "sourceId": "95ccaa5bbd44351f",
+      "width": 6774,
+      "height": 4492,
+      "color": "#626646",
+      "lqip": "data:image/webp;base64,UklGRmwAAABXRUJQVlA4IGAAAACwAwCdASoUAA0APwFqrU8rJaQiMAgBYCAJYwAAWxmmTcG6aUUmaAD45OKQUmZnI/b36nGleZYPuDfS+4Vr6jdQFqYbK+5P0lKtQTsVyfNrgShwWjl1YeNToIToCACiAAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 90431,
+          "key": "p/95ccaa5bbd44351f/640-0cd96cac.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 205143,
+          "key": "p/95ccaa5bbd44351f/960-d39d9a7e.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 358411,
+          "key": "p/95ccaa5bbd44351f/1280-4eeabb27.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 698159,
+          "key": "p/95ccaa5bbd44351f/1920-ca4848ca.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1119189,
+          "key": "p/95ccaa5bbd44351f/2560-4808bcba.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 283498,
+          "key": "p/95ccaa5bbd44351f/1200-04be7ec3.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1117672,
+          "key": "p/95ccaa5bbd44351f/2560-c2426876.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 228798,
+        "key": "p/95ccaa5bbd44351f/og-d3c401c4.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232692.tif",
+      "roll": ".",
+      "sourceId": "0b5945f3566e0f58",
+      "width": 6774,
+      "height": 4492,
+      "color": "#6a5c3d",
+      "lqip": "data:image/webp;base64,UklGRn4AAABXRUJQVlA4IHIAAADwAwCdASoUAA0APwForE6rJaQiMAgBYCAJYgCdABSk/eht97E1OWgAAP7r+OwF2prqi/VUrQcKsyl7MeLUsHfjF4Gvs1bWGfycf7aDWjXoUcUTGt8RiTP5jI3zQzqNn+BE5v191l5ESB6KviZqMSfwAAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 66126,
+          "key": "p/0b5945f3566e0f58/640-e7de9e14.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 164346,
+          "key": "p/0b5945f3566e0f58/960-1327a69c.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 300185,
+          "key": "p/0b5945f3566e0f58/1280-5091a2cc.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 603652,
+          "key": "p/0b5945f3566e0f58/1920-6124ede8.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 978193,
+          "key": "p/0b5945f3566e0f58/2560-864e0dfd.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 237778,
+          "key": "p/0b5945f3566e0f58/1200-e8bbcd53.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1001129,
+          "key": "p/0b5945f3566e0f58/2560-cc1f7fec.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 190650,
+        "key": "p/0b5945f3566e0f58/og-238749fa.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232693.tif",
+      "roll": ".",
+      "sourceId": "b7bbc0fcd0878b73",
+      "width": 6774,
+      "height": 4492,
+      "color": "#917c73",
+      "lqip": "data:image/webp;base64,UklGRnoAAABXRUJQVlA4IG4AAADQAwCdASoUAA0APwFqrE8rJiQiMAgBYCAJYwCsABcHg8CsZyZPT24A+3MoiogAdbc6QbkpmFirtUhpsaxQsZfz/2gcVrt6+xQSOi70Ww5LN5PPav2dEXpzTU/EjrIiCFaalDagXKLK5vWFBBAAAA==",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 87758,
+          "key": "p/b7bbc0fcd0878b73/640-66f6f0a7.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 208180,
+          "key": "p/b7bbc0fcd0878b73/960-a793bdea.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 365864,
+          "key": "p/b7bbc0fcd0878b73/1280-b410b943.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 711632,
+          "key": "p/b7bbc0fcd0878b73/1920-2da8015c.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1171692,
+          "key": "p/b7bbc0fcd0878b73/2560-c51a9d99.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 276210,
+          "key": "p/b7bbc0fcd0878b73/1200-a7638121.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1118803,
+          "key": "p/b7bbc0fcd0878b73/2560-770ecb24.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 217471,
+        "key": "p/b7bbc0fcd0878b73/og-cc83f37b.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232694.tif",
+      "roll": ".",
+      "sourceId": "7f650fcb0922af7b",
+      "width": 6774,
+      "height": 4492,
+      "color": "#79614a",
+      "lqip": "data:image/webp;base64,UklGRmgAAABXRUJQVlA4IFwAAAAQBACdASoUAA0APwForE6rJaQiMAgBYCAJZgCdMoAC8OnfapCfTO+yAAD+7qFOfnBwlLnHoArNgBSNDSqv4KABREmNTP03Msu862rX3GDGC/PNwREhrDk0yRgkAA==",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 58946,
+          "key": "p/7f650fcb0922af7b/640-97368443.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 144259,
+          "key": "p/7f650fcb0922af7b/960-89b994b5.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 260535,
+          "key": "p/7f650fcb0922af7b/1280-aea739a2.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 524069,
+          "key": "p/7f650fcb0922af7b/1920-7cea2954.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 842385,
+          "key": "p/7f650fcb0922af7b/2560-9003e513.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 211897,
+          "key": "p/7f650fcb0922af7b/1200-208872fd.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 902384,
+          "key": "p/7f650fcb0922af7b/2560-c14fe07e.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 178203,
+        "key": "p/7f650fcb0922af7b/og-b51d19ae.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232695.tif",
+      "roll": ".",
+      "sourceId": "0d9c2818a12595df",
+      "width": 6774,
+      "height": 4492,
+      "color": "#8a3d5c",
+      "lqip": "data:image/webp;base64,UklGRmAAAABXRUJQVlA4IFQAAADQAwCdASoUAA0APwForE6rJaQiMAgBYCAJZgCdMoACYBKIQiJgUIAA/sBTcq2YL8B2Q5XcoWDeX3lLHu/3ewi/NXruo9ddJRqzRAmfj0HbSMAAAAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 23207,
+          "key": "p/0d9c2818a12595df/640-2fa795a3.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 75969,
+          "key": "p/0d9c2818a12595df/960-abfe84bf.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 160274,
+          "key": "p/0d9c2818a12595df/1280-3f86ac72.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 375937,
+          "key": "p/0d9c2818a12595df/1920-aad0f887.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 657525,
+          "key": "p/0d9c2818a12595df/2560-b7a42fdc.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 108493,
+          "key": "p/0d9c2818a12595df/1200-fb2ef105.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 612660,
+          "key": "p/0d9c2818a12595df/2560-7e39fad1.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 87283,
+        "key": "p/0d9c2818a12595df/og-c0b7306d.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232696.tif",
+      "roll": ".",
+      "sourceId": "298efc765f657be6",
+      "width": 6774,
+      "height": 4492,
+      "color": "#676e47",
+      "lqip": "data:image/webp;base64,UklGRmwAAABXRUJQVlA4IGAAAACQAwCdASoUAA0APwFqrE8rJiQiMAgBYCAJQAALgqDNTeQC7iCAAPzZMF+WJq2Sa/65Twl+l6yjmmJ5fT5zHNVx/1iD2yJf0HxlScbHXx/S7qLCdRVTXSHi4wJgeRRwAAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 91481,
+          "key": "p/298efc765f657be6/640-5ab0788b.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 208441,
+          "key": "p/298efc765f657be6/960-edfda18b.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 363911,
+          "key": "p/298efc765f657be6/1280-9664f993.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 705708,
+          "key": "p/298efc765f657be6/1920-6112c0c0.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1136764,
+          "key": "p/298efc765f657be6/2560-8360c409.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 286939,
+          "key": "p/298efc765f657be6/1200-6e1a750f.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1127328,
+          "key": "p/298efc765f657be6/2560-04e45ca2.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 230735,
+        "key": "p/298efc765f657be6/og-9e746b16.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232697.tif",
+      "roll": ".",
+      "sourceId": "5c7147f69133aaa6",
+      "width": 6774,
+      "height": 4492,
+      "color": "#746a3f",
+      "lqip": "data:image/webp;base64,UklGRoIAAABXRUJQVlA4IHYAAADQAwCdASoUAA0APwFqrE8rJiQiMAgBYCAJZACdABeV4wG3RTyhduAA/ujpqDeQTYcocZR6MiqHRvhiSh5Xbm+ER2+JtOjhBqYvzZ8sX7Zwa1CE5+m3xOttpoPO/VzQPGTJ4k1f7TacbgQVrTy8UT0lXnYAAAAA",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 69598,
+          "key": "p/5c7147f69133aaa6/640-c646a8a1.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 174536,
+          "key": "p/5c7147f69133aaa6/960-71b8b837.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 314730,
+          "key": "p/5c7147f69133aaa6/1280-4435eb61.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 628106,
+          "key": "p/5c7147f69133aaa6/1920-d94aa663.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1032326,
+          "key": "p/5c7147f69133aaa6/2560-4c1eb244.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 247384,
+          "key": "p/5c7147f69133aaa6/1200-057432df.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1037935,
+          "key": "p/5c7147f69133aaa6/2560-1001a131.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 199163,
+        "key": "p/5c7147f69133aaa6/og-7754bac1.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232698.tif",
+      "roll": ".",
+      "sourceId": "f064bb3c3be583ff",
+      "width": 6774,
+      "height": 4492,
+      "color": "#7d5d5b",
+      "lqip": "data:image/webp;base64,UklGRn4AAABXRUJQVlA4IHIAAADwAwCdASoUAA0APwForE6rJaQiMAgBYCAJQBdgBEHOauZHDccrM684AP6oz6o2o3BlcTZ+C1iTDliq3GQ5DmpqLH83RFnz+l1AuYcCXdSjHzwqhlbRiE9imiSLyeyOGVHqHMuDQuR9pFYn55MpQsiAAAA=",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 83226,
+          "key": "p/f064bb3c3be583ff/640-aeec79e7.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 195397,
+          "key": "p/f064bb3c3be583ff/960-49497f8a.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 344564,
+          "key": "p/f064bb3c3be583ff/1280-e075d472.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 676388,
+          "key": "p/f064bb3c3be583ff/1920-bfc3dec8.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1112199,
+          "key": "p/f064bb3c3be583ff/2560-c37b0db1.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 262005,
+          "key": "p/f064bb3c3be583ff/1200-c270ca2b.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 1066598,
+          "key": "p/f064bb3c3be583ff/2560-0d4bb0aa.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 207835,
+        "key": "p/f064bb3c3be583ff/og-72014333.jpg"
+      }
+    },
+    {
+      "file": "RLiang10232699.tif",
+      "roll": ".",
+      "sourceId": "7251336257a12d0e",
+      "width": 6774,
+      "height": 4492,
+      "color": "#7b674a",
+      "lqip": "data:image/webp;base64,UklGRmoAAABXRUJQVlA4IF4AAAAwBACdASoUAA0APwFsrU8rJiQiMAgBYCAJaACsMoR4GCULPgXULvCoHQAA/uv/O4xciLqQ5MJ6nDlCMXQCRi/mP9o2HveqywbB7rz3DVYVpMKKEZTaQhdg6r4MIAAA",
+      "camera": null,
+      "variants": [
+        {
+          "format": "avif",
+          "width": 640,
+          "height": 425,
+          "bytes": 61141,
+          "key": "p/7251336257a12d0e/640-1e3d4b8a.avif"
+        },
+        {
+          "format": "avif",
+          "width": 960,
+          "height": 637,
+          "bytes": 149462,
+          "key": "p/7251336257a12d0e/960-ac9f8a12.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1280,
+          "height": 849,
+          "bytes": 270142,
+          "key": "p/7251336257a12d0e/1280-cd5bb544.avif"
+        },
+        {
+          "format": "avif",
+          "width": 1920,
+          "height": 1274,
+          "bytes": 540804,
+          "key": "p/7251336257a12d0e/1920-dc040019.avif"
+        },
+        {
+          "format": "avif",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 875306,
+          "key": "p/7251336257a12d0e/2560-e0ad9a14.avif"
+        },
+        {
+          "format": "jpeg",
+          "width": 1200,
+          "height": 796,
+          "bytes": 218401,
+          "key": "p/7251336257a12d0e/1200-c38adc70.jpg"
+        },
+        {
+          "format": "jpeg",
+          "width": 2560,
+          "height": 1698,
+          "bytes": 928124,
+          "key": "p/7251336257a12d0e/2560-688f9688.jpg"
+        }
+      ],
+      "og": {
+        "format": "jpeg",
+        "width": 1200,
+        "height": 630,
+        "bytes": 184118,
+        "key": "p/7251336257a12d0e/og-802b1603.jpg"
+      }
+    }
+  ],
+  "rolls": [
+    {
+      "id": ".",
+      "photoCount": 42
+    }
+  ]
+}

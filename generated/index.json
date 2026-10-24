@@ -14,10 +14,6 @@
       "quality": 82,
       "effort": 4
     },
-    "webp": {
-      "quality": 90,
-      "effort": 5
-    },
     "jpeg": {
       "quality": 90,
       "widths": [
@@ -53,6 +49,9 @@
     "4853",
     "4854",
     "llfl01",
-    "llfl02"
+    "llfl02",
+    "llfl03",
+    "llfl04",
+    "llfl05"
   ]
 }
