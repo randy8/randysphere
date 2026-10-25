@@ -2,7 +2,6 @@
 import Lightbox from '../../../photography/Lightbox.astro';
 import Photo from '../../../photography/Photo.astro';
 import Base from '../../../layouts/Base.astro';
-import PhotographyNav from '../../../photography/PhotographyNav.astro';
 import { loadArchive } from '../../../photography/archive.ts';
 import { photography } from '../../../photography/config.ts';
 
@@ -19,7 +18,6 @@ const archive = loadArchive();
   title={`Saved — ${photography.title}`}
   description="Photographs saved to revisit later. Stored only in this browser."
 >
-  <PhotographyNav current="saved" />
   <header class="album-header saved-header">
     <h1>Saved</h1>
     <p class="saved-meta">

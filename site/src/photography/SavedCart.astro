@@ -1,0 +1,118 @@
+---
+/**
+ * Saved, as a shopping cart: the one photography control in the site-wide
+ * masthead (Base.astro), after the collections list. A cart
+ * because everyone knows what one is for — "the things I've picked out" —
+ * on a site where nothing is for sale. The destination is still called
+ * Saved; there are no prices and no checkout. The count is the same
+ * localStorage list Saved has always read (saved.ts), kept in step by
+ * syncSavedUI on every page, across tabs too.
+ */
+interface Props {
+  current: boolean;
+}
+
+const { current } = Astro.props;
+---
+
+<div class="nameplate-cart">
+  <a
+    href="/exposures/saved/"
+    class="saved-cart"
+    data-saved-cart
+    aria-label="Saved"
+    title="Saved"
+    aria-current={current ? 'page' : undefined}
+  >
+    <svg
+      class="saved-cart-icon"
+      viewBox="0 0 24 24"
+      width="19"
+      height="19"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.4"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 3.5h2.6l2.5 11.1a1.5 1.5 0 0 0 1.5 1.2h8.7a1.5 1.5 0 0 0 1.45-1.12L21 7.5H5.5"
+      ></path>
+      <circle cx="9.5" cy="19.75" r="1.25"></circle>
+      <circle cx="17" cy="19.75" r="1.25"></circle>
+    </svg>
+    {/* Empty, and hidden, until there's something saved: an empty cart is
+        just a cart. */}
+    <span class="saved-cart-count" data-saved-count hidden></span>
+  </a>
+</div>
+
+<script>
+  import { syncSavedAcrossTabs, syncSavedUI } from './saved.ts';
+  syncSavedUI();
+  syncSavedAcrossTabs();
+</script>
+
+<style is:global>
+  /* A utility, not a collection: after the list, set apart by a hairline,
+     the way a colophon separates the publisher's mark from the contents. */
+  /* Centred on the row rather than baseline-aligned: an icon has no
+     baseline, and its padded touch area would otherwise lift it. */
+  .nameplate-cart {
+    display: flex;
+    align-self: center;
+    padding-left: 1.25rem;
+    border-left: 1px solid var(--rule);
+  }
+  /* Same voice as the collection links — muted at rest, ink when it's the
+     page you're on, the accent only on hover — without their underline,
+     which under an icon reads as a stray rule. The padding is touch room;
+     the negative margin keeps it out of the layout. */
+  .masthead-nameplate a.saved-cart {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0.0625rem;
+    margin: -0.5rem;
+    padding: 0.5rem;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  .masthead-nameplate a.saved-cart:hover,
+  .masthead-nameplate a.saved-cart:focus-visible {
+    color: var(--accent);
+  }
+  .masthead-nameplate a.saved-cart[aria-current='page'] {
+    color: var(--ink);
+  }
+  .saved-cart-icon {
+    display: block;
+    flex: none;
+  }
+  /* A small raised figure in the nav's own numerals, the way a cart shows
+     its count — no bubble, no colour of its own. */
+  .saved-cart-count {
+    margin-top: -0.0625rem;
+    font-family: var(--serif);
+    font-size: 0.75rem;
+    font-variant-numeric: lining-nums tabular-nums;
+    line-height: 1;
+  }
+  .saved-cart-count[hidden] {
+    display: none;
+  }
+  /* A phone: the collections wrap below the site title, so the cart moves
+     up opposite the title instead of trailing onto a line of its own. */
+  @media (max-width: 40rem) {
+    .nameplate-cart {
+      order: 1;
+      margin-left: auto;
+      padding-left: 0;
+      border-left: 0;
+    }
+    .masthead-nameplate .nameplate-list {
+      order: 2;
+      flex-basis: 100%;
+    }
+  }
+</style>

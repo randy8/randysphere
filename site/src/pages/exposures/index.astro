@@ -2,7 +2,6 @@
 import Lightbox from '../../photography/Lightbox.astro';
 import Photo from '../../photography/Photo.astro';
 import Base from '../../layouts/Base.astro';
-import PhotographyNav from '../../photography/PhotographyNav.astro';
 import {
   citiesOf,
   loadArchive,
@@ -28,7 +27,6 @@ const locations = archive.cities.filter((city) =>
   title={photography.title}
   description="A curated sequence of photographs."
 >
-  <PhotographyNav current="selected" />
   <header class="album-header">
     <h1>{photography.title}</h1>
   </header>

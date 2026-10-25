@@ -165,7 +165,7 @@ body {
   gap: 0.5rem 2rem;
   color: var(--ink);
 }
-/* Same understated hover language as .photography-nav below: an underline
+/* The site's understated hover language: an underline
    that grows in on hover rather than sitting there at rest, so colour
    only ever arrives in response to an interaction (see --accent's own
    definition above). */
@@ -212,7 +212,8 @@ body {
  * The archive's one recurring "label" voice — a wall label or a colophon
  * line, not an app affordance. Small caps in the body serif, not an
  * uppercase sans grabbing attention it hasn't earned. Every metadata line
- * in the site (dates, film stock, position markers) shares this.
+ * in the site (film stock, position markers) shares this; dates are set
+ * in .dateline, just below.
  */
 .eyebrow {
   font-family: var(--serif);
@@ -221,6 +222,21 @@ body {
   letter-spacing: 0.02em;
   color: var(--muted);
   margin: 0 0 0.5rem;
+}
+/* Dates: the one departure from .eyebrow's small caps. Day, month, year
+   in spaced capitals a step smaller than the line around them, the way a
+   catalogue dates a plate — set wherever a date appears, inside an eyebrow
+   or a meta line alike, so every date on the site reads the same. Lining
+   figures, so the numerals stand as tall as the capitals. */
+.dateline {
+  font-family: var(--serif);
+  font-variant-caps: normal;
+  font-variant-numeric: lining-nums;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
 }
 .eyebrow a {
   color: var(--ink);
@@ -1006,11 +1022,13 @@ a:focus-visible,
   font-weight: 500;
   letter-spacing: 0.03em;
 }
+/* margin-left: auto pushes the list (and the Saved cart after it) to the
+   far side of the bar together. */
 .nameplate-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.375rem 1.5rem;
-  margin: 0;
+  margin: 0 0 0 auto;
   padding: 0;
   list-style: none;
 }

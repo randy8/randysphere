@@ -2,6 +2,7 @@
 import '../styles/base.css';
 import { site } from '../config.ts';
 import { collections } from '../collections.ts';
+import SavedCart from '../photography/SavedCart.astro';
 
 interface Props {
   title: string;
@@ -89,6 +90,12 @@ const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
               ))
             }
           </ul>
+          {
+            /* The one exception to this layout knowing nothing about any
+               collection: Saved, as a cart, reachable from every page. See
+               docs/decisions.md, 2026-10-25. */
+          }
+          <SavedCart current={pathname.startsWith('/exposures/saved/')} />
         </div>
       </header>
       <main id="content">

@@ -25,7 +25,9 @@ shared `src/lib/`:
 | Films       | `/pictures/`  | `films/ratings.csv` (Letterboxd's export, as-is) + `films/tmdb.json` | `site/src/films/`       |
 
 Adding a collection: one entry in `collections.ts`, its own `src/pages/<slug>/`,
-and (if needed) its own `src/<slug>/`. `Base.astro` stays collection-agnostic.
+and (if needed) its own `src/<slug>/`. `Base.astro` stays collection-agnostic,
+with one deliberate exception: Saved, as a cart (`photography/SavedCart.astro`),
+in the masthead of every page.
 
 ## Photography: architecture
 
@@ -57,6 +59,10 @@ tools/serve/            production server: site/dist/ + /p/ straight from
   public meaning. A _trip is a tag_ — `/exposures/<tag>/` is `viewForTag`,
   identical code for trips, places, subjects. Never reintroduce a structural
   "trip"/"album" type that owns photographs.
+- **Only featured photos are public.** `loadArchive()` returns only
+  `featured: true` photos — every tag, film-stock, Saved and Share page and
+  the sitemap see that subset. `loadFullArchive()` (everything) is read by
+  `/exposures/archives/` alone. Starring a photo in the editor is publishing it.
 - Non-tag queries: film stock (`rolls.yaml` → `/exposures/film/<stock>/`),
   Selected Work (`featured`/`featuredOrder` → `selectedWork()`, the
   `/exposures/` front page), and cover (`album.md`).
@@ -82,7 +88,7 @@ tools/serve/            production server: site/dist/ + /p/ straight from
   on DOM order). Column count lives in `--grid-columns` in `base.css`.
 - **Saved & Share**: Saved is a list of ids in localStorage (`saved.ts`);
   `syncSavedUI` keeps every save control on the page in step (grid marks
-  from `grid-save.ts`, the lightbox's Save / `S`, the nav count). The Saved
+  from `grid-save.ts`, the lightbox's Save / `S`, the masthead cart's count). The Saved
   page (`saved-view.ts`) has browse / select / confirm-clear modes; sharing
   encodes the chosen ids into `/exposures/share/?p=` (`share-code.ts`) and
   shows the link in a panel — it never modifies Saved. The link _is_ the

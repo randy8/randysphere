@@ -2394,3 +2394,245 @@ by 2,000 photos); numbering photographs by position in a committed,
 append-only list (~2.7 characters each, but a registry file the pipeline
 must maintain forever, and a link that silently changes meaning if it's
 ever reordered).
+
+---
+
+## 2026-10-25 — Only featured photographs are public
+
+**Decision.** `loadArchive()` now returns only photographs marked
+`featured: true`; `loadFullArchive()` returns all of them and is read by
+`/exposures/archives/` alone (and by `share-code.test.ts`, so the prefix
+check covers every photograph). Tag pages, film-stock pages, the tag index,
+Saved, Share and collections.ts's counts and sitemap URLs all see the
+featured subset, so a tag or film stock with no featured photograph has no
+page. Filtering in the loader rather than per page makes a new page private
+by default. Saved and Share are filtered too, because they render the whole
+archive into the HTML and prune it in the browser; left unfiltered they
+would ship every photograph. So a photo saved from `/archives/` is pruned
+from Saved, and a share link naming an unfeatured photo counts it as
+missing. Derivatives under `/p/` stay reachable by hash, as before.
+
+**Rejected.** Filtering in each page (easy to forget on the next page); a
+separate `public`/`hidden` flag (starring already says what is shown).
+
+---
+
+## 2026-10-25 — Tunes is a wall of stills; dates are set in spaced capitals
+
+**Decision.** Tunes stops being a dated log of full-size players and becomes
+a collection: a two-column grid (one column under 44rem) of 16:9 YouTube
+stills, each with its title and artist beneath it, divided into rows by
+hairlines that break at the gutter. No dates, notes or numbering on an
+entry. `tracks.yaml` entries carry explicit `title` and `artist` instead of
+a free-text `note` (a missing title stops the build); `postedAt` stays,
+unshown, and orders the page newest first, later in the file first on the
+same day. Clicking a still opens one shared native `<dialog>`, which
+creates the YouTube iframe on open and removes it on close: no player
+loads until asked for, and closing is what stops playback. Without
+JavaScript every still is a plain link to the video.
+
+Stills are `maxresdefault.jpg` (1280×720, no letterbox). Not every upload
+has one, and YouTube answers with a 120×90 placeholder rather than
+reliably erroring, so `tunes.ts` steps down through `hq720`, `sddefault`
+and `hqdefault` (4:3 with bars, which `object-fit: cover` crops away) on an
+error or a too-small load. Without JS a missing maxres shows that grey
+placeholder, which is accepted: every current entry has one. Every player
+shows a "Watch on YouTube ↗" link, because a video whose owner disabled
+embedding shows YouTube's own error inside the iframe and the page cannot
+detect it without loading YouTube's iframe API on every visit.
+
+Dates everywhere are `27 August 2025` (`photography/date.ts`) in
+`.dateline`: uppercase by CSS (so a screen reader hears words), 0.75rem,
+0.1em tracking, muted, lining figures, the one exception to `.eyebrow`'s
+small caps. Today only Exposures' tag page and tag index show a date, and
+only for photos carrying EXIF dates, which no current scan does.
+
+**Rejected.** Keeping the large embeds (seven players loading at once, each
+a full YouTube page); a lite-youtube-style library (a dependency for one
+`<dialog>`); fetching thumbnail availability or titles at build time (the
+build stays offline; titles are two hand-written fields); a free-text
+`note` split on " - " (guessing which half is the artist); continuous rules
+across the gutter (they read as a table rather than columns on a page).
+
+---
+
+## 2026-10-25 — Tunes opens into a screening room
+
+**Decision.** A still on Tunes no longer opens a modal; it grows into a
+full-screen dark room (`tunes.ts`, `music.css`). The grid is untouched and
+stays paper and ink — the room exists only once someone asks to watch.
+Pieces, and why each is the plain version:
+
+- **Viewer, not `<dialog>`.** A fixed `role="dialog"` element moved to
+  `<body>`, with `.wrap` made `inert` behind it. `showModal()`'s top layer
+  sits awkwardly with View Transitions; `inert` gives the same focus
+  containment. Escape, ← / → (only while focus is outside the iframe —
+  inside it, YouTube's own seek keys win), focus to the back control on
+  open and back to the originating still on close, scroll position
+  restored, `html` overflow locked while open.
+- **The transition is the still itself.** A same-document View Transition
+  names the clicked `.tune-still` and the viewer's screen `tune-screen`;
+  the screen shows the grid's own (cached) image as a poster until the
+  iframe loads and fades in over it, so the morph is one picture changing
+  size, never a black box. The caption rises in just after. Closing
+  shrinks back into the song now playing if it's on screen where the
+  visitor left, otherwise the room fades. Steps crossfade the screen and
+  slide the caption a few pixels the way the visitor is going. No View
+  Transitions, or `prefers-reduced-motion`: everything is instant.
+- **Ambient light from the still, in the browser.** i.ytimg.com sends
+  `Access-Control-Allow-Origin: *`, so a CORS-mode copy of the 320×180
+  `mqdefault` is drawn to a 32×18 canvas and `palette.ts` (pure, tested)
+  picks three dominant colours, ignoring letterbox black and title-card
+  white and weighting saturated pixels, then holds them at ≤55%
+  saturation and 18–38% lightness. They light three radial gradients
+  (no blur filter) through `@property`-registered colours, so a change of
+  song fades the light over 1.2s. Any failure falls back to the site's own
+  dimmed browns. Cached per video; neighbours prefetched. The iframe's
+  pixels are never read.
+- **Embedding-disabled videos via oEmbed.** One small CORS request per
+  video opened: 400/401/403/404 means it can't play here, and the screen
+  shows the still with "This one plays only on YouTube" and a link. The
+  IFrame Player API would say the same through `onError` at the cost of a
+  third-party script on every visit; nothing else it offers is needed.
+  A "YouTube ↗" link is in the room's top bar regardless.
+- **No autoplay of the next song.** A step is a click, so the new video
+  starts; reaching the end of one does nothing.
+
+**Rejected.** A blurred, scaled copy of the thumbnail as the background
+(it's YouTube's own "ambient mode" look, and a large blur filter is the
+expensive way to get softness gradients give for free); build-time
+palette extraction (a network step in the build, for colours the browser
+can read in a millisecond); the IFrame Player API; an animation library;
+`viewport-fit=cover` site-wide just for safe-area insets (it would put
+every other page under a phone's notch — the room uses `env()` with
+fallbacks, which simply resolve to the fallbacks without it).
+
+---
+
+## 2026-10-25 — Pictures: Pick for me, and posters that arrive and glide
+
+**Decision.** The film controls gain "Pick [n] for me" beside Shuffle:
+n films drawn from what the page is showing (the genre filter sets the
+pool), uniformly and without replacement (`films/pick.ts`, a partial
+Fisher–Yates; tested for equal odds). Input is forgiving rather than
+validated: empty or unreadable is 1, past either end is held to it, and
+asking for more than there are picks all of them and says so in the
+status line. The form is `novalidate` because the browser's own min/max
+check would otherwise swallow exactly those cases. Picks are marked
+where they stand — no card moves: a warm mat (the frame's `--rule` mixed
+toward the accent), a hairline outside it, and a "Picked · 2 of 5" line
+in words, so colour is never the only signal. For 2.6s the rest of the
+wall dims to 60%, then returns. A short numbered list of titles sits on
+its own row above the controls, each a jump to its poster; picks follow
+their cards through Shuffle and the filter (a filtered-out pick stays
+picked, its jump disabled). Each card's `id` is its Letterboxd short code
+(`filmId`, tested unique).
+
+Shuffle keeps its meaning — reorder everything — and Pick never reorders,
+so the two don't overlap; a single combined control was considered and
+rejected because "show me everything differently" and "choose for me" are
+different requests.
+
+Motion (`films/motion.ts`): only posters on screen ever animate. On load
+they rise 8px and fade in over 360ms with a 14ms stagger capped at 12, so
+a screenful lands in about half a second; an inline script hides cards
+only while the HTML is parsing and animates the visible ones before
+first paint, then lifts the hiding (a `finally`, so a failure can't leave
+posters invisible). The page heading opts out of the site-wide header
+reveal so the type is there at once. Shuffle is FLIP limited to the
+viewport: the deal and scroll are instant, then a poster that was on
+screen glides 420ms from where it was, and one that wasn't settles in
+like arrival. A click mid-animation measures where cards visibly are,
+cancels, and starts from there. Reduced motion, or no Web Animations
+API: everything instant.
+
+**Rejected.** Animating every card (775 animations for a dozen visible);
+a smooth scroll under moving posters (two motions at once); duplicating
+posters in a results panel; dimming that persists (it hides the
+collection the picks came from); the browser's own number-field
+validation.
+
+---
+
+## 2026-10-25 — Pick for me: the gallery is the result
+
+**Decision.** Replaces the picks list from earlier today. There is no
+results panel: while picks exist, every other film sits at 25% opacity
+(a 300ms transition, none under reduced motion) until Clear — a button
+that appears inline after "for me" — or the next pick, which hands the
+light from the old set to the new in one frame. Picks keep full opacity,
+the warm mat (the outline is gone) and their words: "Picked for you", or
+"Picked · 2 of 4 · next ↓" numbered in page order, the jump being how
+picks a long scroll apart stay findable. The first pick is centred; a
+scroll of more than 2.5 screens is instant rather than smooth (a smooth
+scroll across 775 films takes seconds). Shuffle renumbers the marks; a
+genre that hides every pick clears them and says so; motion.ts's settle
+animation now lands on a card's resting opacity, so a dimmed film doesn't
+flash to full and snap back.
+
+**Rejected.** The list of titles (it repeated what the posters say);
+dimming that lifts after a moment (the picks then had to be found again).
+
+---
+
+## 2026-10-25 — Pick for me picks one, two or three; Shuffle clears picks
+
+**Decision.** The open-ended number field is gone. "Pick for me" is the
+whole button and picks one film; three muted oldstyle numerals after it
+(`1 2 3`, real radios — arrow keys move between them, Enter on one picks)
+offer two or three, with the chosen one in ink over a hairline. Shuffle
+is for browsing and Pick for me for deciding, so Shuffle now clears any
+picks — caught in the capture phase, before the page's own Shuffle
+listener, and without the fade, so motion.ts settles every card towards
+full opacity rather than towards the 25% being lifted. Spotlight, scroll,
+genre pool and Clear are unchanged; `pick.ts` still clamps to the pool
+(a genre with two films and "3" picks both).
+
+**Rejected.** A select for the count (a dropdown for three choices is
+more control than the choice); keeping picks lit through a Shuffle (it
+mixed browsing and deciding back together).
+
+---
+
+## 2026-10-25 — Saved is a cart in the masthead
+
+**Decision.** The "Saved 15" link above the Exposures heading
+(`PhotographyNav.astro`, now deleted — Saved was its only link) becomes an
+outline shopping cart at the far end of the site-wide masthead, after the
+collections and set off by a hairline (`photography/SavedCart.astro`). A
+cart because everyone reads it as "the things I've picked out", on a site
+where nothing is for sale; the destination is still called Saved, with no
+prices or checkout. The count is a small raised figure in the nav's own
+numerals, absent at zero, written by the same `syncSavedUI` as every save
+control and now also on a `storage` event, so another tab's saves show up
+too; the link's accessible name carries it ("Saved, 15 photographs").
+Muted at rest, ink on the Saved page, the accent on hover, with no
+underline. On a phone it sits opposite the site title rather than
+trailing onto a line of its own. This is the one deliberate exception to
+`Base.astro` knowing nothing about a collection (CLAUDE.md says so); the
+component itself lives in `photography/`. With the nav gone, every
+Exposures heading starts at the same height as Dishes, Tunes and Pictures.
+
+**Rejected.** A bubble badge (colour and weight the masthead never uses);
+a bag or bookmark icon (the joke is the cart); keeping a per-collection
+nav row for one link.
+
+---
+
+## 2026-10-25 — Slashless page URLs redirect to the slashed ones
+
+**Decision.** Production (`tools/serve`) answered `/exposures` with a 404:
+Astro builds every page as `<path>/index.html` with `trailingSlash:
+'always'`, and the server only mapped `/x/` to `x/index.html`. Now
+`canonicalPagePath` returns a 301 to `<path>/` (query string kept; the
+browser carries a `#fragment` across by itself) when — and only when —
+`dist/<path>/index.html` exists, and `/x/index.html` 301s to `/x/` instead of
+serving a duplicate. Files, `/p/` derivatives, `/private` and paths with no
+page behind them are untouched, so a typo still 404s directly. Old-name
+redirects (`/recipes/<slug>` …) resolve through the same function and land
+on the canonical URL in one hop. Internal links were already canonical.
+
+**Rejected.** A client-side fix (the server would still 404 first);
+redirecting every slashless path (bounces typos and files); Cloudflare
+redirect rules (configuration outside the repository, for a fix the
+server can make itself).

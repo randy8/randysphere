@@ -2,7 +2,6 @@
 import Lightbox from '../../../photography/Lightbox.astro';
 import Photo from '../../../photography/Photo.astro';
 import Base from '../../../layouts/Base.astro';
-import PhotographyNav from '../../../photography/PhotographyNav.astro';
 import { allFilmStocks, loadArchive, viewForFilmStock } from '../../../photography/archive.ts';
 import type { View } from '../../../photography/archive.ts';
 
@@ -25,7 +24,6 @@ const { view } = Astro.props;
   title={`${view.title} — Exposures`}
   description={`Photographs shot on ${view.title}.`}
 >
-  <PhotographyNav current="archive" />
   <header class="album-header">
     <p class="eyebrow">Film Stock</p>
     <h1>{view.title}</h1>

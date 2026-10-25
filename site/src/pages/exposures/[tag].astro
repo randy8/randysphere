@@ -2,8 +2,8 @@
 import Lightbox from '../../photography/Lightbox.astro';
 import Photo from '../../photography/Photo.astro';
 import Base from '../../layouts/Base.astro';
-import PhotographyNav from '../../photography/PhotographyNav.astro';
 import { allTags, loadArchive, viewForTag } from '../../photography/archive.ts';
+import { formatDate } from '../../photography/date.ts';
 import type { View } from '../../photography/archive.ts';
 
 export function getStaticPaths() {
@@ -37,17 +37,31 @@ const next = nextView
 ---
 
 <Base title={view.title} description={view.title}>
-  <PhotographyNav current="archive" />
   <header class="album-header">
     {
       view.roll?.filmStock && (
         <p class="eyebrow">
           <a href={`/exposures/film/${view.roll.filmStock}/`}>{view.roll.filmStock}</a>
-          {view.date && ` · ${view.date}`}
+          {view.date && (
+            <Fragment>
+              {' · '}
+              <time class="dateline" datetime={view.date}>
+                {formatDate(view.date)}
+              </time>
+            </Fragment>
+          )}
         </p>
       )
     }
-    {!view.roll?.filmStock && view.date && <p class="eyebrow">{view.date}</p>}
+    {
+      !view.roll?.filmStock && view.date && (
+        <p class="eyebrow">
+          <time class="dateline" datetime={view.date}>
+            {formatDate(view.date)}
+          </time>
+        </p>
+      )
+    }
     <h1>{view.title}</h1>
   </header>
 

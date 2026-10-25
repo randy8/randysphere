@@ -297,8 +297,12 @@ function loadBatch(slug: string): ArchivePhoto[] {
   return joinBatch(manifest, captions, rolls, slug, cover);
 }
 
-/** Reads every batch's manifest and merges them into one canonical, flat archive. */
-export function loadArchive(): Archive {
+/**
+ * Reads every batch's manifest and merges them into one canonical, flat
+ * archive — every photograph, featured or not. Only /exposures/archives/
+ * shows this; every other page reads `loadArchive()`.
+ */
+export function loadFullArchive(): Archive {
   if (!existsSync(MANIFEST_DIRECTORY)) {
     throw new Error(
       `${MANIFEST_DIRECTORY} does not exist, so there is nothing to show.\n` +
@@ -319,6 +323,21 @@ export function loadArchive(): Archive {
     photos: slugs.flatMap(loadBatch),
     cities: readCities(join(ALBUM_DIRECTORY, 'cities.yaml')),
   };
+}
+
+/**
+ * The archive the public site shows: only photographs marked `featured`
+ * (Selected Work). Tag, film-stock, tag-index, Saved and Share pages — and
+ * the counts and sitemap URLs in collections.ts — all read this, so an
+ * unstarred photo, and a tag or film stock with no starred photo, simply
+ * doesn't exist outside /exposures/archives/. See docs/decisions.md.
+ */
+export function loadArchive(): Archive {
+  return featuredOnly(loadFullArchive());
+}
+
+export function featuredOnly(archive: Archive): Archive {
+  return { ...archive, photos: archive.photos.filter((photo) => photo.featured) };
 }
 
 /** Missing file means no cities yet, not an error; a malformed entry is skipped. */

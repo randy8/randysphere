@@ -2,23 +2,22 @@
 import Lightbox from '../../../photography/Lightbox.astro';
 import Photo from '../../../photography/Photo.astro';
 import Base from '../../../layouts/Base.astro';
-import PhotographyNav from '../../../photography/PhotographyNav.astro';
-import { loadArchive } from '../../../photography/archive.ts';
+import { loadFullArchive } from '../../../photography/archive.ts';
 
-// Deliberately unlinked — not in PhotographyNav, not in collections.ts's
+// Deliberately unlinked — not in any nav, not in collections.ts's
 // urls() (so sitemap.xml.ts never lists it either), the same "secret by
 // omission" treatment /exposures/archive/ already gets. Every single
 // photograph in the collection, flattened, not one cover per tag the way
 // that page is — this is the real "everything" view, for one visitor who
-// already knows the URL.
-const archive = loadArchive();
+// already knows the URL. The one page that reads the full archive: every
+// other page shows only featured photographs (archive.ts, loadArchive).
+const archive = loadFullArchive();
 
 // Archival order here; shuffle-on-load.ts deals a random one in the browser.
 const { photos } = archive;
 ---
 
 <Base title="Archives — Exposures" description="Every photograph in the collection.">
-  <PhotographyNav current="archive" />
   <header class="album-header">
     <h1>Archives</h1>
     <p class="lede">

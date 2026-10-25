@@ -8,6 +8,7 @@ import {
   byTag,
   citiesOf,
   coverPhoto,
+  featuredOnly,
   joinBatch,
   joinRolls,
   selectedWork,
@@ -344,4 +345,19 @@ test('a city tag is titled by its cities.yaml name, and citiesOf finds it on a p
   assert.deepEqual(photos[0] === undefined ? [] : citiesOf(archive, photos[0]), [
     { tag: 'nyc', name: 'NYC' },
   ]);
+});
+
+test('featuredOnly keeps only featured photos, so tags and film stocks with none drop out', () => {
+  const archive = featuredOnly(
+    archiveOf([
+      stubPhoto('001.tif', ['paris-2025'], null, true, '0827', false, 1, null, 'Portra 400'),
+      stubPhoto('002.tif', ['paris-2025', 'street'], null, false, '0827', false, 2, null, 'HP5'),
+    ]),
+  );
+  assert.deepEqual(
+    archive.photos.map((entry) => entry.photo.file),
+    ['001.tif'],
+  );
+  assert.deepEqual(allTags(archive), ['paris-2025']);
+  assert.deepEqual(allFilmStocks(archive), ['Portra 400']);
 });

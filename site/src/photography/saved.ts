@@ -104,10 +104,10 @@ export function markHintSeen(): void {
 }
 
 /**
- * Every element that surfaces the saved count — the Photography nav's own
- * item and the corner mark shown during Browse — reads off the same
- * storage, so any change from any one of them is reflected everywhere else
- * on the page immediately.
+ * Every element that surfaces the saved count — the masthead's cart
+ * (SavedCart.astro, on every page) and every save control — reads off the
+ * same storage, so any change from any one of them is reflected everywhere
+ * else on the page immediately.
  */
 export function syncSavedUI(): void {
   const ids = new Set(readIds());
@@ -132,9 +132,23 @@ export function syncSavedUI(): void {
     if (label !== null) label.textContent = saved ? 'Saved' : 'Save';
   });
   document.querySelectorAll<HTMLElement>('[data-saved-count]').forEach((el) => {
-    el.textContent = String(count);
+    el.textContent = count > 0 ? String(count) : '';
+    el.hidden = count === 0;
   });
-  document.querySelectorAll<HTMLElement>('[data-saved-link]').forEach((el) => {
-    el.classList.toggle('is-shown', count > 0);
+  document.querySelectorAll<HTMLElement>('[data-saved-cart]').forEach((el) => {
+    el.setAttribute(
+      'aria-label',
+      count > 0 ? `Saved, ${String(count)} photograph${count === 1 ? '' : 's'}` : 'Saved',
+    );
+  });
+}
+
+/**
+ * Keeps this page's count in step with saves made in another tab: the
+ * `storage` event fires only in the tabs that didn't make the change.
+ */
+export function syncSavedAcrossTabs(): void {
+  window.addEventListener('storage', (event) => {
+    if (event.key === null || event.key === SAVED_KEY) syncSavedUI();
   });
 }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { loadArchive } from './archive.ts';
+import { loadFullArchive } from './archive.ts';
 import {
   decodeIds,
   encodeIds,
@@ -70,7 +70,7 @@ test(`no two photographs in the archive share a ${String(PREFIX_BYTES)}-byte pre
   // twin: raise PREFIX_BYTES (old ?p= links keep working only while their
   // prefixes stay unique, so pick a new query param for the longer form).
   const seen = new Map<string, string>();
-  for (const { photo } of loadArchive().photos) {
+  for (const { photo } of loadFullArchive().photos) {
     const prefix = photo.sourceId.slice(0, PREFIX_BYTES * 2);
     const other = seen.get(prefix);
     assert.ok(
