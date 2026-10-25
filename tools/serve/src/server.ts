@@ -212,6 +212,30 @@ export function legacyRedirect(pathname: string): string | null {
   return null;
 }
 
+/**
+ * Where a page URL that isn't in its canonical form should go: a built page
+ * directory named without its trailing slash (`/exposures` → `/exposures/`)
+ * or by its index file (`/exposures/index.html` → `/exposures/`). Astro
+ * builds every page as `<path>/index.html` and links them all with the
+ * slash (`trailingSlash: 'always'`), so the slashed form is the one real
+ * address. Null for everything else — a real file, a derivative, a path
+ * with no page behind it — so nothing that works today is redirected and a
+ * typo still 404s instead of bouncing first.
+ */
+export async function canonicalPagePath(distDir: string, pathname: string): Promise<string | null> {
+  let directory: string;
+  if (pathname.endsWith('/index.html')) directory = pathname.slice(0, -'index.html'.length);
+  else if (pathname.endsWith('/') || pathname.startsWith('/p/')) return null;
+  else directory = `${pathname}/`;
+  const relative = `${directory.slice(1)}index.html`;
+  if (relative !== 'index.html' && !isSafeRelativePath(relative)) return null;
+  try {
+    return (await stat(join(distDir, relative))).isFile() ? directory : null;
+  } catch {
+    return null;
+  }
+}
+
 function isAuthenticated(config: ServeConfig, req: IncomingMessage): boolean {
   const token = readSessionCookie(req.headers.cookie);
   return verifySessionToken(config.sessionSecret, token);
@@ -306,9 +330,24 @@ async function route(
   const legacy = method === 'GET' || method === 'HEAD' ? legacyRedirect(pathname) : null;
   if (legacy !== null) {
     const { search } = new URL(req.url ?? '/', 'http://localhost');
-    res.writeHead(301, { location: `${legacy}${search}` });
+    // Straight to the canonical address, not via a second redirect for
+    // its missing trailing slash (/recipes/miso-soup → /dishes/miso-soup/).
+    const target = (await canonicalPagePath(config.distDir, legacy)) ?? legacy;
+    res.writeHead(301, { location: `${target}${search}` });
     res.end();
     return;
+  }
+
+  // /exposures → /exposures/, keeping any query string (a fragment never
+  // reaches the server; the browser carries it across the redirect).
+  if (method === 'GET' || method === 'HEAD') {
+    const canonical = await canonicalPagePath(config.distDir, pathname);
+    if (canonical !== null) {
+      const { search } = new URL(req.url ?? '/', 'http://localhost');
+      res.writeHead(301, { location: `${canonical}${search}` });
+      res.end();
+      return;
+    }
   }
 
   if (pathname === '/' && (method === 'GET' || method === 'HEAD')) {

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 
-import { createPrivateSiteServer, legacyRedirect } from './server.ts';
+import { canonicalPagePath, createPrivateSiteServer, legacyRedirect } from './server.ts';
 
 const PASSWORD = 'letmein';
 const SECRET = 'test-session-secret';
@@ -370,4 +370,54 @@ test('an old URL gets a permanent redirect, keeping its query string', async () 
   });
   assert.equal(response.status, 301);
   assert.equal(response.headers.get('location'), '/exposures/?film=portra400');
+});
+
+test('a page named without its trailing slash gets a permanent redirect to the slashed URL', async () => {
+  const response = await fetch(`${baseUrl}/exposures`, { redirect: 'manual' });
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get('location'), '/exposures/');
+});
+
+test('the trailing-slash redirect keeps the query string, so share links survive it', async () => {
+  const response = await fetch(`${baseUrl}/exposures/share?p=AbCdEf`, { redirect: 'manual' });
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get('location'), '/exposures/share/?p=AbCdEf');
+});
+
+test('a page reached by its index file redirects to its directory URL, not a duplicate 200', async () => {
+  const response = await fetch(`${baseUrl}/exposures/index.html`, { redirect: 'manual' });
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get('location'), '/exposures/');
+});
+
+test('the canonical URL is served directly, with no redirect', async () => {
+  const response = await fetch(`${baseUrl}/exposures/`, { redirect: 'manual' });
+  assert.equal(response.status, 200);
+});
+
+test('a slashless path with no page behind it still 404s rather than bouncing first', async () => {
+  const response = await fetch(`${baseUrl}/no-such-page`, { redirect: 'manual' });
+  assert.equal(response.status, 404);
+});
+
+test('files are never redirected: a stylesheet, a font, a derivative', async () => {
+  for (const path of [
+    '/_astro/Base.aaaa1111.css',
+    '/fonts/newsreader-variable.woff2',
+    '/p/abc123/1200-deadbeef.avif',
+  ]) {
+    const response = await fetch(`${baseUrl}${path}`, { redirect: 'manual' });
+    assert.equal(response.status, 200, path);
+  }
+});
+
+test('an old URL without its trailing slash lands on the canonical new URL in one hop', async () => {
+  const response = await fetch(`${baseUrl}/photography/share?p=AbCdEf`, { redirect: 'manual' });
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get('location'), '/exposures/share/?p=AbCdEf');
+});
+
+test('canonicalPagePath refuses to look outside dist/', async () => {
+  assert.equal(await canonicalPagePath('/nonexistent', '/../etc'), null);
+  assert.equal(await canonicalPagePath('/nonexistent', '/p/abc123'), null);
 });
