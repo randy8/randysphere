@@ -6,6 +6,7 @@ import { extname, join } from 'node:path';
 
 import { clearSessionCookie, readSessionCookie, setSessionCookie } from './cookies.ts';
 import { loadNotes } from './notes.ts';
+import { checkHealth } from './health.ts';
 import { LoginLimiter, clientAddress } from './login-limiter.ts';
 import { renderArchive, renderGate } from './pages.ts';
 import { createSessionToken, passwordMatches, verifySessionToken } from './session.ts';
@@ -264,6 +265,19 @@ async function route(
 ): Promise<void> {
   const { pathname } = new URL(req.url ?? '/', 'http://localhost');
   const method = req.method ?? 'GET';
+
+  // Readiness, for the deploy's candidate check and the watchdog: 200 when
+  // this process can serve the site (health.ts), 503 with what's missing
+  // otherwise. Never cached — Cloudflare included.
+  if (pathname === '/healthz' && (method === 'GET' || method === 'HEAD')) {
+    const health = await checkHealth(config);
+    res.writeHead(health.ok ? 200 : 503, {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'no-store',
+    });
+    res.end(method === 'HEAD' ? undefined : JSON.stringify(health));
+    return;
+  }
 
   // Everything under /private is handled here, never falling through to
   // static file serving — private/ is never inside site/dist to begin

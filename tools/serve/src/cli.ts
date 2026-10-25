@@ -23,7 +23,10 @@ const port = portArg ? Number.parseInt(portArg.slice('--port='.length), 10) : 43
 
 const password = process.env['PRIVATE_SITE_PASSWORD'];
 const sessionSecret = process.env['PRIVATE_SESSION_SECRET'];
-const distDir = join(ROOT, 'site', 'dist');
+// --dist= lets the deploy start a candidate server on a new build before
+// switching to it; production always serves site/dist.
+const distArg = process.argv.find((arg) => arg.startsWith('--dist='));
+const distDir = distArg ? distArg.slice('--dist='.length) : join(ROOT, 'site', 'dist');
 
 if (!password || !sessionSecret) {
   console.error(
@@ -49,7 +52,17 @@ if (!password || !sessionSecret) {
   });
   server.listen(port, () => {
     console.log(
-      `Serving site/dist (images from generated/derivatives) on http://0.0.0.0:${String(port)} — private area at /private`,
+      `Serving ${distDir} (images from generated/derivatives) on http://0.0.0.0:${String(port)} — private area at /private`,
     );
+  });
+
+  // systemd stops the service with SIGTERM: finish what's in flight, then
+  // exit, rather than cutting a download off mid-file. Bounded, so a stuck
+  // connection can't hold a restart up past TimeoutStopSec.
+  process.once('SIGTERM', () => {
+    console.log('SIGTERM: finishing in-flight requests');
+    server.close(() => process.exit(0));
+    server.closeIdleConnections();
+    setTimeout(() => process.exit(0), 5000).unref();
   });
 }

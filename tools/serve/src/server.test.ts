@@ -463,3 +463,14 @@ test('the password gate labels its field', async () => {
   const html = await (await fetch(`${baseUrl}/private`)).text();
   assert.match(html, /<input type="password"[^>]*aria-label="Password"/);
 });
+
+test('/healthz answers JSON, uncached, and 503 names what the site is missing', async () => {
+  const response = await fetch(`${baseUrl}/healthz`);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.match(response.headers.get('content-type') ?? '', /application\/json/);
+  const health = (await response.json()) as { ok: boolean; checks: Record<string, boolean> };
+  // The fixture's manifest names og images that were never written to disk.
+  assert.equal(response.status, 503);
+  assert.equal(health.ok, false);
+  assert.deepEqual(health.checks, { page: true, manifest: true, image: false });
+});
