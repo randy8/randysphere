@@ -118,65 +118,6 @@
   border-color: var(--accent);
 }
 
-/*
- * Pick for me. The control reads as one phrase in the panel — "Pick [3]
- * for me" — with the number in the same underlined voice as the selects.
- * What it picked is listed above the controls, inside the same panel: a
- * short numbered index of titles, each a jump to its poster, never a
- * second copy of the posters themselves.
- */
-.film-pick {
-  gap: 0.375rem;
-}
-.film-pick[hidden] {
-  display: none;
-}
-.film-pick-count {
-  display: inline-flex;
-  gap: 0.125rem;
-}
-.film-pick-count label {
-  position: relative;
-  display: inline-flex;
-  cursor: pointer;
-}
-/* The radio itself is invisible but still focusable and still the thing
-   that's checked; the numeral is what shows. */
-.film-pick-count input {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-/* Frame-number figures, muted; the chosen one in ink with the same
-   hairline underline as the selects. Never louder than a caption. */
-.film-pick-count span {
-  display: inline-block;
-  /* 24px square at the least: WCAG 2.2's minimum target, with the three
-     numerals this close together. */
-  min-width: 1.5rem;
-  min-height: 1.5rem;
-  padding: 0.1875rem 0.125rem 0;
-  border-bottom: 1px solid transparent;
-  font-family: var(--serif);
-  font-size: 0.9375rem;
-  font-variant-numeric: oldstyle-nums tabular-nums;
-  text-align: center;
-  color: var(--muted);
-  transition:
-    color 0.2s ease,
-    border-color 0.2s ease;
-}
-.film-pick-count input:checked + span {
-  border-bottom-color: var(--rule);
-  color: var(--ink);
-}
-.film-pick-count label:hover span,
-.film-pick-count input:focus-visible + span {
-  color: var(--accent);
-}
-
 /* Announced, not shown: the spotlight on the wall already says it. */
 .film-pick-status {
   position: absolute;
@@ -188,15 +129,12 @@
   white-space: nowrap;
 }
 
-/* On the wall — the wall is the result: while there are picks, every
-   other film steps back to 25% and stays there until Clear or the next
-   pick, so the picks read as a spotlight on the collection without any
-   card moving. A pick keeps its full opacity, a warm mat (the frame's own
-   --rule tinted toward the accent) and a "Picked · 1 of 4" line in words,
-   so colour is never the only signal. */
-.film-pick-clear[hidden] {
-  display: none;
-}
+/* On the wall — the wall is the result: while there's a pick, every
+   other film steps back to 25% and stays there until the next pick,
+   Shuffle or Escape, so the pick reads as a spotlight on the collection
+   without any card moving. It keeps full opacity, a warm mat (the frame's
+   own --rule tinted toward the accent) and a "Picked for you" line in
+   words, so colour is never the only signal. */
 /* Scoped to .films-pick-ready (set by pick-view.ts once the page has
    arrived) so lifting .films-arriving never starts an opacity transition
    on every card below the fold. */
@@ -221,30 +159,11 @@
   outline-offset: 0.25rem;
 }
 .film-picked-mark {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
   margin: 0 0 0.25rem;
   font-family: var(--serif);
   font-variant-caps: small-caps;
   font-size: 0.8125rem;
   letter-spacing: 0.04em;
-  color: var(--accent);
-}
-/* With more than one pick, the mark carries a quiet jump to the next, so
-   picks a long scroll apart are never lost among the dimmed films. */
-.film-picked-next {
-  appearance: none;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  color: var(--muted);
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-.film-picked-next:hover,
-.film-picked-next:focus-visible {
   color: var(--accent);
 }
 @media (prefers-reduced-motion: reduce) {

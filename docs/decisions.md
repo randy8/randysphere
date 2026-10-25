@@ -2740,3 +2740,14 @@ only srcsets up to 1280px, the viewer needs 2560).
 derivative middleware's `configurePreviewServer` hook doesn't run — so
 earlier local measurements of photo pages ran with every image 404ing.
 Measure photo pages through `node tools/serve/src/cli.ts --dist=…`.
+
+---
+
+## 2026-10-25 — Pick for me picks exactly one
+
+**Decision.** The 1 2 3 choice and Clear are gone: Pick for me lights one
+film, centred, and pressing it again picks another; Shuffle or Escape
+restores the wall. With several picks the page could only scroll to the
+first — the others sat thousands of pixels away behind a small "next ↓"
+link — so asking for three looked like getting one. The count parsing and
+the next-pick jumps went with it.

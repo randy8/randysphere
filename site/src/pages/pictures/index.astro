@@ -64,24 +64,11 @@ const hasPosters = films.some((film) => film.posterPath !== null);
           Shuffle
         </button>
         {/* Hidden until pick-view.ts runs: without JavaScript it couldn't
-            do anything. */}
-        <form class="film-control film-pick" data-film-pick hidden novalidate>
+            do anything. A button, so it's a real control to a keyboard or
+            screen reader; inside a form only so the markup says "action". */}
+        <form class="film-control film-pick" data-film-pick hidden>
           <button type="submit" class="film-shuffle-button">
             Pick for me
-          </button>
-          {/* One by default; two or three for the undecided. Real radios,
-              so arrow keys and screen readers treat them as one choice. */}
-          <span class="film-pick-count" role="radiogroup" aria-label="How many films">
-            {[1, 2, 3].map((n) => (
-              <label>
-                <input type="radio" name="film-pick-count" value={String(n)} checked={n === 1} />
-                <span>{n}</span>
-              </label>
-            ))}
-          </span>
-          {/* Only while there are picks: puts the wall back. */}
-          <button type="button" class="film-shuffle-button film-pick-clear" data-film-pick-clear hidden>
-            Clear
           </button>
         </form>
         <p class="film-pick-status" data-film-pick-status role="status" aria-live="polite" />
