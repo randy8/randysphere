@@ -2751,3 +2751,41 @@ restores the wall. With several picks the page could only scroll to the
 first — the others sat thousands of pixels away behind a small "next ↓"
 link — so asking for three looked like getting one. The count parsing and
 the next-pick jumps went with it.
+
+---
+
+## 2026-10-25 — Faster photo pages: right-sized thumbnails, the deal before first paint, prefetch on intent, revalidated HTML
+
+**Measured first** (Lighthouse 12.6 on the live site, cold): Exposures on
+mobile scored 54 with an 8.0s LCP and 5.3 MB over 96 requests; desktop
+pulled 6.5 MB. Two causes. Every grid tile downloaded the 640px AVIF — the
+smallest width the pipeline made — into a tile at most 280 CSS px wide
+(Lighthouse: 3–4 MB avoidable), and `sizes` claimed 11vw for a ~20vw tile.
+And the LCP element was a `loading="lazy"` tile: the server gave the first
+tile high priority, then the deferred shuffle moved it somewhere random.
+
+**Decision.**
+- `pipeline.config.ts` adds 320 and 480 widths (landscape medians 15.5 KB
+  and 33 KB, against 58 KB at 640). Same quality setting; a browser only
+  picks one that still covers the tile at its own pixel density, so
+  Retina screens and phones keep 640+. `GRID_SIZES` (image.ts) states the
+  tile's real width, from base.css's grid.
+- `GridDeal.astro`, inline after each shuffled grid, deals the tiles
+  before the first layout and makes the first row eager, the first tile
+  high priority — the photographs actually on top. No server-side
+  priority on those pages any more; no-JS keeps archival order.
+- A speculation-rules block prefetches a same-site page after ~200 ms of
+  hover (or on press), excluding `/p/` (grid tiles link to 2560px
+  JPEGs) and `/private`. Prefetch, not prerender.
+- tools/serve sends pages with `no-cache` plus a weak ETag and
+  Last-Modified and answers 304 when unchanged; everything under
+  `/private` is `private, no-store`.
+
+**Rejected or deferred.** A service worker or client-side router (the
+pages are static and small; revalidation plus prefetch gets most of the
+benefit). Prerender (runs a fresh shuffle off-screen). Edge-caching HTML
+at Cloudflare (needs dashboard cache rules and purge-on-deploy; a
+separate decision). Pictures' layout cost (775 cards; content-visibility
+was rejected earlier for breaking the year jump) and Cloudflare's
+injected Web Analytics beacon (~1 s of main thread on a throttled phone)
+are left as decisions.
