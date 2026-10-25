@@ -2790,3 +2790,35 @@ separate decision). Pictures' layout cost (775 cards; content-visibility
 was rejected earlier for breaking the year jump) and Cloudflare's
 injected Web Analytics beacon (~1 s of main thread on a throttled phone)
 are left as decisions.
+
+---
+
+## 2026-10-25 — Second performance pass: layout before first paint, the first screen first
+
+**Measured.** After the first pass, Lighthouse showed the shuffled pages
+shifting (CLS 0.141 on Exposures, 0.108 on a tag page): masonry, a
+deferred module, moved tiles after the photos had painted. A real-network
+test on production (390×844 @3×, 1.6 Mbps, 150 ms, 4× CPU, median of five)
+then showed the real bottleneck on phones: every visible photo took
+11.2 s on Exposures and 8.9 s on a tag page, because Chrome lazy-loads
+~2500 px ahead on slow connections and ~40 off-screen photos split the
+bandwidth with the ~9 on screen. Priority hints alone don't stop that.
+
+**Decision.** `grid-layout.js`, inlined after each grid by
+`GridLayout.astro` (replacing masonry.ts and GridDeal.astro): deal (where
+the page shuffles), place every tile, then load the tiles that landed in
+the first viewport at high priority and hold the rest until those arrive
+(or 4 s), after which they load one screen ahead; a tile scrolled into
+view loads at once. Production now serves `site/release`, written only by
+`pnpm deploy`, after two plain `pnpm build`s put unchecked builds live.
+
+**Result** (production, same conditions): visible photos loaded in 4.5 s
+on Exposures (was 11.2 s) and 4.3 s on a tag page (8.9 s); CLS back to
+0.018 and 0. Lighthouse mobile Exposures from the original baseline: score
+54 → 91, LCP 8.0 → 3.3 s, 5.3 MB → 467 KB, 96 → 30 requests.
+
+**Rejected.** A service worker (static pages, 304 revalidation and
+prefetch already cover repeat visits); view transitions (no measured
+bottleneck at navigation; native navigation is fast once prefetched);
+prerender (would run a fresh shuffle off-screen); Lighthouse TBT as
+evidence (it tracked load on the measuring machine, not the site).
