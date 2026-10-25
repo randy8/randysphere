@@ -49,8 +49,10 @@ tools/serve/            production server: site/dist/ + /p/ straight from
 ```
 
 - **`/p/` images are never copied into the site.** `tools/serve` serves them
-  from `generated/derivatives/`; `astro dev`/`preview` do the same through a
-  small middleware in `site/astro.config.mjs`. So `pnpm build` never touches
+  from `generated/derivatives/`; `astro dev` does the same through a small
+  middleware in `site/astro.config.mjs`, and `pnpm preview` runs tools/serve
+  itself on the build (`astro preview` drops Vite plugins, so it can't serve
+  `/p/` — don't measure photo pages with it). So `pnpm build` never touches
   gigabytes of images. (`pnpm run publish` uploads to R2 instead, if
   `imageBaseUrl` in `site/src/photography/config.ts` is ever pointed there.)
 - **Archive model.** The site merges every manifest into one flat `Archive`
@@ -104,7 +106,7 @@ tools/serve/            production server: site/dist/ + /p/ straight from
 
 ```sh
 pnpm dev                 # Astro dev server, :4321 (images served from generated/derivatives)
-pnpm build / preview
+pnpm build / preview     # preview: the production server on the build, :4323
 pnpm sync                # pnpm ingest + pnpm films:posters: encode new/changed photos,
                          # rewrite manifests, fetch TMDB details for new films
                          # (~1s when nothing changed: originals' hashes are cached

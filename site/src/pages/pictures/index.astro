@@ -117,9 +117,6 @@ const hasPosters = films.some((film) => film.posterPath !== null);
               <li
                 class="film-card"
                 id={`film-${filmId(film)}`}
-                data-film-id={filmId(film)}
-                data-title={film.title}
-                data-year={String(film.year)}
                 data-genres={film.genres.join('|')}
               >
                 <div class="film-poster-frame">

@@ -13,7 +13,7 @@
     "dev": "pnpm --filter @photo/site dev",
     "dev:host": "pnpm --filter @photo/site dev:host",
     "build": "pnpm --filter @photo/site build",
-    "preview": "pnpm --filter @photo/site preview",
+    "preview": "node tools/serve/src/cli.ts --preview --port=4323",
     "preview:host": "pnpm --filter @photo/site preview:host",
     "ingest": "node tools/pipeline/src/cli.ts ingest",
     "publish": "node tools/pipeline/src/cli.ts publish",

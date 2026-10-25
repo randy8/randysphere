@@ -10,11 +10,13 @@ const DERIVATIVES = join(ROOT, 'generated', 'derivatives') + sep;
 const IMAGE_TYPES = { '.avif': 'image/avif', '.webp': 'image/webp', '.jpg': 'image/jpeg' };
 
 /**
- * Serves /p/... straight from generated/derivatives/ under `astro dev` and
- * `astro preview` — the same place tools/serve reads them from in
- * production. Nothing is copied into public/, so a build never drags
- * gigabytes of images into dist/. Not a symlink (see CLAUDE.md): nothing
- * here can leak into the build output, because the build never sees it.
+ * Serves /p/... straight from generated/derivatives/ under `astro dev` — the
+ * same place tools/serve reads them from in production. Nothing is copied
+ * into public/, so a build never drags gigabytes of images into dist/. Not
+ * a symlink (see CLAUDE.md): nothing here can leak into the build output,
+ * because the build never sees it. Dev only: `astro preview` drops every
+ * user Vite plugin, so `pnpm preview` runs tools/serve on the build instead
+ * (see package.json).
  */
 function serveDerivatives(req, res, next) {
   const path = (req.url ?? '').split('?')[0];
@@ -33,7 +35,6 @@ function serveDerivatives(req, res, next) {
 const derivatives = {
   name: 'serve-derivatives',
   configureServer: (server) => void server.middlewares.use(serveDerivatives),
-  configurePreviewServer: (server) => void server.middlewares.use(serveDerivatives),
 };
 
 export default defineConfig({

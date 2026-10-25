@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
@@ -21,8 +22,14 @@ if (existsSync(envFile)) process.loadEnvFile(envFile);
 const portArg = process.argv.find((arg) => arg.startsWith('--port='));
 const port = portArg ? Number.parseInt(portArg.slice('--port='.length), 10) : 4322;
 
-const password = process.env['PRIVATE_SITE_PASSWORD'];
-const sessionSecret = process.env['PRIVATE_SESSION_SECRET'];
+// --preview (`pnpm preview`): the same server on a local port, to look at
+// a build exactly as production serves it. Without a .env — a fresh clone —
+// it seals /private with a throwaway password nobody knows, rather than
+// refusing to start; production never passes this flag.
+const preview = process.argv.includes('--preview');
+const throwaway = (): string => randomBytes(32).toString('hex');
+const password = process.env['PRIVATE_SITE_PASSWORD'] ?? (preview ? throwaway() : undefined);
+const sessionSecret = process.env['PRIVATE_SESSION_SECRET'] ?? (preview ? throwaway() : undefined);
 // --dist= lets the deploy start a candidate server on a new build before
 // switching to it; production always serves site/dist.
 const distArg = process.argv.find((arg) => arg.startsWith('--dist='));

@@ -8,7 +8,15 @@ import tseslint from 'typescript-eslint';
 // Support for .astro files is added in the same change that introduces the
 // first .astro file, not before it.
 export default defineConfig([
-  globalIgnores(['originals/', 'generated/', '**/dist/', '**/.astro/', '**/.wrangler/']),
+  globalIgnores([
+    'originals/',
+    'generated/',
+    '**/dist/',
+    '**/dist.next/',
+    '**/dist.prev/',
+    '**/.astro/',
+    '**/.wrangler/',
+  ]),
 
   {
     files: ['**/*.{js,mjs,ts}'],

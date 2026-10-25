@@ -6,6 +6,8 @@ generated/
 
 originals/
 dist/
+dist.next/
+dist.prev/
 .astro/
 .wrangler/
 
