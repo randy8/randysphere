@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { formatPostedAt, loadTracks, toEmbed } from './music.ts';
+import { loadTracks, toEmbed, youtubeThumbnail, youtubeVideoId } from './music.ts';
 
 test('toEmbed rewrites a Spotify track link to its embed URL', () => {
   assert.deepEqual(toEmbed('https://open.spotify.com/track/1DwscornXpj8fmOmYVlqZt'), {
@@ -53,12 +53,18 @@ test('toEmbed returns null for a malformed URL', () => {
   assert.equal(toEmbed('not a url'), null);
 });
 
-test('formatPostedAt reads a plain ISO date as a short display date', () => {
-  assert.equal(formatPostedAt('2026-08-13'), 'Aug 13, 2026');
+test('youtubeVideoId reads the id from every YouTube link shape', () => {
+  assert.equal(youtubeVideoId('https://www.youtube.com/watch?v=lIxQe1R5hs0'), 'lIxQe1R5hs0');
+  assert.equal(youtubeVideoId('https://youtu.be/UTVkSCyltxk?si=Y2sFw81L83HiGUpN'), 'UTVkSCyltxk');
+  assert.equal(youtubeVideoId('https://www.youtube.com/shorts/lIxQe1R5hs0'), 'lIxQe1R5hs0');
+  assert.equal(youtubeVideoId('https://open.spotify.com/track/abc123'), null);
 });
 
-test('formatPostedAt leaves a non-ISO string unchanged', () => {
-  assert.equal(formatPostedAt(''), '');
+test('youtubeThumbnail is the full-size 16:9 still', () => {
+  assert.equal(
+    youtubeThumbnail('lIxQe1R5hs0'),
+    'https://i.ytimg.com/vi/lIxQe1R5hs0/maxresdefault.jpg',
+  );
 });
 
 test('loadTracks reads the real committed file and every entry has a valid embed', () => {
@@ -68,5 +74,7 @@ test('loadTracks reads the real committed file and every entry has a valid embed
     assert.ok(track.url.startsWith('https://'));
     assert.ok(track.embedUrl.startsWith('https://'));
     assert.ok(track.platform === 'spotify' || track.platform === 'youtube');
+    assert.ok(track.title.length > 0, `${track.url} has no title`);
+    if (track.platform === 'youtube') assert.ok(track.videoId, `${track.url} has no video id`);
   }
 });

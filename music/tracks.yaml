@@ -1,16 +1,32 @@
-# Not a playlist library — a running log of whatever I'm genuinely into
-# right now. One entry per "wow I'm really into this," newest first, dated
-# to when it was added, not when the track came out. Add entries here by
-# hand; a bare Spotify or YouTube share link is all `url` needs.
+# Not a playlist library — songs I keep coming back to. One entry each:
+# a bare YouTube (or Spotify) share link, the song's title, and who it's
+# by. `postedAt` is the day it was added; it orders the page, newest
+# first, but is never shown.
 - url: https://www.youtube.com/watch?v=lIxQe1R5hs0
   postedAt: '2026-08-13'
-  note: 'PinkPantheress - Stateside + Zara Larsson'
+  title: 'Stateside + Zara Larsson'
+  artist: 'PinkPantheress'
 - url: https://www.youtube.com/watch?v=uS0BaaHljyA
   postedAt: '2026-08-17'
-  note: 'Prefab Sprout - I Never Play Basketball Now'
+  title: 'I Never Play Basketball Now'
+  artist: 'Prefab Sprout'
 - url: https://youtu.be/UTVkSCyltxk?si=Y2sFw81L83HiGUpN
   postedAt: '2026-08-19'
-  note: 'Not For Radio - Kitten'
+  title: 'Kitten'
+  artist: 'Not For Radio'
 - url: https://www.youtube.com/watch?v=Zh4t2TaeA38
   postedAt: '2026-10-18'
-  note: 'Tinashe - Melatonin'
+  title: 'Melatonin'
+  artist: 'Tinashe'
+- url: https://www.youtube.com/watch?v=GaNzHwSQqwk
+  postedAt: '2026-10-25'
+  title: 'Stay True'
+  artist: 'True Love'
+- url: https://www.youtube.com/watch?v=ZW7WfdTuth8
+  postedAt: '2026-10-25'
+  title: "Rock'n Roll"
+  artist: 'Daft Punk'
+- url: https://www.youtube.com/watch?v=0XFpyTijIjk
+  postedAt: '2026-10-25'
+  title: "I Don't Need Love, I've Got My Band"
+  artist: 'The Radio Dept.'

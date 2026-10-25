@@ -4,21 +4,25 @@ import { dirname, join } from 'node:path';
 import { parse } from 'yaml';
 
 /**
- * Not a playlist library — a running log of whatever I'm genuinely into
- * right now, one hand-written entry per "wow I'm really into this," read
- * straight from a single committed `music/tracks.yaml` the same way
- * `films/ratings.csv` is: no pipeline, no images, no per-item
- * file. `postedAt` is when the entry was logged, not when the track came
- * out — the point is the moment, not a discography.
+ * Not a playlist library — a collection of songs I keep coming back to,
+ * one hand-written entry each, read straight from a single committed
+ * `music/tracks.yaml` the same way `films/ratings.csv` is: no pipeline, no
+ * images, no per-item file. `postedAt` is when the entry was added; it
+ * orders the page (newest first, later in the file first on the same day)
+ * but is never shown — being here is the
+ * whole endorsement, not a moment in a listening log.
  */
 export type Platform = 'spotify' | 'youtube';
 
 export interface Track {
   readonly url: string;
   readonly postedAt: string;
-  readonly note: string;
+  readonly title: string;
+  readonly artist: string;
   readonly platform: Platform;
   readonly embedUrl: string;
+  /** The YouTube video id, or null for a Spotify entry (which has no thumbnail to show). */
+  readonly videoId: string | null;
 }
 
 function repositoryRoot(): string {
@@ -41,7 +45,34 @@ const TRACKS_FILE = join(ROOT, 'music', 'tracks.yaml');
 interface TrackFile {
   readonly url?: string;
   readonly postedAt?: string;
-  readonly note?: string;
+  readonly title?: string;
+  readonly artist?: string;
+}
+
+/** The video id in any ordinary YouTube link (watch, youtu.be, shorts, music.youtube.com), or null. */
+export function youtubeVideoId(url: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  const host = parsed.hostname.replace(/^www\./, '');
+  if (host === 'youtube.com' || host === 'music.youtube.com') {
+    const shorts = /^\/shorts\/([^/]+)/.exec(parsed.pathname);
+    return parsed.searchParams.get('v') ?? shorts?.[1] ?? null;
+  }
+  if (host === 'youtu.be') return parsed.pathname.slice(1) || null;
+  return null;
+}
+
+/**
+ * The largest still YouTube publishes for a video: 1280×720, 16:9, no
+ * letterbox bars. Not every upload has one — tunes.ts steps down through
+ * the smaller sizes in the browser when it turns out to be missing.
+ */
+export function youtubeThumbnail(videoId: string): string {
+  return `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
 }
 
 /**
@@ -59,9 +90,8 @@ export function toEmbed(url: string): { platform: Platform; embedUrl: string } |
   } catch {
     return null;
   }
-  const host = parsed.hostname.replace(/^www\./, '');
 
-  if (host === 'open.spotify.com') {
+  if (parsed.hostname.replace(/^www\./, '') === 'open.spotify.com') {
     const match = /^\/(track|album|playlist|episode|show)\/([A-Za-z0-9]+)/.exec(parsed.pathname);
     if (!match) return null;
     return {
@@ -70,53 +100,44 @@ export function toEmbed(url: string): { platform: Platform; embedUrl: string } |
     };
   }
 
-  if (host === 'youtube.com' || host === 'music.youtube.com') {
-    const shorts = /^\/shorts\/([^/]+)/.exec(parsed.pathname);
-    const id = parsed.searchParams.get('v') ?? shorts?.[1];
-    if (!id) return null;
-    return { platform: 'youtube', embedUrl: `https://www.youtube.com/embed/${id}` };
+  const videoId = youtubeVideoId(url);
+  if (videoId !== null) {
+    return { platform: 'youtube', embedUrl: `https://www.youtube.com/embed/${videoId}` };
   }
-
-  if (host === 'youtu.be') {
-    const id = parsed.pathname.slice(1);
-    if (!id) return null;
-    return { platform: 'youtube', embedUrl: `https://www.youtube.com/embed/${id}` };
-  }
-
   return null;
 }
 
-/** Every logged track, newest `postedAt` first. Empty if the file hasn't been added yet or has no valid links. */
+/**
+ * Every track, newest `postedAt` first. Empty if the file hasn't been added
+ * yet or has no valid links. A link with no `title` stops the build — the
+ * page has nothing else to call it by.
+ */
 export function loadTracks(): Track[] {
   if (!existsSync(TRACKS_FILE)) return [];
   const data = (parse(readFileSync(TRACKS_FILE, 'utf8')) ?? []) as TrackFile[];
-  return data
-    .map((entry): Track | null => {
-      if (!entry.url) return null;
-      const embed = toEmbed(entry.url);
-      if (!embed) return null;
-      return {
-        url: entry.url,
-        postedAt: entry.postedAt ?? '',
-        note: entry.note ?? '',
-        platform: embed.platform,
-        embedUrl: embed.embedUrl,
-      };
-    })
-    .filter((track): track is Track => track !== null)
-    .sort((a, b) => b.postedAt.localeCompare(a.postedAt));
-}
-
-/** `'2026-08-13'` -> `'Aug 13, 2026'`. Returns the raw string unchanged if it isn't a plain ISO date. */
-export function formatPostedAt(isoDate: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
-  if (!match) return isoDate;
-  const [, year, month, day] = match;
-  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
+  return (
+    data
+      .map((entry): Track | null => {
+        if (!entry.url) return null;
+        const embed = toEmbed(entry.url);
+        if (!embed) return null;
+        if (!entry.title?.trim()) {
+          throw new Error(`music/tracks.yaml: ${entry.url} has no \`title\`.`);
+        }
+        return {
+          url: entry.url,
+          postedAt: entry.postedAt ?? '',
+          title: entry.title.trim(),
+          artist: entry.artist?.trim() ?? '',
+          platform: embed.platform,
+          embedUrl: embed.embedUrl,
+          videoId: embed.platform === 'youtube' ? youtubeVideoId(entry.url) : null,
+        };
+      })
+      .filter((track): track is Track => track !== null)
+      // Same-day entries: the one further down the file was added later, so
+      // it goes first. Array.prototype.reverse before a stable sort does that.
+      .reverse()
+      .sort((a, b) => b.postedAt.localeCompare(a.postedAt))
+  );
 }
