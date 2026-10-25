@@ -105,7 +105,7 @@ const hasPosters = films.some((film) => film.posterPath !== null);
   </script>
 
   {
-    groups.map((group) => (
+    groups.map((group, groupIndex) => (
       <section class="film-year-group" id={`year-${group.year}`}>
         <div class="film-year-heading">
           <h2>{group.year}</h2>
@@ -114,7 +114,11 @@ const hasPosters = films.some((film) => film.posterPath !== null);
           </p>
         </div>
         <ul class="film-grid">
-          {group.films.map((film) => {
+          {group.films.map((film, filmIndex) => {
+            // The first row is on screen at load: fetch it now, the very
+            // first poster first (it's the page's largest paint). Every
+            // later poster waits until it's scrolled near.
+            const firstRow = groupIndex === 0 && filmIndex < 5;
             const cropped = film.posterFocal !== null;
             const style = cropped
               ? `--focal-x:${String(film.posterFocal?.x)}%;--focal-y:${String(film.posterFocal?.y)}%;--focal-zoom:${String(film.posterFocal?.zoom)};`
@@ -139,7 +143,8 @@ const hasPosters = films.some((film) => film.posterPath !== null);
                       style={style}
                       src={`${config.posterBaseUrl}${film.posterPath}`}
                       alt=""
-                      loading="lazy"
+                      loading={firstRow ? 'eager' : 'lazy'}
+                      fetchpriority={groupIndex === 0 && filmIndex === 0 ? 'high' : undefined}
                       width="500"
                       height="750"
                     />

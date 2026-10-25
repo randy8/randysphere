@@ -137,6 +137,7 @@
 }
 .film-pick-count label {
   position: relative;
+  display: inline-flex;
   cursor: pointer;
 }
 /* The radio itself is invisible but still focusable and still the thing
@@ -152,8 +153,11 @@
    hairline underline as the selects. Never louder than a caption. */
 .film-pick-count span {
   display: inline-block;
-  min-width: 1.25rem;
-  padding: 0.125rem 0.125rem 0;
+  /* 24px square at the least: WCAG 2.2's minimum target, with the three
+     numerals this close together. */
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  padding: 0.1875rem 0.125rem 0;
   border-bottom: 1px solid transparent;
   font-family: var(--serif);
   font-size: 0.9375rem;
@@ -253,7 +257,13 @@
 .film-year-group {
   margin-top: clamp(4rem, 6vw, 6rem);
 }
-.film-year-group:first-of-type {
+/* The first year sits the header's own 3.5rem below the subtitle, as
+   every collection's first section does. Shuffle's script inserts its
+   (hidden) .film-shuffled section ahead of the years on load, so
+   :first-of-type alone stopped matching once JavaScript ran — the gap
+   grew from 56px to 86px and the page shifted down as it did. */
+.film-year-group:first-of-type,
+.film-shuffled + .film-year-group {
   margin-top: 0;
 }
 /* This page's heading opts out of the site-wide .album-header reveal:
