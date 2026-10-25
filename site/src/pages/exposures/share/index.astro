@@ -3,6 +3,7 @@ import Lightbox from '../../../photography/Lightbox.astro';
 import Photo from '../../../photography/Photo.astro';
 import Base from '../../../layouts/Base.astro';
 import { loadArchive } from '../../../photography/archive.ts';
+import { GRID_SIZES } from '../../../photography/image.ts';
 import { photography } from '../../../photography/config.ts';
 
 const archive = loadArchive();
@@ -39,7 +40,7 @@ const archive = loadArchive();
     {
       archive.photos.map((entry) => (
         <li data-photo-id={entry.photo.sourceId}>
-          <Photo entry={entry} sizes="(min-width: 64rem) 22vw, (min-width: 40rem) 30vw, 46vw" maxWidth={960} />
+          <Photo entry={entry} sizes={GRID_SIZES} maxWidth={960} />
         </li>
       ))
     }

@@ -1,0 +1,35 @@
+---
+/**
+ * Deals the photo grid into a random order *before the first paint*, then
+ * gives load priority to the photographs that actually landed on top.
+ * Placed immediately after the grid's closing tag, so it runs while the
+ * page is still being parsed: the browser never lays out — and never
+ * starts loading — the server's order first. Doing this from a deferred
+ * module (as before) meant the server's first tile was fetched at high
+ * priority and then shuffled somewhere random, while the photo that became
+ * the largest paint loaded lazily behind it (Lighthouse, 2026-10-25: the
+ * LCP element was a `loading="lazy"` tile on every shuffled page).
+ * Without JavaScript nothing here runs and the archival order stands.
+ * shuffle-on-load.ts and selected-view.ts read the dealt order from the DOM.
+ */
+---
+
+<script is:inline>
+  (() => {
+    const grid = document.querySelector('[data-grid]');
+    if (!grid) return;
+    const tiles = Array.from(grid.children);
+    for (let i = tiles.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+    }
+    grid.append(...tiles);
+    const columns = Number.parseInt(getComputedStyle(grid).getPropertyValue('--grid-columns'), 10) || 2;
+    tiles.slice(0, columns).forEach((tile, index) => {
+      const img = tile.querySelector('img');
+      if (!img) return;
+      img.loading = 'eager';
+      if (index === 0) img.fetchPriority = 'high';
+    });
+  })();
+</script>

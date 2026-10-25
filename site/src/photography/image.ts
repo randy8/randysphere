@@ -49,3 +49,14 @@ export function ogImageOf(base: string, photo: Photo, site: URL): OgImage {
     imageHeight: photo.og.height,
   };
 }
+
+/**
+ * `sizes` for a tile in the photo grid (.grid in base.css): 2 columns, 3
+ * from 40rem, 4 from 64rem, 1rem gaps, inside .wrap's 1.5rem padding and
+ * 76rem cap — so a tile is at most (73rem − 3 gaps) / 4 = 17.5rem (280px).
+ * Accurate, so a browser picks the smallest srcset width that still covers
+ * the tile at its own pixel density. Keep in step with base.css.
+ */
+export const GRID_SIZES =
+  '(min-width: 76rem) 17.5rem, (min-width: 64rem) calc(25vw - 1.5rem), ' +
+  '(min-width: 40rem) calc(33.33vw - 1.67rem), calc(50vw - 2rem)';

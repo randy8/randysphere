@@ -1,8 +1,10 @@
 ---
+import GridDeal from '../../../photography/GridDeal.astro';
 import Lightbox from '../../../photography/Lightbox.astro';
 import Photo from '../../../photography/Photo.astro';
 import Base from '../../../layouts/Base.astro';
 import { loadFullArchive } from '../../../photography/archive.ts';
+import { GRID_SIZES } from '../../../photography/image.ts';
 
 // Deliberately unlinked — not in any nav, not in collections.ts's
 // urls() (so sitemap.xml.ts never lists it either), the same "secret by
@@ -31,14 +33,14 @@ const { photos } = archive;
         <figure data-photo-id={entry.photo.sourceId}>
           <Photo
             entry={entry}
-            sizes="(min-width: 64rem) 11vw, (min-width: 40rem) 17vw, 45vw"
-            priority={index === 0}
+            sizes={GRID_SIZES}
             maxWidth={1280}
           />
         </figure>
       ))
     }
   </div>
+  <GridDeal />
 
   <Lightbox photos={photos} />
 

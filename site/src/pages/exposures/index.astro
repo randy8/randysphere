@@ -1,4 +1,5 @@
 ---
+import GridDeal from '../../photography/GridDeal.astro';
 import Lightbox from '../../photography/Lightbox.astro';
 import Photo from '../../photography/Photo.astro';
 import Base from '../../layouts/Base.astro';
@@ -7,6 +8,7 @@ import {
   loadArchive,
   selectedWork,
 } from '../../photography/archive.ts';
+import { GRID_SIZES } from '../../photography/image.ts';
 import { photography } from '../../photography/config.ts';
 
 const archive = loadArchive();
@@ -74,13 +76,13 @@ const locations = archive.cities.filter((city) =>
             >
               <Photo
                 entry={entry}
-                sizes="(min-width: 64rem) 11vw, (min-width: 40rem) 17vw, 45vw"
-                priority={index === 0}
+                sizes={GRID_SIZES}
                 maxWidth={1280}
               />
             </figure>
           ))}
         </div>
+        <GridDeal />
 
         <Lightbox photos={photos} />
 

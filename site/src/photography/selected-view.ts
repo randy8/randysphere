@@ -75,7 +75,8 @@ function init(): void {
     apply();
   });
 
-  shuffle();
+  // The first deal happened before the first paint (GridDeal.astro); only
+  // the Shuffle button deals again.
   toolbar.hidden = false;
   apply();
 }

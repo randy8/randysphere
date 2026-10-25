@@ -1,8 +1,10 @@
 ---
+import GridDeal from '../../photography/GridDeal.astro';
 import Lightbox from '../../photography/Lightbox.astro';
 import Photo from '../../photography/Photo.astro';
 import Base from '../../layouts/Base.astro';
 import { allTags, loadArchive, viewForTag } from '../../photography/archive.ts';
+import { GRID_SIZES } from '../../photography/image.ts';
 import { formatDate } from '../../photography/date.ts';
 import type { View } from '../../photography/archive.ts';
 
@@ -71,8 +73,7 @@ const next = nextView
         <figure data-photo-id={entry.photo.sourceId}>
           <Photo
             entry={entry}
-            sizes="(min-width: 64rem) 11vw, (min-width: 40rem) 17vw, 45vw"
-            priority={index === 0}
+            sizes={GRID_SIZES}
             maxWidth={1280}
           />
           <span class="frame-mark" aria-hidden="true">
@@ -82,6 +83,7 @@ const next = nextView
       ))
     }
   </div>
+  <GridDeal />
 
   {
     next && (
