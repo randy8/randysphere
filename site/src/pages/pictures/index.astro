@@ -1,7 +1,14 @@
 ---
 import '../../films/films.css';
 import Base from '../../layouts/Base.astro';
-import { allGenres, excerpt, filmsByYearRated, formatRuntime, loadFilms } from '../../films/films.ts';
+import {
+  allGenres,
+  excerpt,
+  filmId,
+  filmsByYearRated,
+  formatRuntime,
+  loadFilms,
+} from '../../films/films.ts';
 import { films as config } from '../../films/config.ts';
 
 const films = loadFilms();
@@ -14,7 +21,7 @@ const hasPosters = films.some((film) => film.posterPath !== null);
 ---
 
 <Base title={config.title} description={config.description}>
-  <header class="album-header">
+  <header class="album-header film-header">
     <h1>{config.title}</h1>
     <p class="lede">
       {films.length} film{films.length === 1 ? '' : 's'} rated five stars on Letterboxd{
@@ -56,9 +63,46 @@ const hasPosters = films.some((film) => film.posterPath !== null);
         <button type="button" class="film-shuffle-button" data-film-shuffle>
           Shuffle
         </button>
+        {/* Hidden until pick-view.ts runs: without JavaScript it couldn't
+            do anything. */}
+        <form class="film-control film-pick" data-film-pick hidden novalidate>
+          <button type="submit" class="film-shuffle-button">
+            Pick for me
+          </button>
+          {/* One by default; two or three for the undecided. Real radios,
+              so arrow keys and screen readers treat them as one choice. */}
+          <span class="film-pick-count" role="radiogroup" aria-label="How many films">
+            {[1, 2, 3].map((n) => (
+              <label>
+                <input type="radio" name="film-pick-count" value={String(n)} checked={n === 1} />
+                <span>{n}</span>
+              </label>
+            ))}
+          </span>
+          {/* Only while there are picks: puts the wall back. */}
+          <button type="button" class="film-shuffle-button film-pick-clear" data-film-pick-clear hidden>
+            Clear
+          </button>
+        </form>
+        <p class="film-pick-status" data-film-pick-status role="status" aria-live="polite" />
       </div>
     )
   }
+
+  {
+    /* Arrival, part one: hide the cards while the HTML is still being
+       parsed, so the first paint never shows a poster that's about to
+       animate in. Only with motion allowed and the API present; part two,
+       right after the last card, always lifts it. */
+  }
+  <script is:inline>
+    if (
+      typeof Element.prototype.animate === 'function' &&
+      !matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      document.documentElement.classList.add('films-arriving');
+    }
+  </script>
 
   {
     groups.map((group) => (
@@ -79,7 +123,14 @@ const hasPosters = films.some((film) => film.posterPath !== null);
               .filter((part): part is string => Boolean(part))
               .join(' · ');
             return (
-              <li class="film-card" data-genres={film.genres.join('|')}>
+              <li
+                class="film-card"
+                id={`film-${filmId(film)}`}
+                data-film-id={filmId(film)}
+                data-title={film.title}
+                data-year={String(film.year)}
+                data-genres={film.genres.join('|')}
+              >
                 <div class="film-poster-frame">
                   {film.posterPath ? (
                     <img
@@ -125,6 +176,45 @@ const hasPosters = films.some((film) => film.posterPath !== null);
   }
 
   {
+    /* Arrival, part two, inline so it runs before the first paint rather
+       than after the bundle loads: only the posters already on screen rise
+       8px and fade in, a 14ms stagger in reading order, all landed within
+       ~0.5s; everything below the fold is simply there when scrolled to.
+       `fill: backwards` holds each at its start until its turn, so lifting
+       the hiding class can't flash them. Same numbers as motion.ts. */
+  }
+  <script is:inline>
+    (() => {
+      const root = document.documentElement;
+      if (!root.classList.contains('films-arriving')) return;
+      try {
+        let index = 0;
+        for (const card of document.querySelectorAll('.film-card')) {
+          const box = card.getBoundingClientRect();
+          // Cards are in reading order, so the first one below the fold ends it.
+          if (box.top >= innerHeight) break;
+          if (box.bottom <= 0) continue;
+          card.animate(
+            [
+              { opacity: 0, transform: 'translateY(8px)' },
+              { opacity: 1, transform: 'none' },
+            ],
+            {
+              duration: 360,
+              delay: Math.min(index, 12) * 14,
+              easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)',
+              fill: 'backwards',
+            },
+          );
+          index += 1;
+        }
+      } finally {
+        root.classList.remove('films-arriving');
+      }
+    })();
+  </script>
+
+  {
     hasPosters && (
       <p class="film-attribution">
         Poster art and plot summaries via{' '}
@@ -139,6 +229,8 @@ const hasPosters = films.some((film) => film.posterPath !== null);
   {
     films.length > 0 && (
       <script>
+        import { rearrange } from '../../films/motion.ts';
+
         // Pure convenience: every year is already reachable by scrolling and
         // by its own real #year-<year> anchor (a direct link to one still
         // works with this script absent). The select just saves the scroll.
@@ -202,14 +294,30 @@ const hasPosters = films.some((film) => film.posterPath !== null);
               const j = Math.floor(Math.random() * (i + 1));
               [order[i], order[j]] = [order[j] as HTMLElement, order[i] as HTMLElement];
             }
-            for (const card of order) grid.appendChild(card);
-            shuffled.hidden = false;
-            const yearControl = document.querySelector<HTMLElement>('[data-film-year-control]');
-            if (yearControl) yearControl.hidden = true;
-            applyGenreFilter();
-            shuffled.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // The deal itself is instant, scroll included (a smooth scroll
+            // under moving posters reads as two motions fighting); the
+            // posters that end up on screen then glide or settle into
+            // place (motion.ts).
+            rearrange(cards, () => {
+              for (const card of order) grid.appendChild(card);
+              shuffled.hidden = false;
+              const yearControl = document.querySelector<HTMLElement>('[data-film-year-control]');
+              if (yearControl) yearControl.hidden = true;
+              applyGenreFilter();
+              const top = shuffled.getBoundingClientRect().top;
+              if (top < 0 || top > window.innerHeight * 0.5) {
+                window.scrollTo({ top: window.scrollY + top, behavior: 'instant' });
+              }
+            });
           });
         }
+      </script>
+    )
+  }
+  {
+    films.length > 0 && (
+      <script>
+        import '../../films/pick-view.ts';
       </script>
     )
   }

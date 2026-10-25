@@ -3,6 +3,7 @@ import { test } from 'node:test';
 
 import {
   excerpt,
+  filmId,
   filmsByYearRated,
   formatRuntime,
   loadFilms,
@@ -149,4 +150,17 @@ test('filmsByYearRated preserves each film exactly once', () => {
   ]);
   assert.equal(groups.length, 1);
   assert.equal(groups[0]?.films.length, 2);
+});
+
+test('filmId is the short code at the end of the Letterboxd link', () => {
+  const [film] = loadFilms();
+  assert.ok(film);
+  assert.equal(filmId({ ...film, letterboxdUrl: 'https://boxd.it/gXGc' }), 'gXGc');
+  assert.equal(filmId({ ...film, letterboxdUrl: 'https://boxd.it/gXGc/' }), 'gXGc');
+});
+
+test('filmId is unique and non-empty across the real collection', () => {
+  const ids = loadFilms().map(filmId);
+  assert.ok(ids.every((id) => /^[A-Za-z0-9]+$/.test(id)));
+  assert.equal(new Set(ids).size, ids.length);
 });

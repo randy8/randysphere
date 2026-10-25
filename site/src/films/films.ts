@@ -197,6 +197,17 @@ export function excerpt(text: string, maxLength: number): string {
   return `${trimmed}…`;
 }
 
+/**
+ * A film's stable id on the page: the short code at the end of its
+ * Letterboxd link (`https://boxd.it/gXGc` -> `gXGc`), which Letterboxd
+ * never reassigns. Used for the card's `id` and the Pick for me list's
+ * jump links, so a selection follows its films through Shuffle and the
+ * genre filter.
+ */
+export function filmId(film: Film): string {
+  return film.letterboxdUrl.replace(/\/+$/, '').split('/').pop() ?? '';
+}
+
 export interface FilmYearGroup {
   readonly year: string;
   readonly films: readonly Film[];
