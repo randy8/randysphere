@@ -33,10 +33,12 @@ photos:
     sourceId: 73741a302b0838be
     alt: ''
     tags: []
+    featured: true
   - file: 48520007.TIF
     sourceId: 0b984847f65a2af1
     alt: ''
     tags: []
+    featured: true
   - file: 48520008.TIF
     sourceId: 9995f8476eb8a1f4
     alt: ''

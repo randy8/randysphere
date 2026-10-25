@@ -18,6 +18,7 @@ photos:
     alt: ''
     tags:
       - llfl04
+    featured: true
   - file: RLiang10232633.tif
     sourceId: 135d671c25003417
     alt: ''

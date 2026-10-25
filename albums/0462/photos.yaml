@@ -145,6 +145,7 @@ photos:
     alt: ''
     tags:
       - '0462'
+    featured: true
   - file: 000004620028.tif
     sourceId: f315d357bbe83031
     alt: ''
@@ -166,6 +167,7 @@ photos:
     alt: ''
     tags:
       - '0462'
+    featured: true
   - file: 000004620032.tif
     sourceId: ce9fffa668d2b54b
     alt: ''

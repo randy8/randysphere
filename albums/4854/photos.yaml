@@ -73,10 +73,12 @@ photos:
     sourceId: 169b75f03bd90b01
     alt: ''
     tags: []
+    featured: true
   - file: 000048540017.tif
     sourceId: a7927aba8fbcf853
     alt: ''
     tags: []
+    featured: true
   - file: 000048540018.tif
     sourceId: 18dc5bc0924d8a31
     alt: ''

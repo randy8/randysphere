@@ -1230,68 +1230,68 @@
       "file": "RLiang10232626.tif",
       "roll": ".",
       "sourceId": "655d2d4df5cd554a",
-      "width": 6774,
-      "height": 4492,
+      "width": 4492,
+      "height": 6774,
       "color": "#a19b86",
-      "lqip": "data:image/webp;base64,UklGRmYAAABXRUJQVlA4IFoAAADQAwCdASoUAA0APwFqrE6rJiQiMAgBYCAJZgC06BBrySlp5MdDYgAA/raPV8kOO7/9k9mrTJl5Fdpx7fWzJj0YEVyWnWXwmGaowcfotAhJTNEZGydSDZwIAAA=",
+      "lqip": "data:image/webp;base64,UklGRq4AAABXRUJQVlA4IKIAAAAQBQCdASoUAB4APwFysVIrJqSiqAqpYCAJZAB4pAIuuFrSp6zcBNMmKOrhsr3HAcgAAP7v0iug1NEmKy8V/dm8w7HORFlpHQRRQcHSLP4iO6N09qJJFGGkNKs1GjNmgdAA6tejzMeI5PoCm5ZJmx+LQ9mPKQPnOKtV1KsOtclqbn5sMueC8HO0Y4BFvvheyccN3fBQPKngmwy2oEoxUPVnAAA=",
       "camera": null,
       "variants": [
         {
           "format": "avif",
-          "width": 640,
-          "height": 425,
-          "bytes": 91746,
-          "key": "p/655d2d4df5cd554a/640-20656a47.avif"
+          "width": 424,
+          "height": 640,
+          "bytes": 89497,
+          "key": "p/655d2d4df5cd554a/640-979bad38.avif"
         },
         {
           "format": "avif",
-          "width": 960,
-          "height": 637,
-          "bytes": 195351,
-          "key": "p/655d2d4df5cd554a/960-1b1f754c.avif"
+          "width": 637,
+          "height": 960,
+          "bytes": 189509,
+          "key": "p/655d2d4df5cd554a/960-e9bc4a0f.avif"
         },
         {
           "format": "avif",
-          "width": 1280,
-          "height": 849,
-          "bytes": 320821,
-          "key": "p/655d2d4df5cd554a/1280-9a805937.avif"
+          "width": 849,
+          "height": 1280,
+          "bytes": 319001,
+          "key": "p/655d2d4df5cd554a/1280-9edca30a.avif"
         },
         {
           "format": "avif",
-          "width": 1920,
-          "height": 1274,
-          "bytes": 578164,
-          "key": "p/655d2d4df5cd554a/1920-db5f0510.avif"
+          "width": 1273,
+          "height": 1920,
+          "bytes": 578903,
+          "key": "p/655d2d4df5cd554a/1920-f97522da.avif"
         },
         {
           "format": "avif",
-          "width": 2560,
-          "height": 1698,
-          "bytes": 842503,
-          "key": "p/655d2d4df5cd554a/2560-8d163f6b.avif"
+          "width": 1697,
+          "height": 2560,
+          "bytes": 852834,
+          "key": "p/655d2d4df5cd554a/2560-fca7e93b.avif"
         },
         {
           "format": "jpeg",
-          "width": 1200,
-          "height": 796,
-          "bytes": 271818,
-          "key": "p/655d2d4df5cd554a/1200-bebfc7db.jpg"
+          "width": 796,
+          "height": 1200,
+          "bytes": 270373,
+          "key": "p/655d2d4df5cd554a/1200-c05eab61.jpg"
         },
         {
           "format": "jpeg",
-          "width": 2560,
-          "height": 1698,
-          "bytes": 939790,
-          "key": "p/655d2d4df5cd554a/2560-321bc582.jpg"
+          "width": 1697,
+          "height": 2560,
+          "bytes": 939531,
+          "key": "p/655d2d4df5cd554a/2560-835195f1.jpg"
         }
       ],
       "og": {
         "format": "jpeg",
         "width": 1200,
         "height": 630,
-        "bytes": 220716,
-        "key": "p/655d2d4df5cd554a/og-c7486e28.jpg"
+        "bytes": 174883,
+        "key": "p/655d2d4df5cd554a/og-9cccca1e.jpg"
       }
     },
     {

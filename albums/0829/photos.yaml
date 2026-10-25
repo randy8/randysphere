@@ -158,11 +158,13 @@ photos:
     alt: ''
     tags:
       - '0829'
+    featured: true
   - file: 000008290032.tif
     sourceId: 733d89dc3da94a97
     alt: ''
     tags:
       - '0829'
+    featured: true
   - file: 000008290033.tif
     sourceId: abc07c04309662d5
     alt: ''

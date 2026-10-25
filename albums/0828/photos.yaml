@@ -124,6 +124,7 @@ photos:
     alt: ''
     tags:
       - '0828'
+    featured: true
   - file: 000008280023.tif
     sourceId: 545f877ba6a3f976
     alt: ''
@@ -142,7 +143,7 @@ photos:
     tags:
       - '0828'
   - file: 000008280026.tif
-    featured: false
+    featured: true
     sourceId: 2664de6e7fecc64d
     alt: ''
     tags:
@@ -185,6 +186,7 @@ photos:
     alt: ''
     tags:
       - '0828'
+    featured: true
   - file: 000008280034.tif
     sourceId: e46e28fe8f88dc1a
     alt: ''
@@ -195,9 +197,10 @@ photos:
     alt: ''
     tags:
       - '0828'
-    featured: false
+    featured: true
   - file: 000008280036.tif
     sourceId: 3bad6feaa8cc073b
     alt: ''
     tags:
       - '0828'
+    featured: true

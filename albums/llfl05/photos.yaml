@@ -107,6 +107,7 @@ photos:
     alt: ''
     tags:
       - llfl05
+    rotate: 270
   - file: RLiang10232676.tif
     sourceId: def057adb3836461
     alt: ''

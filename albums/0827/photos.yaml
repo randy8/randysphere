@@ -61,6 +61,7 @@ photos:
     alt: ''
     tags:
       - '0827'
+    featured: true
   - file: 000008270014.tif
     sourceId: cac0392d6f1e5e2c
     alt: ''

@@ -81,6 +81,7 @@ photos:
     alt: ''
     tags:
       - '0425'
+    featured: true
   - file: 000004250016.tif
     sourceId: e7d10f09a4687f95
     alt: ''

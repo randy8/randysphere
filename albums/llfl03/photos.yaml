@@ -43,6 +43,7 @@ photos:
     tags:
       - llfl03
     rotate: 270
+    featured: true
   - file: RLiang10232615.tif
     sourceId: 2210ba8daf1e6435
     alt: ''
@@ -116,11 +117,14 @@ photos:
     alt: ''
     tags:
       - llfl03
+    rotate: 270
+    featured: true
   - file: RLiang10232627.tif
     sourceId: aa9e757305392dca
     alt: ''
     tags:
       - llfl03
+    featured: true
   - file: RLiang10232628.tif
     sourceId: 0f1a38cd22d5c0c1
     alt: ''

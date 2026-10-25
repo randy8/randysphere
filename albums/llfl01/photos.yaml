@@ -184,6 +184,7 @@ photos:
     alt: ''
     tags:
       - llfl01
+    featured: true
   - file: RLiang0708266.tif
     sourceId: 94f38fe47b09262c
     alt: ''
@@ -194,6 +195,7 @@ photos:
     alt: ''
     tags:
       - llfl01
+    featured: true
   - file: RLiang0708268.tif
     sourceId: 236edad2b0f9837c
     alt: ''
