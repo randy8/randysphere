@@ -103,6 +103,14 @@ dependency.
 
 **Removal cost:** total. There is no second image encoder in this project.
 
+**Held at 0.35.3 (2026-10-25).** `pnpm audit` reports two high advisories
+fixed in 0.35.4/0.35.5, both in libvips' SVG (librsvg) and HEIF (libheif)
+decoders. The pipeline only ever decodes TIFF, JPEG, PNG and WebP that the
+photographer scanned, so neither is reachable. Upgrading sharp can change
+libvips' encoder output, which would re-key and re-encode every derivative
+(the encode spec includes the encoder), so it should be its own deliberate
+step: bump, `pnpm ingest`, compare a sample of derivatives by eye.
+
 ### `yaml` — `^2.8.0`
 
 Reading and writing `albums/<slug>/photos.yaml`.
