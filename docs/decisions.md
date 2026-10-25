@@ -2765,6 +2765,7 @@ And the LCP element was a `loading="lazy"` tile: the server gave the first
 tile high priority, then the deferred shuffle moved it somewhere random.
 
 **Decision.**
+
 - `pipeline.config.ts` adds 320 and 480 widths (landscape medians 15.5 KB
   and 33 KB, against 58 KB at 640). Same quality setting; a browser only
   picks one that still covers the tile at its own pixel density, so
