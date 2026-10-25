@@ -43,6 +43,11 @@ Thumbs.db
 # file next to it is fine to keep; this is not.
 /filebrowser/database/
 
+# The private notebook itself: served only behind /private's password, and
+# kept out of this public repository from 2026-10-25. It was committed once
+# before that (67c3081), so that version remains in history.
+/private/notes.yaml
+
 # Images referenced by private/notes.yaml — served only behind /private's
 # password, never committed (same as notes.yaml itself).
 /private/photos/
