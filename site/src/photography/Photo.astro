@@ -29,6 +29,11 @@ interface Props {
 
 const { entry, sizes, priority = false, linked = true, maxWidth } = Astro.props;
 const { photo, alt } = entry;
+// A tile's link is named by its image's alt text. Until a photograph has
+// some (most don't yet — see CLAUDE.md), the link would otherwise be
+// announced as nothing at all; its caption, or a plain description of what
+// the link does, stands in.
+const linkLabel = alt ? undefined : (entry.caption ?? 'View photograph');
 const base = photography.imageBaseUrl;
 
 function capped(variants: readonly Variant[]): readonly Variant[] {
@@ -58,7 +63,12 @@ const placeholder = priority
 
 <Fragment>
   {linked ? (
-    <a class="photo" data-orientation={orientation} href={assetUrl(base, full.key)}>
+    <a
+      class="photo"
+      data-orientation={orientation}
+      href={assetUrl(base, full.key)}
+      aria-label={linkLabel}
+    >
       <picture>
         {avif.length > 0 && <source type="image/avif" srcset={srcset(base, avif)} sizes={sizes} />}
         {webp.length > 0 && <source type="image/webp" srcset={srcset(base, webp)} sizes={sizes} />}
