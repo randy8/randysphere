@@ -45,6 +45,7 @@ const tracks = loadTracks();
                       width="1280"
                       height="720"
                       loading={index < 2 ? 'eager' : 'lazy'}
+                      fetchpriority={index === 0 ? 'high' : undefined}
                       decoding="async"
                       data-tune-thumb
                       data-video-id={track.videoId}
