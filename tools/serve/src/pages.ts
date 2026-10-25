@@ -96,14 +96,15 @@ ${body}
 `;
 }
 
-export function renderGate(wrongPassword: boolean): string {
+/** The password gate; `message` is a plain-text notice above the field (a wrong password, a lockout), or null. */
+export function renderGate(message: string | null): string {
   return shell(
     'Private',
     `
 <h1>Private</h1>
-${wrongPassword ? '<p class="error">Wrong password.</p>' : ''}
+${message === null ? '' : `<p class="error" role="alert">${escapeHtml(message)}</p>`}
 <form class="gate" method="POST" action="/private/login">
-  <input type="password" name="password" autofocus autocomplete="current-password">
+  <input type="password" name="password" aria-label="Password" autofocus autocomplete="current-password">
   <button type="submit">Enter</button>
 </form>
 `,

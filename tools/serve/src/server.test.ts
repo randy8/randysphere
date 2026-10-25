@@ -421,3 +421,45 @@ test('canonicalPagePath refuses to look outside dist/', async () => {
   assert.equal(await canonicalPagePath('/nonexistent', '/../etc'), null);
   assert.equal(await canonicalPagePath('/nonexistent', '/p/abc123'), null);
 });
+
+async function login(password: string, client: string): Promise<Response> {
+  return fetch(`${baseUrl}/private/login`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      'cf-connecting-ip': client,
+    },
+    body: new URLSearchParams({ password }),
+  });
+}
+
+test('five wrong passwords lock that visitor out, even with the right password, with Retry-After', async () => {
+  const client = '203.0.113.10';
+  for (let i = 0; i < 5; i += 1) assert.equal((await login('wrong', client)).status, 401);
+  const locked = await login(PASSWORD, client);
+  assert.equal(locked.status, 429);
+  assert.ok(Number(locked.headers.get('retry-after')) > 0);
+  assert.match(await locked.text(), /Too many attempts/);
+  assert.equal(locked.headers.get('set-cookie'), null);
+});
+
+test("one visitor's lockout never locks out another arriving through the tunnel", async () => {
+  for (let i = 0; i < 6; i += 1) await login('wrong', '203.0.113.20');
+  const owner = await login(PASSWORD, '198.51.100.5');
+  assert.equal(owner.status, 303);
+  assert.match(owner.headers.get('set-cookie') ?? '', /private_session=/);
+});
+
+test('a correct password before the limit clears the count', async () => {
+  const client = '203.0.113.30';
+  for (let i = 0; i < 4; i += 1) await login('wrong', client);
+  assert.equal((await login(PASSWORD, client)).status, 303);
+  for (let i = 0; i < 4; i += 1) assert.equal((await login('wrong', client)).status, 401);
+  assert.equal((await login(PASSWORD, client)).status, 303);
+});
+
+test('the password gate labels its field', async () => {
+  const html = await (await fetch(`${baseUrl}/private`)).text();
+  assert.match(html, /<input type="password"[^>]*aria-label="Password"/);
+});

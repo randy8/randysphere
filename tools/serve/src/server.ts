@@ -6,6 +6,7 @@ import { extname, join } from 'node:path';
 
 import { clearSessionCookie, readSessionCookie, setSessionCookie } from './cookies.ts';
 import { loadNotes } from './notes.ts';
+import { LoginLimiter, clientAddress } from './login-limiter.ts';
 import { renderArchive, renderGate } from './pages.ts';
 import { createSessionToken, passwordMatches, verifySessionToken } from './session.ts';
 import type { PhotoPreview } from './share-preview.ts';
@@ -257,6 +258,7 @@ async function readPassword(req: IncomingMessage): Promise<string | null> {
 
 async function route(
   config: ServeConfig,
+  limiter: LoginLimiter,
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
@@ -271,23 +273,40 @@ async function route(
     if (isAuthenticated(config, req)) {
       sendHtml(res, 200, renderArchive(loadNotes(config.notesPath)));
     } else {
-      sendHtml(res, 200, renderGate(false));
+      sendHtml(res, 200, renderGate(null));
     }
     return;
   }
 
   if (pathname === '/private/login' && method === 'POST') {
+    const client = clientAddress(req);
+    const wait = limiter.retryAfterMs(client);
+    if (wait > 0) {
+      const minutes = Math.ceil(wait / 60_000);
+      res.writeHead(429, {
+        'content-type': 'text/html; charset=utf-8',
+        'retry-after': String(Math.ceil(wait / 1000)),
+      });
+      res.end(
+        renderGate(
+          `Too many attempts. Try again in ${String(minutes)} minute${minutes === 1 ? '' : 's'}.`,
+        ),
+      );
+      return;
+    }
     const password = await readPassword(req);
     if (password === null) {
       sendText(res, 413, 'Payload too large');
       return;
     }
     if (passwordMatches(config.sessionSecret, password, config.password)) {
+      limiter.recordSuccess(client);
       const token = createSessionToken(config.sessionSecret);
       res.writeHead(303, { 'set-cookie': setSessionCookie(token), location: '/private' });
       res.end();
     } else {
-      sendHtml(res, 401, renderGate(true));
+      limiter.recordFailure(client);
+      sendHtml(res, 401, renderGate('Wrong password.'));
     }
     return;
   }
@@ -417,8 +436,13 @@ async function route(
   sendText(res, 404, 'Not found');
 }
 
-function handleRequest(config: ServeConfig, req: IncomingMessage, res: ServerResponse): void {
-  route(config, req, res).catch((error: unknown) => {
+function handleRequest(
+  config: ServeConfig,
+  limiter: LoginLimiter,
+  req: IncomingMessage,
+  res: ServerResponse,
+): void {
+  route(config, limiter, req, res).catch((error: unknown) => {
     console.error(error);
     sendText(res, 500, 'Internal error');
   });
@@ -434,7 +458,9 @@ function handleRequest(config: ServeConfig, req: IncomingMessage, res: ServerRes
  * access with a real session instead.
  */
 export function createPrivateSiteServer(config: ServeConfig): Server {
+  // One per server, so failed logins are counted for this process alone.
+  const limiter = new LoginLimiter();
   return createServer((req, res) => {
-    handleRequest(config, req, res);
+    handleRequest(config, limiter, req, res);
   });
 }
