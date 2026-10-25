@@ -98,22 +98,37 @@ function cacheControlFor(relative: string): string | undefined {
   if (relative.startsWith('fonts/')) {
     return 'public, max-age=2592000';
   }
+  // Pages keep their URL across deploys, so they're never served from a
+  // cache without asking: `no-cache` means "revalidate", which sendFile's
+  // ETag answers with a 304 when nothing changed.
+  if (relative.endsWith('.html')) return 'no-cache';
   return undefined;
 }
 
+/** Responses that must never be stored anywhere: not by the browser, not by Cloudflare. */
+const NO_STORE = { 'cache-control': 'private, no-store' };
+
+/**
+ * A static file, with validators: a weak ETag (size and modification time —
+ * weak because Cloudflare drops strong ETags when it re-compresses) and
+ * Last-Modified, answered with a body-less 304 when the browser already has
+ * this version. Every deploy writes new files, so the validators change
+ * exactly when the content does.
+ */
 async function sendFile(
+  req: IncomingMessage,
   res: ServerResponse,
   path: string,
   cacheControl?: string,
   onNotFound?: () => void | Promise<void>,
 ): Promise<void> {
-  let isFile: boolean;
+  let info: Awaited<ReturnType<typeof stat>> | null;
   try {
-    isFile = (await stat(path)).isFile();
+    info = await stat(path);
   } catch {
-    isFile = false;
+    info = null;
   }
-  if (!isFile) {
+  if (info === null || !info.isFile()) {
     if (onNotFound) {
       await onNotFound();
     } else {
@@ -121,11 +136,37 @@ async function sendFile(
     }
     return;
   }
-  res.writeHead(200, {
+  const etag = `W/"${info.size.toString(16)}-${Math.floor(info.mtimeMs).toString(16)}"`;
+  const lastModified = new Date(Math.floor(info.mtimeMs / 1000) * 1000).toUTCString();
+  const headers = {
     'content-type': CONTENT_TYPES[extname(path)] ?? 'application/octet-stream',
+    etag,
+    'last-modified': lastModified,
     ...(cacheControl ? { 'cache-control': cacheControl } : {}),
-  });
+  };
+  if (isFresh(req, etag, info.mtimeMs)) {
+    res.writeHead(304, headers);
+    res.end();
+    return;
+  }
+  res.writeHead(200, headers);
   createReadStream(path).pipe(res);
+}
+
+/** Whether the browser's cached copy (If-None-Match, else If-Modified-Since) is still this version. */
+function isFresh(req: IncomingMessage, etag: string, mtimeMs: number): boolean {
+  const match = req.headers['if-none-match'];
+  if (typeof match === 'string') {
+    // Weak comparison: a W/ prefix on either side doesn't matter.
+    const strip = (tag: string): string => tag.trim().replace(/^W\//, '');
+    return match === '*' || match.split(',').some((tag) => strip(tag) === strip(etag));
+  }
+  const since = req.headers['if-modified-since'];
+  if (typeof since === 'string') {
+    const time = Date.parse(since);
+    return !Number.isNaN(time) && Math.floor(mtimeMs / 1000) * 1000 <= time;
+  }
+  return false;
 }
 
 /**
@@ -285,9 +326,9 @@ async function route(
   // rather than relying only on that filesystem fact.
   if (pathname === '/private' && method === 'GET') {
     if (isAuthenticated(config, req)) {
-      sendHtml(res, 200, renderArchive(loadNotes(config.notesPath)));
+      sendHtml(res, 200, renderArchive(loadNotes(config.notesPath)), NO_STORE);
     } else {
-      sendHtml(res, 200, renderGate(null));
+      sendHtml(res, 200, renderGate(null), NO_STORE);
     }
     return;
   }
@@ -298,6 +339,7 @@ async function route(
     if (wait > 0) {
       const minutes = Math.ceil(wait / 60_000);
       res.writeHead(429, {
+        ...NO_STORE,
         'content-type': 'text/html; charset=utf-8',
         'retry-after': String(Math.ceil(wait / 1000)),
       });
@@ -316,17 +358,21 @@ async function route(
     if (passwordMatches(config.sessionSecret, password, config.password)) {
       limiter.recordSuccess(client);
       const token = createSessionToken(config.sessionSecret);
-      res.writeHead(303, { 'set-cookie': setSessionCookie(token), location: '/private' });
+      res.writeHead(303, {
+        ...NO_STORE,
+        'set-cookie': setSessionCookie(token),
+        location: '/private',
+      });
       res.end();
     } else {
       limiter.recordFailure(client);
-      sendHtml(res, 401, renderGate('Wrong password.'));
+      sendHtml(res, 401, renderGate('Wrong password.'), NO_STORE);
     }
     return;
   }
 
   if (pathname === '/private/logout' && method === 'POST') {
-    res.writeHead(303, { 'set-cookie': clearSessionCookie(), location: '/private' });
+    res.writeHead(303, { ...NO_STORE, 'set-cookie': clearSessionCookie(), location: '/private' });
     res.end();
     return;
   }
@@ -341,7 +387,7 @@ async function route(
       sendText(res, 400, 'Bad request');
       return;
     }
-    await sendFile(res, join(config.privatePhotosDir, file));
+    await sendFile(req, res, join(config.privatePhotosDir, file), 'private, no-store');
     return;
   }
 
@@ -433,12 +479,13 @@ async function route(
           html = rewriteDescription(rewriteOgImage(html, config, preview), description);
         }
       }
-      sendHtml(res, 200, html);
+      sendHtml(res, 200, html, { 'cache-control': 'no-cache' });
       return;
     }
 
     const root = relativeWithoutSlash.startsWith('p/') ? config.derivativesDir : config.distDir;
     await sendFile(
+      req,
       res,
       join(root, relativeWithoutSlash),
       cacheControlFor(relativeWithoutSlash),

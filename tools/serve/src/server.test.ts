@@ -206,9 +206,65 @@ test('a self-hosted font gets a long cache header, but not immutable (the filena
   assert.equal(response.headers.get('cache-control'), 'public, max-age=2592000');
 });
 
-test('an HTML page gets no explicit cache-control — a rebuild reuses the same URL for different bytes', async () => {
-  const response = await fetch(`${baseUrl}/`);
-  assert.equal(response.headers.get('cache-control'), null);
+test('a page is revalidated, never served stale: no-cache with a weak ETag and Last-Modified', async () => {
+  const response = await fetch(`${baseUrl}/exposures/`);
+  assert.equal(response.headers.get('cache-control'), 'no-cache');
+  assert.match(response.headers.get('etag') ?? '', /^W\/"[0-9a-f]+-[0-9a-f]+"$/);
+  assert.ok(response.headers.get('last-modified'));
+});
+
+test('a browser that already has this version of a page gets a body-less 304', async () => {
+  const first = await fetch(`${baseUrl}/exposures/`);
+  const etag = first.headers.get('etag') ?? '';
+  const again = await fetch(`${baseUrl}/exposures/`, { headers: { 'if-none-match': etag } });
+  assert.equal(again.status, 304);
+  assert.equal(await again.text(), '');
+  assert.equal(again.headers.get('etag'), etag);
+});
+
+test('a stale or foreign ETag gets the full page', async () => {
+  const response = await fetch(`${baseUrl}/exposures/`, {
+    headers: { 'if-none-match': 'W/"0-0"' },
+  });
+  assert.equal(response.status, 200);
+  assert.match(await response.text(), /Public home/);
+});
+
+test('If-Modified-Since alone is honoured too', async () => {
+  const first = await fetch(`${baseUrl}/exposures/`);
+  const since = first.headers.get('last-modified') ?? '';
+  const again = await fetch(`${baseUrl}/exposures/`, { headers: { 'if-modified-since': since } });
+  assert.equal(again.status, 304);
+});
+
+test('nothing under /private may be stored by a browser or a shared cache', async () => {
+  const gate = await fetch(`${baseUrl}/private`);
+  assert.equal(gate.headers.get('cache-control'), 'private, no-store');
+  const wrong = await fetch(`${baseUrl}/private/login`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      'cf-connecting-ip': '203.0.113.90',
+    },
+    body: 'password=nope',
+  });
+  assert.equal(wrong.headers.get('cache-control'), 'private, no-store');
+  const signedIn = await fetch(`${baseUrl}/private/login`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      'cf-connecting-ip': '203.0.113.91',
+    },
+    body: new URLSearchParams({ password: PASSWORD }),
+  });
+  assert.equal(signedIn.headers.get('cache-control'), 'private, no-store');
+  const cookie = (signedIn.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+  const notes = await fetch(`${baseUrl}/private`, { headers: { cookie } });
+  assert.equal(notes.headers.get('cache-control'), 'private, no-store');
+  const photo = await fetch(`${baseUrl}/private/photos/fence.txt`, { headers: { cookie } });
+  assert.equal(photo.status, 200);
+  assert.equal(photo.headers.get('cache-control'), 'private, no-store');
 });
 
 test('an unknown path serves the real 404.html with a 404 status, not the public home page', async () => {
