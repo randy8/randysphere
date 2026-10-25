@@ -272,22 +272,25 @@ export function initZoom(root: HTMLElement): void {
   // Navigating away from a zoomed-in photo — prev/next, the keyboard, or
   // Saved's contact-sheet grid opening a different one — always resets it,
   // the same way a real photo viewer never leaves the next photograph
-  // zoomed in from whatever the last one was left at. Watching `.is-active`
-  // itself (rather than calling into lightbox.ts's own navigation
-  // functions) keeps this file self-contained — every way a photo stops
-  // being active flips this same class (see lightbox.ts's
-  // activate()/close()), so there's exactly one thing to watch.
+  // zoomed in from whatever the last one was left at. lightbox.ts reuses
+  // three slots, so there are two signals, both watched here rather than
+  // called from lightbox.ts to keep this file self-contained: a slot stops
+  // being `.is-active`, or a slot is given a different photograph
+  // (`data-photo-id`) — which can happen to the active slot itself when
+  // the lightbox is reopened on another photo.
   const items = Array.from(stage.querySelectorAll<HTMLElement>('.lightbox-item'));
   if (items.length === 0) return;
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       const item = mutation.target as HTMLElement;
-      if (item.classList.contains('is-active')) continue;
+      if (mutation.attributeName === 'class' && item.classList.contains('is-active')) continue;
       const frame = item.querySelector<HTMLElement>('.lightbox-frame');
       const img = frame?.querySelector('img') ?? null;
       if (frame === null || img === null) continue;
       reset(frame, img, stateFor(frame));
     }
   });
-  items.forEach((item) => observer.observe(item, { attributes: true, attributeFilter: ['class'] }));
+  items.forEach((item) => {
+    observer.observe(item, { attributes: true, attributeFilter: ['class', 'data-photo-id'] });
+  });
 }

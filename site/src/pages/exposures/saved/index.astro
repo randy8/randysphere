@@ -8,8 +8,8 @@ import { photography } from '../../../photography/config.ts';
 const archive = loadArchive();
 
 // The server has no idea what's saved (that's localStorage, entirely
-// client-side) — this page renders the whole archive, as a grid and as a
-// lightbox, and saved-view.ts prunes both down to the saved subset before a
+// client-side) — this page renders the whole archive, as a grid and as
+// lightbox data, and saved-view.ts prunes both down to the saved subset before a
 // visitor ever sees them. Archive order throughout: "Saved" is a filter
 // over the archive, not a separately-ordered list.
 ---

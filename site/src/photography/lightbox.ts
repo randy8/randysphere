@@ -13,6 +13,7 @@
  * pushing it, so moving between photos never fills up browser history.
  */
 
+import type { LightboxPhoto } from './lightbox-data.ts';
 import { hasSeenHint, isSaved, markHintSeen, savedCount, toggleSaved } from './saved.ts';
 import { initSwipe } from './swipe.ts';
 
@@ -56,6 +57,62 @@ function applySaveButtonState(button: HTMLElement, saved: boolean): void {
   if (label !== null) label.textContent = saved ? 'Saved' : 'Save';
 }
 
+/**
+ * Pours one photograph's data into a slot — the same attributes Photo.astro
+ * renders, set from lightbox-data.ts's JSON. A slot already holding this
+ * photograph is left alone, so a photo that was preloaded beside the
+ * current one is never reloaded when it becomes current.
+ */
+function fill(slot: HTMLElement, photo: LightboxPhoto): void {
+  if (slot.dataset['photoId'] === photo.id) return;
+  slot.dataset['photoId'] = photo.id;
+  const picture = slot.querySelector('picture');
+  picture?.setAttribute('data-orientation', photo.height > photo.width ? 'portrait' : 'landscape');
+  const [avif, webp] = Array.from(slot.querySelectorAll('source'));
+  const img = slot.querySelector('img');
+  for (const [source, value] of [
+    [avif, photo.avif],
+    [webp, photo.webp],
+  ] as const) {
+    if (source === undefined) continue;
+    if (value === null) source.removeAttribute('srcset');
+    else source.srcset = value;
+  }
+  if (img !== null) {
+    if (photo.jpeg === null) {
+      img.removeAttribute('srcset');
+      img.removeAttribute('sizes');
+    } else {
+      img.sizes = '100vw';
+      img.srcset = photo.jpeg;
+    }
+    img.width = photo.width;
+    img.height = photo.height;
+    img.alt = photo.alt;
+    img.style.backgroundColor = photo.color;
+    img.src = photo.src;
+  }
+  const film = slot.querySelector<HTMLElement>('[data-slot-film]');
+  const filmLink = film?.querySelector('a');
+  if (film && filmLink) {
+    film.hidden = photo.filmStock === null;
+    filmLink.textContent = photo.filmStock ?? '';
+    filmLink.href = photo.filmStock === null ? '' : `/exposures/film/${photo.filmStock}/`;
+  }
+  const caption = slot.querySelector<HTMLElement>('[data-slot-caption]');
+  if (caption) {
+    caption.hidden = photo.caption === null;
+    caption.textContent = photo.caption ?? '';
+  }
+  const camera = slot.querySelector<HTMLElement>('[data-slot-camera]');
+  if (camera) {
+    camera.hidden = photo.camera === null;
+    camera.textContent = photo.camera ?? '';
+  }
+  const button = slot.querySelector<HTMLElement>('[data-save]');
+  if (button !== null) applySaveButtonState(button, isSaved(photo.id));
+}
+
 function init(): void {
   const root = document.querySelector<HTMLElement>('[data-lightbox]');
   if (root === null) return;
@@ -63,33 +120,39 @@ function init(): void {
   const stage = root.querySelector<HTMLElement>('[data-lightbox-stage]');
   if (stage === null) return;
 
-  const allItems = Array.from(stage.querySelectorAll<HTMLElement>('[data-photo-id]'));
-  let items = allItems;
-  let ids = items.map((item) => item.dataset['photoId'] ?? '');
+  const photos = JSON.parse(
+    root.querySelector('[data-lightbox-photos]')?.textContent ?? '[]',
+  ) as LightboxPhoto[];
+  const byId = new Map(photos.map((photo) => [photo.id, photo]));
+  let ids = photos.map((photo) => photo.id);
+  const slots = Array.from(stage.querySelectorAll<HTMLElement>('.lightbox-item'));
   const position = root.querySelector<HTMLElement>('[data-lightbox-position]');
 
-  // Every save button starts server-rendered as unsaved (the server has no
-  // way to know what's in this visitor's localStorage) — reconcile once,
-  // on load, against whatever's actually saved.
-  allItems.forEach((item) => {
-    const button = item.querySelector<HTMLElement>('[data-save]');
-    if (button !== null) applySaveButtonState(button, isSaved(item.dataset['photoId'] ?? ''));
-  });
-
   let currentIndex = -1;
+  // The slots playing each role right now; swipe.ts reads these.
+  let current: HTMLElement | null = null;
+  let previous: HTMLElement | null = null;
+  let following: HTMLElement | null = null;
   let hintChecked = false;
+  // The photograph the first-use hint was shown under, so it stays with
+  // that photograph (and only it) as slots are reused.
+  let hintFor: string | null = null;
   let lastFocused: HTMLElement | null = null;
+
+  const syncHint = (slot: HTMLElement): void => {
+    const hint = slot.querySelector<HTMLElement>('[data-save-hint]');
+    if (hint !== null) hint.hidden = hintFor === null || slot.dataset['photoId'] !== hintFor;
+  };
 
   // The first-use hint attaches to whichever photo a visitor actually
   // opens first, shown once ever — not a modal or a tour, just one quiet
   // line under that one photo's Save button, gone for good once shown.
-  const maybeShowHint = (index: number): void => {
+  const maybeShowHint = (): void => {
     if (hintChecked) return;
     hintChecked = true;
-    if (savedCount() > 0 || hasSeenHint()) return;
-    const hint = items[index]?.querySelector<HTMLElement>('[data-save-hint]');
-    if (hint === null || hint === undefined) return;
-    hint.hidden = false;
+    if (savedCount() > 0 || hasSeenHint() || current === null) return;
+    hintFor = current.dataset['photoId'] ?? null;
+    syncHint(current);
     markHintSeen();
   };
 
@@ -107,25 +170,44 @@ function init(): void {
     history.replaceState(null, '', url);
   };
 
-  // Eagerly load the active photo plus its immediate neighbours (so a
-  // prev/next tap never shows a blank frame while its image fetches) —
-  // every other photo stays lazy, loaded only if a visitor actually
-  // navigates to it. A hidden (`display: none`) image's `loading="lazy"`
-  // never fetches on its own, so this is the only thing that triggers it.
-  const setEagerNeighbours = (index: number): void => {
-    [index - 1, index, index + 1].forEach((n) => {
-      const img = items[(n + items.length) % items.length]?.querySelector('img');
-      if (img !== null && img !== undefined) img.loading = 'eager';
-    });
-  };
-
+  /**
+   * Shows `index`, with its neighbours loaded in the other two slots so a
+   * prev/next tap or a swipe never meets a blank frame. Each role goes to
+   * the slot already holding that photograph where there is one — after a
+   * step forward the slot that held the next photo simply becomes the
+   * current one — and only what's left over is refilled.
+   */
   const activate = (index: number): void => {
-    items.forEach((item, i) => item.classList.toggle('is-active', i === index));
-    setEagerNeighbours(index);
+    const count = ids.length;
+    const idAt = (n: number): string => ids[(n + count) % count] ?? '';
+    // One, two or three distinct photographs: with two, the previous and
+    // next are the same one; with one, both are the current photo itself.
+    const wanted = [...new Set([idAt(index), idAt(index - 1), idAt(index + 1)])];
+    const free = [...slots];
+    const slotFor = new Map<string, HTMLElement>();
+    for (const id of wanted) {
+      const held = free.findIndex((slot) => slot.dataset['photoId'] === id);
+      if (held !== -1) slotFor.set(id, free.splice(held, 1)[0] as HTMLElement);
+    }
+    for (const id of wanted) {
+      if (slotFor.has(id)) continue;
+      const spare = free.shift();
+      const photo = byId.get(id);
+      if (spare === undefined || photo === undefined) continue;
+      fill(spare, photo);
+      slotFor.set(id, spare);
+    }
+    current = slotFor.get(idAt(index)) ?? null;
+    previous = slotFor.get(idAt(index - 1)) ?? null;
+    following = slotFor.get(idAt(index + 1)) ?? null;
+
+    slots.forEach((slot) => {
+      slot.classList.toggle('is-active', slot === current);
+      syncHint(slot);
+    });
     currentIndex = index;
-    if (position !== null)
-      position.textContent = `${(index + 1).toString()} / ${items.length.toString()}`;
-    maybeShowHint(index);
+    if (position !== null) position.textContent = `${(index + 1).toString()} / ${count.toString()}`;
+    maybeShowHint();
     replaceHash(ids[index] ?? '');
   };
 
@@ -149,7 +231,8 @@ function init(): void {
   // mode, a normal lightbox convention (Google Photos and most others do
   // the same).
   const advance = (forward: boolean): void => {
-    const next = (currentIndex + (forward ? 1 : -1) + items.length) % items.length;
+    if (ids.length === 0) return;
+    const next = (currentIndex + (forward ? 1 : -1) + ids.length) % ids.length;
     activate(next);
   };
 
@@ -169,11 +252,8 @@ function init(): void {
   });
 
   initSwipe(root, {
-    current: () => items[currentIndex] ?? null,
-    neighbours: () => ({
-      prev: items[(currentIndex - 1 + items.length) % items.length] ?? null,
-      next: items[(currentIndex + 1) % items.length] ?? null,
-    }),
+    current: () => current,
+    neighbours: () => ({ prev: previous, next: following }),
     advance,
     close,
   });
@@ -189,8 +269,8 @@ function init(): void {
     // Using the feature once is a stronger signal than merely seeing it —
     // dismiss the hint immediately rather than waiting for the once-ever
     // check above to run again (it may already have, on a different photo).
-    const hint = item?.querySelector<HTMLElement>('[data-save-hint]');
-    if (hint !== null && hint !== undefined) hint.hidden = true;
+    hintFor = null;
+    if (item) syncHint(item);
     markHintSeen();
   });
 
@@ -205,7 +285,7 @@ function init(): void {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     if (event.key === 's' || event.key === 'S') {
       event.preventDefault();
-      items[currentIndex]?.querySelector<HTMLElement>('[data-save]')?.click();
+      current?.querySelector<HTMLElement>('[data-save]')?.click();
       return;
     }
     if (event.key === 'ArrowRight') {
@@ -227,12 +307,15 @@ function init(): void {
     return true;
   };
 
-  const byId = new Map(allItems.map((item) => [item.dataset['photoId'] ?? '', item]));
   orderHandler = (order) => {
-    allItems.forEach((item) => item.classList.remove('is-active'));
-    items = order.flatMap((id) => byId.get(id) ?? []);
-    ids = items.map((item) => item.dataset['photoId'] ?? '');
-    for (const item of items) stage.appendChild(item);
+    ids = order.filter((id) => byId.has(id));
+    // A visible photo that's no longer in the order would leave prev/next
+    // pointing at slots for the old sequence; the next activate() refills.
+    if (!root.hidden && currentIndex !== -1) {
+      const id = current?.dataset['photoId'] ?? '';
+      const index = ids.indexOf(id);
+      if (index !== -1) activate(index);
+    }
   };
   if (pendingOrder !== null) {
     orderHandler(pendingOrder);
@@ -262,20 +345,12 @@ function init(): void {
 }
 
 // Deferred a microtask, not called inline: saved-view.ts and share-view.ts
-// both `import { openPhoto } from './lightbox.ts'` so they can hand a
-// clicked grid tile off to the lightbox once they've pruned it down to
-// their own subset — but per the ES module spec, evaluating an import means
-// running the imported module's own top-level code first, *before* the
-// importer's body continues. That would put this file's side effect
-// (init(), which snapshots `items`/`ids` from whatever's in the DOM right
-// now) ahead of that pruning on both pages, regardless of which <script>
-// tag looks first in the document. A microtask always runs after the
-// synchronous script that queued it finishes — which on these two pages
-// includes the rest of that importing script's body, the pruning included
-// — so by the time init() actually reads the DOM, it's already down to the
-// right subset. The other pages ([tag].astro, exposures/index.astro,
-// film/[stock].astro) see no change: init() still runs before anything
-// else touches the page.
+// import this module and call setLightboxOrder() with their own subset as
+// part of their own top-level code — which, per the ES module spec, runs
+// after this module's. A microtask runs once that synchronous script has
+// finished, so by the time init() opens a #photo-<id> from the URL, the
+// page's real order (pending until then, see setLightboxOrder) is already
+// in place. Every other page sees no difference.
 const deferredInit = (): void => {
   queueMicrotask(init);
 };

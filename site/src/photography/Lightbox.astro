@@ -1,37 +1,33 @@
 ---
-import Photo from './Photo.astro';
-import { formatCameraLine } from './camera.ts';
 import type { ArchivePhoto } from './archive.ts';
+import { LIGHTBOX_SIZES, lightboxJson, lightboxPhoto } from './lightbox-data.ts';
 
 interface Props {
   photos: readonly ArchivePhoto[];
   /**
-   * Passed straight through to each photograph's own Photo.astro maxWidth
-   * (see there) — unset everywhere except /exposures/saved/ and
-   * /exposures/share/, which each render every photo in the archive into
-   * this overlay (most of them destined to be pruned away client-side
-   * before a visitor ever opens one, see saved-view.ts/share-view.ts) and
-   * so pay for the full 2560-wide tier — deliberately kept for every other
-   * page's real full-size viewer — on hundreds of photographs that were
-   * never going to use it.
+   * Caps every photograph's srcset at this width (see Photo.astro's own
+   * maxWidth) — unset everywhere except /exposures/saved/ and
+   * /exposures/share/, which carry every public photograph's data for
+   * client-side pruning and so skip the 2560-wide tier the real full-size
+   * viewer on every other page keeps.
    */
   photoMaxWidth?: number;
 }
 
 const { photos, photoMaxWidth } = Astro.props;
+const data = lightboxJson(photos.map((entry) => lightboxPhoto(entry, photoMaxWidth)));
 ---
 
 {
   /*
     A standard lightbox: hidden until a grid tile is clicked (lightbox.ts),
-    then one photo at a time — not Browse mode's full-bleed scroll-snap
-    stack with its own title/outro panels. Those panels restated
-    information the grid's own (now never-hidden) header already shows, so
-    there's nothing here beyond the photograph itself and what describes
-    it. Every photo is still rendered server-side up front (reusing
-    Photo.astro exactly as before) and switched by toggling `.is-active`,
-    not fetched on demand — this is a straight swap-in for the old
-    scroll-snap stack, not a new loading strategy.
+    then one photograph at a time over the grid. Each photograph's markup
+    already exists once, as its grid tile; what the lightbox needs beyond
+    that (the full-size srcsets, film stock, caption, camera line) travels
+    as data in the JSON script below, and lightbox.ts pours it into three
+    reusable slots — the photograph on screen and the two either side of
+    it, which swipe.ts slides in during a drag and which are therefore
+    always already loaded. See docs/decisions.md, 2026-10-25.
   */
 }
 <div class="lightbox" data-lightbox hidden>
@@ -57,20 +53,20 @@ const { photos, photoMaxWidth } = Astro.props;
   </button>
   <div class="lightbox-stage" data-lightbox-stage>
     {
-      photos.map((entry) => (
-        <figure class="lightbox-item" data-photo-id={entry.photo.sourceId}>
+      [0, 1, 2].map(() => (
+        <figure class="lightbox-item">
           <div class="lightbox-frame">
-            <Photo entry={entry} sizes="100vw" linked={false} maxWidth={photoMaxWidth} />
+            <picture class="photo">
+              <source type="image/avif" sizes={LIGHTBOX_SIZES} />
+              <source type="image/webp" sizes={LIGHTBOX_SIZES} />
+              <img alt="" loading="eager" decoding="async" />
+            </picture>
           </div>
-          {
-            entry.roll.filmStock && (
-              <p class="lightbox-item-meta">
-                <a href={`/exposures/film/${entry.roll.filmStock}/`}>{entry.roll.filmStock}</a>
-              </p>
-            )
-          }
-          {entry.caption && <figcaption>{entry.caption}</figcaption>}
-          {formatCameraLine(entry) && <p class="lightbox-item-meta">{formatCameraLine(entry)}</p>}
+          <p class="lightbox-item-meta" data-slot-film hidden>
+            <a></a>
+          </p>
+          <figcaption data-slot-caption hidden></figcaption>
+          <p class="lightbox-item-meta" data-slot-camera hidden></p>
           <button type="button" class="lightbox-save" data-save aria-pressed="false">
             <span data-save-icon aria-hidden="true">
               +
@@ -84,6 +80,7 @@ const { photos, photoMaxWidth } = Astro.props;
       ))
     }
   </div>
+  <script is:inline type="application/json" data-lightbox-photos set:html={data} />
 </div>
 
 {

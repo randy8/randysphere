@@ -2704,3 +2704,39 @@ downtime for server-code changes, at the cost of a tunnel reconfiguration
 per deploy — a one-second restart is the honest trade for this site);
 running the watchdog as root (it would execute a script randy can edit);
 Docker or a reverse proxy (systemd already supervises both processes).
+
+---
+
+## 2026-10-25 — The lightbox is three reusable slots fed by JSON
+
+**Decision.** Every photo page used to render each photograph twice: its
+grid tile, and a full hidden `<figure>` in the lightbox. Now the lightbox
+is three slots — the photograph on screen and the one either side, which
+swipe.ts slides in during a drag — filled from an inline JSON list built by
+`lightbox-data.ts` with the same srcset helpers and width cap Photo.astro
+uses. Stepping forward reassigns roles by photograph (the slot already
+holding the preloaded next photo becomes current) and refills only the
+spare, so the photo on screen never reloads. zoom.ts also resets when a
+slot is given a different photograph, not only when it stops being active.
+Saved and Share stop pruning hidden markup and call `setLightboxOrder`.
+
+Measured against the old build, both served by tools/serve at 4× CPU
+throttle, three runs each: Exposures 4,320 → 1,622 elements and
+DOMContentLoaded 2.62 → 2.21s; Archives 9,032 → 3,295 elements and
+4.56 → 3.77s. Verified identical against the live old lightbox in
+Chromium: order through a shuffled grid and Selected Work's filter, wrap
+both ways, `#photo-` deep links, Enter/Escape focus, the next photo already
+loaded when shown, S to save, the once-only hint, one- and two-photo share
+links, swipe left/right/back/down, pinch-zoom reset on step and on reopen,
+and a pixel comparison at 1440 and 390px (differences only in the shuffled
+grid behind the scrim).
+
+**Rejected.** A single slot (swipe needs the neighbour in the DOM to slide
+it in); `<template>` per photograph (the parse cost — the actual problem —
+stays); building the lightbox from the grid tile's own markup (tiles carry
+only srcsets up to 1280px, the viewer needs 2560).
+
+**Also learned.** `astro preview` never served `/p/` images — the
+derivative middleware's `configurePreviewServer` hook doesn't run — so
+earlier local measurements of photo pages ran with every image 404ing.
+Measure photo pages through `node tools/serve/src/cli.ts --dist=…`.

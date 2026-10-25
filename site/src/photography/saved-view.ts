@@ -1,10 +1,10 @@
 /**
  * Page-specific glue for /exposures/saved/ alone — never imported
- * anywhere else. The page server-renders the entire archive twice (a grid
- * of thumbnails, the full lightbox markup) because it has no way to know
- * what's saved at build time; this module prunes both down to the saved
- * subset before lightbox.ts ever reads it (see the ordering note in
- * saved/index.astro), then runs the page's three modes:
+ * anywhere else. The page server-renders every public photograph's grid
+ * tile (and the lightbox's data for each) because it has no way to know
+ * what's saved at build time; this module prunes the grid down to the
+ * saved subset and hands that order to the lightbox (setLightboxOrder),
+ * then runs the page's three modes:
  *
  * - browse: tiles open the lightbox; × unsaves one; Share all; Select; Clear.
  * - select: tiles toggle a tick instead of opening (click, Enter or Space),
@@ -17,7 +17,7 @@
  * is one, and Open.
  */
 
-import { openPhoto } from './lightbox.ts';
+import { openPhoto, setLightboxOrder } from './lightbox.ts';
 import { encodeIds } from './share-code.ts';
 import { clearSaved, pruneStale, removeSaved, savedIds } from './saved.ts';
 
@@ -31,7 +31,6 @@ const $ = <T extends HTMLElement = HTMLElement>(selector: string): T | null =>
   document.querySelector<T>(selector);
 
 const grid = $('[data-saved-grid]');
-const stage = $('[data-lightbox-stage]');
 const emptyMessage = $('[data-saved-empty]');
 const summary = $('[data-saved-summary]');
 const actions = $('[data-saved-actions]');
@@ -58,12 +57,13 @@ function init(gridElement: HTMLElement): void {
   if (saved.size === 0) return;
 
   emptyMessage?.setAttribute('hidden', '');
+  const kept: string[] = [];
   gridElement.querySelectorAll<HTMLElement>('[data-photo-id]').forEach((tile) => {
-    if (!saved.has(tile.dataset['photoId'] ?? '')) tile.remove();
+    const id = tile.dataset['photoId'] ?? '';
+    if (saved.has(id)) kept.push(id);
+    else tile.remove();
   });
-  stage?.querySelectorAll<HTMLElement>('[data-photo-id]').forEach((item) => {
-    if (!saved.has(item.dataset['photoId'] ?? '')) item.remove();
-  });
+  setLightboxOrder(kept);
 
   let mode: Mode = 'browse';
   const selected = new Set<string>();
@@ -224,9 +224,8 @@ function init(gridElement: HTMLElement): void {
 
     const removeButton = event.target.closest<HTMLElement>('[data-remove-saved]');
     if (removeButton !== null && mode !== 'select') {
-      // Only the grid tile — the matching photo in the (already built)
-      // lightbox markup is left in place rather than spliced out of
-      // lightbox.ts's own bookkeeping; it won't reappear next load.
+      // Only the grid tile: the lightbox keeps it in its order until the
+      // next load, as it always has.
       removeSaved(id);
       selected.delete(id);
       tile.remove();

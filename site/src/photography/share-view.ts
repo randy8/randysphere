@@ -6,11 +6,10 @@
  * it in, not archive order — so this reorders the DOM, not just filters it.
  */
 
-import { openPhoto } from './lightbox.ts';
+import { openPhoto, setLightboxOrder } from './lightbox.ts';
 import { resolveIds, sharedPrefixes } from './share-code.ts';
 
 const grid = document.querySelector<HTMLElement>('[data-share-grid]');
-const stage = document.querySelector<HTMLElement>('[data-lightbox-stage]');
 const emptyMessage = document.querySelector<HTMLElement>('[data-share-empty]');
 const summary = document.querySelector<HTMLElement>('[data-share-summary]');
 const missingNote = document.querySelector<HTMLElement>('[data-share-missing]');
@@ -39,29 +38,9 @@ if (grid !== null) {
         el,
       ]),
     );
-    const stageItems = new Map(
-      Array.from(stage?.querySelectorAll<HTMLElement>('[data-photo-id]') ?? [], (el) => [
-        el.dataset['photoId'],
-        el,
-      ]),
-    );
-
-    // Reorder into the shared sequence (not archive order) by re-appending
-    // in that order — the same technique exposures/index.astro's own
-    // shuffle script already uses. Anything not in `ids` is simply never
-    // re-appended, and gets removed below.
-    ids.forEach((id) => {
-      const tile = gridTiles.get(id);
-      if (tile !== undefined) grid.appendChild(tile);
-      const item = stageItems.get(id);
-      if (item !== undefined && stage !== null) stage.appendChild(item);
-    });
     const keep = new Set(ids);
     gridTiles.forEach((tile, id) => {
       if (id === undefined || !keep.has(id)) tile.remove();
-    });
-    stageItems.forEach((item, id) => {
-      if (id === undefined || !keep.has(id)) item.remove();
     });
 
     if (summary !== null) {
@@ -88,8 +67,6 @@ if (grid !== null) {
     // since removed): show only the message, never the whole archive the
     // page was rendered with.
     grid.replaceChildren();
-    stage?.querySelectorAll('[data-photo-id]').forEach((item) => {
-      item.remove();
-    });
+    setLightboxOrder([]);
   }
 }
