@@ -50,6 +50,33 @@ const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
     <meta property="og:image" content={ogImage} />
     {image && imageWidth && <meta property="og:image:width" content={String(imageWidth)} />}
     {image && imageHeight && <meta property="og:image:height" content={String(imageHeight)} />}
+
+    {
+      /* Prefetch on intent: a pointer resting ~200 ms on a same-site link
+         (or a press, on touch) fetches that page's HTML, so the click lands
+         on a page already downloaded. Not prerender: that would also run
+         the page's scripts (a fresh shuffle) invisibly. Excluded: /p/ —
+         every grid tile links to its full-size 2560 px JPEG, which hovering
+         a grid must never pull — and /private. Browsers without speculation
+         rules ignore this. See docs/decisions.md, 2026-10-25. */
+    }
+    <script type="speculationrules" is:inline>
+      {
+        "prefetch": [
+          {
+            "where": {
+              "and": [
+                { "href_matches": "/*" },
+                { "not": { "href_matches": "/p/*" } },
+                { "not": { "href_matches": "/private*" } },
+                { "not": { "selector_matches": "[target=_blank]" } }
+              ]
+            },
+            "eagerness": "moderate"
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <a class="skip-link" href="#content">Skip to content</a>
