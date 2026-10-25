@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # pnpm rollback — swap the live release with the previous one. Run it again
 # to swap back: nothing is deleted, so a rollback is itself reversible.
-# Rolls back the built site (site/dist); server code (tools/serve) comes
+# Rolls back the built site (site/release); server code (tools/serve) comes
 # from the repository, so undoing a server change is `git revert` + deploy.
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
@@ -18,7 +18,7 @@ rm -rf "$NEXT"
 mv "$LIVE" "$NEXT"
 mv "$PREV" "$LIVE"
 mv "$NEXT" "$PREV"
-# No restart: the server reads site/dist from disk on every request, and
+# No restart: the server reads site/release from disk on every request, and
 # its own code isn't part of a release. A pure swap — no downtime.
 
 step "Production check"

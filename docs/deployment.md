@@ -12,7 +12,7 @@ browser
   → randyliang.net / www.randyliang.net
   → Cloudflare Tunnel                      (cloudflared-tunnel.service, user randy)
   → http://localhost:4322                  (photography-serve.service, user randy)
-  → tools/serve reads site/dist/           (the live release, built by `pnpm deploy`)
+  → tools/serve reads site/release/        (the live release, written only by `pnpm deploy`)
                     and /p/... from generated/derivatives/ (written by `pnpm ingest`)
 ```
 
@@ -54,14 +54,14 @@ changed in production:
 2. **Dependencies** match the lockfile (`pnpm install --frozen-lockfile`).
 3. **`pnpm verify`** — format, lint, types, every test, a trial build.
 4. **`pnpm sync`** — new photographs and films.
-5. **Build the next release into `site/dist.next/`**, beside the live one,
+5. **Build the next release into `site/release.next/`**, beside the live one,
    with `build-info.json` recording the commit (`-dirty` if the tree had
    uncommitted changes), the time, and a hash of the server's code.
 6. **Candidate check** — a second server on `:4398` serves the new release;
    `/healthz` must pass, `/exposures/` must be the Exposures page and serve a
    real photograph, `/pictures/` must list films.
-7. **Switch** — two renames: `dist` → `dist.prev`, `dist.next` → `dist`.
-   The server reads `site/dist` from disk on every request, so a content
+7. **Switch** — two renames: `release` → `release.prev`, `release.next` →
+   `release`. The server reads `site/release` from disk on every request, so a content
    change needs **no restart and has no downtime**. Only when the server's
    own code changed is `photography-serve` restarted (about a second; a
    request in that gap gets a 502 from cloudflared — the tunnel stays up).
@@ -84,7 +84,7 @@ remove with `sudo rm /etc/sudoers.d/photography-deploy`.
 
 ## Rolling back: `pnpm rollback`
 
-Swaps `site/dist` and `site/dist.prev` and re-runs the production check.
+Swaps `site/release` and `site/release.prev` and re-runs the production check.
 Nothing is deleted, so running it again rolls forward. It's a file swap
 with no restart: zero downtime. It covers the **built site** only — the
 server's code comes from the repository, so undoing a server change is
@@ -92,13 +92,10 @@ server's code comes from the repository, so undoing a server change is
 (about 4 MB); originals, derivatives, manifests and `.env` are never part
 of a release and are never touched.
 
-**Known hazard:** `pnpm build` writes straight into `site/dist`, the
-directory production serves, so a local build changes the live site at
-once and skips every check (and leaves a release with no
-`build-info.json`, which `pnpm status` shows as an unknown commit). Until
-production serves a directory of its own, build locally with
-`pnpm --filter @photo/site exec astro build --outDir dist.local`, or just
-use `pnpm deploy`.
+**Local builds can't touch production.** `pnpm build` writes `site/dist`;
+production serves `site/release`, which only `pnpm deploy` writes. (Until
+2026-10-25 both were `site/dist`, and a plain `pnpm build` twice put an
+unchecked build live.) `pnpm preview` serves the local `site/dist`.
 
 ## Health and the watchdog
 

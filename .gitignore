@@ -56,7 +56,11 @@ Thumbs.db
 # new skips reading every original (see tools/pipeline/src/source-hashes.ts).
 /generated/source-hashes.json
 
-# The deploy builds the next release beside the live site/dist, and keeps
-# the one it replaced for `pnpm rollback` (deploy/deploy.sh).
+# What production serves (site/release), the next release being built
+# beside it, and the one it replaced, kept for `pnpm rollback`. Only
+# `pnpm deploy` writes these (deploy/deploy.sh).
+/site/release/
+/site/release.next/
+/site/release.prev/
 /site/dist.next/
 /site/dist.prev/

@@ -8,6 +8,9 @@ originals/
 dist/
 dist.next/
 dist.prev/
+release/
+release.next/
+release.prev/
 .astro/
 .wrangler/
 

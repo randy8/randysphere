@@ -44,7 +44,7 @@ albums/<batch>/album.md          only `cover:` is read
    │
    ▼
 site/ (Astro, static)   reads manifests + albums/, builds HTML only
-tools/serve/            production server: site/dist/ + /p/ straight from
+tools/serve/            production server: site/release/ (written only by `pnpm deploy`) + /p/ straight from
                         generated/derivatives/ + password-gated /private
 ```
 
@@ -84,7 +84,7 @@ tools/serve/            production server: site/dist/ + /p/ straight from
   the editor. Baked into derivatives at ingest; part of each derivative's
   encode spec (only when non-zero), so only rotated photos re-encode.
 - **Gallery**: every photo grid — tag/film/Selected Work pages, and Saved/
-  Share's contact sheets — is one `.grid`, a plain CSS grid with no JS; `masonry.ts` then
+  Share's contact sheets — is one `.grid`, a plain CSS grid with no JS; `grid-layout.js` (inlined before first paint by `GridLayout.astro`) then
   places each figure in the shortest column (positions only, never DOM
   order — the lightbox, tab order, and Selected Work's filter/shuffle depend
   on DOM order). Column count lives in `--grid-columns` in `base.css`.

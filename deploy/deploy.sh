@@ -2,7 +2,7 @@
 # pnpm deploy — build the next release beside the live one, prove it on a
 # spare port, then switch to it with two renames. Visitors never see a
 # half-built site, and the server is restarted only when its own code
-# changed (it reads site/dist from disk on every request). If production
+# changed (it reads site/release from disk on every request). If production
 # then fails its checks, the previous release is put back automatically.
 # See docs/deployment.md.
 set -euo pipefail
@@ -32,7 +32,7 @@ pnpm sync
 
 step "Building the next release beside the live one"
 rm -rf "$NEXT"
-pnpm --filter @photo/site exec astro build --outDir dist.next >/dev/null
+pnpm --filter @photo/site exec astro build --outDir release.next >/dev/null
 commit="$(git rev-parse --short HEAD)$(git diff --quiet HEAD -- . ':!filebrowser' || echo '-dirty')"
 printf '{"commit":"%s","builtAt":"%s","serve":"%s"}\n' \
   "$commit" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(serve_hash)" >"$NEXT/build-info.json"
@@ -48,7 +48,8 @@ trap - EXIT
 
 step "Switching to $commit"
 rm -rf "$PREV"
-mv "$LIVE" "$PREV"
+# The first deploy into site/release has nothing there to keep yet.
+if [[ -d "$LIVE" ]]; then mv "$LIVE" "$PREV"; fi
 mv "$NEXT" "$LIVE"
 if [[ "$(release_field "$PREV" serve)" != "$(serve_hash)" ]]; then restart_server; fi
 

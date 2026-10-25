@@ -30,10 +30,14 @@ const preview = process.argv.includes('--preview');
 const throwaway = (): string => randomBytes(32).toString('hex');
 const password = process.env['PRIVATE_SITE_PASSWORD'] ?? (preview ? throwaway() : undefined);
 const sessionSecret = process.env['PRIVATE_SESSION_SECRET'] ?? (preview ? throwaway() : undefined);
-// --dist= lets the deploy start a candidate server on a new build before
-// switching to it; production always serves site/dist.
+// Production serves site/release, which only `pnpm deploy` writes — so a
+// local `pnpm build` (into site/dist) can never change the live site.
+// --preview serves that local build instead; --dist= lets the deploy start
+// a candidate server on a new release before switching to it.
 const distArg = process.argv.find((arg) => arg.startsWith('--dist='));
-const distDir = distArg ? distArg.slice('--dist='.length) : join(ROOT, 'site', 'dist');
+const distDir = distArg
+  ? distArg.slice('--dist='.length)
+  : join(ROOT, 'site', process.argv.includes('--preview') ? 'dist' : 'release');
 
 if (!password || !sessionSecret) {
   console.error(

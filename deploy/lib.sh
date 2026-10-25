@@ -3,9 +3,9 @@
 # the watchdog can never disagree about it.
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LIVE="$REPO/site/dist"
-NEXT="$REPO/site/dist.next"
-PREV="$REPO/site/dist.prev"
+LIVE="$REPO/site/release"
+NEXT="$REPO/site/release.next"
+PREV="$REPO/site/release.prev"
 ORIGIN="http://127.0.0.1:4322"
 PUBLIC="https://randyliang.net"
 
@@ -38,7 +38,7 @@ wait_for() {
 }
 
 # The server's own code, hashed: a deploy that doesn't change it needs no
-# restart, because the server reads site/dist from disk on every request.
+# restart, because the server reads site/release from disk on every request.
 serve_hash() {
   find "$REPO/tools/serve/src" -name '*.ts' ! -name '*.test.ts' -print0 | sort -z |
     xargs -0 sha256sum | sha256sum | cut -c1-16

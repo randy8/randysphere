@@ -2,7 +2,7 @@
 # hosts randyliang.net. This file is the source of truth — install changes
 # with the steps in docs/deployment.md ("Installing or updating the units").
 #
-# Serves the already-built site/dist plus the password-gated /private area
+# Serves the deployed site/release plus the password-gated /private area
 # (tools/serve). It does not build anything: `pnpm deploy` builds a release
 # beside the live one and switches to it, restarting this unit only when the
 # server's own code changed. Secrets come from the repository's .env (mode

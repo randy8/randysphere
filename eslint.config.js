@@ -14,6 +14,9 @@ export default defineConfig([
     '**/dist/',
     '**/dist.next/',
     '**/dist.prev/',
+    '**/release/',
+    '**/release.next/',
+    '**/release.prev/',
     '**/.astro/',
     '**/.wrangler/',
   ]),
@@ -89,6 +92,21 @@ export default defineConfig([
         getComputedStyle: 'readonly',
         setTimeout: 'readonly',
         console: 'readonly',
+      },
+    },
+  },
+
+  {
+    // grid-layout.js is inlined into pages as text (GridLayout.astro), so
+    // it's plain browser JavaScript with no bundler in between.
+    files: ['site/src/**/*.js'],
+    languageOptions: {
+      globals: {
+        document: 'readonly',
+        getComputedStyle: 'readonly',
+        HTMLElement: 'readonly',
+        ResizeObserver: 'readonly',
+        MutationObserver: 'readonly',
       },
     },
   },
