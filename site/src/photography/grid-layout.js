@@ -8,9 +8,7 @@
  * 2026-10-25).
  *
  * 1. Deal (pages that shuffle): a random order, before the browser lays
- *    out — and starts loading — the server's archival order; then the
- *    first row loads eagerly, the first tile at high priority, because
- *    those are the photographs actually on top.
+ *    out — and starts loading — the server's archival order.
  * 2. Masonry: each figure into whichever column is shortest, at its own
  *    aspect ratio (width/height attributes are on every <img>, so heights
  *    are known before any image loads). Only positions change, never DOM
@@ -18,7 +16,9 @@
  *    working. Absolute positioning rather than fine grid-row spans: a
  *    400-photograph page would need more implicit rows than browsers lay
  *    out.
- * 3. Afterwards: re-place on a width change, when figures are reordered
+ * 3. Priority: the photographs that landed in the first viewport load
+ *    eagerly at high priority; the rest stay lazy.
+ * 4. Afterwards: re-place on a width change, when figures are reordered
  *    or hidden (Shuffle, the film filter, Saved and Share pruning), and
  *    once web fonts settle a caption's height.
  *
@@ -41,12 +41,6 @@ function placeGrid(grid, deal) {
       [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
     }
     grid.append(...tiles);
-    tiles.slice(0, columnCount()).forEach((tile, index) => {
-      const img = tile.querySelector('img');
-      if (!img) return;
-      img.loading = 'eager';
-      if (index === 0) img.fetchPriority = 'high';
-    });
   }
 
   const layout = () => {
@@ -72,6 +66,23 @@ function placeGrid(grid, deal) {
 
   grid.classList.add('is-masonry');
   layout();
+
+  // Now every tile's place is known: the ones that landed in the first
+  // viewport load immediately, at high priority — they're what the
+  // visitor sees first, and the largest of them is the page's largest
+  // paint. Everything below stays lazy, so it can't compete for the
+  // connection. (Measured 2026-10-25: promoting only the first tile per
+  // column left the actual largest visible photo queued behind ~50 lazy
+  // ones on a slow connection.)
+  const viewportBottom = window.innerHeight - grid.getBoundingClientRect().top;
+  for (const item of grid.children) {
+    const top = new DOMMatrixReadOnly(getComputedStyle(item).transform).m42;
+    if (top >= viewportBottom) continue;
+    const img = item.querySelector('img');
+    if (!img) continue;
+    img.loading = 'eager';
+    img.fetchPriority = 'high';
+  }
 
   // Width only: setting the grid's own height above would otherwise
   // re-trigger the observer forever.

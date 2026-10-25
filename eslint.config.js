@@ -107,6 +107,8 @@ export default defineConfig([
         HTMLElement: 'readonly',
         ResizeObserver: 'readonly',
         MutationObserver: 'readonly',
+        DOMMatrixReadOnly: 'readonly',
+        window: 'readonly',
       },
     },
   },
