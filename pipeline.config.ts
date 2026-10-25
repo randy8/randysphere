@@ -23,8 +23,13 @@ const config: PipelineConfig = {
   recipeVersion: 2,
 
   /**
-   * Widths offered in srcset, in physical pixels. 640/960/1280/1920 cover
-   * the grid and smaller screens; 2560 is the top tier for the full-size
+   * Widths offered in srcset, in physical pixels. 320 and 480 exist for the
+   * grid: a tile is at most 280 CSS px wide, so a 1× screen needs ~280 px
+   * and a 1.5× laptop ~420 px, where 640 used to be the smallest on offer
+   * (2–4× the pixels, measured at 3–4 MB extra per Exposures load,
+   * 2026-10-25). Retina screens and phones still pick 640+ by themselves.
+   * 640/960/1280/1920 cover the grid at higher densities and smaller
+   * screens; 2560 is the top tier for the full-size
    * browse view (`sizes="100vw"`), landing well into Retina territory for
    * any real desktop viewport without publishing a near-original-resolution
    * file for every photograph — this is a fidelity-first archive, not a
@@ -32,7 +37,7 @@ const config: PipelineConfig = {
    * smallest acceptable download. Widths larger than a given photograph are
    * skipped automatically, so small scans do not produce upscaled files.
    */
-  widths: [640, 960, 1280, 1920, 2560],
+  widths: [320, 480, 640, 960, 1280, 1920, 2560],
 
   /** Lanczos3 is the sharpest of the available resamplers and the usual choice for photographs. */
   kernel: 'lanczos3',

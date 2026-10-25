@@ -3,6 +3,8 @@
   "recipe": {
     "recipeVersion": 2,
     "widths": [
+      320,
+      480,
       640,
       960,
       1280,
