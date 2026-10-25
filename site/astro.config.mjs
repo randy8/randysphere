@@ -4,8 +4,9 @@ import { fileURLToPath } from 'node:url';
 
 import { defineConfig } from 'astro/config';
 
-const DERIVATIVES =
-  join(dirname(fileURLToPath(import.meta.url)), '..', 'generated', 'derivatives') + sep;
+const SITE = dirname(fileURLToPath(import.meta.url));
+const ROOT = join(SITE, '..');
+const DERIVATIVES = join(ROOT, 'generated', 'derivatives') + sep;
 const IMAGE_TYPES = { '.avif': 'image/avif', '.webp': 'image/webp', '.jpg': 'image/jpeg' };
 
 /**
@@ -64,6 +65,19 @@ export default defineConfig({
       // serves this machine as <host>.<tailnet>.ts.net, so that suffix has to
       // be allowed or every request over the tailnet returns "Blocked request".
       allowedHosts: ['.ts.net', 'localhost'],
+      // What the dev server may hand out over /@fs/. Vite's default is the
+      // whole pnpm workspace — this repository — which put private/ (the
+      // /private notebook) and full-resolution originals/ one URL away from
+      // anyone on the LAN or tailnet while `astro dev --host` ran. The
+      // site's own build-time reads (manifests, albums/, recipes/) go
+      // through Node's fs and aren't affected; over HTTP the dev server
+      // only ever needs site/ and node_modules/. The deny list keeps Vite's
+      // defaults and names the two directories that must never be served,
+      // whatever `allow` becomes later.
+      fs: {
+        allow: [SITE, join(ROOT, 'node_modules')],
+        deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/private/**', '**/originals/**'],
+      },
     },
   },
 });
