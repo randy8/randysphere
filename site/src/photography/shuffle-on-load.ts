@@ -1,6 +1,6 @@
 /**
  * Imported by every photo page except Selected Work. The grid was already
- * dealt into a random order before the first paint (GridDeal.astro); this
+ * dealt into a random order before the first paint (grid-layout.js); this
  * hands that order to the lightbox, so prev/next follows what's on screen.
  */
 

@@ -1,7 +1,7 @@
 /**
  * The Fisher–Yates shuffle behind Selected Work's Shuffle button
  * (selected-view.ts). The first deal on every photo page happens before
- * the first paint, inline, in GridDeal.astro — the same algorithm, written
+ * the first paint, inline, in grid-layout.js — the same algorithm, written
  * out there because an inline script can't import.
  */
 

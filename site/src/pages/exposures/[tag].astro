@@ -1,5 +1,5 @@
 ---
-import GridDeal from '../../photography/GridDeal.astro';
+import GridLayout from '../../photography/GridLayout.astro';
 import Lightbox from '../../photography/Lightbox.astro';
 import Photo from '../../photography/Photo.astro';
 import Base from '../../layouts/Base.astro';
@@ -83,7 +83,7 @@ const next = nextView
       ))
     }
   </div>
-  <GridDeal />
+  <GridLayout deal />
 
   {
     next && (
@@ -97,7 +97,6 @@ const next = nextView
 
   <script>
     import '../../photography/lightbox.ts';
-    import '../../photography/masonry.ts';
     import '../../photography/shuffle-on-load.ts';
     import '../../photography/grid-save.ts';
   </script>

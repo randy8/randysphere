@@ -1,0 +1,22 @@
+---
+/**
+ * Lays out the photo grid immediately before it: place this component
+ * directly after the grid's closing tag. `deal` shuffles first (every
+ * photo page but Saved and Share, whose own scripts decide what's shown).
+ * The work itself is grid-layout.js, inlined so it runs before the first
+ * paint — see that file.
+ */
+import source from './grid-layout.js?raw';
+
+interface Props {
+  deal?: boolean;
+}
+
+const { deal = false } = Astro.props;
+// The file's header comment and the lint directive stay in the source,
+// not in every page.
+const body = source.replace(/^\/\*\*[\s\S]*?\*\/\s*/, '').replace(/^\/\/ eslint-disable-next-line.*\n/m, '');
+const call = `${body}\nplaceGrid(document.currentScript.previousElementSibling, ${String(deal)});`;
+---
+
+<script is:inline set:html={call} />

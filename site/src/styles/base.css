@@ -448,7 +448,7 @@ main {
 /*
  * The Saved and Share contact sheets lay out exactly like every other
  * photograph grid: the <ul> also carries `.grid` (same columns, same gap)
- * and masonry.ts places it. These rules only undo the list styling.
+ * and grid-layout.js places it. These rules only undo the list styling.
  */
 .saved-grid {
   margin: 0;
@@ -833,7 +833,7 @@ main {
  * and each column simply gets wider as the viewport grows.
  */
 .grid {
-  /* Read by masonry.ts, so the column count lives in exactly one place. */
+  /* Read by grid-layout.js, so the column count lives in exactly one place. */
   --grid-columns: 2;
   display: grid;
   grid-template-columns: repeat(var(--grid-columns), 1fr);
@@ -851,7 +851,7 @@ main {
   }
 }
 /*
- * With JavaScript, masonry.ts takes over placement: each figure goes into
+ * With JavaScript, grid-layout.js takes over placement: each figure goes into
  * the shortest column at its own aspect ratio, so a portrait no longer
  * leaves a gap under the landscapes beside it. Same columns, same gap, same
  * DOM order — only positions change. Without it, the grid above stands.

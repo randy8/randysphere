@@ -1,5 +1,5 @@
 ---
-import GridDeal from '../../photography/GridDeal.astro';
+import GridLayout from '../../photography/GridLayout.astro';
 import Lightbox from '../../photography/Lightbox.astro';
 import Photo from '../../photography/Photo.astro';
 import Base from '../../layouts/Base.astro';
@@ -82,13 +82,12 @@ const locations = archive.cities.filter((city) =>
             </figure>
           ))}
         </div>
-        <GridDeal />
+        <GridLayout deal />
 
         <Lightbox photos={photos} />
 
         <script>
           import '../../photography/selected-view.ts';
-          import '../../photography/masonry.ts';
           import '../../photography/grid-save.ts';
         </script>
       </Fragment>

@@ -1,4 +1,5 @@
 ---
+import GridLayout from '../../../photography/GridLayout.astro';
 import Lightbox from '../../../photography/Lightbox.astro';
 import Photo from '../../../photography/Photo.astro';
 import Base from '../../../layouts/Base.astro';
@@ -100,6 +101,7 @@ const archive = loadArchive();
       ))
     }
   </ul>
+  <GridLayout />
 
   <Lightbox photos={archive.photos} photoMaxWidth={1920} />
 
@@ -117,7 +119,6 @@ const archive = loadArchive();
   </script>
   <script>
     import '../../../photography/lightbox.ts';
-    import '../../../photography/masonry.ts';
     import '../../../photography/shuffle-on-load.ts';
   </script>
 </Base>
