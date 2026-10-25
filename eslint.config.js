@@ -108,6 +108,8 @@ export default defineConfig([
         ResizeObserver: 'readonly',
         MutationObserver: 'readonly',
         DOMMatrixReadOnly: 'readonly',
+        IntersectionObserver: 'readonly',
+        setTimeout: 'readonly',
         window: 'readonly',
       },
     },

@@ -17,7 +17,8 @@
  *    400-photograph page would need more implicit rows than browsers lay
  *    out.
  * 3. Priority: the photographs that landed in the first viewport load
- *    eagerly at high priority; the rest stay lazy.
+ *    eagerly at high priority; the rest wait until those have arrived,
+ *    then load one screen ahead of the scroll.
  * 4. Afterwards: re-place on a width change, when figures are reordered
  *    or hidden (Shuffle, the film filter, Saved and Share pruning), and
  *    once web fonts settle a caption's height.
@@ -67,21 +68,78 @@ function placeGrid(grid, deal) {
   grid.classList.add('is-masonry');
   layout();
 
-  // Now every tile's place is known: the ones that landed in the first
-  // viewport load immediately, at high priority — they're what the
-  // visitor sees first, and the largest of them is the page's largest
-  // paint. Everything below stays lazy, so it can't compete for the
-  // connection. (Measured 2026-10-25: promoting only the first tile per
-  // column left the actual largest visible photo queued behind ~50 lazy
-  // ones on a slow connection.)
+  // Now every tile's place is known. The ones that landed in the first
+  // viewport load immediately, at high priority — they're what the visitor
+  // sees first, and the largest of them is the page's largest paint.
+  //
+  // The rest hold back until those have arrived (or 4 s pass), then load
+  // one screen ahead of the scroll. Without this, a phone on a slow
+  // connection lazy-loads ~40 off-screen photos at once (Chrome's lazy
+  // margin is ~2500 px there), splitting the bandwidth with the ~9 on
+  // screen: live, 2026-10-25, every visible photo took 11.2 s on
+  // Exposures. A photo scrolled into view loads at once, gate or not.
   const viewportBottom = window.innerHeight - grid.getBoundingClientRect().top;
+  const visible = [];
+  const held = [];
   for (const item of grid.children) {
-    const top = new DOMMatrixReadOnly(getComputedStyle(item).transform).m42;
-    if (top >= viewportBottom) continue;
     const img = item.querySelector('img');
     if (!img) continue;
-    img.loading = 'eager';
-    img.fetchPriority = 'high';
+    const top = new DOMMatrixReadOnly(getComputedStyle(item).transform).m42;
+    if (top < viewportBottom) {
+      img.loading = 'eager';
+      img.fetchPriority = 'high';
+      visible.push(img);
+      continue;
+    }
+    for (const source of item.querySelectorAll('source[srcset], img[srcset]')) {
+      source.dataset.srcset = source.getAttribute('srcset');
+      source.removeAttribute('srcset');
+    }
+    img.dataset.src = img.getAttribute('src');
+    img.removeAttribute('src');
+    held.push(item);
+  }
+  const release = (item) => {
+    for (const el of item.querySelectorAll('[data-srcset]')) {
+      el.setAttribute('srcset', el.dataset.srcset);
+      delete el.dataset.srcset;
+    }
+    const img = item.querySelector('img[data-src]');
+    if (img) {
+      img.setAttribute('src', img.dataset.src);
+      delete img.dataset.src;
+    }
+  };
+  const watch = (margin) => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          observer.unobserve(entry.target);
+          release(entry.target);
+        }
+      },
+      { rootMargin: margin },
+    );
+    for (const item of held) if (item.querySelector('img[data-src]')) observer.observe(item);
+    return observer;
+  };
+  if (held.length > 0) {
+    const onScreen = watch('0px');
+    const arrived = visible.map((img) =>
+      img.complete
+        ? null
+        : new Promise((done) => {
+            img.addEventListener('load', done, { once: true });
+            img.addEventListener('error', done, { once: true });
+          }),
+    );
+    void Promise.race([Promise.all(arrived), new Promise((done) => setTimeout(done, 4000))]).then(
+      () => {
+        onScreen.disconnect();
+        watch('100% 0px');
+      },
+    );
   }
 
   // Width only: setting the grid's own height above would otherwise
