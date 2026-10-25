@@ -2636,3 +2636,37 @@ on the canonical URL in one hop. Internal links were already canonical.
 redirecting every slashless path (bounces typos and files); Cloudflare
 redirect rules (configuration outside the repository, for a fix the
 server can make itself).
+
+---
+
+## 2026-10-25 — Audit fixes: Pictures spacing, nameless photo links, dev-server file exposure
+
+**Decision.** Four small fixes from the quality audit, each measured:
+
+- **Pictures' first year heading** sat 86px under the subtitle with
+  JavaScript on and 56px without: Shuffle inserts its hidden
+  `.film-shuffled` section on load, after which `.film-year-group:first-of-type`
+  no longer matched and the between-years margin replaced the header's.
+  The selector now also matches `.film-shuffled + .film-year-group`: 56px
+  either way, the same as Dishes, and the page no longer shifts as the
+  script runs (CLS 0.075 → 0.006 desktop, lab).
+- **Photo links had no accessible name** — every grid tile is a link
+  around an image whose alt text is (still) empty, 251 on Exposures alone.
+  `Photo.astro` now names the link by the caption, or "View photograph",
+  whenever alt is empty; real alt text remains the actual fix.
+- **Pick for me's 1 2 3** were 20px targets touching each other (WCAG 2.2
+  2.5.8); each is now at least 24px square.
+- **`astro dev --host` served `private/notes.yaml` and full-resolution
+  `originals/` over `/@fs/`** to anyone on the LAN or tailnet, because
+  Vite's default `server.fs.allow` is the whole pnpm workspace. It now
+  allows only `site/` and `node_modules/` and denies `private/` and
+  `originals/` outright. Takes effect when the dev server restarts.
+
+First-row Pictures posters now load eagerly, the very first and the
+first Tunes still at high fetch priority.
+
+**Rejected.** `content-visibility: auto` on Pictures' year sections: it cut
+desktop DOMContentLoaded from 308ms to 123ms and the throttled-mobile LCP by
+~0.3s, but off-screen years are estimated in size until rendered, so the
+Year jump landed 14,000px short and a reload on `#year-2025` 1,485px short.
+Correct navigation outranks a lab-measured third of a second.
