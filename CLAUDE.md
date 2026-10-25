@@ -120,7 +120,10 @@ pnpm films:posters       # TMDB details for films not looked up yet (TMDB_READ_A
                          # skipped with a warning if unset): --only, --regenerate
 pnpm serve               # production server (needs PRIVATE_SITE_PASSWORD,
                          # PRIVATE_SESSION_SECRET in .env)
-pnpm deploy              # sync + build + restart photography-serve (sudo)
+pnpm deploy              # verify, sync, build beside the live site, prove it on :4398,
+                         # switch; restarts photography-serve only if its code changed
+pnpm rollback            # swap back to the previous release (no restart)
+pnpm status              # services, health, releases, disk, recent errors
 pnpm verify              # format:check, lint, typecheck, test, build —
                          # also the pre-push hook (.githooks/, core.hooksPath)
 ```

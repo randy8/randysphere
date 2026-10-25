@@ -1,0 +1,16 @@
+# Installed at /etc/systemd/system/photography-watchdog.service; started
+# every minute by photography-watchdog.timer. See deploy/watchdog.sh for
+# what it checks and when it acts. Runs as randy, not root: the only
+# privileged thing it ever does is `sudo -n systemctl restart
+# photography-serve`, which randy is already allowed without a password.
+
+[Unit]
+Description=randyliang.net health check
+
+[Service]
+Type=oneshot
+User=randy
+Group=randy
+ExecStart=/home/randy/Development/photography/deploy/watchdog.sh
+# Consecutive-failure counts live here, and survive between runs.
+StateDirectory=photography-watchdog

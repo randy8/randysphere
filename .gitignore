@@ -50,3 +50,8 @@ Thumbs.db
 # Cache of each original's SHA-256 by size+mtime, so an ingest with nothing
 # new skips reading every original (see tools/pipeline/src/source-hashes.ts).
 /generated/source-hashes.json
+
+# The deploy builds the next release beside the live site/dist, and keeps
+# the one it replaced for `pnpm rollback` (deploy/deploy.sh).
+/site/dist.next/
+/site/dist.prev/

@@ -2670,3 +2670,37 @@ desktop DOMContentLoaded from 308ms to 123ms and the throttled-mobile LCP by
 ~0.3s, but off-screen years are estimated in size until rendered, so the
 Year jump landed 14,000px short and a reload on `#year-2025` 1,485px short.
 Correct navigation outranks a lab-measured third of a second.
+
+---
+
+## 2026-10-25 — Rate-limited /private; releases built beside the live site
+
+**Decision.** `/private/login` allows five failures per visitor in fifteen
+minutes, then answers 429 with `Retry-After` — right password or not, or
+the lock only costs a guesser one request. A visitor is Cloudflare's
+`CF-Connecting-IP`, believed only on a loopback connection (how the tunnel
+arrives); anything connecting directly over the LAN or tailnet is its own
+socket address, so it can't pick a fresh bucket per guess. Per visitor
+only: a global lock would let one attacker lock out the owner.
+
+`pnpm deploy` (deploy/deploy.sh) builds into `site/dist.next/` beside the
+live release, proves it on a candidate server (`:4398`, `--dist=`) with the
+same checks production gets — `/healthz`, the real Exposures page, a real
+photograph, a list of films — then switches with two renames, keeping the
+old release as `dist.prev` for `pnpm rollback`. The server reads
+`site/dist` per request, so a content deploy has no restart and no
+downtime; it restarts only when a hash of `tools/serve`'s code changed. A
+failed production check rolls back automatically. The tunnel unit moves
+from `Requires=` to `Wants=` (a server restart no longer drops it) and
+gains `--no-autoupdate`; a once-a-minute watchdog (as randy, via the
+existing sudoers rule) restarts the server only after three consecutive
+failed local checks, logging diagnostics first, and never acts on a public
+failure. `.env` is now mode 600.
+
+**Rejected.** A symlinked `current` release (CLAUDE.md invariant 5 keeps
+symlinks out of what the build and server read; two renames are as good);
+blue-green with a second server and a port switch in cloudflared (true zero
+downtime for server-code changes, at the cost of a tunnel reconfiguration
+per deploy — a one-second restart is the honest trade for this site);
+running the watchdog as root (it would execute a script randy can edit);
+Docker or a reverse proxy (systemd already supervises both processes).
