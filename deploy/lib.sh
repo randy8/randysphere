@@ -44,8 +44,10 @@ serve_hash() {
     xargs -0 sha256sum | sha256sum | cut -c1-16
 }
 
-release_field() { # release_field <dist-dir> <field>
-  sed -n "s/.*\"$2\":\"\\([^\"]*\\)\".*/\\1/p" "$1/build-info.json" 2>/dev/null
+# release_field <dist-dir> <field>: empty for a release built without
+# build-info.json (a hand-run `pnpm build`), never a failure.
+release_field() {
+  sed -n "s/.*\"$2\":\"\\([^\"]*\\)\".*/\\1/p" "$1/build-info.json" 2>/dev/null || true
 }
 
 restart_server() {

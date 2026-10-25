@@ -92,6 +92,14 @@ server's code comes from the repository, so undoing a server change is
 (about 4 MB); originals, derivatives, manifests and `.env` are never part
 of a release and are never touched.
 
+**Known hazard:** `pnpm build` writes straight into `site/dist`, the
+directory production serves, so a local build changes the live site at
+once and skips every check (and leaves a release with no
+`build-info.json`, which `pnpm status` shows as an unknown commit). Until
+production serves a directory of its own, build locally with
+`pnpm --filter @photo/site exec astro build --outDir dist.local`, or just
+use `pnpm deploy`.
+
 ## Health and the watchdog
 
 `/healthz` (tools/serve/src/health.ts) answers 200 only when the built
