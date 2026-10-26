@@ -35,24 +35,29 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
         range && `, ${range}`
       }.
     </p>
-    {
-      /* The archive's contents: every year and how many films it holds,
-         each a link to its section — the opening's space, put to work. */
-      groups.length > 1 && (
-        <ol class="film-index">
-          {groups.map((group) => (
-            <li>
-              <a href={`#year-${group.year}`}>{group.year}</a>
-              <span class="film-index-count">{group.films.length}</span>
-            </li>
-          ))}
-        </ol>
-      )
-    }
   </header>
 
   {
     films.length > 0 && (
+      <div class="film-bar">
+        {
+          /* The years, each a link to its section: the one way to move
+             between years. The year in view is marked as you scroll. */
+          groups.length > 1 && (
+            <nav class="film-years" aria-label="Years" data-film-years>
+              <ol class="film-index">
+                {groups.map((group) => (
+                  <li>
+                    <a href={`#year-${group.year}`} data-film-year-link={group.year}>
+                      {group.year}
+                    </a>
+                    <span class="film-index-count">{group.films.length}</span>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          )
+        }
       <div class="film-controls">
         {
           genres.length > 0 && (
@@ -62,20 +67,6 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
                 <option value="">All genres</option>
                 {genres.map((genre) => (
                   <option value={genre}>{genre}</option>
-                ))}
-              </select>
-            </p>
-          )
-        }
-        {
-          groups.length > 1 && (
-            <p class="film-control" data-film-year-control>
-              <label for="film-year-select">Year</label>
-              <select id="film-year-select" data-film-year-select>
-                {groups.map((group) => (
-                  <option value={`#year-${group.year}`}>
-                    {group.year} ({group.films.length})
-                  </option>
                 ))}
               </select>
             </p>
@@ -93,6 +84,7 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
           </button>
         </form>
         <p class="film-pick-status" data-film-pick-status role="status" aria-live="polite" />
+      </div>
       </div>
     )
   }
@@ -128,6 +120,7 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
               <li
                 class="film-card"
                 id={`film-${filmId(film)}`}
+                data-year={film.year > 0 ? String(film.year) : undefined}
                 data-genres={film.genres.join('|')}
               >
                 <div class="film-poster-frame">
@@ -206,23 +199,41 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
       <script>
         import { rearrange } from '../../films/motion.ts';
 
-        // Pure convenience: every year is already reachable by scrolling and
-        // by its own real #year-<year> anchor (a direct link to one still
-        // works with this script absent). The select just saves the scroll.
-        const yearSelect = document.querySelector<HTMLSelectElement>('[data-film-year-select]');
-        if (yearSelect) {
-          if (
-            location.hash &&
-            [...yearSelect.options].some((option) => option.value === location.hash)
-          ) {
-            yearSelect.value = location.hash;
+        // The year in view, marked in the year index (aria-current), so the
+        // index says where you are without a second control. Each year's
+        // own #year-<year> anchor does the jumping, with or without this.
+        const yearLinks = new Map(
+          Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-film-year-link]'), (a) => [
+            `year-${a.dataset['filmYearLink'] ?? ''}`,
+            a,
+          ]),
+        );
+        const markYear = (id: string): void => {
+          for (const [key, link] of yearLinks) {
+            if (key === id) link.setAttribute('aria-current', 'true');
+            else link.removeAttribute('aria-current');
           }
-          yearSelect.addEventListener('change', () => {
-            const target = document.querySelector(yearSelect.value);
-            target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            history.replaceState(null, '', yearSelect.value);
-          });
+        };
+        const visible = new Set<string>();
+        const yearObserver = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (entry.isIntersecting) visible.add(entry.target.id);
+              else visible.delete(entry.target.id);
+            }
+            // The topmost year on screen.
+            const first = [...yearLinks.keys()].find((id) => visible.has(id));
+            if (first) markYear(first);
+          },
+          { rootMargin: '0px 0px -60% 0px' },
+        );
+        for (const group of document.querySelectorAll<HTMLElement>('.film-year-group')) {
+          yearObserver.observe(group);
         }
+        // Before any scrolling: the year a #year- link named, else the first.
+        markYear(
+          yearLinks.has(location.hash.slice(1)) ? location.hash.slice(1) : ([...yearLinks.keys()][0] ?? ''),
+        );
 
         // Genre is a client-side filter, not a route — there is no
         // per-genre page the way photography has one per tag, so this
@@ -249,7 +260,7 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
         genreSelect?.addEventListener('change', applyGenreFilter);
 
         // Shuffle deals the whole library into one grid in random order —
-        // the year sections step aside (and the Year jump with them, since
+        // the year sections step aside (and the year index with them, since
         // there are no years to jump to), the genre filter keeps applying on
         // top, and every press deals again. A reload returns to by-year.
         const shuffleButton = document.querySelector<HTMLButtonElement>('[data-film-shuffle]');
@@ -276,8 +287,9 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
             rearrange(cards, () => {
               for (const card of order) grid.appendChild(card);
               shuffled.hidden = false;
-              const yearControl = document.querySelector<HTMLElement>('[data-film-year-control]');
-              if (yearControl) yearControl.hidden = true;
+              // No years in a shuffle, so nothing for the year index to do.
+              const years = document.querySelector<HTMLElement>('[data-film-years]');
+              if (years) years.hidden = true;
               applyGenreFilter();
               const top = shuffled.getBoundingClientRect().top;
               if (top < 0 || top > window.innerHeight * 0.5) {

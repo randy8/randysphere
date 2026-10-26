@@ -68,24 +68,67 @@ browserTest(
 );
 
 browserTest(
-  'on a wide screen the year stands in the margin beside its films',
+  'one way between years: no year dropdown, small year headings above their films, posters near the top',
   async ({ page }) => {
     await page.goto(`${BASE}/pictures/`);
     const g = await page.evaluate(() => {
+      const heading = document.querySelector('.film-year-heading h2');
       const group = document.querySelector('.film-year-group');
-      const heading = group?.querySelector('.film-year-heading')?.getBoundingClientRect();
-      const grid = group?.querySelector('.film-grid')?.getBoundingClientRect();
-      return heading && grid
-        ? {
-            headingRight: heading.right,
-            gridLeft: grid.left,
-            sameRow: Math.abs(heading.top - grid.top) < 2,
-          }
-        : null;
+      const headingBox = group?.querySelector('.film-year-heading')?.getBoundingClientRect();
+      const gridBox = group?.querySelector('.film-grid')?.getBoundingClientRect();
+      return {
+        dropdown: document.querySelector('[data-film-year-select]') !== null,
+        headingPx: heading ? parseFloat(getComputedStyle(heading).fontSize) : 0,
+        above: headingBox && gridBox ? headingBox.bottom <= gridBox.top : false,
+        firstPosterTop:
+          document.querySelector('.film-poster-frame')?.getBoundingClientRect().top ?? 9999,
+      };
     });
-    assert.ok(g, 'no year group');
-    assert.ok(g.headingRight <= g.gridLeft, 'year overlaps the posters');
-    assert.ok(g.sameRow, 'year is not beside its films');
+    assert.equal(g.dropdown, false, 'the year dropdown is back');
+    assert.ok(g.headingPx > 0 && g.headingPx <= 24, `year heading is ${String(g.headingPx)}px`);
+    assert.ok(g.above, 'the year heading is not above its films');
+    assert.ok(
+      g.firstPosterTop < 420,
+      `first posters start ${String(Math.round(g.firstPosterTop))}px down`,
+    );
   },
   { viewport: { width: 1440, height: 900 } },
 );
+
+browserTest('the year index marks the year in view as you scroll', async ({ page }) => {
+  await page.goto(`${BASE}/pictures/`);
+  const years = await page.evaluate(() =>
+    Array.from(
+      document.querySelectorAll<HTMLElement>('[data-film-year-link]'),
+      (a) => a.dataset['filmYearLink'] ?? '',
+    ),
+  );
+  assert.ok(years.length >= 2);
+  assert.equal(
+    await page.locator(`[data-film-year-link="${years[0] ?? ''}"]`).getAttribute('aria-current'),
+    'true',
+    'the first year is not marked at load',
+  );
+  const second = years[1] ?? '';
+  await page.evaluate((y) => document.getElementById(`year-${y}`)?.scrollIntoView(), second);
+  await page.waitForFunction(
+    (y) =>
+      document.querySelector(`[data-film-year-link="${y}"]`)?.getAttribute('aria-current') ===
+      'true',
+    second,
+  );
+  assert.equal(await page.locator('[data-film-year-link][aria-current]').count(), 1);
+});
+
+browserTest('Pick for me announces the title and its release year', async ({ page }) => {
+  await page.goto(`${BASE}/pictures/`);
+  await page.locator('[data-film-pick]').waitFor({ state: 'visible' });
+  await page.locator('[data-film-pick] button').click();
+  await page.waitForFunction(
+    () => (document.querySelector('[data-film-pick-status]')?.textContent ?? '').length > 8,
+  );
+  assert.match(
+    (await page.locator('[data-film-pick-status]').textContent()) ?? '',
+    /^Picked .+ \(\d{4}\)\.$/,
+  );
+});

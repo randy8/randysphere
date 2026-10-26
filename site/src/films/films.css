@@ -12,26 +12,32 @@
  * same one base.css establishes everywhere else.
  */
 
-/* One quiet line under the introduction, ruled off like a catalogue's
-   running head, in the page's flow. Not fixed and not sticky: until
-   2026-10-26 a frosted panel floated in the corner over posters and their
-   synopses, and a sticky bar would still clip every poster scrolling under
-   it (the reason the masthead stopped being sticky, 2026-10-16). The year
-   index above and the year in the margin carry navigation down the page. */
+/* One compact line under the introduction: the years (the way to move
+   between them, the one in view marked) and, opposite, the controls —
+   genre, Shuffle, Pick for me. In the page's flow, never fixed or sticky
+   (a floating panel, then a sticky bar, covered posters until
+   2026-10-26). No rules or underlines: hover and focus bring the accent. */
+.film-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem 2rem;
+  margin: 1.5rem 0 2rem;
+}
+.film-years[hidden] {
+  display: none;
+}
 .film-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.75rem 1.75rem;
-  margin: 0 0 clamp(2.5rem, 4vw, 3.5rem);
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--rule);
-  background: var(--paper);
+  gap: 0.5rem 1.5rem;
 }
 .film-control {
   display: flex;
   align-items: baseline;
-  gap: 0.625rem;
+  gap: 0.5rem;
   margin: 0;
 }
 .film-control[hidden] {
@@ -40,16 +46,15 @@
 .film-control label {
   font-family: var(--serif);
   text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
   color: var(--muted);
 }
 .film-control select {
   appearance: none;
   background: none;
   border: 0;
-  border-bottom: 1px solid var(--rule);
-  padding: 0.125rem 1.25rem 0.125rem 0;
+  padding: 0 1.1rem 0 0;
   font-family: var(--serif);
   font-size: 0.9375rem;
   color: var(--ink);
@@ -60,17 +65,17 @@
     linear-gradient(45deg, transparent 50%, var(--muted) 50%),
     linear-gradient(135deg, var(--muted) 50%, transparent 50%);
   background-position:
-    right 0.4rem center,
-    right 0.1rem center;
+    right 0.35rem center,
+    right 0.05rem center;
   background-size:
     0.3rem 0.3rem,
     0.3rem 0.3rem;
   background-repeat: no-repeat;
-  transition: border-color 0.2s ease;
+  transition: color 0.2s ease;
 }
 .film-control select:hover,
 .film-control select:focus-visible {
-  border-color: var(--accent);
+  color: var(--accent);
 }
 .film-shuffle-button {
   appearance: none;
@@ -80,18 +85,14 @@
   cursor: pointer;
   font-family: var(--serif);
   text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
   color: var(--muted);
-  border-bottom: 1px solid var(--rule);
-  transition:
-    color 0.2s ease,
-    border-color 0.2s ease;
+  transition: color 0.2s ease;
 }
 .film-shuffle-button:hover,
 .film-shuffle-button:focus-visible {
   color: var(--accent);
-  border-color: var(--accent);
 }
 
 /* Announced, not shown: the spotlight on the wall already says it. */
@@ -150,50 +151,39 @@
 }
 
 .film-year-group {
-  margin-top: clamp(3.5rem, 6vw, 5.5rem);
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--ink);
+  margin-top: clamp(2.5rem, 4vw, 3.5rem);
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--rule);
 }
-/* The first year sits right under the controls. Shuffle's script inserts
-   its (hidden) .film-shuffled section ahead of the years on load, so
+/* The first year sits right under the bar. Shuffle's script inserts its
+   (hidden) .film-shuffled section ahead of the years on load, so
    :first-of-type alone stops matching once JavaScript runs. */
 .film-year-group:first-of-type,
 .film-shuffled + .film-year-group {
   margin-top: 0;
 }
-/* The year: set large in oldstyle figures, with how many films it holds.
-   From a wide screen up it stands in a margin column beside its films and
-   stays there while they scroll past, the way a catalogue runs its
-   section in the margin. */
+/* The year: a small heading over its films, with how many it holds — the
+   posters lead, the year only says where you are. */
 .film-year-heading {
-  margin: 0 0 1.75rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin: 0 0 1.25rem;
 }
 .film-year-heading h2 {
-  font-size: clamp(2.75rem, 1.75rem + 3.5vw, 5rem);
-  font-weight: 300;
-  letter-spacing: -0.03em;
-  line-height: 0.9;
+  font-size: 1.375rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
   font-variant-numeric: oldstyle-nums;
 }
 .film-year-count {
-  margin: 0.625rem 0 0;
+  margin: 0;
   font-family: var(--serif);
   text-transform: uppercase;
   font-size: 0.6875rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--muted);
-}
-@media (min-width: 64rem) {
-  .film-year-group {
-    display: grid;
-    grid-template-columns: 10rem minmax(0, 1fr);
-    column-gap: 2rem;
-    align-items: start;
-  }
-  .film-year-heading {
-    position: sticky;
-    top: 1.5rem;
-  }
 }
 
 /* Two per row even on a phone — a poster needs real width to read as
@@ -202,7 +192,7 @@
 .film-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 3rem 1.75rem;
+  gap: 2.25rem 1.25rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -210,15 +200,19 @@
 @media (min-width: 40rem) {
   .film-grid {
     grid-template-columns: repeat(3, 1fr);
-    gap: 3.5rem 2rem;
+    gap: 2.75rem 1.5rem;
   }
 }
 @media (min-width: 64rem) {
-  /* Four beside the margin column: each poster ends up wider than the
-     five-across it replaced (222px against 208px at 1440). */
   .film-grid {
     grid-template-columns: repeat(4, 1fr);
-    gap: 3rem 1.5rem;
+    gap: 2.75rem 1.5rem;
+  }
+}
+/* Five across from a wide screen: the full width is the posters' now. */
+@media (min-width: 80rem) {
+  .film-grid {
+    grid-template-columns: repeat(5, 1fr);
   }
 }
 
@@ -347,38 +341,43 @@
   }
 }
 
-/* The archive's contents, under the introduction: each year and its count. */
+/* The years and their counts: the way between years. The one in view
+   (marked by the page's script) in ink and underlined; the rest muted. */
 .film-index {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.75rem;
-  margin: 2.25rem 0 0;
+  gap: 0.25rem 1.25rem;
+  margin: 0;
   padding: 0;
   list-style: none;
   font-variant-numeric: oldstyle-nums;
 }
 .film-index a {
-  color: var(--ink);
-  font-size: 1.375rem;
-  font-weight: 340;
+  color: var(--muted);
+  font-size: 1.0625rem;
   text-decoration: none;
+  text-underline-offset: 0.25em;
   transition: color 0.2s ease;
+}
+.film-index a[aria-current] {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
 }
 .film-index a:hover,
 .film-index a:focus-visible {
   color: var(--accent);
 }
 .film-index-count {
-  margin-left: 0.4rem;
+  margin-left: 0.3rem;
   font-size: 0.6875rem;
-  letter-spacing: 0.08em;
   color: var(--muted);
   font-variant-numeric: lining-nums;
 }
 
 /* The close of the log. */
 .film-colophon {
-  margin: clamp(4rem, 6vw, 6rem) 0 0;
+  margin: clamp(3rem, 5vw, 4.5rem) 0 0;
   font-style: italic;
   color: var(--muted);
 }
@@ -398,4 +397,9 @@
 }
 .film-attribution a:hover {
   color: var(--accent);
+}
+
+/* The heading sits closer to its bar than other pages' titles to theirs. */
+.album-header.film-header {
+  margin-bottom: 0;
 }

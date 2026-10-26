@@ -60,10 +60,9 @@ if (form && status && cards.length > 0) {
     mark.textContent = 'Picked for you';
     card.querySelector('.film-card-body')?.prepend(mark);
     root.classList.add('films-picking');
-    // The card's own heading: the title, then the year in its own span.
-    const heading = card.querySelector('.film-title');
-    const year = heading?.querySelector('.film-release-year')?.textContent?.trim() ?? '';
-    const title = heading?.firstChild?.textContent?.trim() ?? '';
+    // The title from its heading, the release year from the card itself.
+    const title = card.querySelector('.film-title')?.textContent?.trim() ?? '';
+    const year = card.dataset['year'] ?? '';
     status.textContent = `Picked ${title}${year ? ` (${year})` : ''}.`;
     scrollTo(card);
     // Focus follows, for a keyboard or screen-reader visitor; the card is

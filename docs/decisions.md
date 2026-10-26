@@ -3218,3 +3218,18 @@ subtitle and a way home.
 **Discoverable, not promoted:** "Site status" in the global footer, in the
 footer's muted label voice, opposite the copyright; never in the
 navigation. `/infra` stays tailnet-only and is linked from nowhere.
+
+## 2026-10-26 — Pictures, denser: one way between years, small year headings
+
+The year appeared three times (the index, a Year dropdown, a huge margin
+heading) and the page opened on empty space. Now: the index of years is
+the one way between years — in one compact row with Genre, Shuffle and
+Pick for me — and marks the year in view (aria-current, an
+IntersectionObserver; the first year at load). The dropdown is gone. Year
+headings are a small line ("2026 · 27 films seen") above their films; the
+margin column is gone, so the grid has the full width back (five across
+from 80rem). No rules or underlines on the controls; tighter spacing
+throughout: the first posters start ~360px down at 1440×900 (were 500+).
+Also fixed: Pick for me announced "Picked ." with no year since the
+title became a link — it reads the title from the heading's text and the
+year from the card's `data-year`.
