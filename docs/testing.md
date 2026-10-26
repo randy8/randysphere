@@ -67,7 +67,11 @@ expect.
 **Flakes found so far.** 2026-10-26: Pictures tests failed twice on
 `ERR_NETWORK_CHANGED` loading TMDB posters (this machine's network
 changing mid-run, not the site). Fixed at the cause: the harness serves a
-stub for every image from another host.
+stub for every image from another host. The same error then hit a request
+to 127.0.0.1 during a deploy's production check (Tailscale rebinding on this
+host) and rolled back a good release; the harness now treats
+`net::ERR_NETWORK_CHANGED` as environmental — not a page error, still in
+the report.
 
 A test may be quarantined only with a comment at the test naming the
 reason, who owns it and the follow-up — and it is then skipped visibly

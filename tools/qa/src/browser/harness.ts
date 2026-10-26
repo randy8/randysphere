@@ -98,7 +98,9 @@ export function browserTest(
     try {
       await fn({ page, context, errors }, t);
       const unexpected = errors.filter(
-        (error) => !allowErrors.some((allowed) => error.includes(allowed)),
+        (error) =>
+          !allowErrors.some((allowed) => error.includes(allowed)) &&
+          !ENVIRONMENTAL.some((cause) => error.includes(cause)),
       );
       if (unexpected.length > 0)
         throw new Error(`the page reported errors:\n${unexpected.join('\n')}`);
@@ -133,6 +135,16 @@ export function browserTest(
     }
   });
 }
+
+/**
+ * Errors this machine causes and the site never can. ERR_NETWORK_CHANGED is
+ * Chromium cancelling in-flight requests — even to 127.0.0.1 — whenever an
+ * interface changes; on this host Tailscale rebinds and IPv6 temporary
+ * addresses rotate (2026-10-26: one rolled back a good deploy). Not counted
+ * as a page error, still listed in a failure's report; a test whose image
+ * never arrives still fails on its own wait.
+ */
+const ENVIRONMENTAL = ['net::ERR_NETWORK_CHANGED'];
 
 const STUB_IMAGE =
   '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="750"><rect width="500" height="750" fill="#ddd3c0"/></svg>';
