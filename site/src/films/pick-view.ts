@@ -17,6 +17,7 @@ const status = document.querySelector<HTMLElement>('[data-film-pick-status]');
 const dialog = document.querySelector<HTMLDialogElement>('[data-film-pick-dialog]');
 const body = dialog?.querySelector<HTMLElement>('[data-film-pick-body]');
 const cards = Array.from(document.querySelectorAll<HTMLElement>('.film-card'));
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 if (form && status && dialog && body && cards.length > 0) {
   form.hidden = false;
@@ -42,7 +43,11 @@ if (form && status && dialog && body && cards.length > 0) {
     window.scrollTo({ top: scrollY, behavior: 'instant' });
   };
 
-  /** The picked film's card, as the dialog shows it: a copy, never the card itself. */
+  /**
+   * The picked film's card, as the dialog shows it: a copy, never the card
+   * itself, with "Picked for you" above its date and the actions under its
+   * synopsis. A second pick crossfades in place of the first.
+   */
   const show = (card: HTMLElement): void => {
     const copy = card.cloneNode(true) as HTMLElement;
     copy.removeAttribute('id');
@@ -51,7 +56,35 @@ if (form && status && dialog && body && cards.length > 0) {
     copy.querySelector('.film-title')?.setAttribute('id', 'film-pick-title');
     // The poster is already loaded on the page; never lazy here.
     copy.querySelector('img')?.setAttribute('loading', 'eager');
+    const words = copy.querySelector('.film-card-body');
+    const label = document.createElement('p');
+    label.className = 'film-pick-label';
+    label.textContent = 'Picked for you';
+    words?.prepend(label);
+    const actions = document.createElement('p');
+    actions.className = 'film-pick-actions';
+    const again = document.createElement('button');
+    again.type = 'button';
+    again.className = 'film-pick-action';
+    again.dataset['filmPickAgain'] = '';
+    again.textContent = 'Pick another';
+    actions.append(again);
+    const href = card.querySelector<HTMLAnchorElement>('.film-title a')?.href;
+    if (href) {
+      const letterboxd = document.createElement('a');
+      letterboxd.className = 'film-pick-action';
+      letterboxd.href = href;
+      letterboxd.target = '_blank';
+      letterboxd.rel = 'noopener noreferrer';
+      letterboxd.textContent = 'On Letterboxd ↗';
+      actions.append(letterboxd);
+    }
+    words?.append(actions);
+    const swapping = current !== null && dialog.open;
     body.replaceChildren(copy);
+    if (swapping && !reducedMotion.matches) {
+      copy.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
+    }
     current = card;
     const title = card.querySelector('.film-title')?.textContent?.trim() ?? '';
     const year = card.dataset['year'] ?? '';
@@ -78,7 +111,10 @@ if (form && status && dialog && body && cards.length > 0) {
     dialog.querySelector<HTMLElement>('[data-film-pick-sheet]')?.focus({ preventScroll: true });
   });
 
-  dialog.querySelector('[data-film-pick-again]')?.addEventListener('click', () => {
+  // "Pick another" is rebuilt with each card, so listen on the dialog.
+  dialog.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element) || !event.target.closest('[data-film-pick-again]'))
+      return;
     const card = pick();
     if (card !== undefined) show(card);
   });

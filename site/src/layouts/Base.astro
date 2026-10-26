@@ -92,6 +92,25 @@ const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
         ]
       }
     </script>
+    {
+      /* A refresh starts the page over at the top: photo pages deal a new
+         arrangement on reload, so the old scroll position points at
+         nothing. Back and Forward still return to where you were (the
+         setting goes back to automatic as the page is left), and a
+         #fragment still scrolls to its target. */
+    }
+    <script is:inline>
+      try {
+        if (performance.getEntriesByType('navigation')[0]?.type === 'reload') {
+          history.scrollRestoration = 'manual';
+          addEventListener('pagehide', () => {
+            history.scrollRestoration = 'auto';
+          });
+        }
+      } catch {
+        // Without the API, the browser's own behaviour stands.
+      }
+    </script>
   </head>
   <body>
     {bare && <slot />}

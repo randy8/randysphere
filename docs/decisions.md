@@ -3269,3 +3269,20 @@ native element gives the top layer, focus containment and Escape for free.
 Tests, desktop and phone, from 3000px down: in view on open, Another
 changes the film, and each way out returns to the same scroll position
 with what was on screen unmoved.
+
+## 2026-10-26 — The pick, set as a catalogue page; a refresh starts at the top
+
+**Pick for me's dialog** is laid out like a page from a catalogue: poster
+beside its words, centred together; "Picked for you" in the accent above
+the date and title; the full synopsis at reading size; "Pick another" and
+"On Letterboxd ↗" under it, in the label voice; × quiet in the corner. A
+0.22s fade-and-rise on opening, a 0.18s crossfade between picks, neither
+under reduced motion. Initial focus is the sheet, not the × (a browser
+would ring it).
+
+**A refresh starts the page over at the top** (every page, Base.astro):
+photo pages deal a new arrangement on reload, so the browser's restored
+scroll position pointed at nothing. Only on a reload is
+`history.scrollRestoration` set to manual, and it goes back to automatic
+as the page is left, so Back and Forward still return to the place left;
+a #fragment still scrolls to its target.

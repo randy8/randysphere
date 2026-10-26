@@ -245,3 +245,21 @@ browserTest(
     assert.equal(await order(page), refreshed, 'Back reshuffled the page');
   },
 );
+
+browserTest('a refresh starts at the top; Back returns to where you were', async ({ page }) => {
+  await page.goto(`${BASE}/exposures/`);
+  await page.evaluate(() => window.scrollTo(0, 2500));
+  await page.waitForFunction(() => window.scrollY >= 2400);
+  await page.reload();
+  await page.waitForLoadState('load');
+  assert.equal(
+    await page.evaluate(() => Math.round(window.scrollY)),
+    0,
+    'a refresh kept the old scroll position',
+  );
+  await page.evaluate(() => window.scrollTo(0, 1800));
+  await page.waitForFunction(() => window.scrollY >= 1700);
+  await page.goto(`${BASE}/collections/`);
+  await page.goBack();
+  await page.waitForFunction(() => window.scrollY > 1000, null, { timeout: 5000 });
+});
