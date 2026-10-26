@@ -12,40 +12,21 @@
  * same one base.css establishes everywhere else.
  */
 
-/* Fixed, not inline with the header — 773 films across seven years makes
-   for a very long page, and controls that scroll away with the header they
-   started next to stop helping the moment they've been used once. Same
-   "one quiet mark, fixed in a corner" convention as photography's
-   browse-home link, just in the opposite corner (this page has nothing
-   else fixed there to collide with). One panel for all three controls
-   (genre, year, shuffle) rather than three floating separately,
-   which reads as chrome scattered around the edges instead of one place
-   to look. */
+/* One quiet line under the introduction, ruled off like a catalogue's
+   running head, in the page's flow. Not fixed and not sticky: until
+   2026-10-26 a frosted panel floated in the corner over posters and their
+   synopses, and a sticky bar would still clip every poster scrolling under
+   it (the reason the masthead stopped being sticky, 2026-10-16). The year
+   index above and the year in the margin carry navigation down the page. */
 .film-controls {
-  position: fixed;
-  right: 1.5rem;
-  bottom: 1.5rem;
-  z-index: 10;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.875rem;
-  margin: 0;
-  padding: 0.625rem 1rem;
-  max-width: calc(100vw - 3rem);
-  /* Translucent with a blur, not solid paper — a fixed panel over a long
-     scrolling grid inevitably sits on top of whatever poster happens to be
-     in that corner, and a solid background would fully hide it underneath.
-     Frosted keeps the controls legible while letting the poster stay
-     visible through them, so nothing is ever completely covered. Falls
-     back to a slightly more opaque solid tint on the rare browser without
-     backdrop-filter support — still translucent, just without the blur. */
-  background: color-mix(in srgb, var(--paper) 78%, transparent);
-  backdrop-filter: blur(0.625rem);
-  -webkit-backdrop-filter: blur(0.625rem);
-  border: 1px solid var(--rule);
-  border-radius: 0.25rem;
-  box-shadow: 0 0.75rem 2rem -1rem rgb(0 0 0 / 0.25);
+  gap: 0.75rem 1.75rem;
+  margin: 0 0 clamp(2.5rem, 4vw, 3.5rem);
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
 }
 .film-control {
   display: flex;
@@ -90,11 +71,6 @@
 .film-control select:hover,
 .film-control select:focus-visible {
   border-color: var(--accent);
-}
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .film-controls {
-    background: color-mix(in srgb, var(--paper) 94%, transparent);
-  }
 }
 .film-shuffle-button {
   appearance: none;
@@ -149,7 +125,7 @@
   transition: none;
 }
 .film-card.is-picked .film-poster-frame {
-  background: color-mix(in srgb, var(--accent) 40%, var(--rule));
+  box-shadow: 0 0 0 2px var(--accent);
 }
 .film-card:focus {
   outline: none;
@@ -174,49 +150,56 @@
 }
 
 .film-year-group {
-  margin-top: clamp(4rem, 6vw, 6rem);
+  margin-top: clamp(3.5rem, 6vw, 5.5rem);
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--ink);
 }
-/* The first year sits the header's own 3.5rem below the subtitle, as
-   every collection's first section does. Shuffle's script inserts its
-   (hidden) .film-shuffled section ahead of the years on load, so
-   :first-of-type alone stopped matching once JavaScript ran — the gap
-   grew from 56px to 86px and the page shifted down as it did. */
+/* The first year sits right under the controls. Shuffle's script inserts
+   its (hidden) .film-shuffled section ahead of the years on load, so
+   :first-of-type alone stops matching once JavaScript runs. */
 .film-year-group:first-of-type,
 .film-shuffled + .film-year-group {
   margin-top: 0;
 }
 /* This page's heading opts out of the site-wide .album-header reveal:
-   the type is there at once and only the posters arrive. */
-/* Both classes: films.css loads before base.css, so the plain selector
-   would lose to base.css's own. */
+   the type is there at once. Both classes: films.css loads before
+   base.css, so the plain selector would lose to base.css's own. */
 .album-header.film-header {
   animation: none;
 }
-/* The year headings are there from the first paint; the posters under
-   them arrive (motion.ts, and the inline script in pictures/index.astro).
-   Hidden only while the page is still parsing — see .films-arriving. */
-.films-arriving .film-card {
-  opacity: 0;
-}
+/* The year: set large in oldstyle figures, with how many films it holds.
+   From a wide screen up it stands in a margin column beside its films and
+   stays there while they scroll past, the way a catalogue runs its
+   section in the margin. */
 .film-year-heading {
-  display: flex;
-  align-items: baseline;
-  gap: 0.875rem;
-  margin: 0 0 2.25rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--rule);
+  margin: 0 0 1.75rem;
 }
 .film-year-heading h2 {
-  font-size: clamp(1.75rem, 1rem + 3vw, 2.75rem);
-  font-weight: 340;
-  letter-spacing: -0.02em;
+  font-size: clamp(2.75rem, 1.75rem + 3.5vw, 5rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+  font-variant-numeric: oldstyle-nums;
 }
 .film-year-count {
+  margin: 0.625rem 0 0;
   font-family: var(--serif);
   text-transform: uppercase;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.08em;
   color: var(--muted);
+}
+@media (min-width: 64rem) {
+  .film-year-group {
+    display: grid;
+    grid-template-columns: 10rem minmax(0, 1fr);
+    column-gap: 2rem;
+    align-items: start;
+  }
+  .film-year-heading {
+    position: sticky;
+    top: 1.5rem;
+  }
 }
 
 /* Two per row even on a phone — a poster needs real width to read as
@@ -237,13 +220,11 @@
   }
 }
 @media (min-width: 64rem) {
+  /* Four beside the margin column: each poster ends up wider than the
+     five-across it replaced (222px against 208px at 1440). */
   .film-grid {
     grid-template-columns: repeat(4, 1fr);
-  }
-}
-@media (min-width: 80rem) {
-  .film-grid {
-    grid-template-columns: repeat(5, 1fr);
+    gap: 3rem 1.5rem;
   }
 }
 
@@ -260,40 +241,32 @@
  */
 .film-poster-frame {
   aspect-ratio: 2 / 3;
-  padding: 0.375rem;
-  background: var(--rule);
-  margin: 0 0 1rem;
+  /* A hairline, not a mat: many posters carry their own white border,
+     and a mat around that framed them twice. */
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent);
+  margin: 0 0 0.875rem;
   /* A cropped poster's transform: scale (data-cropped, films/poster-overrides.yaml)
      grows outward from the image's own centre — without a clip here, any
      zoom above 1 bleeds straight through the mat, which is exactly what was
      erasing Body Heat's border. */
   overflow: hidden;
-  transition:
-    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.35s ease;
+  transition: box-shadow 0.2s ease;
 }
+/* Hover is a darker hairline — no lift, no shadow, no zoom. */
 .film-card:hover .film-poster-frame {
-  transform: translateY(-3px);
-  box-shadow: 0 1.25rem 2.5rem -1.25rem rgb(0 0 0 / 0.35);
+  box-shadow: 0 0 0 1px var(--ink);
 }
 .film-poster {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  background: var(--paper);
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.film-card:hover .film-poster {
-  transform: scale(1.02);
+  background: color-mix(in srgb, var(--rule) 45%, var(--paper));
 }
 .film-poster[data-cropped='true'] {
   object-fit: cover;
   object-position: var(--focal-x, 50%) var(--focal-y, 50%);
   transform: scale(var(--focal-zoom, 1));
-}
-.film-card:hover .film-poster[data-cropped='true'] {
-  transform: scale(calc(var(--focal-zoom, 1) * 1.02));
 }
 /* A film TMDB matched but has no poster for — a quiet placeholder within
    the same mat, not a broken image icon and not silently skipped. */
@@ -315,19 +288,37 @@
 .film-card-body {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.3rem;
+}
+/* The catalogue line: the film's number in the year's viewing order and
+   the day it was seen — the archive's own coordinate, above the title. */
+.film-catalogue {
+  margin: 0;
+  font-family: var(--serif);
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-variant-numeric: lining-nums;
 }
 .film-title {
   margin: 0;
   font-family: var(--serif);
-  font-size: 1.0625rem;
+  font-size: 1.125rem;
   font-weight: 400;
   letter-spacing: -0.01em;
-  line-height: 1.3;
+  line-height: 1.25;
 }
-.film-release-year {
-  font-variant-numeric: oldstyle-nums tabular-nums;
-  color: var(--muted);
+/* The title is the way to Letterboxd (one link per film, not a repeated
+   "Letterboxd ↗" under each). */
+.film-title a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.film-title a:hover,
+.film-title a:focus-visible {
+  color: var(--accent);
 }
 .film-meta {
   margin: 0;
@@ -336,45 +327,71 @@
   font-size: 0.6875rem;
   letter-spacing: 0.08em;
   color: var(--muted);
+  font-variant-numeric: lining-nums;
 }
-.film-genres {
-  margin: 0;
-  font-size: 0.75rem;
-  letter-spacing: 0.01em;
-  color: var(--muted);
-  opacity: 0.8;
+/* Runtimes read as written ("1h 26m"), not shouted. */
+.film-runtime {
+  text-transform: none;
+  letter-spacing: 0.02em;
 }
 .film-overview {
-  margin: 0.125rem 0 0;
+  margin: 0.25rem 0 0;
   font-size: 0.8125rem;
   font-style: italic;
   line-height: 1.6;
   color: var(--muted);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
 }
-.film-letterboxd-link {
-  margin-top: 0.25rem;
-  font-family: var(--serif);
-  text-transform: uppercase;
-  font-size: 0.6875rem;
-  letter-spacing: 0.08em;
-  color: var(--muted);
+@media (max-width: 39.9375rem) {
+  .film-overview {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+}
+
+/* The archive's contents, under the introduction: each year and its count. */
+.film-index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.75rem;
+  margin: 2.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: oldstyle-nums;
+}
+.film-index a {
+  color: var(--ink);
+  font-size: 1.375rem;
+  font-weight: 340;
   text-decoration: none;
   transition: color 0.2s ease;
 }
-.film-letterboxd-link:hover {
+.film-index a:hover,
+.film-index a:focus-visible {
   color: var(--accent);
+}
+.film-index-count {
+  margin-left: 0.4rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-variant-numeric: lining-nums;
+}
+
+/* The close of the log. */
+.film-colophon {
+  margin: clamp(4rem, 6vw, 6rem) 0 0;
+  font-style: italic;
+  color: var(--muted);
 }
 
 .film-attribution {
-  margin-top: clamp(4rem, 6vw, 6rem);
+  margin-top: 1.5rem;
   padding-top: 1.5rem;
-  /* Extra room below the credit line, on top of main's own bottom padding
-     (base.css) — .film-controls is fixed to the viewport's bottom-right
-     corner, so scrolled all the way down, the last row of posters needs
-     real empty space beneath it, not just enough to clear the text above,
-     or it would sit permanently trapped under the panel with no further
-     scroll room to reveal it from underneath. */
-  padding-bottom: 6rem;
   border-top: 1px solid var(--rule);
   font-size: 0.8125rem;
   color: var(--muted);

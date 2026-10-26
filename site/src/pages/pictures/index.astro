@@ -18,6 +18,13 @@ const years = films.map((film) => film.ratedOn.slice(0, 4)).filter((year) => yea
 const range =
   years.length > 0 ? `${[...years].sort().at(0)}–${[...years].sort().at(-1)}` : null;
 const hasPosters = films.some((film) => film.posterPath !== null);
+// "29 December": the day each film was seen (rated), as the catalogue line
+// prints it. UTC, so the build machine's time zone never shifts a date.
+const seenOn = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+const seen = (iso: string): string | null =>
+  /^\d{4}-\d{2}-\d{2}$/.test(iso) ? seenOn.format(new Date(`${iso}T00:00:00Z`)) : null;
+const firstSeen = [...films].map((film) => film.ratedOn).filter((day) => seen(day) !== null).sort()[0];
+const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 ---
 
 <Base title={config.title} description={config.description}>
@@ -28,6 +35,20 @@ const hasPosters = films.some((film) => film.posterPath !== null);
         range && `, ${range}`
       }.
     </p>
+    {
+      /* The archive's contents: every year and how many films it holds,
+         each a link to its section — the opening's space, put to work. */
+      groups.length > 1 && (
+        <ol class="film-index">
+          {groups.map((group) => (
+            <li>
+              <a href={`#year-${group.year}`}>{group.year}</a>
+              <span class="film-index-count">{group.films.length}</span>
+            </li>
+          ))}
+        </ol>
+      )
+    }
   </header>
 
   {
@@ -76,20 +97,6 @@ const hasPosters = films.some((film) => film.posterPath !== null);
     )
   }
 
-  {
-    /* Arrival, part one: hide the cards while the HTML is still being
-       parsed, so the first paint never shows a poster that's about to
-       animate in. Only with motion allowed and the API present; part two,
-       right after the last card, always lifts it. */
-  }
-  <script is:inline>
-    if (
-      typeof Element.prototype.animate === 'function' &&
-      !matchMedia('(prefers-reduced-motion: reduce)').matches
-    ) {
-      document.documentElement.classList.add('films-arriving');
-    }
-  </script>
 
   {
     groups.map((group, groupIndex) => (
@@ -97,7 +104,7 @@ const hasPosters = films.some((film) => film.posterPath !== null);
         <div class="film-year-heading">
           <h2>{group.year}</h2>
           <p class="film-year-count">
-            {group.films.length} film{group.films.length === 1 ? '' : 's'}
+            {group.films.length} film{group.films.length === 1 ? '' : 's'} seen
           </p>
         </div>
         <ul class="film-grid">
@@ -110,7 +117,11 @@ const hasPosters = films.some((film) => film.posterPath !== null);
             const style = cropped
               ? `--focal-x:${String(film.posterFocal?.x)}%;--focal-y:${String(film.posterFocal?.y)}%;--focal-zoom:${String(film.posterFocal?.zoom)};`
               : undefined;
-            const meta = [film.director, film.runtimeMinutes ? formatRuntime(film.runtimeMinutes) : null]
+            // Its place in the year's viewing order: the list is newest first,
+            // so the year's first film seen is the last card, № 1.
+            const number = group.films.length - filmIndex;
+            const seenDay = seen(film.ratedOn);
+            const credits = [film.director, film.year > 0 ? String(film.year) : null]
               .filter((part): part is string => Boolean(part))
               .join(' · ');
             return (
@@ -139,22 +150,27 @@ const hasPosters = films.some((film) => film.posterPath !== null);
                   )}
                 </div>
                 <div class="film-card-body">
+                  <p class="film-catalogue">
+                    № {number}
+                    {seenDay && <span> · {seenDay}</span>}
+                  </p>
                   <h3 class="film-title">
-                    {film.title} <span class="film-release-year">{film.year}</span>
+                    <a href={film.letterboxdUrl} target="_blank" rel="noopener noreferrer">
+                      {film.title}
+                    </a>
                   </h3>
-                  {meta.length > 0 && <p class="film-meta">{meta}</p>}
-                  {film.genres.length > 0 && (
-                    <p class="film-genres">{film.genres.join(' · ')}</p>
+                  {(credits.length > 0 || film.runtimeMinutes) && (
+                    <p class="film-meta">
+                      {credits}
+                      {film.runtimeMinutes && (
+                        <span class="film-runtime">
+                          {credits.length > 0 && ' · '}
+                          {formatRuntime(film.runtimeMinutes)}
+                        </span>
+                      )}
+                    </p>
                   )}
                   {film.overview && <p class="film-overview">{excerpt(film.overview, 220)}</p>}
-                  <a
-                    class="film-letterboxd-link"
-                    href={film.letterboxdUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Letterboxd ↗
-                  </a>
                 </div>
               </li>
             );
@@ -164,44 +180,14 @@ const hasPosters = films.some((film) => film.posterPath !== null);
     ))
   }
 
+
   {
-    /* Arrival, part two, inline so it runs before the first paint rather
-       than after the bundle loads: only the posters already on screen rise
-       8px and fade in, a 14ms stagger in reading order, all landed within
-       ~0.5s; everything below the fold is simply there when scrolled to.
-       `fill: backwards` holds each at its start until its turn, so lifting
-       the hiding class can't flash them. Same numbers as motion.ts. */
+    firstSeen && (
+      <p class="film-colophon">
+        {films.length} films, the first seen {longDate.format(new Date(`${firstSeen}T00:00:00Z`))}.
+      </p>
+    )
   }
-  <script is:inline>
-    (() => {
-      const root = document.documentElement;
-      if (!root.classList.contains('films-arriving')) return;
-      try {
-        let index = 0;
-        for (const card of document.querySelectorAll('.film-card')) {
-          const box = card.getBoundingClientRect();
-          // Cards are in reading order, so the first one below the fold ends it.
-          if (box.top >= innerHeight) break;
-          if (box.bottom <= 0) continue;
-          card.animate(
-            [
-              { opacity: 0, transform: 'translateY(8px)' },
-              { opacity: 1, transform: 'none' },
-            ],
-            {
-              duration: 360,
-              delay: Math.min(index, 12) * 14,
-              easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)',
-              fill: 'backwards',
-            },
-          );
-          index += 1;
-        }
-      } finally {
-        root.classList.remove('films-arriving');
-      }
-    })();
-  </script>
 
   {
     hasPosters && (

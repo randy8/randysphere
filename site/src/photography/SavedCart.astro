@@ -1,10 +1,11 @@
 ---
 /**
  * Saved, in the site-wide masthead (Base.astro), after the collections
- * list: the word and its count, in the navigation's own label voice. It
- * was a shopping-cart icon until 2026-10-26 — on a site where nothing is
- * for sale, a cart named the feature wrongly and brought commerce into an
- * archive. The count is the same localStorage list Saved has always read
+ * list: the word in the navigation's own label voice, the cart mark after
+ * it, and the count once something is saved — one link. (The mark was
+ * dropped for the word alone on 2026-10-26 and restored the same day at
+ * the owner's request: the word names it, the mark is how people spot it.)
+ * The count is the same localStorage list Saved has always read
  * (saved.ts), kept in step by syncSavedUI on every page, across tabs too.
  */
 interface Props {
@@ -23,6 +24,23 @@ const { current } = Astro.props;
     aria-current={current ? 'page' : undefined}
   >
     Saved
+    <svg
+      class="saved-cart-icon"
+      viewBox="0 0 24 24"
+      width="15"
+      height="15"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 3.5h2.6l2.5 11.1a1.5 1.5 0 0 0 1.5 1.2h8.7a1.5 1.5 0 0 0 1.45-1.12L21 7.5H5.5"
+      ></path>
+      <circle cx="9.5" cy="19.75" r="1.25"></circle>
+      <circle cx="17" cy="19.75" r="1.25"></circle>
+    </svg>
     {/* Empty, and hidden, until there's something saved. */}
     <span class="saved-cart-count" data-saved-count hidden></span>
   </a>
@@ -66,6 +84,12 @@ const { current } = Astro.props;
   }
   .masthead-nameplate a.saved-cart[aria-current='page'] {
     color: var(--ink);
+  }
+  /* Sized to the capitals beside it and seated on their baseline. */
+  .saved-cart-icon {
+    flex: none;
+    align-self: center;
+    margin-top: -0.125rem;
   }
   /* The count in the same figures as the word — no bubble, no colour of
      its own. */

@@ -3022,3 +3022,32 @@ owner's instruction to use best judgment.
   at rest; the accent hairline appears on hover or focus.
 - **Phone masthead** tightened (name and Saved on one line, collections
   spread beneath, less padding).
+
+## 2026-10-26 — Pictures as a catalogue; the Saved mark restored
+
+Prototype A from the art-direction review, built (the review rendered
+three options on the live page; A was recommended).
+
+- **The year** stands in a 10rem margin column from 64rem up, set large in
+  oldstyle figures with "N films seen", sticky beside its own films (it's
+  in its own column, so it never covers one). Below 64rem it heads its
+  section. An **index of years** with counts sits under the lede.
+- **Each card:** a catalogue line — № in the year's viewing order (the year's
+  first film seen is № 1) and the day it was seen, from `ratedOn` — then
+  the title (now the Letterboxd link, replacing 775 "Letterboxd ↗" lines),
+  then director · release year · runtime, then the synopsis clamped to three
+  lines (two on a phone). Genres left the card; the genre filter still
+  reads them. Posters lost the mat for a hairline (many carry their own
+  white border) and grew from 208px to 222px wide at 1440. Hover is a darker
+  hairline: no lift, shadow or zoom. A pick is an accent ring.
+- **Controls** are one ruled line in the page's flow. Not sticky: a first
+  build made them sticky, and the new Pictures browser test showed posters
+  clipped under it while scrolling — the reason the masthead stopped being
+  sticky on 2026-10-16.
+- **The load-time arrival** (posters rising and fading in, staggered) is
+  gone: they are simply there. Shuffle's and the filter's glide (motion.ts)
+  stays — that's feedback on an action, not loading.
+- A **colophon** closes the log.
+
+**Saved** keeps the word, and the cart mark is back after it with its
+count — dropped earlier today, restored at the owner's request.
