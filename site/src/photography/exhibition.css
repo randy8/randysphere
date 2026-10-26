@@ -1,18 +1,22 @@
 /*
- * The exhibition: a dark wall, one photograph, and as little else as
+ * The exhibition: a black wall, one photograph, and as little else as
  * possible. The controls speak in the site's own label voice (small caps
  * in the body serif), at the edges, and leave after a moment of
  * stillness — along with the cursor.
  */
 
 .exhibition {
-  --wall: #0f0e0c;
+  --wall: #000;
   --wall-ink: color-mix(in srgb, var(--paper) 86%, transparent);
   --wall-muted: color-mix(in srgb, var(--paper) 52%, transparent);
   /* The margin around every photograph. Wider, on each side, than the
      most the drift can grow it (2.1% of the frame, exhibition-model.ts),
-     so motion never crops. */
-  --mat-block: max(1.5rem, 6vh);
+     so motion never crops; and above and below, at least as tall as the
+     control bars, so the controls never lie over a photograph. */
+  --bar-pad: 0.5rem;
+  --bar-height: calc(2 * var(--bar-pad) + 2.75rem);
+  --mat-top: max(6vh, calc(var(--bar-height) + env(safe-area-inset-top, 0px)));
+  --mat-bottom: max(6vh, calc(var(--bar-height) + env(safe-area-inset-bottom, 0px)));
   --mat-inline: max(1.5rem, 6vw);
   position: fixed;
   inset: 0;
@@ -34,7 +38,7 @@
 
 html:has(.exhibition),
 html:has(.exhibition) body {
-  background: #0f0e0c;
+  background: #000;
 }
 
 .exhibition-stage {
@@ -51,7 +55,7 @@ html:has(.exhibition) body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--mat-block) var(--mat-inline);
+  padding: var(--mat-top) var(--mat-inline) var(--mat-bottom);
   opacity: 0;
 }
 .exhibition-motion {
@@ -73,7 +77,7 @@ html:has(.exhibition) body {
 .exhibition-label {
   position: absolute;
   left: var(--mat-inline);
-  bottom: calc(var(--mat-block) / 2);
+  bottom: calc(var(--mat-bottom) / 2);
   transform: translateY(50%);
   margin: 0;
   font-variant-caps: small-caps;
@@ -101,16 +105,16 @@ html:has(.exhibition) body {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem max(1rem, calc(var(--mat-inline) - 0.75rem));
+  padding: var(--bar-pad) max(1rem, calc(var(--mat-inline) - 0.75rem));
   transition: opacity 0.5s ease;
 }
 .exhibition-top {
   top: 0;
-  padding-top: max(1rem, env(safe-area-inset-top, 0px));
+  padding-top: calc(var(--bar-pad) + env(safe-area-inset-top, 0px));
 }
 .exhibition-bottom {
   bottom: 0;
-  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--bar-pad) + env(safe-area-inset-bottom, 0px));
 }
 .exhibition-bar[hidden] {
   display: none;
@@ -195,7 +199,7 @@ html:has(.exhibition) body {
   position: absolute;
   z-index: 4;
   right: max(1rem, calc(var(--mat-inline) - 0.75rem));
-  bottom: calc(max(1rem, env(safe-area-inset-bottom, 0px)) + 3.5rem);
+  bottom: calc(var(--mat-bottom) + 0.5rem);
   display: grid;
   gap: 1rem;
   padding: 1.25rem 1.5rem;
@@ -288,7 +292,7 @@ html:has(.exhibition) body {
   padding: 2rem;
   text-align: center;
   font-style: italic;
-  background: #0f0e0c;
+  background: #000;
   color: color-mix(in srgb, var(--paper) 70%, transparent);
 }
 .exhibition-empty[hidden] {

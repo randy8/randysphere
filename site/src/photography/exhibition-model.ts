@@ -116,7 +116,7 @@ export const FADE_CHOICES = [1, 2, 4] as const;
 /** The settings a visitor's preferences can carry from one exhibition to the next. Order belongs to the source. */
 export type Preferences = Partial<Omit<Settings, 'order'>>;
 
-export const DEFAULTS: Omit<Settings, 'order'> = { slide: 8, fade: 2, motion: true, info: false };
+export const DEFAULTS: Omit<Settings, 'order'> = { slide: 8, fade: 1, motion: true, info: false };
 
 /**
  * A shared selection plays in its sender's order; everything else

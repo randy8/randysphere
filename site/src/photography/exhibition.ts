@@ -9,12 +9,19 @@
  * connection the current photograph simply stays up longer. Memory stays
  * at two images however large the collection.
  *
- * Every fade and drift is a Web Animation, so pausing freezes them where
- * they are and resuming carries on. A crossfade between photographs of the
- * same orientation; between a landscape and a portrait, the first goes to
- * the wall before the next arrives, so one frame's edges never hang over
+ * Exactly one photograph is on the wall except during a transition, and a
+ * new step first settles any transition still running — so stepping fast
+ * can never leave two photographs (or a stale one) showing. Each
+ * photograph gets a fresh <img>: a reused one keeps painting its previous
+ * photograph until the new bytes arrive, and its decode() can resolve
+ * against the old image.
+ *
+ * A crossfade only between photographs whose frames coincide (the same
+ * aspect ratio, so the same box on the wall); otherwise the first goes to
+ * the wall before the next arrives, so one frame's edges never show beside
  * the other's. The drift is a scale of at most 3% inside the photograph's
- * margin — it never crops — and doesn't run under reduced motion.
+ * margin — it never crops — and doesn't run under reduced motion. Pause
+ * holds the drift and the timer; a transition already under way finishes.
  */
 
 import { formatDate } from './date.ts';
@@ -43,7 +50,7 @@ const PREFERENCES_KEY = 'exhibition-preferences';
 const IDLE_MS = 2500;
 const LOAD_TIMEOUT_MS = 20_000;
 /** A visitor stepping by hand wants the next photograph now, not after the full transition. */
-const MANUAL_FADE_S = 0.6;
+const MANUAL_FADE_S = 0.8;
 const SWIPE_PX = 48;
 
 function loadPreferences(): Preferences {
@@ -67,7 +74,7 @@ function savePreferences(settings: Settings): void {
 interface Layer {
   readonly root: HTMLElement;
   readonly motion: HTMLElement;
-  readonly img: HTMLImageElement;
+  img: HTMLImageElement;
   readonly avif: HTMLSourceElement | undefined;
   readonly webp: HTMLSourceElement | undefined;
   readonly label: HTMLElement;
@@ -145,9 +152,15 @@ function start(root: HTMLElement, data: ExhibitionData): void {
   const fill = (layer: Layer, photo: ExhibitionPhoto): Promise<boolean> => {
     if (layer.photo?.id === photo.id) return layer.ready;
     layer.photo = photo;
-    for (const animation of layer.root.getAnimations({ subtree: true })) animation.cancel();
+    for (const animation of layer.motion.getAnimations()) animation.cancel();
     layer.root.style.opacity = '0';
     layer.motion.style.transform = '';
+    // A fresh element, inserted empty (so it fetches nothing until every
+    // attribute below is set): no earlier photograph to paint, or to decode.
+    const img = document.createElement('img');
+    img.decoding = 'async';
+    layer.img.replaceWith(img);
+    layer.img = img;
     for (const [el, value] of [
       [layer.avif, photo.avif],
       [layer.webp, photo.webp],
@@ -220,60 +233,95 @@ function start(root: HTMLElement, data: ExhibitionData): void {
     if (!playing) pauseAnimations();
   };
 
+  // Only the drift pauses. A fade left frozen part-way would hold two
+  // photographs on the wall until something else moved it.
   const pauseAnimations = (): void => {
-    for (const animation of stage.getAnimations({ subtree: true })) animation.pause();
+    for (const layer of layers)
+      for (const animation of layer.motion.getAnimations()) animation.pause();
   };
   const resumeAnimations = (): void => {
-    for (const animation of stage.getAnimations({ subtree: true })) {
-      if (animation.playState === 'paused') animation.play();
+    for (const layer of layers) {
+      for (const animation of layer.motion.getAnimations()) {
+        if (animation.playState === 'paused') animation.play();
+      }
     }
   };
 
-  const orientation = (photo: ExhibitionPhoto | null): string =>
-    photo === null ? 'none' : photo.width >= photo.height ? 'landscape' : 'portrait';
+  // --- Fades: every opacity change on the wall goes through here ---------------------
+
+  /** The fades still running. Finished ones leave their end opacity inline and are gone. */
+  let fades: Animation[] = [];
+  const conclude = (animation: Animation): void => {
+    animation.commitStyles();
+    animation.cancel();
+    fades = fades.filter((other) => other !== animation);
+  };
+  const fade = (
+    layer: Layer,
+    keyframes: Keyframe[],
+    options: { duration: number; easing: string; delay?: number },
+  ): void => {
+    const animation = layer.root.animate(keyframes, { ...options, fill: 'forwards' });
+    fades.push(animation);
+    // The promise, not the 'finish' event: it settles first, so anything
+    // awaiting the fade (preloadNext) already sees it concluded.
+    animation.finished.then(
+      () => {
+        if (fades.includes(animation)) conclude(animation);
+      },
+      () => {},
+    );
+  };
+  /** A transition still running ends now, at its end: one photograph on the wall, the other layer dark. */
+  const settle = (): void => {
+    for (const animation of fades) {
+      animation.finish();
+      conclude(animation);
+    }
+  };
+
+  /** Same aspect ratio within 2%: the two fill the same box, so a crossfade shows no edges. */
+  const sameFrame = (a: ExhibitionPhoto | null, b: ExhibitionPhoto | null): boolean =>
+    a !== null && b !== null && Math.abs((a.width / a.height) * (b.height / b.width) - 1) < 0.02;
 
   const reveal = (incoming: Layer, fadeSeconds: number): void => {
     const outgoing = front;
     const ms = fadeSeconds * 1000;
-    for (const animation of outgoing.root.getAnimations()) animation.finish();
     incoming.root.style.zIndex = '2';
     outgoing.root.style.zIndex = '1';
-    const firstPhotograph = outgoing.photo === null || outgoing === incoming;
-    const crossfade = orientation(outgoing.photo) === orientation(incoming.photo);
-    if (firstPhotograph) {
-      incoming.root.animate([{ opacity: 0 }, { opacity: 1 }], {
+    if (outgoing === incoming) {
+      // Already on the wall (a one-photograph exhibition): nothing to change.
+      if (incoming.root.style.opacity !== '1') {
+        fade(incoming, [{ opacity: 0 }, { opacity: 1 }], {
+          duration: Math.max(ms, 1200),
+          easing: 'ease-out',
+        });
+      }
+    } else if (outgoing.photo === null) {
+      fade(incoming, [{ opacity: 0 }, { opacity: 1 }], {
         duration: Math.max(ms, 1200),
         easing: 'ease-out',
-        fill: 'forwards',
       });
-    } else if (crossfade) {
+    } else if (sameFrame(outgoing.photo, incoming.photo)) {
       // The outgoing photograph holds until halfway, so where the two
       // overlap the blend never dips toward the wall.
-      incoming.root.animate([{ opacity: 0 }, { opacity: 1 }], {
-        duration: ms,
-        easing: 'ease-in-out',
-        fill: 'forwards',
-      });
-      outgoing.root.animate([{ opacity: 1 }, { opacity: 1, offset: 0.5 }, { opacity: 0 }], {
+      fade(incoming, [{ opacity: 0 }, { opacity: 1 }], { duration: ms, easing: 'ease-in-out' });
+      fade(outgoing, [{ opacity: 1 }, { opacity: 1, offset: 0.5 }, { opacity: 0 }], {
         duration: ms,
         easing: 'ease-in',
-        fill: 'forwards',
       });
     } else {
-      outgoing.root.animate([{ opacity: 1 }, { opacity: 0 }], {
-        duration: ms * 0.5,
-        easing: 'ease-in',
-        fill: 'forwards',
-      });
-      incoming.root.animate([{ opacity: 0 }, { opacity: 1 }], {
-        duration: ms * 0.75,
-        delay: ms * 0.5,
+      // Different frames: one leaves before the other arrives, so a
+      // landscape's edges never show beside a portrait (or a 3:2 around a
+      // square). The total time matches the crossfade's.
+      fade(outgoing, [{ opacity: 1 }, { opacity: 0 }], { duration: ms * 0.45, easing: 'ease-in' });
+      fade(incoming, [{ opacity: 0 }, { opacity: 1 }], {
+        duration: ms * 0.55,
+        delay: ms * 0.45,
         easing: 'ease-out',
-        fill: 'forwards',
       });
     }
     startMotion(incoming, fadeSeconds);
-    if (!playing) pauseAnimations();
     if (outgoing !== incoming) {
       front = incoming;
       back = outgoing;
@@ -296,6 +344,9 @@ function start(root: HTMLElement, data: ExhibitionData): void {
   const present = async (fadeSeconds: number, announce: boolean): Promise<void> => {
     step += 1;
     const mine = step;
+    // Whatever was mid-transition lands now, so the back layer is dark
+    // before it's refilled and only one photograph waits on the wall.
+    settle();
     const photo = photos[playlist.current];
     if (photo === undefined) return;
     const target = front.photo?.id === photo.id ? front : back;
@@ -328,12 +379,9 @@ function start(root: HTMLElement, data: ExhibitionData): void {
     const upcoming = photos[playlist.peek()];
     if (upcoming === undefined || photos.length < 2) return;
     const leaving = back;
-    void Promise.all(leaving.root.getAnimations().map((animation) => animation.finished)).then(
-      () => {
-        if (mine === step && leaving === back) void fill(back, upcoming);
-      },
-      () => {},
-    );
+    void Promise.allSettled(fades.map((animation) => animation.finished)).then(() => {
+      if (mine === step && leaving === back && fades.length === 0) void fill(back, upcoming);
+    });
   };
 
   function advance(): void {

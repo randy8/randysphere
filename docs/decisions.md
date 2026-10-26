@@ -2883,3 +2883,42 @@ last 24h"; nothing else did.
 `restorecon` quietly undoes it. A `semanage fcontext` rule: survives that,
 but it's a machine-wide setting the repo can't carry, and it's invisible
 to anyone reading the unit.
+
+## 2026-10-26 — Exhibition: one photograph on the wall; the lightbox never shows a stale photo
+
+**Reported.** Exhibition sometimes showed a portrait with large cropped
+panels either side, or the previous photograph over the next; the
+lightbox sometimes showed a photo, flickered, and switched to another.
+
+**Causes.** Not a carousel — the panels were a landscape still on the
+wall behind a portrait. (1) Fades were `fill: forwards` animations that
+piled up on each layer, and a new step `finish()`ed some of them
+mid-flight: stepping back during a landscape↔portrait change snapped one
+layer to full while the other was still fading in. Reproduced in
+Chromium on tag 0828 by stepping eight times at 90 ms (both layers at
+1.00/0.84). (2) Pause paused the fades too, so stepping while paused froze
+a fade at its first frame and the next step jumped it to its end. (3) Both
+views reuse `<img>` elements; a reused one keeps painting its previous
+photograph until the new bytes arrive, and its `decode()` can resolve
+against the old image.
+
+**Decision.** Exhibition: every opacity change goes through one list of
+fades; a step first _settles_ any fade in flight (to its end, committed
+inline), so one photograph is on the wall while the next loads. Pause
+holds the drift and timer only. A crossfade only when the two aspect
+ratios match within 2% (identical boxes); otherwise out, then in, in the
+same total time — generalising "same orientation", since a 3:2 over a
+square shows edges too. A fresh `<img>` per photograph in both views. The
+wall is pure black; the top and bottom margins are at least a control
+bar's height (bars slimmed to 0.5rem padding), so controls never lie over
+a photograph. Default transition 1 s (was 2); manual steps 0.8 s.
+Lightbox: the grid's already-loaded thumbnail sits behind the full-size
+image while it loads (never one that hasn't loaded — that would start a
+second download), and the two hidden neighbours are `decode()`d ahead,
+since `display: none` images download but don't decode until shown.
+
+**Rejected.** Crossfading every pair (the panels again, mid-fade).
+Cancelling, rather than finishing, an interrupted fade (leaves an
+arbitrary blend on the wall). Controls over the photograph while visible
+(never overlap). Dropping the drift: it's a ≤3% scale inside the margin,
+not movement between photographs, and off under reduced motion.

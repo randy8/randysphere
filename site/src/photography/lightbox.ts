@@ -58,10 +58,27 @@ function applySaveButtonState(button: HTMLElement, saved: boolean): void {
 }
 
 /**
+ * The page's own thumbnail of this photograph, if it has already arrived —
+ * shown, scaled up, behind the full-size image while that loads, so a
+ * photograph opens at once and sharpens rather than starting from a blank.
+ * Only a finished one: an unloaded tile's URL would start a second download.
+ */
+function thumbnailOf(id: string): string | null {
+  const tile = document.querySelector<HTMLImageElement>(
+    `:not(.lightbox-item)[data-photo-id="${CSS.escape(id)}"] img`,
+  );
+  return tile !== null && tile.complete && tile.naturalWidth > 0 ? tile.currentSrc : null;
+}
+
+/**
  * Pours one photograph's data into a slot — the same attributes Photo.astro
  * renders, set from lightbox-data.ts's JSON. A slot already holding this
  * photograph is left alone, so a photo that was preloaded beside the
  * current one is never reloaded when it becomes current.
+ *
+ * Each photograph gets a fresh <img>. A reused one keeps painting the
+ * photograph it held until the new one's bytes arrive — on a slow
+ * connection, the previous photograph flashed up before the right one.
  */
 function fill(slot: HTMLElement, photo: LightboxPhoto): void {
   if (slot.dataset['photoId'] === photo.id) return;
@@ -69,7 +86,14 @@ function fill(slot: HTMLElement, photo: LightboxPhoto): void {
   const picture = slot.querySelector('picture');
   picture?.setAttribute('data-orientation', photo.height > photo.width ? 'portrait' : 'landscape');
   const [avif, webp] = Array.from(slot.querySelectorAll('source'));
-  const img = slot.querySelector('img');
+  const old = slot.querySelector('img');
+  // Inserted empty, so it fetches nothing until every attribute is set.
+  const img = old === null ? null : document.createElement('img');
+  if (old !== null && img !== null) {
+    img.loading = 'eager';
+    img.decoding = 'async';
+    old.replaceWith(img);
+  }
   for (const [source, value] of [
     [avif, photo.avif],
     [webp, photo.webp],
@@ -90,6 +114,8 @@ function fill(slot: HTMLElement, photo: LightboxPhoto): void {
     img.height = photo.height;
     img.alt = photo.alt;
     img.style.backgroundColor = photo.color;
+    const thumbnail = thumbnailOf(photo.id);
+    if (thumbnail !== null) img.style.backgroundImage = `url("${thumbnail}")`;
     img.src = photo.src;
   }
   const film = slot.querySelector<HTMLElement>('[data-slot-film]');
@@ -204,6 +230,14 @@ function init(): void {
     slots.forEach((slot) => {
       slot.classList.toggle('is-active', slot === current);
       syncHint(slot);
+      // The neighbours are display: none until stepped to, so the browser
+      // downloads them but wouldn't decode them until then — a blank frame
+      // on every step. Decode them now, off the main thread.
+      if (slot !== current)
+        void slot
+          .querySelector('img')
+          ?.decode()
+          .catch(() => {});
     });
     currentIndex = index;
     if (position !== null) position.textContent = `${(index + 1).toString()} / ${count.toString()}`;
