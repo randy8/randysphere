@@ -3316,3 +3316,12 @@ untouched.
 when scrolled to; scrolling back replays nothing; Back shows everything at
 once; reduced motion shows everything. Geometry checks wait for motion to
 settle. LCP before/after: recorded in the deploy that shipped this.
+
+## 2026-10-26 — Pictures' Shuffle is a toggle; the bar holds still
+
+Shuffle could only be undone by reloading, and it hid the year index,
+which shifted the controls across the bar and scrolled the page. Now it
+toggles (`aria-pressed`, shown in ink): pressed again, every film goes back
+to its year in its original order. The label never changes, the year index
+stays (muted while shuffled; a year clicked there ends the shuffle and goes
+to that year), and the bar keeps its exact place on screen through both.

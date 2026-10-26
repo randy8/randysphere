@@ -258,12 +258,17 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
         };
         genreSelect?.addEventListener('change', applyGenreFilter);
 
-        // Shuffle deals the whole library into one grid in random order —
-        // the year sections step aside (and the year index with them, since
-        // there are no years to jump to), the genre filter keeps applying on
-        // top, and every press deals again. A reload returns to by-year.
+        // Shuffle deals the whole library into one grid in random order; the
+        // year sections step aside (empty, so the genre filter hides them)
+        // and the genre filter keeps applying on top. It's a toggle: pressed
+        // again, every film goes home to its year, in its original order.
+        // The bar never moves — the label stays "Shuffle", the year index
+        // stays put (muted; a year clicked there ends the shuffle and goes
+        // to that year) — and nothing on screen jumps.
         const shuffleButton = document.querySelector<HTMLButtonElement>('[data-film-shuffle]');
         const firstGroup = yearGroups[0];
+        const yearsNav = document.querySelector<HTMLElement>('[data-film-years]');
+        const bar = document.querySelector<HTMLElement>('.film-bar');
         if (shuffleButton && firstGroup) {
           const shuffled = document.createElement('section');
           shuffled.className = 'film-shuffled';
@@ -272,29 +277,74 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
           grid.className = 'film-grid';
           shuffled.appendChild(grid);
           firstGroup.before(shuffled);
+          // Each card's year, to send it home; `cards` is in original order.
+          const homes = new Map(cards.map((card) => [card, card.parentElement]));
+          let isShuffled = false;
+          shuffleButton.setAttribute('aria-pressed', 'false');
 
-          shuffleButton.addEventListener('click', () => {
+          // Rearranges, keeping the bar exactly where it is on screen if
+          // it's in view; from deeper down, goes to the start of the films.
+          const steady = (change: () => void): void => {
+            const before = bar?.getBoundingClientRect().top ?? null;
+            const inView = before !== null && before >= 0 && before < window.innerHeight;
+            change();
+            if (inView && bar) {
+              const moved = bar.getBoundingClientRect().top - (before ?? 0);
+              if (moved !== 0) window.scrollBy({ top: moved, behavior: 'instant' });
+            } else {
+              const start = (isShuffled ? shuffled : firstGroup).getBoundingClientRect().top;
+              window.scrollTo({ top: window.scrollY + start - 16, behavior: 'instant' });
+            }
+          };
+
+          const shuffle = (): void => {
             const order = [...cards];
             for (let i = order.length - 1; i > 0; i -= 1) {
               const j = Math.floor(Math.random() * (i + 1));
               [order[i], order[j]] = [order[j] as HTMLElement, order[i] as HTMLElement];
             }
-            // The deal itself is instant, scroll included (a smooth scroll
-            // under moving posters reads as two motions fighting); the
-            // posters that end up on screen then glide or settle into
-            // place (motion.ts).
-            rearrange(cards, () => {
-              for (const card of order) grid.appendChild(card);
-              shuffled.hidden = false;
-              // No years in a shuffle, so nothing for the year index to do.
-              const years = document.querySelector<HTMLElement>('[data-film-years]');
-              if (years) years.hidden = true;
-              applyGenreFilter();
-              const top = shuffled.getBoundingClientRect().top;
-              if (top < 0 || top > window.innerHeight * 0.5) {
-                window.scrollTo({ top: window.scrollY + top, behavior: 'instant' });
-              }
-            });
+            // The deal itself is instant; the posters that end up on screen
+            // then glide or settle into place (motion.ts).
+            rearrange(cards, () =>
+              steady(() => {
+                for (const card of order) grid.appendChild(card);
+                shuffled.hidden = false;
+                isShuffled = true;
+                yearsNav?.classList.add('is-muted');
+                shuffleButton.setAttribute('aria-pressed', 'true');
+                applyGenreFilter();
+              }),
+            );
+          };
+
+          const unshuffle = (): void => {
+            rearrange(cards, () =>
+              steady(() => {
+                for (const card of cards) homes.get(card)?.appendChild(card);
+                shuffled.hidden = true;
+                isShuffled = false;
+                yearsNav?.classList.remove('is-muted');
+                shuffleButton.setAttribute('aria-pressed', 'false');
+                applyGenreFilter();
+              }),
+            );
+          };
+
+          shuffleButton.addEventListener('click', () => {
+            if (isShuffled) unshuffle();
+            else shuffle();
+          });
+
+          // A year chosen while shuffled: back to the years, then to it.
+          yearsNav?.addEventListener('click', (event) => {
+            if (!isShuffled || !(event.target instanceof Element)) return;
+            const link = event.target.closest<HTMLAnchorElement>('[data-film-year-link]');
+            if (link === null) return;
+            event.preventDefault();
+            unshuffle();
+            const target = document.getElementById(`year-${link.dataset['filmYearLink'] ?? ''}`);
+            target?.scrollIntoView({ block: 'start' });
+            history.replaceState(null, '', link.hash);
           });
         }
       </script>

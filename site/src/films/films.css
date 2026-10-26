@@ -96,6 +96,23 @@
 .film-shuffle-button:focus-visible {
   color: var(--accent);
 }
+/* Shuffle is a toggle: on, it reads as the current state, in ink. */
+.film-shuffle-button[aria-pressed='true'] {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 0.3em;
+}
+/* While shuffled the years stay where they are, quieter: choosing one
+   ends the shuffle and goes there. */
+.film-years.is-muted .film-index a {
+  color: color-mix(in srgb, var(--muted) 55%, transparent);
+  text-decoration: none;
+}
+.film-years.is-muted .film-index a:hover,
+.film-years.is-muted .film-index a:focus-visible {
+  color: var(--accent);
+}
 
 /* For a screen reader; the dialog says the rest. */
 .film-pick-status {

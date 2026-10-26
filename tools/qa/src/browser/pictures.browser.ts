@@ -183,3 +183,53 @@ for (const [label, options] of [
     options,
   );
 }
+
+browserTest(
+  'Shuffle is a toggle: the bar never moves, and pressing it again restores the years in order',
+  async ({ page }) => {
+    await page.goto(`${BASE}/pictures/`);
+    const button = page.locator('[data-film-shuffle]');
+    const where = () =>
+      page.evaluate(() => {
+        const b = document.querySelector('[data-film-shuffle]')!.getBoundingClientRect();
+        const y = document.querySelector('[data-film-years]')!.getBoundingClientRect();
+        return {
+          bx: Math.round(b.left),
+          by: Math.round(b.top),
+          yx: Math.round(y.left),
+          yy: Math.round(y.top),
+        };
+      });
+    const order = () =>
+      page.evaluate(() =>
+        Array.from(document.querySelectorAll<HTMLElement>('.film-card'), (c) => c.id).join(','),
+      );
+    const start = await where();
+    const original = await order();
+    await button.click();
+    assert.equal(await button.getAttribute('aria-pressed'), 'true');
+    assert.deepEqual(await where(), start, 'shuffling moved the bar');
+    assert.notEqual(await order(), original);
+    assert.equal(
+      await page.locator('[data-film-years]').isVisible(),
+      true,
+      'the years disappeared',
+    );
+    await button.click();
+    assert.equal(await button.getAttribute('aria-pressed'), 'false');
+    assert.deepEqual(await where(), start, 'un-shuffling moved the bar');
+    assert.equal(await order(), original, 'the years did not come back in order');
+    // A year chosen while shuffled ends the shuffle and goes there.
+    await button.click();
+    const year = await page
+      .locator('[data-film-year-link]')
+      .nth(2)
+      .getAttribute('data-film-year-link');
+    await page.locator('[data-film-year-link]').nth(2).click();
+    assert.equal(await button.getAttribute('aria-pressed'), 'false');
+    await page.waitForFunction(
+      (y) => Math.abs(document.getElementById(`year-${y}`)!.getBoundingClientRect().top) < 40,
+      year,
+    );
+  },
+);
