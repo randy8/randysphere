@@ -99,6 +99,30 @@ const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
          setting goes back to automatic as the page is left), and a
          #fragment still scrolls to its target. */
     }
+    {
+      /* Entrance motion (reveal.ts) — decided here, before the first paint,
+         so nothing flashes: only with motion allowed, the APIs present, and
+         not on Back/Forward (returning should find the page as it was). If
+         reveal.ts never runs, everything is shown after 3s. */
+    }
+    <script is:inline>
+      try {
+        if (
+          !matchMedia('(prefers-reduced-motion: reduce)').matches &&
+          'IntersectionObserver' in window &&
+          'animate' in Element.prototype &&
+          performance.getEntriesByType('navigation')[0]?.type !== 'back_forward'
+        ) {
+          const html = document.documentElement;
+          html.classList.add('motion');
+          setTimeout(() => {
+            if (!window.__motion) html.classList.remove('motion');
+          }, 3000);
+        }
+      } catch {
+        // No motion, then: everything is simply there.
+      }
+    </script>
     <script is:inline>
       try {
         if (performance.getEntriesByType('navigation')[0]?.type === 'reload') {
@@ -174,5 +198,8 @@ const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
         </Fragment>
       )
     }
+      <script>
+      import './reveal.ts';
+    </script>
   </body>
 </html>

@@ -52,7 +52,7 @@ if (form && status && dialog && body && cards.length > 0) {
     const copy = card.cloneNode(true) as HTMLElement;
     copy.removeAttribute('id');
     copy.removeAttribute('hidden');
-    copy.classList.add('film-pick-card');
+    copy.classList.add('film-pick-card', 'is-revealed');
     copy.querySelector('.film-title')?.setAttribute('id', 'film-pick-title');
     // The poster is already loaded on the page; never lazy here.
     copy.querySelector('img')?.setAttribute('loading', 'eager');

@@ -5,6 +5,7 @@
  */
 
 import assert from 'node:assert/strict';
+import { waitForStill } from './checks.ts';
 import { BASE, browserTest, PHONE } from './harness.ts';
 
 const posterGeometry = () => {
@@ -35,6 +36,7 @@ for (const [label, options] of [
       for (const y of [0, 1200, 4000, 9000]) {
         await page.evaluate((top) => window.scrollTo(0, top), y);
         await page.waitForFunction(() => document.fonts.status === 'loaded');
+        await waitForStill(page);
         const g = await page.evaluate(posterGeometry);
         assert.ok(g.visible > 0, `nothing on screen at ${String(y)}`);
         assert.equal(g.covered, 0, `controls over ${String(g.covered)} poster(s) at ${String(y)}`);

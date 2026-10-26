@@ -288,9 +288,20 @@ main {
 .album-header {
   margin-bottom: 3.5rem;
 }
-/* No entrance animations: a page's title and contents are there in the
-   first frame, the way a book is open when you look at it. (Titles rose
-   and faded in over 0.8s, archive rows in a stagger, until 2026-10-26.) */
+/* Titles and words are there in the first frame. Image-bearing items
+   enter once, as they first come into view (layouts/reveal.ts): hidden
+   only while <html> has .motion, which Base.astro's head script sets
+   before the first paint — never under reduced motion or on Back/Forward.
+   Keep the selector in step with reveal.ts's TARGETS. */
+.motion
+  :is(
+    :is([data-grid], [data-saved-grid], [data-share-grid]) > [data-photo-id],
+    .film-card:not(.film-pick-card),
+    .tune,
+    .archive-entry
+  ):not(.is-revealed) {
+  opacity: 0;
+}
 /*
  * The Archive index: every cover gets the same column width and no other
  * imposed size — the only variation is each photograph's own height, from

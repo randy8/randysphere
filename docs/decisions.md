@@ -3286,3 +3286,33 @@ scroll position pointed at nothing. Only on a reload is
 `history.scrollRestoration` set to manual, and it goes back to automatic
 as the page is left, so Back and Forward still return to the place left;
 a #fragment still scrolls to its target.
+
+## 2026-10-26 — One entrance motion for image-bearing pages
+
+The owner asked for a site-wide image entrance (reversing this morning's
+"no entrance animations" for images; titles and words still appear in the
+first frame). One primitive, `site/src/layouts/reveal.ts`, loaded by
+Base.astro, not per-page code (and not a shared src/lib: it is layout
+infrastructure, like Base itself).
+
+**Motion.** An item rises 24px and fades in over 750ms
+(`cubic-bezier(0.16, 1, 0.3, 1)`) as it first enters the viewport; items
+arriving together follow reading order 80ms apart (capped at 8 steps);
+captions and words follow 150ms behind; items wider than 60% of the
+viewport rise 40% less over 950ms. Targets: photo grids (incl. Saved,
+Share), film cards, Tunes entries, the tag index's covers. Lightbox,
+Exhibition and the Pick dialog keep their own transitions; Dishes has no
+images.
+
+**Rules.** Decided before first paint by an inline head script (`.motion`
+on <html>): never under reduced motion, never on Back/Forward, never
+without IntersectionObserver/WAAPI; if reveal.ts doesn't run within 3s the
+class is lifted, so nothing can stay hidden. Each item once per visit
+(unobserved after). An item waits for its image (≤1.2s). Opacity and
+transform only; the rise is `composite: 'add'`, so masonry positions are
+untouched.
+
+**Tests.** Below-the-fold photographs aren't revealed at load and enter
+when scrolled to; scrolling back replays nothing; Back shows everything at
+once; reduced motion shows everything. Geometry checks wait for motion to
+settle. LCP before/after: recorded in the deploy that shipped this.

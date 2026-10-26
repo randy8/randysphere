@@ -7,7 +7,21 @@
 
 import type { Page } from 'playwright-core';
 
-/** Waits until every photograph the grid chose for the first screen has loaded. */
+/** Waits until no entrance motion (layouts/reveal.ts) is still moving anything. */
+export async function waitForStill(page: Page): Promise<void> {
+  await page.waitForFunction(
+    () =>
+      document
+        .getAnimations()
+        .every(
+          (a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity,
+        ),
+    null,
+    { timeout: 15_000 },
+  );
+}
+
+/** Waits until every photograph the grid chose for the first screen has loaded, and come to rest. */
 export async function waitForFirstScreen(page: Page): Promise<void> {
   await page.waitForFunction(
     () => {
@@ -19,6 +33,7 @@ export async function waitForFirstScreen(page: Page): Promise<void> {
     null,
     { timeout: 45_000 },
   );
+  await waitForStill(page);
 }
 
 export interface GridGeometry {

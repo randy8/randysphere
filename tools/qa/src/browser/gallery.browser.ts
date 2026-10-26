@@ -6,7 +6,8 @@
  */
 
 import assert from 'node:assert/strict';
-import { gridGeometry, waitForFirstScreen } from './checks.ts';
+import type { Page } from 'playwright-core';
+import { gridGeometry, waitForFirstScreen, waitForStill } from './checks.ts';
 import { BASE, browserTest, mixedTag, publicPhotos } from './harness.ts';
 
 for (const [width, height, columns] of [
@@ -106,6 +107,7 @@ browserTest(
       null,
       { timeout: 45_000 },
     );
+    await waitForStill(page);
     const grid = await gridGeometry(page);
     assert.deepEqual(grid.overlapping, []);
     assert.deepEqual(grid.distorted, []);
@@ -263,3 +265,104 @@ browserTest('a refresh starts at the top; Back returns to where you were', async
   await page.goBack();
   await page.waitForFunction(() => window.scrollY > 1000, null, { timeout: 5000 });
 });
+
+/** Opacity of the first grid photograph that starts below the fold, and whether it has entered. */
+const belowFold = (page: Page) =>
+  page.evaluate(() => {
+    const tile = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-grid] > [data-photo-id]'),
+    ).find((t) => t.getBoundingClientRect().top > window.innerHeight * 1.5);
+    return tile
+      ? {
+          id: tile.dataset['photoId'] ?? '',
+          opacity: getComputedStyle(tile).opacity,
+          revealed: tile.classList.contains('is-revealed'),
+        }
+      : null;
+  });
+
+browserTest(
+  'photographs enter once, as they come into view — not all at load, never again on the way back',
+  async ({ page }) => {
+    await page.goto(`${BASE}/exposures/`);
+    await waitForFirstScreen(page);
+    assert.equal(
+      await page.evaluate(() => document.documentElement.classList.contains('motion')),
+      true,
+    );
+    const before = await belowFold(page);
+    assert.ok(before, 'nothing below the fold');
+    assert.equal(before.revealed, false, 'a photograph far below the fold entered at load');
+    await page.evaluate(
+      (id) =>
+        document.querySelector(`[data-photo-id="${id}"]`)?.scrollIntoView({ block: 'center' }),
+      before.id,
+    );
+    await page.waitForFunction(
+      (id) => document.querySelector(`[data-photo-id="${id}"]`)?.classList.contains('is-revealed'),
+      before.id,
+    );
+    await waitForStill(page);
+    assert.equal(
+      await page.evaluate(
+        (id) => getComputedStyle(document.querySelector(`[data-photo-id="${id}"]`)!).opacity,
+        before.id,
+      ),
+      '1',
+    );
+    // Away and back: nothing replays.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.evaluate(
+      (id) =>
+        document.querySelector(`[data-photo-id="${id}"]`)?.scrollIntoView({ block: 'center' }),
+      before.id,
+    );
+    const replaying = await page.evaluate(
+      (id) => document.querySelector(`[data-photo-id="${id}"]`)!.getAnimations().length,
+      before.id,
+    );
+    assert.equal(replaying, 0, 'scrolling back replayed the entrance');
+  },
+  { seed: 13 },
+);
+
+browserTest(
+  'no entrance on Back: the page is as it was left',
+  async ({ page }) => {
+    await page.goto(`${BASE}/exposures/`);
+    await waitForFirstScreen(page);
+    await page.goto(`${BASE}/collections/`);
+    await page.goBack();
+    assert.equal(
+      await page.evaluate(() => document.documentElement.classList.contains('motion')),
+      false,
+    );
+    const hidden = await page.evaluate(
+      () =>
+        Array.from(document.querySelectorAll<HTMLElement>('[data-grid] > [data-photo-id]')).filter(
+          (t) => getComputedStyle(t).opacity !== '1',
+        ).length,
+    );
+    assert.equal(hidden, 0);
+  },
+  { seed: 14 },
+);
+
+browserTest(
+  'reduced motion: every photograph simply there',
+  async ({ page }) => {
+    await page.goto(`${BASE}/exposures/`);
+    assert.equal(
+      await page.evaluate(() => document.documentElement.classList.contains('motion')),
+      false,
+    );
+    const hidden = await page.evaluate(
+      () =>
+        Array.from(document.querySelectorAll<HTMLElement>('[data-grid] > [data-photo-id]')).filter(
+          (t) => getComputedStyle(t).opacity !== '1',
+        ).length,
+    );
+    assert.equal(hidden, 0);
+  },
+  { reducedMotion: 'reduce', seed: 15 },
+);
