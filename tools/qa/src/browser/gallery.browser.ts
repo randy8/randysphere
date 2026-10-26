@@ -221,3 +221,29 @@ for (const width of [360, 375, 390, 430]) {
     },
   );
 }
+
+browserTest(
+  'a refresh keeps the arrangement; a new session deals a new one',
+  async ({ page, context }) => {
+    const order = (p: typeof page) =>
+      p.evaluate(() =>
+        Array.from(
+          document.querySelectorAll<HTMLElement>('[data-grid] > [data-photo-id]'),
+          (f) => f.dataset['photoId'],
+        ).join(','),
+      );
+    await page.goto(`${BASE}/exposures/`);
+    const first = await order(page);
+    await page.reload();
+    assert.equal(await order(page), first, 'a refresh reshuffled the page');
+    await page.goto(`${BASE}/collections/`);
+    await page.goto(`${BASE}/exposures/`);
+    assert.equal(await order(page), first, 'coming back reshuffled the page');
+    const other = await context.browser()?.newContext();
+    assert.ok(other);
+    const fresh = await other.newPage();
+    await fresh.goto(`${BASE}/exposures/`);
+    assert.notEqual(await order(fresh), first, 'a new session did not reshuffle');
+    await other.close();
+  },
+);

@@ -8,7 +8,8 @@
  * 2026-10-25).
  *
  * 1. Deal (pages that shuffle): a random order, before the browser lays
- *    out — and starts loading — the server's archival order.
+ *    out — and starts loading — the server's archival order. Random per
+ *    visit, kept for the rest of the session (see below).
  * 2. Masonry: each figure into whichever column is shortest, at its own
  *    aspect ratio (width/height attributes are on every <img>, so heights
  *    are known before any image loads). Only positions change, never DOM
@@ -36,9 +37,39 @@ function placeGrid(grid, deal) {
   };
 
   if (deal) {
+    // A new order for each visit, but the same one for the rest of this
+    // browsing session: a refresh, or coming back from another page, finds
+    // the arrangement it left — and the photographs already in the cache on
+    // the first screen. (Reshuffling every load put mostly uncached photos
+    // on top: a refresh on a throttled phone refetched 60 of 74, and its
+    // LCP was worse than a cold visit's, 2026-10-26.) Seeded per page.
+    const key = `deal:${location.pathname}`;
+    let seed;
+    try {
+      seed = Number(sessionStorage.getItem(key));
+    } catch {
+      seed = 0;
+    }
+    if (!Number.isInteger(seed) || seed <= 0) {
+      seed = Math.floor(Math.random() * 4294967295) + 1;
+      try {
+        sessionStorage.setItem(key, String(seed));
+      } catch {
+        // Storage off: this visit's order just isn't kept.
+      }
+    }
+    // mulberry32: a tiny seeded generator, the same order from the same seed.
+    let state = seed >>> 0;
+    const random = () => {
+      state = (state + 0x6d2b79f5) >>> 0;
+      let t = state;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
     const tiles = Array.from(grid.children);
     for (let i = tiles.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(random() * (i + 1));
       [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
     }
     grid.append(...tiles);

@@ -68,7 +68,9 @@ tools/serve/            production server: site/release/ (written only by `pnpm 
 - Non-tag queries: film stock (`rolls.yaml` → `/exposures/film/<stock>/`),
   Selected Work (`featured`/`featuredOrder` → `selectedWork()`, the
   `/exposures/` front page), and cover (`album.md`).
-- **Every photo page opens in a random order** on each visit — tag, film
+- **Every photo page opens in a random order** on each visit (kept for the
+  rest of the browsing session, so a refresh finds what it left —
+  `grid-layout.js`) — tag, film
   stock, Archives, Saved, Share (`shuffle-on-load.ts`) and Selected Work
   (`selected-view.ts`, plus its Shuffle button). The server renders
   archival/editorial order, which is what a no-JS visitor gets.

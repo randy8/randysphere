@@ -161,12 +161,6 @@
 .film-shuffled + .film-year-group {
   margin-top: 0;
 }
-/* This page's heading opts out of the site-wide .album-header reveal:
-   the type is there at once. Both classes: films.css loads before
-   base.css, so the plain selector would lose to base.css's own. */
-.album-header.film-header {
-  animation: none;
-}
 /* The year: set large in oldstyle figures, with how many films it holds.
    From a wide screen up it stands in a margin column beside its films and
    stays there while they scroll past, the way a catalogue runs its

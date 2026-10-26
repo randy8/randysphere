@@ -287,21 +287,10 @@ main {
 }
 .album-header {
   margin-bottom: 3.5rem;
-  animation: reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-
-/* A slow, certain rise rather than a snap — the kind of entrance a title
-   page gets, once, not a UI transition repeated on every interaction. */
-@keyframes reveal {
-  from {
-    opacity: 0;
-    transform: translateY(0.85rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* No entrance animations: a page's title and contents are there in the
+   first frame, the way a book is open when you look at it. (Titles rose
+   and faded in over 0.8s, archive rows in a stagger, until 2026-10-26.) */
 /*
  * The Archive index: every cover gets the same column width and no other
  * imposed size — the only variation is each photograph's own height, from
@@ -332,7 +321,6 @@ main {
 .archive-entry {
   break-inside: avoid;
   margin-bottom: 3.5rem;
-  animation: reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .archive-entry a {
   display: block;
@@ -762,22 +750,6 @@ main {
 .archive-index li {
   border-bottom: 1px solid var(--divider);
   transition: border-color 0.25s ease;
-  animation: reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-.archive-index li:nth-child(1) {
-  animation-delay: 0.06s;
-}
-.archive-index li:nth-child(2) {
-  animation-delay: 0.14s;
-}
-.archive-index li:nth-child(3) {
-  animation-delay: 0.22s;
-}
-.archive-index li:nth-child(4) {
-  animation-delay: 0.3s;
-}
-.archive-index li:nth-child(n + 5) {
-  animation-delay: 0.36s;
 }
 .archive-index li:has(a:hover) {
   border-color: var(--accent);

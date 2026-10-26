@@ -3095,3 +3095,28 @@ spaced by the grid's own 1rem gutter. The four collections fit one line
 down to 360px (column gap 1rem). Measured: photographs start at 220px at
 360–430px wide (were 265–298px). A gallery test holds this at 360, 375,
 390 and 430px. Desktop unchanged.
+
+## 2026-10-26 — Loading that disappears: a session-stable deal, no entrance animations
+
+**Measured first** (production, Exposures, median of three; phone =
+390×844 @3×, 1.6 Mbps / 150 ms / 4× CPU). Cold: FCP 2.35 s, LCP 5.6 s.
+Refresh: FCP 0.80 s but LCP **6.1 s** — worse than cold — with 60 of 74
+photographs fetched again; returning from another page: LCP 5.3 s, 31 of
+68 from the network. The HTML itself revalidated to a 0.3 KB 304 and every
+asset was cached; the cause was the shuffle: each load dealt a new order,
+so the first screen was mostly photographs the browser had never fetched.
+
+**Decision.** The deal stays random per visit but is seeded once per page
+per browsing session (sessionStorage), so a refresh or a return finds the
+arrangement — and the cache — it left; a new session reshuffles, Shuffle
+still reshuffles. And no entrance animations anywhere: page titles rose
+and faded in over 0.8 s, archive rows in a stagger, Tunes' list faded in;
+all removed, so structure and type are in the first frame. Photographs keep
+their colour placeholder and simply appear when they arrive — no fade, so
+nothing cached is ever delayed.
+
+**Rejected.** A fade-in for late images (a 120–180 ms reveal was allowed by
+the brief "if useful"; telling cached from late reliably needs per-image
+script, and the colour placeholder already makes arrival calm). Fewer or
+smaller first-screen photographs (fidelity). A service worker (HTML
+revalidation already costs one round trip and no bytes).
