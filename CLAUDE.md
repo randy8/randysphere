@@ -159,6 +159,11 @@ pnpm verify              # pnpm check + the trial build —
 10. Nothing under `site/src/` reads `private/`. Only `tools/serve` does, and
     only after `verifySessionToken`.
 11. No new dependency without a `docs/dependencies.md` entry.
+12. `/infra` (tools/serve/src/infra.ts) is served only to the owner's own
+    tailnet devices: the connection must arrive on this machine's Tailscale
+    address from a Tailscale address that tailscaled's `whois` vouches for.
+    Never decide it from a header. Everyone else gets the ordinary 404.
+    `/system` is public.
 
 ## Sharp edges
 

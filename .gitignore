@@ -71,3 +71,7 @@ Thumbs.db
 # /system's data: deploy records, watchdog checks, measurements, written by
 # jobs on this machine (tools/qa/src/status-store.ts). Machine-local state.
 /status/
+
+# /infra's list of services on this machine (tools/serve, tailnet only):
+# hostnames and ports stay off GitHub.
+/infra/

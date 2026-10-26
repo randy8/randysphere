@@ -8,6 +8,8 @@ import { clearSessionCookie, readSessionCookie, setSessionCookie } from './cooki
 import { loadNotes } from './notes.ts';
 import { checkHealth } from './health.ts';
 import { readStatus, renderSystem } from './system.ts';
+import { loadServices, mayViewInfra, probe, renderInfra } from './infra.ts';
+import type { WhoisLookup } from './infra.ts';
 import { LoginLimiter, clientAddress } from './login-limiter.ts';
 import { renderArchive, renderGate } from './pages.ts';
 import { createSessionToken, passwordMatches, verifySessionToken } from './session.ts';
@@ -38,6 +40,10 @@ export interface ServeConfig {
   readonly siteOrigin: string;
   /** status/ — what the deploy, watchdog and `pnpm measure` recorded, read by /system. */
   readonly statusDir: string;
+  /** infra/services.yaml — /infra's directory of this machine's services (git-ignored). */
+  readonly infraServicesPath: string;
+  /** Asks tailscaled who a tailnet address is (infra.ts); /infra is a 404 for anyone it can't vouch for. */
+  readonly whois: WhoisLookup;
 }
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
@@ -350,6 +356,30 @@ async function route(
     sendHtml(res, 200, method === 'HEAD' ? '' : html, {
       'cache-control': 'no-cache',
       'x-robots-tag': 'noindex',
+    });
+    return;
+  }
+
+  // The service directory: the owner's own devices on the tailnet only,
+  // decided by the connection itself and tailscaled (infra.ts), never by a
+  // header. Everyone else — the public site through the Cloudflare tunnel,
+  // the LAN, loopback — gets exactly the site's ordinary 404, so its
+  // existence isn't confirmed either.
+  if (pathname === '/infra' || pathname === '/infra/') {
+    if ((method !== 'GET' && method !== 'HEAD') || !(await mayViewInfra(req, config.whois))) {
+      await sendNotFoundPage(res, config.distDir);
+      return;
+    }
+    const groups = await loadServices(config.infraServicesPath);
+    const here = (req.socket.localAddress ?? '').replace(/^::ffff:/, '');
+    const urls = (groups ?? []).flatMap((group) => group.services.map((service) => service.url));
+    const states = await Promise.all(
+      urls.map(async (url) => [url, await probe(here, url)] as const),
+    );
+    const html = renderInfra(groups, new Map(states), new Date());
+    sendHtml(res, 200, method === 'HEAD' ? '' : html, {
+      'cache-control': 'private, no-store',
+      'x-robots-tag': 'noindex, nofollow',
     });
     return;
   }

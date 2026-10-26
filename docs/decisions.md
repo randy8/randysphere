@@ -3155,3 +3155,27 @@ address or port is dropped (a test feeds it hostile records).
 needs the owner's decision), real-user field data (INP), Firefox/WebKit
 runs, visual-regression screenshots, Exhibition endurance runs — each shows
 as "Not run" or "Not monitored" on the page, not as passing.
+
+## 2026-10-26 — /infra: a service directory for the tailnet only
+
+A read-only list of avadoplex's services (infra/services.yaml, git-ignored:
+hostnames and ports stay off GitHub), with a TCP-connect availability dot
+each, rendered by tools/serve. Public `/system` is separate.
+
+**Boundary, in the server, from the connection itself.** Served only when
+(1) the socket's local address is this machine's Tailscale address — the
+Cloudflare tunnel (ingress: randyliang.net and www → localhost:4322, else 404) and Tailscale serve both connect from loopback, so they never qualify;
+(2) the peer is a Tailscale address — not spoofable over TCP, since replies
+route back over Tailscale and a forged handshake never completes; (3)
+tailscaled's local-API `whois` names the peer as a node owned by the same
+user as this machine, or holding the `randyliang.net/cap/infra` capability
+granted in the tailnet policy — so ACLs and grants decide, not this code.
+Any failure, tailscaled not answering included, is the site's ordinary 404.
+No header is ever read. Verified before deploy against the new server on a
+spare port, every request carrying forged `cf-connecting-ip` /
+`x-forwarded-for`: loopback v4/v6, LAN address and public IPv6 → 404;
+Tailscale v4/v6 → 200.
+
+**Rejected.** A password (the tailnet already authenticates the device); a
+header from Tailscale serve (spoofable through any other path); listing it
+in robots.txt (that would advertise it).

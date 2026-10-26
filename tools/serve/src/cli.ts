@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { createPrivateSiteServer } from './server.ts';
+import { tailscaledWhois } from './infra.ts';
 
 function repositoryRoot(): string {
   let directory = process.cwd();
@@ -61,6 +62,8 @@ if (!password || !sessionSecret) {
     // share-preview.ts/docs/decisions.md.
     siteOrigin: 'https://randyliang.net',
     statusDir: join(ROOT, 'status'),
+    infraServicesPath: join(ROOT, 'infra', 'services.yaml'),
+    whois: tailscaledWhois(),
   });
   server.listen(port, () => {
     console.log(

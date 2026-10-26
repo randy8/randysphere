@@ -149,6 +149,10 @@ before(async () => {
     siteOrigin: SITE_ORIGIN,
     // Deliberately empty: /system must render with no data at all.
     statusDir: join(root, 'status'),
+    infraServicesPath: join(root, 'infra', 'services.yaml'),
+    // Vouches for everyone: proves the refusal below comes from the
+    // connection itself (loopback), not from tailscaled saying no.
+    whois: () => Promise.resolve({ login: 'owner@example.com', capabilities: [] }),
   });
   await new Promise<void>((resolve) => server.listen(0, resolve));
   const { port } = server.address() as AddressInfo;
@@ -574,4 +578,27 @@ test('/system renders with no recorded data, uncached and not indexed, and says 
   const head = await fetch(`${baseUrl}/system`, { method: 'HEAD' });
   assert.equal(head.status, 200);
   assert.equal(await head.text(), '');
+});
+
+test('/infra from loopback — the path the Cloudflare tunnel takes — is the ordinary 404, forged headers or not', async () => {
+  for (const headers of [
+    {},
+    {
+      'cf-connecting-ip': '100.70.1.2',
+      'x-forwarded-for': '100.70.1.2',
+      'tailscale-user-login': 'owner@example.com',
+    },
+  ]) {
+    for (const path of ['/infra', '/infra/']) {
+      const res = await fetch(`${baseUrl}${path}`, { headers });
+      assert.equal(res.status, 404, path);
+      const body = await res.text();
+      assert.doesNotMatch(
+        body,
+        /avadoplex|tailnet|services\.yaml/i,
+        'the 404 says nothing about /infra',
+      );
+    }
+  }
+  assert.equal((await fetch(`${baseUrl}/infra`, { method: 'POST' })).status, 404);
 });
