@@ -3202,3 +3202,19 @@ with the fix printed.
 **Rejected.** Comparing `node_modules/.pnpm` against the lockfile entry by
 entry (pnpm's directory naming for peer-dependency variants is an internal
 detail; loading the modules is what actually matters).
+
+## 2026-10-26 — /system: a typeset report, linked from the footer
+
+A refinement pass, not a redesign. The four figures that matter most —
+Lighthouse mobile and desktop, phone LCP on a first visit and on refresh —
+sit large under the status, each with its change since the latest earlier
+run measured the same way that has the figure, read against noise bands
+(±5 points, ±10%: inside them, "steady"). Trends became rows: name, line,
+latest value and range, each point titled with its date and value. Tables
+use fixed, equal columns with right-aligned tabular figures and headers
+that may wrap, so nothing is clipped at 390px. The title gained its
+subtitle and a way home.
+
+**Discoverable, not promoted:** "Site status" in the global footer, in the
+footer's muted label voice, opposite the copyright; never in the
+navigation. `/infra` stays tailnet-only and is linked from nowhere.

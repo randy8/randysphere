@@ -211,3 +211,15 @@ void test('security: headers on public and private responses; /private is gated 
   assert.equal((await fetch(`${BASE}/private/photos/anything.jpg`)).status, 401);
   assert.equal((await fetch(`${BASE}/originals/`)).status, 404);
 });
+
+browserTest('every page’s footer links to Site status, and it opens', async ({ page }) => {
+  for (const path of ['/exposures/', '/pictures/', '/dishes/']) {
+    await page.goto(`${BASE}${path}`);
+    const link = page.locator('.site-footer a[href="/system"]');
+    assert.equal(await link.count(), 1, path);
+    assert.match(await link.innerText(), /site status/i);
+  }
+  const res = await page.goto(`${BASE}/system`);
+  assert.equal(res?.status(), 200);
+  assert.match(await page.locator('.subtitle').innerText(), /An ongoing record of this website/);
+});

@@ -394,18 +394,26 @@ const timeTag = (now: Date, date: Date): string =>
 const noData = (what: string, file: FileState<unknown>): string =>
   `<p class="none">${escape(what)}: ${file.state === 'malformed' ? 'the record could not be read' : 'no data yet'}.</p>`;
 
-/** A small trend line: one segment per measuring setup, so a change of setup shows as a break, never a slope. */
-function sparkline(
+/**
+ * One trend row: a small line (one segment per measuring setup, so a change
+ * of setup shows as a break, never a slope), each point titled with its
+ * date and value for a pointer to read, then the latest value and the
+ * range in figures.
+ */
+function trendRow(
   runs: readonly PerfRun[],
   pick: (run: PerfRun) => number | null,
   label: string,
+  format: (n: number) => string,
 ): string {
   const points = runs
     .map((run) => ({ run, value: pick(run) }))
     .filter((p): p is { run: PerfRun; value: number } => p.value !== null);
-  if (points.length < 2) return '<span class="none">Too few measurements for a trend.</span>';
-  const width = 160;
-  const height = 36;
+  if (points.length < 2) {
+    return `<li><span class="trend-name">${escape(label)}</span><span class="none trend-empty">Too few measurements for a trend.</span></li>`;
+  }
+  const width = 200;
+  const height = 32;
   const values = points.map((p) => p.value);
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -425,11 +433,96 @@ function sparkline(
   });
   segments.push(current.join(' '));
   const last = points.at(-1)!;
-  return `<svg class="spark" viewBox="0 0 ${String(width)} ${String(height)}" width="${String(width)}" height="${String(height)}" role="img" aria-label="${escape(label)}: ${String(points.length)} measurements${breaks.length > 0 ? ', with a change in how it is measured' : ''}">${segments
-    .map((s) => (s.includes(' ') ? `<polyline points="${s}"/>` : ''))
-    .join(
-      '',
-    )}${breaks.map((bx) => `<line class="break" x1="${bx.toFixed(1)}" x2="${bx.toFixed(1)}" y1="2" y2="${String(height - 2)}"/>`).join('')}<circle cx="${x(points.length - 1).toFixed(1)}" cy="${y(last.value).toFixed(1)}" r="2.5"/></svg>`;
+  const svg = `<svg class="spark" viewBox="0 0 ${String(width)} ${String(height)}" preserveAspectRatio="none" role="img" aria-label="${escape(label)}: ${String(points.length)} measurements, from ${escape(format(points[0]!.value))} to ${escape(format(last.value))}${breaks.length > 0 ? ', with a change in how it is measured' : ''}">${segments
+    .map((seg) => (seg.includes(' ') ? `<polyline points="${seg}"/>` : ''))
+    .join('')}${breaks
+    .map(
+      (bx) =>
+        `<line class="break" x1="${bx.toFixed(1)}" x2="${bx.toFixed(1)}" y1="2" y2="${String(height - 2)}"/>`,
+    )
+    .join('')}${points
+    .map(
+      (p, i) =>
+        `<circle class="${i === points.length - 1 ? 'last' : 'point'}" cx="${x(i).toFixed(1)}" cy="${y(p.value).toFixed(1)}" r="${i === points.length - 1 ? '2.5' : '1.5'}"><title>${escape(when(p.run.at))}: ${escape(format(p.value))}</title></circle>`,
+    )
+    .join('')}</svg>`;
+  return `<li><span class="trend-name">${escape(label)}</span>${svg}<span class="trend-value">${escape(format(last.value))}<span class="trend-range">${escape(format(min))}–${escape(format(max))}</span></span></li>`;
+}
+
+/**
+ * The figures that matter most, large: each with its change since the
+ * previous measurement made the same way, read against a noise band
+ * (Lighthouse ±5 points, times ±10%) — inside it, "steady".
+ */
+function keyFigures(now: Date, perf: readonly PerfRun[]): string {
+  const latest = perf.at(-1);
+  if (latest === undefined) return '<p class="none figures-none">No performance measured yet.</p>';
+  // Per figure: the latest earlier run, measured the same way, that has it
+  // (a run whose Lighthouse failed has no score to compare with).
+  const earlier = (pick: (run: PerfRun) => number | null): number | null =>
+    [...perf]
+      .reverse()
+      .filter((run) => run !== latest && run.setup === latest.setup)
+      .map(pick)
+      .find((value) => value !== null) ?? null;
+  const specs: {
+    label: string;
+    pick: (run: PerfRun) => number | null;
+    format: (n: number) => string;
+    unit: string;
+    higherIsBetter: boolean;
+    noise: (a: number) => number;
+  }[] = [
+    {
+      label: 'Lighthouse, mobile',
+      pick: (r) => r.lighthouse.mobile?.['performance'] ?? null,
+      format: score,
+      unit: '',
+      higherIsBetter: true,
+      noise: () => 5,
+    },
+    {
+      label: 'Lighthouse, desktop',
+      pick: (r) => r.lighthouse.desktop?.['performance'] ?? null,
+      format: score,
+      unit: '',
+      higherIsBetter: true,
+      noise: () => 5,
+    },
+    {
+      label: 'Phone, first visit',
+      pick: (r) => r.phone.cold?.['lcpMs'] ?? null,
+      format: (n) => (n / 1000).toFixed(1),
+      unit: 's LCP',
+      higherIsBetter: false,
+      noise: (a) => a * 0.1,
+    },
+    {
+      label: 'Phone, refresh',
+      pick: (r) => r.phone.refresh?.['lcpMs'] ?? null,
+      format: (n) => (n / 1000).toFixed(2),
+      unit: 's LCP',
+      higherIsBetter: false,
+      noise: (a) => a * 0.1,
+    },
+  ];
+  const items = specs
+    .map((spec) => {
+      const value = spec.pick(latest);
+      const before = earlier(spec.pick);
+      let change = '<span class="delta">no earlier measurement</span>';
+      if (value !== null && before !== null) {
+        const diff = value - before;
+        if (Math.abs(diff) <= spec.noise(before)) change = '<span class="delta">steady</span>';
+        else {
+          const better = spec.higherIsBetter ? diff > 0 : diff < 0;
+          change = `<span class="delta delta-${better ? 'better' : 'worse'}">${diff > 0 ? '▲' : '▼'} ${escape(spec.format(Math.abs(diff)))}${spec.unit ? ` ${spec.unit.split(' ')[0]!}` : ''} ${better ? 'better' : 'worse'}</span>`;
+        }
+      }
+      return `<div class="figure"><dt>${escape(spec.label)}</dt><dd><span class="figure-value">${value === null ? '—' : escape(spec.format(value))}</span>${value !== null && spec.unit ? `<span class="figure-unit">${escape(spec.unit)}</span>` : ''}${change}</dd></div>`;
+    })
+    .join('');
+  return `<dl class="figures">${items}</dl><p class="source figures-source">Measured ${timeTag(now, latest.at)}${now.getTime() - latest.at.getTime() > PERF_STALE_MS ? ' · <strong>stale: older than 8 days</strong>' : ''}. Details under Performance.</p>`;
 }
 
 function runLine(run: Run): string {
@@ -460,6 +553,7 @@ export function renderSystem({ now, health, files }: SystemInput): string {
     <h2 id="overview" class="label">Overview</h2>
     <p class="verdict verdict-${verdict.overall.toLowerCase()}">${verdict.overall}</p>
     ${verdict.reasons.length > 0 ? `<ul class="reasons">${verdict.reasons.map((r) => `<li>${escape(r)}</li>`).join('')}</ul>` : ''}
+    ${keyFigures(now, perf)}
     <dl class="facts">
       <div><dt>Serving</dt><dd>${release ? `${escape(commitOf(release.commit) ?? 'unknown')} · built ${timeTag(now, new Date(release.builtAt))}` : 'Unknown'}</dd></div>
       <div><dt>Last successful deploy</dt><dd>${lastDeployed ? `${escape(lastDeployed.commit)} · ${timeTag(now, lastDeployed.at)}` : 'None recorded'}</dd></div>
@@ -502,7 +596,7 @@ export function renderSystem({ now, health, files }: SystemInput): string {
       perfCompare =
         rows.length === 0
           ? '<p class="none">No comparable measurements.</p>'
-          : `<div class="scroll"><table><thead><tr><th>Measure</th><th>${escape(previous.commit)}</th><th>${escape(current.commit)}</th><th>Change</th></tr></thead><tbody>${rows
+          : `<div class="scroll"><table><thead><tr><th>Measure</th><th class="n">${escape(previous.commit)}</th><th class="n">${escape(current.commit)}</th><th>Change</th></tr></thead><tbody>${rows
               .map(
                 (r) =>
                   `<tr><td>${escape(r.label)}</td><td class="n">${r.before}</td><td class="n">${r.after}</td><td class="change-${r.change}">${
@@ -539,16 +633,16 @@ export function renderSystem({ now, health, files }: SystemInput): string {
     perfBody = `
     <p class="source">Lab measurements of /exposures/ on production, ${timeTag(now, latestPerf.at)}${latestPerf.commit ? ` · release ${escape(latestPerf.commit)}` : ''} · median of ${String(latestPerf.runs ?? '?')} runs${stale ? ' · <strong>stale: older than 8 days</strong>' : ''}.</p>
     <div class="scroll"><table>
-      <caption>Lighthouse ${escape(latestPerf.lighthouseVersion ?? '')} (simulated throttling)</caption>
-      <thead><tr><th></th><th>Performance</th><th>Accessibility</th><th>Best practices</th><th>SEO</th><th>LCP</th><th>CLS</th><th>TBT</th><th>Transferred</th><th>Requests</th></tr></thead>
+      <caption>Lighthouse ${escape(latestPerf.lighthouseVersion ?? '')} (simulated throttling)</caption><colgroup><col class="row-head"></colgroup>
+      <thead><tr><th></th><th class="n">Performance</th><th class="n">Accessibility</th><th class="n">Best practices</th><th class="n">SEO</th><th class="n">LCP</th><th class="n">CLS</th><th class="n">TBT</th><th class="n">Transferred</th><th class="n">Requests</th></tr></thead>
       <tbody>
         <tr><th>Mobile</th><td class="n">${v(m, 'performance', score)}</td><td class="n">${v(m, 'accessibility', score)}</td><td class="n">${v(m, 'bestPractices', score)}</td><td class="n">${v(m, 'seo', score)}</td><td class="n">${v(m, 'lcpMs', ms)}</td><td class="n">${v(m, 'cls', cls)}</td><td class="n">${v(m, 'tbtMs', (n) => `${String(Math.round(n))} ms`)}</td><td class="n">${v(m, 'totalKB', kb)}</td><td class="n">${v(m, 'requests', score)}</td></tr>
         <tr><th>Desktop</th><td class="n">${v(d, 'performance', score)}</td><td class="n">${v(d, 'accessibility', score)}</td><td class="n">${v(d, 'bestPractices', score)}</td><td class="n">${v(d, 'seo', score)}</td><td class="n">${v(d, 'lcpMs', ms)}</td><td class="n">${v(d, 'cls', cls)}</td><td class="n">${v(d, 'tbtMs', (n) => `${String(Math.round(n))} ms`)}</td><td class="n">${v(d, 'totalKB', kb)}</td><td class="n">${v(d, 'requests', score)}</td></tr>
       </tbody>
     </table></div>
     <div class="scroll"><table>
-      <caption>A real throttled phone (Chromium, 390 × 844 at 3×, 1.6 Mbps, 150 ms latency, 4× CPU slowdown)</caption>
-      <thead><tr><th></th><th>FCP</th><th>LCP</th><th>CLS</th><th>First screen loaded</th></tr></thead>
+      <caption>A real throttled phone (Chromium, 390 × 844 at 3×, 1.6 Mbps, 150 ms latency, 4× CPU slowdown)</caption><colgroup><col class="row-head"></colgroup>
+      <thead><tr><th></th><th class="n">FCP</th><th class="n">LCP</th><th class="n">CLS</th><th class="n">First screen loaded</th></tr></thead>
       <tbody>
         <tr><th>First visit</th><td class="n">${v(cold, 'fcpMs', ms)}</td><td class="n">${v(cold, 'lcpMs', ms)}</td><td class="n">${v(cold, 'cls', cls)}</td><td class="n">${v(cold, 'firstScreenMs', ms)}</td></tr>
         <tr><th>Refresh</th><td class="n">${v(refresh, 'fcpMs', ms)}</td><td class="n">${v(refresh, 'lcpMs', ms)}</td><td class="n">${v(refresh, 'cls', cls)}</td><td class="n">${v(refresh, 'firstScreenMs', ms)}</td></tr>
@@ -559,29 +653,27 @@ export function renderSystem({ now, health, files }: SystemInput): string {
     ${
       history.length < 2
         ? `<p class="none">Trends appear once there are two measurements (one so far; they run weekly).</p>`
-        : `<p class="source">The last ${String(history.length)} measurements.</p><ul class="trends">
-      ${[
+        : `<p class="source">The last ${String(history.length)} measurements; point at a mark for its date and value.</p><ul class="trends">
+      ${(
         [
-          'Lighthouse mobile performance',
-          (r: PerfRun) => r.lighthouse.mobile?.['performance'] ?? null,
-        ],
-        [
-          'Lighthouse desktop performance',
-          (r: PerfRun) => r.lighthouse.desktop?.['performance'] ?? null,
-        ],
-        ['Phone LCP, first visit', (r: PerfRun) => r.phone.cold?.['lcpMs'] ?? null],
-        ['Phone LCP, refresh', (r: PerfRun) => r.phone.refresh?.['lcpMs'] ?? null],
-        ['Phone CLS', (r: PerfRun) => r.phone.cold?.['cls'] ?? null],
-        ['JavaScript bytes', (r: PerfRun) => r.phone.cold?.['jsKB'] ?? null],
-        [
-          'Bytes transferred (Lighthouse mobile)',
-          (r: PerfRun) => r.lighthouse.mobile?.['totalKB'] ?? null,
-        ],
-      ]
-        .map(
-          ([label, pick]) =>
-            `<li><span>${escape(label as string)}</span>${sparkline(history, pick as (r: PerfRun) => number | null, label as string)}</li>`,
-        )
+          [
+            'Lighthouse, mobile',
+            (r: PerfRun) => r.lighthouse.mobile?.['performance'] ?? null,
+            score,
+          ],
+          [
+            'Lighthouse, desktop',
+            (r: PerfRun) => r.lighthouse.desktop?.['performance'] ?? null,
+            score,
+          ],
+          ['Phone LCP, first visit', (r: PerfRun) => r.phone.cold?.['lcpMs'] ?? null, ms],
+          ['Phone LCP, refresh', (r: PerfRun) => r.phone.refresh?.['lcpMs'] ?? null, ms],
+          ['Phone CLS', (r: PerfRun) => r.phone.cold?.['cls'] ?? null, cls],
+          ['JavaScript', (r: PerfRun) => r.phone.cold?.['jsKB'] ?? null, kb],
+          ['Transferred, mobile', (r: PerfRun) => r.lighthouse.mobile?.['totalKB'] ?? null, kb],
+        ] as const
+      )
+        .map(([label, pick, format]) => trendRow(history, pick, label, format))
         .join(
           '',
         )}</ul><p class="source">A vertical mark is a change in how something is measured; the line never joins across one.</p>`
@@ -691,10 +783,14 @@ export function renderSystem({ now, health, files }: SystemInput): string {
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 400 1rem/1.6 'Newsreader', 'Iowan Old Style', Palatino, Georgia, serif; -webkit-font-smoothing: antialiased; }
 main { max-width: 52rem; margin: 0 auto; padding: 3rem max(1.5rem, env(safe-area-inset-right)) 5rem max(1.5rem, env(safe-area-inset-left)); }
-header { border-bottom: 2px solid var(--ink); padding-bottom: 1rem; margin-bottom: 2.5rem; }
+header { border-bottom: 2px solid var(--ink); padding-bottom: 1.25rem; margin-bottom: 2.5rem; }
+a { color: inherit; }
+a.home { text-decoration: none; transition: color 0.2s ease; }
+a.home:hover { color: var(--accent); }
+.subtitle { margin: 0.6rem 0 0; font-style: italic; color: var(--muted); font-size: 1.0625rem; }
 h1 { font-size: clamp(2.25rem, 1.5rem + 3vw, 3.25rem); font-weight: 300; letter-spacing: -0.02em; line-height: 1; margin: 0.5rem 0 0; }
 .label { font-size: 0.71875rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0 0 1rem; }
-section { padding: 2rem 0; border-top: 1px solid var(--rule); }
+section { padding: 2.5rem 0; border-top: 1px solid var(--rule); }
 section:first-of-type { border-top: 0; padding-top: 0; }
 p { margin: 0 0 0.75rem; }
 .verdict { font-size: 2rem; font-weight: 340; letter-spacing: -0.01em; margin: 0 0 0.5rem; }
@@ -715,20 +811,51 @@ details.rules { margin-top: 1.25rem; font-size: 0.9375rem; color: var(--muted); 
 details.rules summary { cursor: pointer; font-size: 0.71875rem; letter-spacing: 0.08em; text-transform: uppercase; }
 details.rules summary:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; }
 .scroll { overflow-x: auto; margin: 0 0 1.25rem; }
-table { border-collapse: collapse; width: 100%; font-size: 0.9375rem; }
+table { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 0.9375rem; }
+table col.row-head { width: 7.5rem; }
 caption { text-align: left; font-size: 0.9375rem; font-style: italic; color: var(--muted); padding-bottom: 0.4rem; }
-th, td { text-align: left; padding: 0.4rem 0.75rem 0.4rem 0; border-bottom: 1px solid var(--rule); white-space: nowrap; }
-thead th { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border-bottom-color: var(--ink); }
+th, td { text-align: left; padding: 0.45rem 0.9rem 0.45rem 0; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th.n, td.n { text-align: right; }
+th:last-child, td:last-child { padding-right: 0; }
+tbody th { font-weight: 500; }
+tbody tr { transition: background-color 0.15s ease; }
+tbody tr:hover { background: color-mix(in srgb, var(--rule) 35%, transparent); }
+thead th { font-size: 0.625rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border-bottom-color: var(--ink); white-space: normal; line-height: 1.3; vertical-align: bottom; }
 td.n { font-variant-numeric: tabular-nums lining-nums; }
 .change-better { color: var(--ok); } .change-worse { color: var(--accent); } .change-unchanged { color: var(--muted); }
 h3.label { margin-top: 1.5rem; }
-.trends { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem 2rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
-.trends li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; font-size: 0.9375rem; border-bottom: 1px solid var(--rule); padding: 0.3rem 0; }
-.trends .none { font-size: 0.8125rem; }
-.spark { flex: none; overflow: visible; }
-.spark polyline { fill: none; stroke: var(--ink); stroke-width: 1.25; }
-.spark circle { fill: var(--accent); }
-.spark .break { stroke: var(--muted); stroke-dasharray: 2 2; }
+.trends { list-style: none; margin: 0 0 0.75rem; padding: 0; border-top: 1px solid var(--rule); }
+.trends li { display: grid; grid-template-columns: minmax(9rem, 13rem) minmax(6rem, 1fr) minmax(6.5rem, auto); align-items: center; gap: 0 1.5rem; padding: 0.55rem 0; border-bottom: 1px solid var(--rule); font-size: 0.9375rem; }
+.trend-empty { grid-column: 2 / -1; font-size: 0.875rem; }
+.trend-value { text-align: right; font-variant-numeric: tabular-nums lining-nums; }
+.trend-range { display: block; font-size: 0.75rem; color: var(--muted); }
+.spark { width: 100%; height: 2rem; overflow: visible; }
+.spark polyline { fill: none; stroke: var(--ink); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
+.spark circle.point { fill: var(--paper); stroke: var(--muted); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0; transition: opacity 0.15s ease; }
+.spark:hover circle.point { opacity: 1; }
+.spark circle.last { fill: var(--accent); }
+.spark .break { stroke: var(--muted); stroke-dasharray: 2 2; vector-effect: non-scaling-stroke; }
+@media (max-width: 34rem) {
+  .trends li { grid-template-columns: 1fr auto; row-gap: 0.35rem; }
+  .trends li .spark { grid-column: 1 / -1; grid-row: 2; }
+}
+.figures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 1.75rem 0 0.5rem; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule); }
+.figure { display: flex; flex-direction: column; padding: 0.9rem 1rem 1rem 0; }
+.figure dd { margin-top: auto; padding-top: 0.35rem; }
+.figure + .figure { padding-left: 1rem; border-left: 1px solid var(--rule); }
+.figure dt { padding: 0; }
+.figure dd { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.35rem; margin-top: 0.35rem; }
+.figure-value { font-size: 2.25rem; font-weight: 300; line-height: 1.05; letter-spacing: -0.02em; font-variant-numeric: lining-nums tabular-nums; }
+.figure-unit { font-size: 0.875rem; color: var(--muted); }
+.delta { flex-basis: 100%; font-size: 0.8125rem; color: var(--muted); font-style: italic; }
+.delta-better { color: var(--ok); font-style: normal; }
+.delta-worse { color: var(--accent); font-style: normal; }
+.figures-source { margin-top: 0.5rem; }
+@media (max-width: 40rem) {
+  .figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .figure:nth-child(3) { padding-left: 0; border-left: 0; }
+  .figure:nth-child(n + 3) { border-top: 1px solid var(--rule); }
+}
 .tests, .fails { list-style: none; margin: 0 0 1rem; padding: 0; }
 .tests li, .fails li { padding: 0.15rem 0; }
 .ok { color: var(--ok); } .bad, .fails li { color: var(--accent); }
@@ -744,8 +871,9 @@ footer { margin-top: 2rem; font-size: 0.875rem; color: var(--muted); font-style:
 <body>
 <main>
   <header>
-    <p class="label">randyliang.net</p>
+    <p class="label"><a class="home" href="/">randyliang.net</a></p>
     <h1>System</h1>
+    <p class="subtitle">An ongoing record of this website’s health and performance.</p>
   </header>
   ${overview}
   ${sinceSection}
@@ -753,7 +881,7 @@ footer { margin-top: 2rem; font-size: 0.875rem; color: var(--muted); font-style:
   ${qualitySection}
   ${exhibitionSection}
   ${timelineSection}
-  <footer>Read-only. This page reports what the deploys, the watchdog and the weekly measurements recorded; opening it runs nothing. Rendered ${escape(when(now))}.</footer>
+  <footer>Read-only. This page reports what the deploys, the watchdog and the weekly measurements recorded; opening it runs nothing. Rendered ${escape(when(now))}. <a class="home" href="/">Back to randyliang.net</a></footer>
 </main>
 </body>
 </html>
