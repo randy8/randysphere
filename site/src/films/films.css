@@ -17,7 +17,18 @@
    genre, Shuffle, Pick for me. In the page's flow, never fixed or sticky
    (a floating panel, then a sticky bar, covered posters until
    2026-10-26). No rules or underlines: hover and focus bring the accent. */
+/* Pinned to the top once scrolled past, so the years and the controls are
+   to hand anywhere in 775 films; on paper, with a hairline only while
+   pinned (pictures/index.astro adds .is-stuck). One slim line on a wide
+   screen, two on a phone. */
 .film-bar {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+  padding: 0.6rem 0;
+  background: var(--paper);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -25,7 +36,54 @@
   gap: 0.75rem 2rem;
   /* Straight under the heading: the year counts say the collection's
      scope, so no line of description sits between them. */
-  margin: 1.125rem 0 1.75rem;
+  margin: 0.5rem 0 1.25rem;
+}
+.film-bar.is-stuck {
+  border-bottom-color: var(--rule);
+}
+.film-bar-sentinel {
+  height: 1px;
+  margin-bottom: -1px;
+}
+/* A year jumped to lands just under the pinned bar, not beneath it. */
+.film-year-group {
+  scroll-margin-top: 4.5rem;
+}
+@media (max-width: 39.9375rem) {
+  .film-bar {
+    flex-wrap: nowrap;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .film-years {
+    min-width: 0;
+  }
+  /* One line of years, scrolled sideways. (Scoped to the bar, so it
+     outranks .film-index's own rule further down.) */
+  .film-bar .film-index {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 0.1rem;
+  }
+  .film-bar .film-index::-webkit-scrollbar {
+    display: none;
+  }
+  .film-bar .film-index li {
+    flex: none;
+  }
+  .film-controls {
+    flex-wrap: nowrap;
+    gap: 1rem;
+  }
+  .film-control select {
+    max-width: 9.5rem;
+    text-overflow: ellipsis;
+  }
+  .film-year-group {
+    scroll-margin-top: 6.5rem;
+  }
 }
 .film-years[hidden] {
   display: none;

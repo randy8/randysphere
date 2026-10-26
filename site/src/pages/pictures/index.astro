@@ -32,6 +32,7 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
 
   {
     films.length > 0 && (
+      <div class="film-bar-sentinel" aria-hidden="true" />
       <div class="film-bar">
         {
           /* The years, each a link to its section: the one way to move
@@ -224,11 +225,39 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
             const first = [...yearLinks.keys()].find((id) => visible.has(id));
             if (first) markYear(first);
           },
-          { rootMargin: '0px 0px -60% 0px' },
+          // The strip under the pinned bar doesn't count as in view: a year
+          // whose last row hides beneath it isn't the one being read.
+          {
+            rootMargin: `-${String(Math.round(document.querySelector('.film-bar')?.getBoundingClientRect().height ?? 0) + 8)}px 0px -60% 0px`,
+          },
         );
         for (const group of document.querySelectorAll<HTMLElement>('.film-year-group')) {
           yearObserver.observe(group);
         }
+        // The bar pins to the top once scrolled past (CSS sticky); a hairline
+        // comes with it only when it's pinned. On a phone the years are one
+        // line that scrolls sideways: keep the marked year in it.
+        const pinnedBar = document.querySelector<HTMLElement>('.film-bar');
+        const sentinel = document.querySelector('.film-bar-sentinel');
+        if (pinnedBar && sentinel) {
+          new IntersectionObserver(([entry]) => {
+            pinnedBar.classList.toggle('is-stuck', entry !== undefined && !entry.isIntersecting);
+          }).observe(sentinel);
+        }
+        const strip = document.querySelector<HTMLElement>('.film-index');
+        const showInStrip = (link: HTMLElement): void => {
+          if (!strip || strip.scrollWidth <= strip.clientWidth) return;
+          const box = link.getBoundingClientRect();
+          const area = strip.getBoundingClientRect();
+          if (box.left < area.left || box.right > area.right) {
+            strip.scrollBy({ left: box.left - area.left - 8, behavior: 'smooth' });
+          }
+        };
+        new MutationObserver(() => {
+          const current = strip?.querySelector<HTMLElement>('[aria-current]');
+          if (current) showInStrip(current);
+        }).observe(strip ?? document.createElement('i'), { subtree: true, attributeFilter: ['aria-current'] });
+
         // Before any scrolling: the year a #year- link named, else the first.
         markYear(
           yearLinks.has(location.hash.slice(1)) ? location.hash.slice(1) : ([...yearLinks.keys()][0] ?? ''),
@@ -286,14 +315,17 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
           // it's in view; from deeper down, goes to the start of the films.
           const steady = (change: () => void): void => {
             const before = bar?.getBoundingClientRect().top ?? null;
-            const inView = before !== null && before >= 0 && before < window.innerHeight;
+            const pinned = bar?.classList.contains('is-stuck') ?? false;
+            const inView = before !== null && before >= 0 && before < window.innerHeight && !pinned;
             change();
             if (inView && bar) {
               const moved = bar.getBoundingClientRect().top - (before ?? 0);
               if (moved !== 0) window.scrollBy({ top: moved, behavior: 'instant' });
             } else {
+              // Pinned or out of view: the start of the films, just under the bar.
               const start = (isShuffled ? shuffled : firstGroup).getBoundingClientRect().top;
-              window.scrollTo({ top: window.scrollY + start - 16, behavior: 'instant' });
+              const under = bar?.getBoundingClientRect().height ?? 0;
+              window.scrollTo({ top: window.scrollY + start - under - 12, behavior: 'instant' });
             }
           };
 

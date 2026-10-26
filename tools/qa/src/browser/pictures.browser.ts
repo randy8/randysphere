@@ -30,19 +30,78 @@ for (const [label, options] of [
   ['phone', PHONE],
 ] as const) {
   browserTest(
-    `${label}: scrolled anywhere, the controls never cover a poster`,
+    `${label}: deep in the page the bar is pinned with every option, and a year lands just under it`,
     async ({ page }) => {
       await page.goto(`${BASE}/pictures/`);
-      for (const y of [0, 1200, 4000, 9000]) {
-        await page.evaluate((top) => window.scrollTo(0, top), y);
-        await page.waitForFunction(() => document.fonts.status === 'loaded');
-        await waitForStill(page);
-        const g = await page.evaluate(posterGeometry);
-        assert.ok(g.visible > 0, `nothing on screen at ${String(y)}`);
-        assert.equal(g.covered, 0, `controls over ${String(g.covered)} poster(s) at ${String(y)}`);
-        assert.equal(g.distorted, 0, `distorted posters at ${String(y)}`);
-        assert.equal(g.overflowX, false, 'page scrolls sideways');
+      await page.locator('[data-film-pick]').waitFor({ state: 'visible' });
+      await page.evaluate(() => window.scrollTo(0, 6000));
+      await page.waitForFunction(() =>
+        document.querySelector('.film-bar')?.classList.contains('is-stuck'),
+      );
+      const bar = await page.evaluate(() => {
+        const box = document.querySelector('.film-bar')!.getBoundingClientRect();
+        const shown = (s: string) => {
+          const r = document.querySelector(s)?.getBoundingClientRect();
+          return (
+            r !== undefined && r.width > 0 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1
+          );
+        };
+        return {
+          top: Math.round(box.top),
+          height: box.height,
+          years: shown('[data-film-years]'),
+          genre: shown('[data-film-genre-select]'),
+          shuffle: shown('[data-film-shuffle]'),
+          pick: shown('[data-film-pick] button'),
+          overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+        };
+      });
+      assert.equal(bar.top, 0, 'the bar is not pinned to the top');
+      assert.ok(
+        bar.years && bar.genre && bar.shuffle && bar.pick,
+        `options missing from the pinned bar: ${JSON.stringify(bar)}`,
+      );
+      assert.ok(
+        bar.height < (label === 'phone' ? 110 : 70),
+        `the pinned bar is ${String(Math.round(bar.height))}px tall`,
+      );
+      assert.equal(bar.overflowX, false, 'page scrolls sideways');
+      if (label === 'phone') {
+        const rows = await page.evaluate(
+          () =>
+            new Set(
+              Array.from(document.querySelectorAll('.film-index li'), (li) =>
+                Math.round(li.getBoundingClientRect().top),
+              ),
+            ).size,
+        );
+        assert.equal(rows, 1, 'the years wrap instead of scrolling sideways');
       }
+      await waitForStill(page);
+      const g = await page.evaluate(posterGeometry);
+      assert.equal(g.distorted, 0, 'distorted posters');
+      // A year chosen from the pinned bar: its heading lands just below it,
+      // and the bar marks it.
+      const target =
+        (await page.locator('[data-film-year-link]').nth(3).getAttribute('data-film-year-link')) ??
+        '';
+      await page.locator('[data-film-year-link]').nth(3).click();
+      await page.waitForFunction(
+        (y) => {
+          const bar = document.querySelector('.film-bar')!.getBoundingClientRect();
+          const heading = document.getElementById(`year-${y}`)!.getBoundingClientRect();
+          return heading.top >= bar.bottom - 1 && heading.top < bar.bottom + 60;
+        },
+        target,
+        { timeout: 5000 },
+      );
+      await page.waitForFunction(
+        (y) =>
+          document.querySelector(`[data-film-year-link="${y}"]`)?.getAttribute('aria-current') ===
+          'true',
+        target,
+        { timeout: 5000 },
+      );
     },
     options,
   );
@@ -227,9 +286,10 @@ browserTest(
       .getAttribute('data-film-year-link');
     await page.locator('[data-film-year-link]').nth(2).click();
     assert.equal(await button.getAttribute('aria-pressed'), 'false');
-    await page.waitForFunction(
-      (y) => Math.abs(document.getElementById(`year-${y}`)!.getBoundingClientRect().top) < 40,
-      year,
-    );
+    await page.waitForFunction((y) => {
+      const bar = document.querySelector('.film-bar')!.getBoundingClientRect();
+      const top = document.getElementById(`year-${y}`)!.getBoundingClientRect().top;
+      return top >= bar.bottom - 1 && top < bar.bottom + 60;
+    }, year);
   },
 );

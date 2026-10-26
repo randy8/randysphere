@@ -3325,3 +3325,21 @@ toggles (`aria-pressed`, shown in ink): pressed again, every film goes back
 to its year in its original order. The label never changes, the year index
 stays (muted while shuffled; a year clicked there ends the shuffle and goes
 to that year), and the bar keeps its exact place on screen through both.
+
+## 2026-10-26 — Pictures' bar is pinned while you browse
+
+Once you had gone to a year, the years, genre, Shuffle and Pick were all
+back at the top of a very long page. The bar (`.film-bar`) is now sticky on
+every width: one slim line on a desktop; on a phone two lines — the years
+as a single sideways-scrolling strip (the current year kept in view), the
+controls beneath. A hairline appears under it only once it is pinned
+(a sentinel's IntersectionObserver sets `.is-stuck`). Year headings carry
+`scroll-margin-top` so a chosen year lands just below the bar, and the
+year marker ignores whatever is hidden under the bar. Rejected: a
+floating "Options" button on phones (one more tap for every choice, and
+it hid the year you're in), and a pinned bar of years only (genre and
+Pick would still be a scroll away). The masthead stays unpinned — only
+this page's own controls follow you.
+
+Also: Society (1989) had matched Dead Poets Society on TMDB; pinned to
+22244 in `films/tmdb-corrections.yaml`.

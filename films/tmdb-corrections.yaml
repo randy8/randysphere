@@ -22,3 +22,6 @@ corrections:
   # release_date is the wide release, 2010-02-25, so the year heuristic
   # preferred an unrelated short, "Chloe and Attie," dated 2009 instead.
   Chloe (2009): 28211
+  # Brian Yuzna's "Society" — TMDB dates it 1990-03-30 (its wider release),
+  # so the year heuristic preferred "Dead Poets Society" (1989) instead.
+  Society (1989): 22244
