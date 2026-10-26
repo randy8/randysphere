@@ -11,7 +11,7 @@
  */
 
 export type Risk = 'low' | 'medium' | 'high';
-export const AREAS = ['gallery', 'lightbox', 'exhibition', 'share', 'pictures'] as const;
+export const AREAS = ['gallery', 'lightbox', 'exhibition', 'share', 'pictures', 'dishes'] as const;
 export type Area = (typeof AREAS)[number];
 
 interface Rule {
@@ -103,7 +103,13 @@ export const RULES: readonly Rule[] = [
     why: 'Pictures, the film log',
   },
   {
-    match: /^site\/src\/(recipes|music)\/|^site\/src\/pages\/(dishes|tunes|collections)\//,
+    match: /^site\/src\/recipes\/|^site\/src\/pages\/dishes\/|^recipes\/substitutions\//,
+    risk: 'medium',
+    areas: ['dishes'],
+    why: 'Dishes: recipes, scaling, Make It Vegan',
+  },
+  {
+    match: /^site\/src\/music\/|^site\/src\/pages\/(tunes|collections)\//,
     risk: 'low',
     areas: [],
     why: 'one non-photo collection (the smoke suite loads its page)',

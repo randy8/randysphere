@@ -104,6 +104,26 @@
   gap: 1.25rem;
   margin: 0 0 3rem;
 }
+/* Scale and, where a recipe can be made vegan, its version — one row of
+   quiet toggles under the metadata. */
+.recipe-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.75rem 2.5rem;
+  margin: 0 0 3rem;
+}
+.recipe-controls .recipe-scale {
+  margin: 0;
+}
+.recipe-version[hidden] {
+  display: none;
+}
+.recipe-version button {
+  text-transform: uppercase;
+  font-size: 0.71875rem;
+  letter-spacing: 0.08em;
+}
 /* Text toggles in the page's own voice, not boxed form controls: the
    chosen one is in ink and underlined, the others muted. */
 .recipe-scale button {
@@ -292,6 +312,8 @@
   display: flex;
   flex-direction: column;
   gap: 1.125rem;
+  margin: 0;
+  list-style: none;
   border-left: 2px solid var(--accent);
   padding-left: 1.375rem;
 }
@@ -377,4 +399,96 @@
   .recipe-doc-section h2 {
     break-after: avoid;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Make It Vegan (vegan.ts, vegan-toggle.ts). A line a swap changes is in the
+   page twice; data-version on the article chooses which one shows, so the
+   switch is instant and the scaler, which rescales every quantity in the
+   lists, keeps both versions in step. Without JavaScript the toggle stays
+   hidden and the recipe reads as written.
+   --------------------------------------------------------------------------- */
+.recipe-doc .v-vegan,
+.recipe-doc .v-only {
+  display: none;
+}
+.recipe-doc[data-version='vegan'] .v-original {
+  display: none;
+}
+.recipe-doc[data-version='vegan'] .v-vegan {
+  display: inline;
+}
+.recipe-doc[data-version='vegan'] .v-only {
+  display: block;
+}
+/* A changed line says so, quietly, in the label voice. */
+.v-mark {
+  margin-left: 0.4em;
+  font-size: 0.625rem;
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  vertical-align: 0.1em;
+}
+.recipe-swaps {
+  display: grid;
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.recipe-swap-head {
+  margin: 0;
+  color: var(--ink);
+}
+.recipe-swap-to {
+  font-weight: 500;
+}
+.recipe-swap-confidence {
+  margin-left: 0.75rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.recipe-swap-why,
+.recipe-swap-products {
+  margin: 0.35rem 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 38rem;
+}
+.recipe-swap-products {
+  font-style: italic;
+}
+.recipe-doc-vegan-note {
+  margin: -2rem 0 3rem;
+  font-size: 0.875rem;
+  font-style: italic;
+  color: var(--muted);
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The Dishes index: All · Vegan under the lede, and each recipe's own
+   standing in its metadata line, in the accent so it can be scanned for. */
+.recipe-scope .album-header .recipe-version {
+  margin: 1.5rem 0 0;
+}
+.recipe-index li[hidden] {
+  display: none;
+}
+.recipe-index-diet {
+  color: var(--accent);
 }

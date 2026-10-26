@@ -1,0 +1,427 @@
+# Vegan substitutions — read by the Dishes pages (site/src/recipes/vegan.ts)
+# to offer every recipe "two ways to prepare it". Hand-edited, like the
+# recipes beside it: a starting point, meant to be corrected by cooking.
+#
+# Each entry:
+#   id        a stable name; a recipe can choose an option for it with
+#             `vegan: { use: { <id>: <option id> } }` in its own YAML
+#   category  dairy | eggs | meat | seafood | sweeteners | gelling | hidden
+#   matches   phrases as they appear in an ingredient line, lowercase. A
+#             trailing plural (cheeses, eggs, tortillas) matches too.
+#   unless    words that, right before the phrase, mean it's not this
+#             ingredient ("peanut" before "butter").
+#   unlessFollowedBy  words right after it that mean the same ("butter
+#             beans", "cream of tartar"). Words like vegan,
+#             plant-based, dairy-free or vegetarian before any phrase — or
+#             "-free" right after it — always mean it's already fine.
+#   brandPrefix  true when a brand name may come right before the phrase
+#             ("Seggiano pesto"); the brand is replaced along with it,
+#             since that product is the one that isn't vegan.
+#   options   in order of preference; the first is the default. Each:
+#     id, use (the words that replace the phrase), confidence, why,
+#     products (widely sold ones, optional), and role (optional: what it's
+#     for, when an ingredient does different jobs in different dishes).
+#
+# Confidence:
+#   direct            swap like for like, same amount, same method
+#   recipe-dependent  works in most dishes; the note says where it doesn't
+#   reformulate       no reliable swap — the recipe would need rethinking.
+#                     Never applied; the recipe isn't offered as vegan.
+#
+# Quantities are never invented: a swap keeps the recipe's amount, and any
+# ratio (flax per egg) lives in `why`, not in the ingredient line.
+
+# --- Dairy -----------------------------------------------------------------
+
+- id: sour-cream
+  category: dairy
+  matches: [sour cream]
+  options:
+    - id: plant-sour-cream
+      use: plant-based sour cream
+      confidence: direct
+      products: [Tofutti Sour Supreme, Kite Hill Sour Cream Alternative, Forager Project Sour Cream]
+      why: Same tang and body, used cold. For cooking into a sauce, add it off the heat; some brands split if boiled.
+
+- id: cream-cheese
+  category: dairy
+  matches: [cream cheese]
+  options:
+    - id: plant-cream-cheese
+      use: plant-based cream cheese
+      confidence: direct
+      products:
+        [
+          Kite Hill Cream Cheese Alternative,
+          Violife Creamy Original,
+          Tofutti Better Than Cream Cheese,
+        ]
+      why: Spreads and blends the same way. For cheesecake, use a firm almond-based one (Kite Hill) and expect a slightly softer set.
+
+- id: heavy-cream
+  category: dairy
+  matches:
+    [
+      heavy cream,
+      heavy whipping cream,
+      whipping cream,
+      double cream,
+      single cream,
+      light cream,
+      half-and-half,
+      cream,
+    ]
+  unless: [sour, coconut, cashew, oat, soy, ice, whipped, ice-cream]
+  unlessFollowedBy: [of tartar, cheese]
+  options:
+    - id: cooking-cream
+      role: sauces and soups
+      use: plant-based cooking cream
+      confidence: recipe-dependent
+      products:
+        [Silk Dairy-Free Heavy Whipping Cream Alternative, Elmlea Plant Double, Oatly Cooking Cream]
+      why: Reduces and coats like dairy cream in sauces and soups. It won't whip reliably — for whipped cream, use chilled full-fat coconut cream instead.
+    - id: coconut-cream
+      role: whipping and desserts
+      use: full-fat coconut cream
+      confidence: recipe-dependent
+      products: [Thai Kitchen Coconut Cream, Trader Joe's Coconut Cream]
+      why: Whips when chilled overnight (use the solid part only). Tastes of coconut, which suits desserts more than savoury sauces.
+
+- id: buttermilk
+  category: dairy
+  matches: [buttermilk]
+  options:
+    - id: soy-buttermilk
+      use: soy milk soured with lemon juice
+      confidence: direct
+      why: For each cup, stir 1 tbsp lemon juice or vinegar into unsweetened soy milk and leave 5 minutes. Soy's protein curdles like buttermilk, so it tenderises and leavens the same way.
+
+- id: milk
+  category: dairy
+  matches: [whole milk, skim milk, milk]
+  unless: [coconut, oat, soy, almond, rice, cashew, hemp, pea, plant, condensed, evaporated]
+  unlessFollowedBy: [chocolate]
+  options:
+    - id: soy-milk
+      use: unsweetened soy milk
+      confidence: direct
+      products: [Silk Unsweet Organic Soymilk, Edensoy Unsweetened]
+      why: Closest to dairy in protein and fat, so it browns, thickens sauces and bakes the most like milk. Oat milk works for coffee and porridge but is sweeter.
+
+- id: butter
+  category: dairy
+  matches: [unsalted butter, salted butter, butter]
+  unless: [peanut, almond, cashew, apple, cocoa, shea, nut, seed, sunflower, pumpkin, cookie]
+  unlessFollowedBy: [beans, bean, lettuce, chicken]
+  options:
+    - id: plant-butter
+      use: plant-based butter
+      confidence: direct
+      products:
+        [
+          Miyoko's Cultured Vegan Butter,
+          Country Crock Plant Butter (sticks),
+          Earth Balance Buttery Sticks,
+        ]
+      why: Melts, browns and enriches the same way. For baking, use sticks, not tubs — tubs carry more water and spread cookies.
+
+- id: ghee
+  category: dairy
+  matches: [ghee]
+  options:
+    - id: coconut-oil
+      use: refined coconut oil
+      confidence: recipe-dependent
+      why: Handles the same high heat. It lacks ghee's nutty, browned flavour; a spoon of plant butter at the end brings some of it back.
+
+- id: parmesan
+  category: dairy
+  matches:
+    [parmigiano-reggiano, parmigiano reggiano, parmigiano, parmesan, pecorino romano, pecorino]
+  options:
+    - id: plant-parmesan
+      use: vegan parmesan
+      confidence: recipe-dependent
+      products: [Violife Just Like Parmesan (block), Follow Your Heart Shredded Parmesan Style]
+      why: Grated over pasta or vegetables it reads the same. It melts less into a sauce; stir it in off the heat. (Real Parmesan uses animal rennet, so it isn't strictly vegetarian either.)
+
+- id: nacho-cheese
+  category: dairy
+  matches: [nacho cheese, cheese sauce, queso]
+  options:
+    - id: plant-nacho-cheese
+      use: vegan nacho cheese
+      confidence: direct
+      products:
+        [Siete Dairy-Free Queso, Kite Hill Queso, Violife slices melted with a splash of soy milk]
+      why: Warm and pourable the same way. Cashew-and-potato homemade sauces work too.
+
+- id: mozzarella
+  category: dairy
+  matches: [fresh mozzarella, mozzarella]
+  options:
+    - id: plant-mozzarella
+      use: vegan mozzarella
+      confidence: recipe-dependent
+      products:
+        [
+          Miyoko's Liquid Vegan Pizza Mozzarella,
+          Violife Mozzarella Shreds,
+          Daiya Mozzarella Style Shreds,
+        ]
+      why: Melts and stretches on pizza and baked pasta, less so in a cold salad (where fresh mozzarella's milky softness has no close match).
+
+- id: cheddar
+  category: dairy
+  matches: [cheddar]
+  options:
+    - id: plant-cheddar
+      use: vegan cheddar
+      confidence: recipe-dependent
+      products:
+        [
+          Violife Epic Mature Cheddar Flavor,
+          Daiya Cheddar Style Shreds,
+          Tillamook Farmhouse Style Cheddar Shreds (dairy-free),
+        ]
+      why: Good melted and in sandwiches. Sharpness varies a lot between brands; taste before seasoning.
+
+- id: cheese
+  category: dairy
+  matches: [cheese]
+  unless: [vegan, cashew]
+  options:
+    - id: plant-cheese
+      use: vegan cheese
+      confidence: recipe-dependent
+      products: [Violife, Miyoko's, Daiya]
+      why: Pick one for the job — Violife and Daiya melt, Miyoko's for eating as it is.
+
+- id: yogurt
+  category: dairy
+  matches: [greek yogurt, yogurt, yoghurt]
+  unless: [coconut, soy, oat, almond, cashew]
+  options:
+    - id: plant-yogurt
+      use: plain unsweetened plant-based yogurt
+      confidence: direct
+      products: [Kite Hill Greek-Style Plain, Silk Unsweet Plain, Oatly Plain]
+      why: Use a thick, unsweetened one; sweetened or vanilla yogurts change savoury dishes.
+
+# --- Eggs ------------------------------------------------------------------
+
+- id: mayonnaise
+  category: eggs
+  matches: [mayonnaise, mayo]
+  options:
+    - id: vegan-mayo
+      use: vegan mayonnaise
+      confidence: direct
+      products:
+        [
+          Hellmann's Vegan Dressing & Spread,
+          Follow Your Heart Vegenaise,
+          Sir Kensington's Vegan Fabanaise,
+        ]
+      why: Indistinguishable in sandwiches, dressings and slaws.
+
+- id: egg-white
+  category: eggs
+  matches: [egg white, egg whites]
+  options:
+    - id: aquafaba
+      use: aquafaba (chickpea cooking liquid)
+      confidence: recipe-dependent
+      why: About 3 tbsp per egg white. Whips to stiff peaks with a pinch of cream of tartar for meringues and mousses; needs longer whipping than egg white.
+
+- id: egg
+  category: eggs
+  matches: [large eggs, egg]
+  unless: [flax, chia, just]
+  options:
+    - id: flax-egg
+      role: binding (burgers, meatballs, quick breads, muffins)
+      use: flax eggs
+      confidence: recipe-dependent
+      why: For each egg, 1 tbsp ground flaxseed stirred into 3 tbsp water and left 10 minutes. Binds and adds moisture; gives no lift, so it won't work where eggs are the structure or the dish.
+    - id: just-egg
+      role: eggs as the dish (scrambles, frittatas, quiche)
+      use: JUST Egg
+      confidence: recipe-dependent
+      products: [JUST Egg (liquid)]
+      why: About 3 tbsp per egg. Scrambles and sets like egg in a pan or a quiche.
+    - id: aquafaba-whole
+      role: lift (cakes, waffles)
+      use: aquafaba (chickpea cooking liquid)
+      confidence: recipe-dependent
+      why: About 3 tbsp per egg, whipped until foamy. Gives lift in cakes and waffles; add ½ tsp baking powder per egg replaced if the crumb is dense.
+
+- id: custard-eggs
+  category: eggs
+  matches: [egg yolk, egg yolks]
+  options:
+    - id: reformulate-yolks
+      use: egg yolks
+      confidence: reformulate
+      why: Yolks set custards, emulsify hollandaise and enrich pasta dough; no single swap does that. A custard needs a cornstarch- or agar-set recipe instead.
+
+- id: fresh-pasta
+  category: eggs
+  matches: [egg noodles, fresh pasta, egg pasta]
+  options:
+    - id: dried-pasta
+      use: dried semolina pasta
+      confidence: recipe-dependent
+      why: Most dried pasta (semolina and water) is egg-free; check the label. The texture is firmer than fresh egg pasta.
+
+# --- Meat ------------------------------------------------------------------
+
+- id: meat-broth
+  category: meat
+  matches: [chicken broth, chicken stock, beef broth, beef stock, bone broth]
+  options:
+    - id: vegetable-broth
+      use: vegetable broth
+      confidence: direct
+      products:
+        [
+          Better Than Bouillon No Chicken Base,
+          Better Than Bouillon No Beef Base,
+          Imagine No-Chicken Broth,
+        ]
+      why: The "no chicken" and "no beef" bases taste closest to the originals; plain vegetable broth is lighter.
+
+- id: ground-beef
+  category: meat
+  matches: [ground beef, minced beef, ground meat]
+  options:
+    - id: plant-grounds
+      use: plant-based ground beef
+      confidence: direct
+      products: [Impossible Beef, Beyond Beef, rehydrated TVP]
+      why: Browns and seasons the same way. TVP is leaner; add a little oil.
+
+- id: bacon
+  category: meat
+  matches: [bacon, pancetta]
+  options:
+    - id: smoked-tempeh
+      use: smoked tempeh
+      confidence: recipe-dependent
+      why: Thin strips fried crisp with a little soy sauce and smoked paprika give the salt and smoke; it won't render fat, so add oil.
+
+- id: chicken
+  category: meat
+  matches: [chicken breast, chicken thighs, chicken]
+  unless: [no]
+  options:
+    - id: tofu-or-seitan
+      use: extra-firm tofu or seitan
+      confidence: recipe-dependent
+      why: Press tofu well, or use seitan for a chewier bite. Marinate longer than chicken; neither absorbs as quickly.
+
+- id: lard
+  category: meat
+  matches: [lard]
+  options:
+    - id: shortening
+      use: vegetable shortening
+      confidence: direct
+      why: Same solid fat for flaky pastry and tortillas.
+
+# --- Seafood-derived ---------------------------------------------------------
+
+- id: fish-sauce
+  category: seafood
+  matches: [fish sauce]
+  options:
+    - id: vegan-fish-sauce
+      use: vegan fish sauce
+      confidence: direct
+      products: [Ocean's Halo Vegan Fish Sauce, Thai Taste Vegetarian Fish Sauce]
+      why: Seaweed-based ones bring the same salty, oceanic depth.
+
+- id: oyster-sauce
+  category: seafood
+  matches: [oyster sauce]
+  options:
+    - id: mushroom-oyster-sauce
+      use: vegetarian mushroom stir-fry sauce
+      confidence: direct
+      products: [Lee Kum Kee Vegetarian Stir-Fry Sauce]
+      why: Made from mushrooms; same thickness and savouriness.
+
+- id: anchovy
+  category: seafood
+  matches: [anchovy fillets, anchovies, anchovy]
+  options:
+    - id: capers-miso
+      use: capers mashed with white miso
+      confidence: recipe-dependent
+      why: About 1 tsp of each per two fillets gives the salt and depth in a sauce or dressing. Not a substitute where anchovy is eaten whole.
+
+- id: worcestershire
+  category: hidden
+  matches: [worcestershire sauce, worcestershire]
+  options:
+    - id: vegan-worcestershire
+      use: vegan Worcestershire sauce
+      confidence: direct
+      products: [Annie's Organic Worcestershire Sauce, Wan Ja Shan Vegan Worcestershire]
+      why: Regular Worcestershire contains anchovies.
+
+# --- Sweeteners ----------------------------------------------------------------
+
+- id: honey
+  category: sweeteners
+  matches: [honey]
+  options:
+    - id: maple-syrup
+      use: maple syrup
+      confidence: direct
+      why: Same amount in dressings, glazes and marinades. In baking it's a little thinner; agave is closer in thickness.
+
+# --- Gelling -------------------------------------------------------------------
+
+- id: gelatin
+  category: gelling
+  matches: [gelatin, gelatine]
+  options:
+    - id: agar
+      use: agar agar
+      confidence: reformulate
+      products: [Telephone Brand Agar Agar Powder]
+      why: Agar sets firmer, must be boiled, and sets at room temperature, so the amount and method both change (roughly 1 tsp agar powder per 1 tbsp gelatin). The recipe has to be rewritten around it.
+
+# --- Hidden animal-derived ingredients -------------------------------------------
+
+- id: pesto
+  category: hidden
+  matches: [pesto]
+  brandPrefix: true
+  options:
+    - id: vegan-pesto
+      use: vegan pesto
+      confidence: recipe-dependent
+      products: [Trader Joe's Vegan Kale, Cashew & Basil Pesto, Sacla Free From Basil Pesto]
+      why: Most pesto contains Parmesan or pecorino. Check yours — some are vegan already — or make it with basil, pine nuts, oil, garlic and a spoon of nutritional yeast.
+
+- id: flour-tortilla
+  category: hidden
+  matches: [flour tortilla]
+  options:
+    - id: vegan-tortilla
+      use: vegan flour tortilla
+      confidence: direct
+      products: [Mission Flour Tortillas, Siete Almond Flour Tortillas]
+      why: Most supermarket flour tortillas are vegan, but some (often fresh or restaurant-style) are made with lard; check the label.
+
+- id: naan
+  category: hidden
+  matches: [naan]
+  options:
+    - id: vegan-naan
+      use: vegan naan
+      confidence: recipe-dependent
+      why: Naan is usually made with yogurt and brushed with ghee. Look for one labelled vegan, or use a soft flatbread.

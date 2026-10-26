@@ -3,6 +3,9 @@ import { dirname, join } from 'node:path';
 
 import { parse } from 'yaml';
 
+import { readLibrary } from './vegan.ts';
+import type { VeganChoices, VeganEntry } from './vegan.ts';
+
 /**
  * One hand-written YAML file per recipe under the repo-root `recipes/`
  * directory — no pipeline, no images yet. Reads like developer
@@ -27,6 +30,8 @@ export interface Recipe {
   readonly version: string;
   readonly created: string;
   readonly updated: string;
+  /** This recipe's own choices among the vegan options (vegan.ts), if it makes any. */
+  readonly veganChoices: VeganChoices | null;
 }
 
 function repositoryRoot(): string {
@@ -61,6 +66,7 @@ interface RecipeFile {
   readonly version?: string;
   readonly created?: string;
   readonly updated?: string;
+  readonly vegan?: { readonly use?: Readonly<Record<string, string>> };
 }
 
 function readRecipe(slug: string): Recipe {
@@ -82,7 +88,15 @@ function readRecipe(slug: string): Recipe {
     version: data.version ?? '',
     created: data.created ?? '',
     updated: data.updated ?? '',
+    veganChoices: data.vegan?.use ? { use: data.vegan.use } : null,
   };
+}
+
+/** The vegan substitution library (recipes/substitutions/vegan.yaml), checked. */
+export function loadVeganLibrary(): VeganEntry[] {
+  const path = join(RECIPE_DIRECTORY, 'substitutions', 'vegan.yaml');
+  if (!existsSync(path)) return [];
+  return readLibrary(parse(readFileSync(path, 'utf8')));
 }
 
 /** Every recipe under `recipes/`, sorted by title. */

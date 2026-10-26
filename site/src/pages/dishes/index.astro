@@ -1,10 +1,18 @@
 ---
 import '../../recipes/recipes.css';
 import Base from '../../layouts/Base.astro';
-import { loadRecipes } from '../../recipes/recipes.ts';
+import { loadRecipes, loadVeganLibrary } from '../../recipes/recipes.ts';
 import { recipes as config } from '../../recipes/config.ts';
+import { veganVersion } from '../../recipes/vegan.ts';
 
-const items = loadRecipes();
+const library = loadVeganLibrary();
+// Vegan as written, or with every non-vegan ingredient reliably swapped
+// (vegan.ts) — kept apart, so a recipe is never called vegan when only its
+// adapted version is.
+const items = loadRecipes().map((recipe) => {
+  const status = veganVersion(recipe, library, recipe.veganChoices).status;
+  return { recipe, diet: status === 'vegan' ? 'vegan' : status === 'adaptable' ? 'adaptable' : 'none' };
+});
 ---
 
 <Base title={config.title} description={config.description}>
@@ -12,12 +20,17 @@ const items = loadRecipes();
     <header class="album-header">
       <h1>{config.title}</h1>
       <p class="lede">{config.description}</p>
+      <p class="recipe-scale recipe-version" role="group" aria-label="Show recipes" data-diet-filter hidden>
+        <button type="button" data-diet-choice="all" aria-pressed="true">All</button>
+        <button type="button" data-diet-choice="vegan" aria-pressed="false">Vegan</button>
+      </p>
+      <p class="visually-hidden" role="status" aria-live="polite" data-diet-status></p>
     </header>
 
     <ul class="recipe-index">
       {
-        items.map((recipe) => (
-          <li>
+        items.map(({ recipe, diet }) => (
+          <li data-diet={diet}>
             <a href={`/dishes/${recipe.slug}/`}>
               <h2>{recipe.title}</h2>
               <p class="recipe-index-description">{recipe.description}</p>
@@ -26,6 +39,8 @@ const items = loadRecipes();
                 {recipe.cookTime && <span>Cook {recipe.cookTime}</span>}
                 {recipe.servings && <span>Serves {recipe.servings}</span>}
                 {recipe.difficulty && <span>{recipe.difficulty}</span>}
+                {diet === 'vegan' && <span class="recipe-index-diet">Vegan</span>}
+                {diet === 'adaptable' && <span class="recipe-index-diet">Can be made vegan</span>}
               </p>
             </a>
           </li>
@@ -33,4 +48,8 @@ const items = loadRecipes();
       }
     </ul>
   </div>
+
+  <script>
+    import '../../recipes/vegan-toggle.ts';
+  </script>
 </Base>

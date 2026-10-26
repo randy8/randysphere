@@ -3051,3 +3051,35 @@ three options on the live page; A was recommended).
 
 **Saved** keeps the word, and the cart mark is back after it with its
 count — dropped earlier today, restored at the owner's request.
+
+## 2026-10-26 — Make It Vegan: one library, two ways to prepare each recipe
+
+**Shape.** `recipes/substitutions/vegan.yaml` is a curated, hand-edited
+library (dairy, eggs, meat, seafood-derived, honey, gelatin, hidden
+ingredients such as pesto's Parmesan, Worcestershire's anchovy and lard in
+some tortillas). Each entry has phrases, `unless`/`unlessFollowedBy`
+exclusions and options by culinary role, each with a confidence —
+`direct`, `recipe-dependent` or `reformulate` — products, and a reason.
+`site/src/recipes/vegan.ts` reads it at build time and returns a vegan
+reading of each recipe without touching it. Lines a swap changes are
+rendered twice; one `data-version` attribute chooses which shows, so the
+switch is instant, the scaler scales both, and without JavaScript the
+recipe reads as written. One remembered preference (`dishes:version`)
+drives the recipe toggle and the Dishes index's Vegan filter. A recipe
+can choose another option per ingredient (`vegan: { use: { egg: just-egg } }`).
+
+**Rules that keep it honest.** Already-plant-based wording ("vegan ground
+beef", "plant-based…", "-free") is never swapped. Quantities are never
+invented: swaps keep the recipe's amount, ratios (flax per egg) live in
+the explanation. `reformulate` swaps are never applied, and such a recipe
+isn't offered as vegan. Instructions change only for ingredients the
+recipe actually swapped, with the same choice. The index distinguishes
+"Vegan" (as written) from "Can be made vegan".
+
+**Also.** Recipe notes render again (dropped from the page on 2026-08-10
+by the checklist rewrite, though every recipe kept writing them).
+
+**Not done.** Editing the library in an admin interface: `pnpm run edit`
+is the photo editor, and recipes have always been edited as YAML, so the
+library is YAML beside them. There is no recipe search and no saved
+recipes to keep consistent; the index filter is the discovery surface.
