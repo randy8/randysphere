@@ -223,8 +223,8 @@ for (const width of [360, 375, 390, 430]) {
 }
 
 browserTest(
-  'a refresh keeps the arrangement; a new session deals a new one',
-  async ({ page, context }) => {
+  'a refresh deals a new arrangement; coming back finds the one you left',
+  async ({ page }) => {
     const order = (p: typeof page) =>
       p.evaluate(() =>
         Array.from(
@@ -235,15 +235,13 @@ browserTest(
     await page.goto(`${BASE}/exposures/`);
     const first = await order(page);
     await page.reload();
-    assert.equal(await order(page), first, 'a refresh reshuffled the page');
+    const refreshed = await order(page);
+    assert.notEqual(refreshed, first, 'a refresh showed the same arrangement');
     await page.goto(`${BASE}/collections/`);
     await page.goto(`${BASE}/exposures/`);
-    assert.equal(await order(page), first, 'coming back reshuffled the page');
-    const other = await context.browser()?.newContext();
-    assert.ok(other);
-    const fresh = await other.newPage();
-    await fresh.goto(`${BASE}/exposures/`);
-    assert.notEqual(await order(fresh), first, 'a new session did not reshuffle');
-    await other.close();
+    assert.equal(await order(page), refreshed, 'following a link back reshuffled the page');
+    await page.goto(`${BASE}/collections/`);
+    await page.goBack();
+    assert.equal(await order(page), refreshed, 'Back reshuffled the page');
   },
 );

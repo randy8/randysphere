@@ -3242,3 +3242,14 @@ card; the date line is just the day it was watched ("18 October"). Copy
 follows: "27 favorites" under each year, "775 favorites since 28 January
 2020" to close, and the collection's description "Favorite films, by the
 year I watched them." Order and identifiers unchanged.
+
+## 2026-10-26 — A refresh deals again (correcting the session-stable deal)
+
+Keeping each photo page's arrangement for the whole session (earlier today)
+also kept it through a refresh — and a visitor refreshing expects new
+photographs; the owner noticed. Now `grid-layout.js` reads the navigation's
+type: on a reload it deals afresh (and stores that deal); following a link
+back, or Back/Forward, keeps the arrangement left, so returning is still
+served from cache. The cost is the original one: a refresh on a slow phone
+loads mostly uncached photographs again (LCP ~5–6 s on the throttled
+profile, against ~2.5 s when it kept the order).

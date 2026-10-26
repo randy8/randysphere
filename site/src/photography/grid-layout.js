@@ -37,16 +37,18 @@ function placeGrid(grid, deal) {
   };
 
   if (deal) {
-    // A new order for each visit, but the same one for the rest of this
-    // browsing session: a refresh, or coming back from another page, finds
-    // the arrangement it left — and the photographs already in the cache on
-    // the first screen. (Reshuffling every load put mostly uncached photos
-    // on top: a refresh on a throttled phone refetched 60 of 74, and its
-    // LCP was worse than a cold visit's, 2026-10-26.) Seeded per page.
+    // A refresh deals again — that's what a visitor expects of it. Coming
+    // back to the page (Back, or a link from another page) finds the
+    // arrangement it left, and the photographs already in the cache on the
+    // first screen. (Keeping the order through refreshes too, briefly on
+    // 2026-10-26, made a refresh show the same photographs.) Seeded per
+    // page, kept in the session.
     const key = `deal:${location.pathname}`;
-    let seed;
+    const navigation = performance.getEntriesByType('navigation')[0];
+    const reload = navigation !== undefined && navigation.type === 'reload';
+    let seed = 0;
     try {
-      seed = Number(sessionStorage.getItem(key));
+      if (!reload) seed = Number(sessionStorage.getItem(key));
     } catch {
       seed = 0;
     }

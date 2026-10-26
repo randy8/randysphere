@@ -110,6 +110,7 @@ export default defineConfig([
         DOMMatrixReadOnly: 'readonly',
         IntersectionObserver: 'readonly',
         location: 'readonly',
+        performance: 'readonly',
         sessionStorage: 'readonly',
         setTimeout: 'readonly',
         window: 'readonly',
