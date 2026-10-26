@@ -3083,3 +3083,15 @@ by the checklist rewrite, though every recipe kept writing them).
 is the photo editor, and recipes have always been edited as YAML, so the
 library is YAML beside them. There is no recipe search and no saved
 recipes to keep consistent; the index filter is the discovery surface.
+
+## 2026-10-26 — Exposures on a phone: one toolbar row, less air, two columns kept
+
+The two-column masonry stays (an owner decision, not to be revisited).
+Around it, below 40rem: the toolbar is one row aligned to the title —
+the film-stock select takes the remaining width (it had sized itself to its
+longest option, pushing Exhibition onto an orphaned second row), Shuffle
+and Exhibition together at the right — and title, toolbar and grid are
+spaced by the grid's own 1rem gutter. The four collections fit one line
+down to 360px (column gap 1rem). Measured: photographs start at 220px at
+360–430px wide (were 265–298px). A gallery test holds this at 360, 375,
+390 and 430px. Desktop unchanged.

@@ -182,3 +182,42 @@ browserTest(
     await page.selectOption('[data-film-filter]', '');
   },
 );
+
+for (const width of [360, 375, 390, 430]) {
+  browserTest(
+    `${String(width)}px phone: two columns, the toolbar on one row under the title, nothing orphaned`,
+    async ({ page }) => {
+      await page.goto(`${BASE}/exposures/`);
+      await waitForFirstScreen(page);
+      const g = await page.evaluate(() => {
+        const bar = document.querySelector<HTMLElement>('.selected-toolbar');
+        const tops = Array.from(bar?.children ?? [], (el) =>
+          Math.round(el.getBoundingClientRect().top),
+        );
+        const nav = Array.from(document.querySelectorAll('.nameplate-list li'), (li) =>
+          Math.round(li.getBoundingClientRect().top),
+        );
+        const title = document.querySelector('h1')?.getBoundingClientRect();
+        return {
+          rows: new Set(tops).size,
+          navRows: new Set(nav).size,
+          alignedLeft: Math.abs((bar?.getBoundingClientRect().left ?? 0) - (title?.left ?? -1)) < 1,
+          gridTop: document.querySelector('[data-grid]')?.getBoundingClientRect().top ?? 0,
+        };
+      });
+      const grid = await gridGeometry(page);
+      assert.equal(grid.columns, 2);
+      assert.equal(g.rows, 1, 'the toolbar wrapped');
+      assert.equal(g.navRows, 1, 'the navigation wrapped');
+      assert.ok(g.alignedLeft, 'the toolbar is not aligned to the title');
+      assert.ok(g.gridTop < 260, `photographs start ${String(Math.round(g.gridTop))}px down`);
+    },
+    {
+      viewport: { width, height: 800 },
+      deviceScaleFactor: 2,
+      isMobile: true,
+      hasTouch: true,
+      seed: 11,
+    },
+  );
+}
