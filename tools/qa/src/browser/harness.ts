@@ -83,6 +83,18 @@ export function browserTest(
       failedRequests.push(`${request.failure()?.errorText ?? 'failed'} ${request.url()}`);
     });
     if (seed !== undefined) await page.addInitScript(seedRandom, seed);
+    // Images from other hosts (TMDB's posters) are stubbed: a test of this
+    // site must not fail because someone else's server, or this machine's
+    // network, blinked (ERR_NETWORK_CHANGED twice on 2026-10-26). Every
+    // such image carries its own width and height, so layout is unchanged.
+    const origin = new URL(BASE).origin;
+    await context.route(
+      (url) => url.origin !== origin,
+      (route) =>
+        route.request().resourceType() === 'image'
+          ? route.fulfill({ contentType: 'image/svg+xml', body: STUB_IMAGE })
+          : route.continue(),
+    );
     try {
       await fn({ page, context, errors }, t);
       const unexpected = errors.filter(
@@ -121,6 +133,9 @@ export function browserTest(
     }
   });
 }
+
+const STUB_IMAGE =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="750"><rect width="500" height="750" fill="#ddd3c0"/></svg>';
 
 function slug(text: string): string {
   return text

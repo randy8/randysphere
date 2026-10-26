@@ -64,6 +64,11 @@ URL, the page's errors and failed requests, and the command that reruns that
 one test. A test also fails if the page threw or logged an error it didn't
 expect.
 
+**Flakes found so far.** 2026-10-26: Pictures tests failed twice on
+`ERR_NETWORK_CHANGED` loading TMDB posters (this machine's network
+changing mid-run, not the site). Fixed at the cause: the harness serves a
+stub for every image from another host.
+
 A test may be quarantined only with a comment at the test naming the
 reason, who owns it and the follow-up — and it is then skipped visibly
 (`t.skip('quarantined: …')`), never deleted.
