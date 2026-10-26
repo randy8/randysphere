@@ -34,7 +34,8 @@
     "typecheck": "tsc --noEmit -p tools/pipeline && tsc --noEmit -p tools/films && tsc --noEmit -p tools/serve && tsc --noEmit -p tools/qa && tsc --noEmit -p site",
     "test": "node --test 'tools/pipeline/src/**/*.test.ts' 'tools/serve/src/**/*.test.ts' 'tools/qa/src/**/*.test.ts' 'site/src/**/*.test.ts'",
     "verify": "pnpm check && pnpm --filter @photo/site exec astro build --outDir node_modules/.cache/verify-dist",
-    "check": "node tools/qa/src/check.ts"
+    "check": "node tools/qa/src/check.ts",
+    "test:browser": "node tools/qa/src/browser-run.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

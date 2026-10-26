@@ -2965,3 +2965,28 @@ in sequence, uncached, took ~97 s; warm, `check` takes 9–14 s. `verify` is
 now `check` plus the trial build, so the pre-push hook and `pnpm deploy`
 use it too. Everything still runs every time: the unit suite is ~7 s, too
 cheap to select from.
+
+## 2026-10-26 — Browser tests in the deploy gate, chosen by risk
+
+**Why.** Every defect fixed today — Exhibition holding two photographs on
+the wall, the lightbox showing a stale one, a 2.9 s layout loop, a
+watchdog that never ran — passed `pnpm verify`. They were browser
+behaviour, which nothing tested.
+
+**Decision.** `tools/qa/src/browser/` on `node:test` + `playwright-core`
+(docs/testing.md). `pnpm deploy` runs the smoke suite plus the areas
+`risk.ts` picks for the changes since the live commit against the
+candidate on :4398 before switching, and the smoke suite again against the
+origin after, rolling back on failure. Assertions are geometric and
+stateful rather than pixel diffs. The first full run found a real defect:
+at 360 px Exhibition's bottom bar didn't fit one line — "Full screen" wrapped
+and ran off the edge — so the bar grew taller than the margin reserved for
+it and lay over portrait photographs. Below 30rem the bar now stacks into
+two centred rows and `--mat-bottom` grows with it; no button label wraps.
+
+**Rejected.** `@playwright/test` (a second test runner; `node:test` with
+the library gives traces and screenshots on failure without one). Pixel
+baselines in the gate (every photo page shuffles; a new photograph would
+fail them). Selecting by import graph (a readable table is enough at this
+size, and unknown paths run everything). Retries (a flaky test is a bug to
+fix, not to hide).

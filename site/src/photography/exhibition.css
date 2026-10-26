@@ -14,9 +14,15 @@
      so motion never crops; and above and below, at least as tall as the
      control bars, so the controls never lie over a photograph. */
   --bar-pad: 0.5rem;
-  --bar-height: calc(2 * var(--bar-pad) + 2.75rem);
+  --bar-row: 2.75rem;
+  /* The bottom bar takes two rows where one won't fit (below). */
+  --bottom-rows: 1;
+  --bar-height: calc(2 * var(--bar-pad) + var(--bar-row));
+  --bottom-bar-height: calc(
+    2 * var(--bar-pad) + var(--bottom-rows) * var(--bar-row) + (var(--bottom-rows) - 1) * 0.25rem
+  );
   --mat-top: max(6vh, calc(var(--bar-height) + env(safe-area-inset-top, 0px)));
-  --mat-bottom: max(6vh, calc(var(--bar-height) + env(safe-area-inset-bottom, 0px)));
+  --mat-bottom: max(6vh, calc(var(--bottom-bar-height) + env(safe-area-inset-bottom, 0px)));
   --mat-inline: max(1.5rem, 6vw);
   position: fixed;
   inset: 0;
@@ -164,6 +170,7 @@ html:has(.exhibition) body {
   min-width: 2.75rem;
   cursor: pointer;
   text-decoration: none;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -262,6 +269,24 @@ html:has(.exhibition) body {
   font-size: 0.8125rem;
   font-style: italic;
   color: var(--wall-muted);
+}
+
+/* Transport and options together need ~30rem; narrower, they stack, each
+   row centred, and --mat-bottom grows with them so neither row ever lies
+   over a photograph (found by the 360 px test, 2026-10-26). */
+@media (max-width: 30rem) {
+  .exhibition {
+    --bottom-rows: 2;
+  }
+  .exhibition-bottom {
+    flex-wrap: wrap;
+    row-gap: 0.25rem;
+  }
+  .exhibition-transport,
+  .exhibition-options {
+    flex: 1 0 100%;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 39.9375rem) {

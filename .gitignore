@@ -64,3 +64,6 @@ Thumbs.db
 /site/release.prev/
 /site/dist.next/
 /site/dist.prev/
+
+# Browser-test failures: screenshots, traces, reports (tools/qa).
+/tools/qa/test-results/

@@ -43,6 +43,15 @@ candidate=$!
 trap 'kill "$candidate" 2>/dev/null || true' EXIT
 wait_for "http://127.0.0.1:$CANDIDATE_PORT/healthz"
 check_site "http://127.0.0.1:$CANDIDATE_PORT"
+
+step "Browser checks on the candidate: smoke + what this change touches"
+# tools/qa: the smoke suite always; risk.ts adds areas from what changed
+# since the release now live (everything, on a first deploy). A failure
+# here stops the deploy with production untouched.
+live_commit="$(release_field "$LIVE" commit)"
+if [[ -n $live_commit ]]; then scope="--changed=${live_commit%-dirty}"; else scope="--all"; fi
+node tools/qa/src/browser-run.ts --base="http://127.0.0.1:$CANDIDATE_PORT" "$scope" \
+  --report="$REPO/tools/qa/test-results/deploy-gate.json"
 kill "$candidate"
 trap - EXIT
 
@@ -56,6 +65,15 @@ if [[ "$(release_field "$PREV" serve)" != "$(serve_hash)" ]]; then restart_serve
 step "Production check"
 if ! check_site "$ORIGIN"; then
   fail "production failed its checks after the switch; rolling back"
+  "$REPO/deploy/rollback.sh"
+  exit 1
+fi
+# The same smoke suite, against what visitors are now served (the origin,
+# so a Cloudflare hiccup isn't mistaken for a bad release). Read-only:
+# saving happens in the test browser's own localStorage.
+if ! node tools/qa/src/browser-run.ts --base="$ORIGIN" --smoke \
+  --report="$REPO/tools/qa/test-results/deploy-production.json"; then
+  fail "production failed its browser smoke checks after the switch; rolling back"
   "$REPO/deploy/rollback.sh"
   exit 1
 fi

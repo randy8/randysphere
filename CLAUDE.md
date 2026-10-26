@@ -132,6 +132,8 @@ pnpm deploy              # verify, sync, build beside the live site, prove it on
 pnpm rollback            # swap back to the previous release (no restart)
 pnpm status              # services, health, releases, disk, recent errors
 pnpm check               # format, lint, types, unit tests — parallel and cached, ~10 s warm
+pnpm test:browser        # browser tests for what changed (smoke always); --all, --smoke,
+                         # named areas, --base=<url> — docs/testing.md
 pnpm verify              # pnpm check + the trial build —
                          # also the pre-push hook (.githooks/, core.hooksPath)
 ```
@@ -169,8 +171,9 @@ pnpm verify              # pnpm check + the trial build —
 
 ## Working here
 
-- Before calling a change done: `pnpm typecheck`, `pnpm test`, `pnpm build`;
-  for anything touching `originals/` handling, a real `pnpm ingest` too.
+- Before calling a change done: `pnpm check`, then `pnpm test:browser` (it
+  picks areas by risk; see `docs/testing.md`), and the deploy gate runs both
+  again. For anything touching `originals/` handling, a real `pnpm ingest` too.
   Every pipeline module has colocated `node:test` coverage (`*.test.ts`), no
   other test framework. The editor frontend (`tools/pipeline/src/editor/static/`)
   has no automated tests — check it in a browser.
