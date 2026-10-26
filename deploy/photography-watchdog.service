@@ -11,6 +11,9 @@ Description=randyliang.net health check
 Type=oneshot
 User=randy
 Group=randy
-ExecStart=/home/randy/Development/photography/deploy/watchdog.sh
+# Through bash, not exec'd directly: SELinux won't let systemd exec a file
+# labeled user_home_t (status=203/EXEC, Permission denied), but bash (bin_t)
+# may read one — the same reason photography-serve's ExecStart is node.
+ExecStart=/bin/bash /home/randy/Development/photography/deploy/watchdog.sh
 # Consecutive-failure counts live here, and survive between runs.
 StateDirectory=photography-watchdog

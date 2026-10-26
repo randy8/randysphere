@@ -2866,3 +2866,20 @@ shape if it's ever wanted, with files kept off the site (bandwidth over
 the tunnel, Cloudflare's terms on video). Next: an ambient TV preset,
 chapter cards between tags, hand-written exhibition files, and 3840 px
 variants for 4K screens (pipeline-wide cost, every photo).
+
+## 2026-10-26 — The watchdog runs through bash (SELinux)
+
+**What happened.** From installation (2026-10-25) the watchdog never ran: every
+minute systemd failed with `status=203/EXEC … Permission denied`, though
+`deploy/watchdog.sh` is mode 755. Fedora's SELinux policy doesn't let `init_t`
+exec a file labeled `user_home_t`; it may exec `/bin/bash` (`bin_t`), which
+may then read the script. `photography-serve` never hit this because its
+ExecStart is the node binary. `pnpm status` showed it under "Errors in the
+last 24h"; nothing else did.
+
+**Decision.** `ExecStart=/bin/bash …/deploy/watchdog.sh`.
+
+**Rejected.** Relabeling the script (`chcon -t bin_t`): a git checkout or
+`restorecon` quietly undoes it. A `semanage fcontext` rule: survives that,
+but it's a machine-wide setting the repo can't carry, and it's invisible
+to anyone reading the unit.
