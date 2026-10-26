@@ -67,6 +67,10 @@ const next = nextView
     <h1>{view.title}</h1>
   </header>
 
+  <div class="selected-toolbar" data-exhibit-bar hidden>
+    <a class="selected-shuffle" href={`/exposures/exhibition/?tag=${encodeURIComponent(view.tag)}`}>Exhibition</a>
+  </div>
+
   <div class="grid" data-grid>
     {
       view.photos.map((entry, index) => (
@@ -99,5 +103,6 @@ const next = nextView
     import '../../photography/lightbox.ts';
     import '../../photography/shuffle-on-load.ts';
     import '../../photography/grid-save.ts';
+    import '../../photography/exhibit-link.ts';
   </script>
 </Base>

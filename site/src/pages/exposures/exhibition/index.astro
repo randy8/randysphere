@@ -1,0 +1,144 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { loadArchive, selectedWork } from '../../../photography/archive.ts';
+import { exhibitionData } from '../../../photography/exhibition-data.ts';
+import { FADE_CHOICES, SLIDE_CHOICES } from '../../../photography/exhibition-model.ts';
+import { lightboxJson } from '../../../photography/lightbox-data.ts';
+import '../../../photography/exhibition.css';
+
+// One static page for every exhibition: the URL names what plays (?tag=,
+// ?film=, a share code, or nothing for all of Selected Work) and how, and
+// exhibition.ts picks the subset in the browser — the same arrangement as
+// Saved and Share. Only public photographs are ever in the payload
+// (loadArchive), so no link can reach anything else.
+const archive = loadArchive();
+const data = lightboxJson(exhibitionData(archive, selectedWork(archive)));
+---
+
+<Base
+  title="Exhibition"
+  description="Photographs from the archive, one at a time, full screen."
+  bare
+  themeColor="#0f0e0c"
+>
+  <div class="exhibition" data-exhibition hidden>
+    <section
+      class="exhibition-stage"
+      aria-roledescription="slideshow"
+      aria-label="Exhibition"
+      data-stage
+    >
+      {
+        [0, 1].map(() => (
+          <div class="exhibition-layer" data-layer>
+            <div class="exhibition-motion" data-motion>
+              <picture>
+                <source type="image/avif" />
+                <source type="image/webp" />
+                <img alt="" decoding="async" />
+              </picture>
+            </div>
+            <p class="exhibition-label" data-label />
+          </div>
+        ))
+      }
+    </section>
+
+    <p class="exhibition-empty" data-empty hidden>
+      This link doesn't name any photographs in the archive.
+      <a data-close href="/exposures/">Back to Exposures</a>
+    </p>
+
+    <header class="exhibition-bar exhibition-top" data-chrome>
+      <p class="exhibition-title">
+        <span data-title></span>
+        <span class="exhibition-position" data-position></span>
+      </p>
+      <a class="exhibition-button" data-close href="/exposures/">Close</a>
+    </header>
+
+    <div class="exhibition-bar exhibition-bottom" data-chrome>
+      <div class="exhibition-transport">
+        <button type="button" class="exhibition-button" data-previous aria-label="Previous photograph">
+          <span aria-hidden="true">&#8249;</span>
+        </button>
+        <button type="button" class="exhibition-button exhibition-play" data-play>Pause</button>
+        <button type="button" class="exhibition-button" data-next aria-label="Next photograph">
+          <span aria-hidden="true">&#8250;</span>
+        </button>
+      </div>
+      <div class="exhibition-options">
+        <button type="button" class="exhibition-button" data-info aria-pressed="false">Info</button>
+        <button
+          type="button"
+          class="exhibition-button"
+          data-settings-toggle
+          aria-expanded="false"
+          aria-controls="exhibition-settings"
+        >
+          Settings
+        </button>
+        <button type="button" class="exhibition-button" data-fullscreen hidden>Full screen</button>
+      </div>
+    </div>
+
+    <div
+      class="exhibition-settings"
+      id="exhibition-settings"
+      role="dialog"
+      aria-label="Settings"
+      data-settings
+      hidden
+    >
+      <fieldset>
+        <legend>Duration</legend>
+        {
+          SLIDE_CHOICES.map((seconds) => (
+            <label>
+              <input type="radio" name="slide" value={String(seconds)} />
+              <span>{seconds} s</span>
+            </label>
+          ))
+        }
+      </fieldset>
+      <fieldset>
+        <legend>Transition</legend>
+        {
+          FADE_CHOICES.map((seconds) => (
+            <label>
+              <input type="radio" name="fade" value={String(seconds)} />
+              <span>{seconds} s</span>
+            </label>
+          ))
+        }
+      </fieldset>
+      <fieldset>
+        <legend>Order</legend>
+        <label><input type="radio" name="order" value="sequence" /><span>In sequence</span></label>
+        <label><input type="radio" name="order" value="shuffle" /><span>Shuffled</span></label>
+      </fieldset>
+      <fieldset>
+        <legend>Motion</legend>
+        <label><input type="radio" name="motion" value="1" /><span>Drift</span></label>
+        <label><input type="radio" name="motion" value="0" /><span>Still</span></label>
+        <p class="exhibition-note" data-reduced-note hidden>
+          Still, as your system asks for reduced motion.
+        </p>
+      </fieldset>
+    </div>
+
+    <p class="visually-hidden" aria-live="polite" data-announce></p>
+  </div>
+
+  <noscript>
+    <p class="exhibition-noscript">
+      The exhibition needs JavaScript. <a href="/exposures/">Browse Exposures</a>.
+    </p>
+  </noscript>
+
+  <script is:inline type="application/json" data-exhibition-photos set:html={data} />
+
+  <script>
+    import '../../../photography/exhibition.ts';
+  </script>
+</Base>

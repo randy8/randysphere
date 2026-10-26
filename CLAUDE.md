@@ -98,6 +98,11 @@ tools/serve/            production server: site/release/ (written only by `pnpm 
   (~5 chars per photo; a test fails the build if two photos ever share one);
   older `?s=` links carry full ids and still work. Ids since removed
   from the archive are skipped and counted on the recipient's page.
+- **Exhibition** (`/exposures/exhibition/`, `exhibition.ts`,
+  `exhibition-model.ts`): full-screen playback. The URL is the whole
+  state — source (`?tag=`, `?film=`, a share code, or Selected Work) and
+  settings — same model as Share. Two layers, decode-before-fade. Requires
+  JavaScript; every link to it is revealed by script.
 - **Lightbox** (`Lightbox.astro`, `lightbox.ts`, `zoom.ts`): progressive
   enhancement over each tile's plain `<a>` to the full-size JPEG. State in
   the URL (`#photo-<sourceId>`).

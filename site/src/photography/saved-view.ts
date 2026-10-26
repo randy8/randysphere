@@ -42,6 +42,7 @@ const copyButton = $<HTMLButtonElement>('[data-share-copy]');
 const nativeButton = $<HTMLButtonElement>('[data-share-native]');
 const openLink = $<HTMLAnchorElement>('[data-share-open]');
 const shareSelectedButton = $<HTMLButtonElement>('[data-share-selected]');
+const exhibitLink = $<HTMLAnchorElement>('[data-exhibit]');
 
 const plural = (count: number): string => `${String(count)} photograph${count === 1 ? '' : 's'}`;
 
@@ -82,6 +83,10 @@ function init(gridElement: HTMLElement): void {
       return;
     }
     actions?.removeAttribute('hidden');
+    if (exhibitLink !== null) {
+      const ids = tiles().map((tile) => tile.dataset['photoId'] ?? '');
+      exhibitLink.href = `/exposures/exhibition/?p=${encodeIds(ids)}`;
+    }
     for (const group of document.querySelectorAll<HTMLElement>('[data-mode]')) {
       group.hidden = group.dataset['mode'] !== mode;
     }

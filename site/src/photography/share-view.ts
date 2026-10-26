@@ -52,6 +52,13 @@ if (grid !== null) {
       missingNote.hidden = false;
     }
     if (more !== null) more.hidden = false;
+    // The same selection, in the same order, as an exhibition.
+    const exhibitBar = document.querySelector<HTMLElement>('[data-exhibit-bar]');
+    const exhibit = exhibitBar?.querySelector<HTMLAnchorElement>('[data-exhibit]');
+    if (exhibitBar && exhibit) {
+      exhibit.href = `/exposures/exhibition/${location.search}`;
+      exhibitBar.hidden = false;
+    }
 
     grid.addEventListener('click', (event) => {
       if (!(event.target instanceof Element)) return;

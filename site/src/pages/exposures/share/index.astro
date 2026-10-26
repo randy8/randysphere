@@ -37,6 +37,10 @@ const archive = loadArchive();
     <p class="saved-empty">Viewing a shared selection requires JavaScript.</p>
   </noscript>
 
+  <div class="selected-toolbar" data-exhibit-bar hidden>
+    <a class="selected-shuffle" href="/exposures/exhibition/" data-exhibit>Exhibition</a>
+  </div>
+
   <ul class="grid saved-grid" data-share-grid>
     {
       archive.photos.map((entry) => (

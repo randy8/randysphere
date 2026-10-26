@@ -1,0 +1,309 @@
+/*
+ * The exhibition: a dark wall, one photograph, and as little else as
+ * possible. The controls speak in the site's own label voice (small caps
+ * in the body serif), at the edges, and leave after a moment of
+ * stillness — along with the cursor.
+ */
+
+.exhibition {
+  --wall: #0f0e0c;
+  --wall-ink: color-mix(in srgb, var(--paper) 86%, transparent);
+  --wall-muted: color-mix(in srgb, var(--paper) 52%, transparent);
+  /* The margin around every photograph. Wider, on each side, than the
+     most the drift can grow it (2.1% of the frame, exhibition-model.ts),
+     so motion never crops. */
+  --mat-block: max(1.5rem, 6vh);
+  --mat-inline: max(1.5rem, 6vw);
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--wall);
+  color: var(--wall-ink);
+  /* Pinch-zoom stays the visitor's; panning is ours, so a swipe reaches
+     the page instead of the browser's back gesture. */
+  touch-action: pinch-zoom;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.exhibition[hidden] {
+  display: none;
+}
+.exhibition[data-idle='true'] {
+  cursor: none;
+}
+
+html:has(.exhibition),
+html:has(.exhibition) body {
+  background: #0f0e0c;
+}
+
+.exhibition-stage {
+  position: absolute;
+  inset: 0;
+}
+.exhibition-stage[hidden] {
+  display: none;
+}
+
+.exhibition-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--mat-block) var(--mat-inline);
+  opacity: 0;
+}
+.exhibition-motion {
+  will-change: transform;
+}
+.exhibition-motion picture,
+.exhibition-motion img {
+  display: block;
+}
+.exhibition-motion img {
+  /* exhibition.ts sets the exact contained width and height; this is only
+     the no-overflow guarantee if a resize lands between frames. */
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* The wall label: film stock, place, date — beside the work, the way a
+   museum hangs one, and it arrives and leaves with its photograph. */
+.exhibition-label {
+  position: absolute;
+  left: var(--mat-inline);
+  bottom: calc(var(--mat-block) / 2);
+  transform: translateY(50%);
+  margin: 0;
+  font-variant-caps: small-caps;
+  font-size: 0.875rem;
+  letter-spacing: 0.03em;
+  color: var(--wall-muted);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.exhibition-label .dateline {
+  color: inherit;
+}
+.exhibition[data-info='true'] .exhibition-label {
+  opacity: 1;
+}
+
+/* --- Controls --------------------------------------------------------------- */
+
+.exhibition-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem max(1rem, calc(var(--mat-inline) - 0.75rem));
+  transition: opacity 0.5s ease;
+}
+.exhibition-top {
+  top: 0;
+  padding-top: max(1rem, env(safe-area-inset-top, 0px));
+}
+.exhibition-bottom {
+  bottom: 0;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+.exhibition-bar[hidden] {
+  display: none;
+}
+.exhibition[data-idle='true'] .exhibition-bar {
+  opacity: 0;
+  pointer-events: none;
+}
+/* The label gives way to the controls rather than sitting under them. */
+.exhibition:not([data-idle='true']) .exhibition-label {
+  opacity: 0;
+}
+
+.exhibition-title {
+  margin: 0;
+  font-variant-caps: small-caps;
+  letter-spacing: 0.03em;
+  color: var(--wall-ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.exhibition-position {
+  margin-left: 0.75rem;
+  color: var(--wall-muted);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.exhibition-transport,
+.exhibition-options {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.exhibition-button {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--wall-muted);
+  font: inherit;
+  font-variant-caps: small-caps;
+  letter-spacing: 0.03em;
+  padding: 0.5rem 0.75rem;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+.exhibition-button[hidden] {
+  display: none;
+}
+.exhibition-button span[aria-hidden='true'] {
+  font-size: 1.75rem;
+  line-height: 1;
+  font-variant-caps: normal;
+  /* The guillemet sits on the baseline; lift it to the small caps' middle. */
+  transform: translateY(-0.12em);
+}
+.exhibition-button:hover,
+.exhibition-button:focus-visible,
+.exhibition-button[aria-pressed='true'],
+.exhibition-button[aria-expanded='true'] {
+  color: var(--wall-ink);
+}
+.exhibition-button:focus-visible {
+  outline: 1px solid var(--wall-muted);
+  outline-offset: -0.25rem;
+}
+.exhibition-play {
+  min-width: 4.5rem;
+}
+
+/* --- Settings ------------------------------------------------------------------ */
+
+.exhibition-settings {
+  position: absolute;
+  z-index: 4;
+  right: max(1rem, calc(var(--mat-inline) - 0.75rem));
+  bottom: calc(max(1rem, env(safe-area-inset-bottom, 0px)) + 3.5rem);
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: color-mix(in srgb, var(--wall) 92%, var(--paper));
+  border: 1px solid color-mix(in srgb, var(--paper) 12%, transparent);
+  max-width: calc(100vw - 2rem);
+}
+.exhibition-settings[hidden] {
+  display: none;
+}
+.exhibition-settings fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+}
+.exhibition-settings legend {
+  float: left;
+  width: 8rem;
+  padding: 0;
+  font-variant-caps: small-caps;
+  letter-spacing: 0.03em;
+  color: var(--wall-muted);
+}
+.exhibition-settings label {
+  position: relative;
+  cursor: pointer;
+  color: var(--wall-muted);
+  transition: color 0.2s ease;
+}
+.exhibition-settings input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: inherit;
+}
+.exhibition-settings label:hover,
+.exhibition-settings label:has(input:checked) {
+  color: var(--wall-ink);
+}
+.exhibition-settings label:has(input:checked) span {
+  border-bottom: 1px solid currentColor;
+}
+.exhibition-settings label:has(input:focus-visible) span {
+  outline: 1px solid var(--wall-muted);
+  outline-offset: 0.2rem;
+}
+.exhibition-settings label:has(input:disabled) {
+  cursor: default;
+  opacity: 0.5;
+}
+.exhibition-note {
+  flex-basis: 100%;
+  margin: 0;
+  padding-left: 9rem;
+  font-size: 0.8125rem;
+  font-style: italic;
+  color: var(--wall-muted);
+}
+
+@media (max-width: 39.9375rem) {
+  .exhibition-settings {
+    left: 1rem;
+    right: 1rem;
+  }
+  .exhibition-settings legend {
+    float: none;
+    width: 100%;
+  }
+  .exhibition-note {
+    padding-left: 0;
+  }
+  .exhibition-options .exhibition-button {
+    padding-inline: 0.5rem;
+  }
+}
+
+.exhibition-empty,
+.exhibition-noscript {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 2rem;
+  text-align: center;
+  font-style: italic;
+  background: #0f0e0c;
+  color: color-mix(in srgb, var(--paper) 70%, transparent);
+}
+.exhibition-empty[hidden] {
+  display: none;
+}
+.exhibition-empty a,
+.exhibition-noscript a {
+  color: var(--paper);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

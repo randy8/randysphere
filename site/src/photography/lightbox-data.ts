@@ -63,9 +63,10 @@ export function lightboxPhoto(entry: ArchivePhoto, maxWidth?: number): LightboxP
 }
 
 /**
- * The list as a JSON string safe to place inside a <script> element: `<`
- * is escaped, so no caption can ever close the script early.
+ * The list (or any payload built from it, like the exhibition's) as a JSON
+ * string safe to place inside a <script> element: `<` is escaped, so no
+ * caption can ever close the script early.
  */
-export function lightboxJson(photos: readonly LightboxPhoto[]): string {
-  return JSON.stringify(photos).replace(/</g, '\\u003c');
+export function lightboxJson(value: object): string {
+  return JSON.stringify(value).replace(/</g, '\\u003c');
 }

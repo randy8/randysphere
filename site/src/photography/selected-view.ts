@@ -29,6 +29,8 @@ function init(): void {
   const select = toolbar.querySelector<HTMLSelectElement>('[data-film-filter]');
   const locationSelect = toolbar.querySelector<HTMLSelectElement>('[data-location-filter]');
   const shuffleButton = toolbar.querySelector<HTMLButtonElement>('[data-shuffle]');
+  // The exhibition plays whatever the filters show.
+  const exhibit = toolbar.querySelector<HTMLAnchorElement>('[data-exhibit]');
   const figures = Array.from(grid.querySelectorAll<HTMLElement>(':scope > [data-photo-id]'));
 
   const apply = (): void => {
@@ -45,6 +47,13 @@ function init(): void {
       if (shown) visible.push(figure.dataset['photoId'] ?? '');
     }
     setLightboxOrder(visible);
+    if (exhibit !== null) {
+      const query = new URLSearchParams();
+      if (place !== '') query.set('tag', place);
+      if (stock !== '') query.set('film', stock);
+      const search = query.toString();
+      exhibit.href = `/exposures/exhibition/${search === '' ? '' : `?${search}`}`;
+    }
   };
 
   // Each filter mirrors itself into one query parameter, so a filtered view

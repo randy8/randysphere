@@ -11,9 +11,24 @@ interface Props {
   image?: string;
   imageWidth?: number;
   imageHeight?: number;
+  /**
+   * The page alone, with no masthead, footer or column — for a page that
+   * is the whole screen (the exhibition). Everything in <head> stays.
+   */
+  bare?: boolean;
+  /** The browser chrome's colour; the paper unless a page is mostly something else. */
+  themeColor?: string;
 }
 
-const { title, description = site.description, image, imageWidth, imageHeight } = Astro.props;
+const {
+  title,
+  description = site.description,
+  image,
+  imageWidth,
+  imageHeight,
+  bare = false,
+  themeColor = '#f6f1e6',
+} = Astro.props;
 const { pathname } = Astro.url;
 const fullTitle = title === site.title ? title : `${title} — ${site.title}`;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
@@ -32,7 +47,7 @@ const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" content="#f6f1e6" />
+    <meta name="theme-color" content={themeColor} />
     <link
       rel="preload"
       href="/fonts/newsreader-variable.woff2"
@@ -79,56 +94,63 @@ const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
     </script>
   </head>
   <body>
-    <a class="skip-link" href="#content">Skip to content</a>
-    <div class="wrap">
-      <header class="masthead">
-        {
-          /* The one collections list every page shares (title, a thin
-             rule, every collection). The site name always links home; the
-             current collection is marked as current and still links to its
-             own front page — from a tag or film page, and from the front
-             page itself, where it clears a filter (?film=…) and, on
-             Selected Work, deals a fresh order. An ordinary
-             in-flow header that scrolls away with the page — not sticky,
-             so it never sits over a photograph; the lightbox paints over
-             it while open. See .masthead-nameplate in base.css and
-             docs/decisions.md, 2026-08-28, 2026-10-06, and 2026-10-16. */
-        }
-        <div class="masthead-nameplate">
-          <p class="nameplate-title">
-            <a href="/">{site.title}</a>
-          </p>
-          <ul class="nameplate-list">
-            {
-              collections.map((collection) => (
-                <li>
-                  {pathname.startsWith(`/${collection.slug}/`) ? (
-                    <a
-                      class="nameplate-current"
-                      href={collection.href}
-                      aria-current={pathname === collection.href ? 'page' : 'true'}
-                    >
-                      {collection.title}
-                    </a>
-                  ) : (
-                    <a href={collection.href}>{collection.title}</a>
-                  )}
-                </li>
-              ))
-            }
-          </ul>
-          {
-            /* The one exception to this layout knowing nothing about any
-               collection: Saved, as a cart, reachable from every page. See
-               docs/decisions.md, 2026-10-25. */
-          }
-          <SavedCart current={pathname.startsWith('/exposures/saved/')} />
-        </div>
-      </header>
-      <main id="content">
-        <slot />
-      </main>
-      <footer class="site-footer">© {new Date().getFullYear()} {site.author}</footer>
-    </div>
+    {bare && <slot />}
+    {
+      !bare && (
+        <Fragment>
+          <a class="skip-link" href="#content">Skip to content</a>
+          <div class="wrap">
+            <header class="masthead">
+              {
+                /* The one collections list every page shares (title, a thin
+                   rule, every collection). The site name always links home; the
+                   current collection is marked as current and still links to its
+                   own front page — from a tag or film page, and from the front
+                   page itself, where it clears a filter (?film=…) and, on
+                   Selected Work, deals a fresh order. An ordinary
+                   in-flow header that scrolls away with the page — not sticky,
+                   so it never sits over a photograph; the lightbox paints over
+                   it while open. See .masthead-nameplate in base.css and
+                   docs/decisions.md, 2026-08-28, 2026-10-06, and 2026-10-16. */
+              }
+              <div class="masthead-nameplate">
+                <p class="nameplate-title">
+                  <a href="/">{site.title}</a>
+                </p>
+                <ul class="nameplate-list">
+                  {
+                    collections.map((collection) => (
+                      <li>
+                        {pathname.startsWith(`/${collection.slug}/`) ? (
+                          <a
+                            class="nameplate-current"
+                            href={collection.href}
+                            aria-current={pathname === collection.href ? 'page' : 'true'}
+                          >
+                            {collection.title}
+                          </a>
+                        ) : (
+                          <a href={collection.href}>{collection.title}</a>
+                        )}
+                      </li>
+                    ))
+                  }
+                </ul>
+                {
+                  /* The one exception to this layout knowing nothing about any
+                     collection: Saved, as a cart, reachable from every page. See
+                     docs/decisions.md, 2026-10-25. */
+                }
+                <SavedCart current={pathname.startsWith('/exposures/saved/')} />
+              </div>
+            </header>
+            <main id="content">
+              <slot />
+            </main>
+            <footer class="site-footer">© {new Date().getFullYear()} {site.author}</footer>
+          </div>
+        </Fragment>
+      )
+    }
   </body>
 </html>

@@ -2822,3 +2822,47 @@ prefetch already cover repeat visits); view transitions (no measured
 bottleneck at navigation; native navigation is fast once prefetched);
 prerender (would run a fresh shuffle off-screen); Lighthouse TBT as
 evidence (it tracked load on the measuring machine, not the site).
+
+## 2026-10-25 — Exhibition: one photograph at a time, full screen, from the URL
+
+**What.** `/exposures/exhibition/` plays photographs full screen on a
+dark wall. One static page; the URL names the source (`?tag=`, `?film=`,
+both, a share code `?p=`/`?s=`, or nothing for Selected Work) and the
+settings (`slide`, `fade`, `order`, `motion`, `info`, written only when
+they differ from the defaults). An "Exhibition" link on Selected Work
+(following its filters), tag, film, Saved and Share pages, revealed only
+with JavaScript.
+
+**Why this shape.** It's Saved and Share's arrangement again: the page
+carries every public photograph's lightbox data (`lightbox-data.ts`, plus
+tags, places, date — ~33 KB gzipped for 251) and picks its subset in the
+browser. No server state, no new routes per tag, no dependency; a share
+code doubles as a curated sequence in its sender's order. Only
+`loadArchive()` is in the payload, so no link reaches an unstarred
+photograph or `/private`. A code that decodes to nothing plays nothing,
+as the Share page shows nothing.
+
+**Details that matter.** Two layers only; a transition starts once the
+next photograph has decoded (on a slow network the current one simply
+stays longer; one that fails to load is skipped). Crossfade between
+photographs of the same orientation; a dip to the wall between landscape
+and portrait, so one frame's edges never hang over the other. Drift is a
+≤3% scale about an origin 30–70% across, inside a 6vw/6vh mat, so it never
+crops (a test ties the two numbers together); off under reduced motion.
+Fades and drift are Web Animations, so pause freezes them mid-way — and
+the site-wide reduced-motion CSS rule doesn't collapse the crossfade. Each
+image's `sizes` is its exact contained width, so a portrait never
+downloads a landscape's width; devices reporting ≤2 GB memory are capped
+at 1920 device pixels. Wake lock while playing; a hidden tab pauses.
+Controls and cursor leave after 2.5 s; the wall label gives way to them.
+iPhone Safari has no page full-screen API, so the button isn't offered
+there.
+
+**Rejected / deferred.** Reusing the lightbox's three slots and
+`swipe.ts` (built for drag-to-slide, not timed fades). Video export:
+deferred — in-browser encoding needs a dependency and is slow on phones;
+an offline ffmpeg render from the same URL-defined sequence is the right
+shape if it's ever wanted, with files kept off the site (bandwidth over
+the tunnel, Cloudflare's terms on video). Next: an ambient TV preset,
+chapter cards between tags, hand-written exhibition files, and 3840 px
+variants for 4K screens (pipeline-wide cost, every photo).
