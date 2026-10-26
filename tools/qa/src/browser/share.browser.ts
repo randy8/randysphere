@@ -53,3 +53,15 @@ browserTest('opening someone’s share link never changes your own Saved', async
     JSON.stringify([a.id]),
   );
 });
+
+browserTest(
+  'with nothing saved, Saved shows its empty message and no photographs',
+  async ({ page }) => {
+    await page.goto(`${BASE}/exposures/saved/`);
+    await page.waitForFunction(
+      () => document.querySelector<HTMLElement>('[data-saved-empty]')?.hidden === false,
+    );
+    const tiles = await page.locator('[data-saved-grid] > [data-photo-id]').count();
+    assert.equal(tiles, 0, `${String(tiles)} photographs shown under "Nothing saved yet"`);
+  },
+);

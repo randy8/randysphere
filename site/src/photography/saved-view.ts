@@ -55,7 +55,14 @@ function init(gridElement: HTMLElement): void {
   );
   pruneStale(validIds);
   const saved = new Set(savedIds());
-  if (saved.size === 0) return;
+  // Nothing saved: the page carries every public photograph for pruning,
+  // so leaving early kept all of them on screen under "Nothing saved yet"
+  // (found 2026-10-26). Remove them all; the empty message stays.
+  if (saved.size === 0) {
+    gridElement.querySelectorAll('[data-photo-id]').forEach((tile) => tile.remove());
+    setLightboxOrder([]);
+    return;
+  }
 
   emptyMessage?.setAttribute('hidden', '');
   const kept: string[] = [];
