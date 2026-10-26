@@ -3253,3 +3253,19 @@ back, or Back/Forward, keeps the arrangement left, so returning is still
 served from cache. The cost is the original one: a refresh on a slow phone
 loads mostly uncached photographs again (LCP ~5–6 s on the throttled
 profile, against ~2.5 s when it kept the order).
+
+## 2026-10-26 — Pick for me opens over the page instead of moving it
+
+It used to dim every other film and scroll to the pick, losing the
+visitor's place. Now a native `<dialog>` shows the picked film's own card
+(a copy: poster, date watched, title linking to Letterboxd, credits, the
+full synopsis) over a translucent paper backdrop, from wherever the
+visitor is. The page is held still while it's open (body fixed at its own
+offset; `scrollbar-gutter: stable` so nothing shifts) and restored to the
+exact position on close — ×, Escape or a click outside. "Another" draws
+again in place. The genre filter still narrows the pool. A dialog rather
+than a new overlay component: there was none on Pictures to reuse, and the
+native element gives the top layer, focus containment and Escape for free.
+Tests, desktop and phone, from 3000px down: in view on open, Another
+changes the film, and each way out returns to the same scroll position
+with what was on screen unmoved.

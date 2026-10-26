@@ -97,7 +97,7 @@
   color: var(--accent);
 }
 
-/* Announced, not shown: the spotlight on the wall already says it. */
+/* For a screen reader; the dialog says the rest. */
 .film-pick-status {
   position: absolute;
   width: 1px;
@@ -108,48 +108,97 @@
   white-space: nowrap;
 }
 
-/* On the wall — the wall is the result: while there's a pick, every
-   other film steps back to 25% and stays there until the next pick,
-   Shuffle or Escape, so the pick reads as a spotlight on the collection
-   without any card moving. It keeps full opacity, a warm mat (the frame's
-   own --rule tinted toward the accent) and a "Picked for you" line in
-   words, so colour is never the only signal. */
-/* Scoped to .films-pick-ready (set by pick-view.ts once the page has
-   arrived) so lifting .films-arriving never starts an opacity transition
-   on every card below the fold. */
-.films-pick-ready .film-card {
-  transition: opacity 0.3s ease;
+/* Pick for me's dialog (pick-view.ts): the film's own card on paper, over
+   a translucent paper backdrop — the page stays visible behind, where the
+   visitor left it. */
+.film-pick-dialog {
+  width: min(44rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink);
+  overflow: auto;
 }
-.films-picking .film-card:not(.is-picked) {
-  opacity: 0.25;
+.film-pick-dialog::backdrop {
+  background: color-mix(in srgb, var(--paper) 78%, transparent);
 }
-/* Shuffle clearing the picks (pick-view.ts): no fade, for one frame. */
-.films-pick-snap .film-card {
-  transition: none;
+.film-pick-sheet {
+  padding: 1.25rem 1.5rem 1.5rem;
 }
-.film-card.is-picked .film-poster-frame {
-  box-shadow: 0 0 0 2px var(--accent);
-}
-.film-card:focus {
+.film-pick-sheet:focus {
   outline: none;
 }
-.film-card:focus-visible .film-poster-frame {
-  outline: 1px solid var(--accent);
-  outline-offset: 0.25rem;
+.film-pick-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 1rem;
 }
-.film-picked-mark {
-  margin: 0 0 0.25rem;
+.film-pick-label {
+  margin: 0;
   font-family: var(--serif);
   text-transform: uppercase;
   font-size: 0.6875rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.film-pick-close {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0.25rem 0.5rem;
+  margin: -0.5rem -0.5rem 0 0;
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.film-pick-close:hover,
+.film-pick-close:focus-visible {
   color: var(--accent);
 }
-@media (prefers-reduced-motion: reduce) {
-  .films-pick-ready .film-card,
-  .films-picking .film-card:not(.is-picked) {
-    transition: none;
+.film-pick-close:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 0;
+}
+/* The card, laid out for the dialog: poster beside its words. */
+.film-pick-card {
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+  list-style: none;
+}
+.film-pick-card .film-poster-frame {
+  margin: 0;
+}
+.film-pick-card .film-title {
+  font-size: 1.5rem;
+}
+.film-pick-card .film-overview {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  font-size: 0.9375rem;
+}
+.film-pick-actions {
+  margin: 1.25rem 0 0;
+  text-align: right;
+}
+@media (max-width: 34rem) {
+  .film-pick-card {
+    grid-template-columns: 1fr;
   }
+  .film-pick-card .film-poster-frame {
+    width: min(12rem, 60%);
+  }
+}
+.film-card:focus {
+  outline: none;
 }
 
 .film-year-group {
@@ -404,4 +453,10 @@
 /* The heading sits closer to its bar than other pages' titles to theirs. */
 .album-header.film-header {
   margin-bottom: 0;
+}
+
+/* The page doesn't shift sideways when Pick for me's dialog holds it
+   still and the scrollbar goes. */
+:root:has(.film-bar) {
+  scrollbar-gutter: stable;
 }

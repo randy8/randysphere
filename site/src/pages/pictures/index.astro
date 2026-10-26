@@ -77,6 +77,26 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
           </button>
         </form>
         <p class="film-pick-status" data-film-pick-status role="status" aria-live="polite" />
+        {/* Pick for me's answer (pick-view.ts): the picked film's own card,
+            shown over wherever the visitor is — the page stays where it is,
+            seen through the backdrop. A native dialog: top layer, focus held
+            inside, Escape closes. */}
+        <dialog class="film-pick-dialog" data-film-pick-dialog aria-labelledby="film-pick-title">
+          <div class="film-pick-sheet" tabindex="-1" data-film-pick-sheet>
+            <div class="film-pick-head">
+              <p class="film-pick-label">Picked for you</p>
+              <button type="button" class="film-pick-close" data-film-pick-close aria-label="Close">
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
+            <div class="film-pick-body" data-film-pick-body />
+            <p class="film-pick-actions">
+              <button type="button" class="film-shuffle-button" data-film-pick-again>
+                Another
+              </button>
+            </p>
+          </div>
+        </dialog>
       </div>
       </div>
     )

@@ -110,15 +110,74 @@ browserTest('the year index marks the year in view as you scroll', async ({ page
   assert.equal(await page.locator('[data-film-year-link][aria-current]').count(), 1);
 });
 
-browserTest('Pick for me announces the title and its release year', async ({ page }) => {
-  await page.goto(`${BASE}/pictures/`);
-  await page.locator('[data-film-pick]').waitFor({ state: 'visible' });
-  await page.locator('[data-film-pick] button').click();
-  await page.waitForFunction(
-    () => (document.querySelector('[data-film-pick-status]')?.textContent ?? '').length > 8,
+for (const [label, options] of [
+  ['desktop', { viewport: { width: 1440, height: 900 } }],
+  ['phone', PHONE],
+] as const) {
+  browserTest(
+    `${label}: Pick for me opens over wherever you are, and every way out returns you exactly there`,
+    async ({ page }) => {
+      await page.goto(`${BASE}/pictures/`);
+      await page.locator('[data-film-pick]').waitFor({ state: 'visible' });
+      const titleShown = () => page.locator('[data-film-pick-dialog] .film-title').innerText();
+      for (const close of ['escape', 'outside', 'button'] as const) {
+        await page.evaluate(() => window.scrollTo(0, 3000));
+        const before = await page.evaluate(() => ({
+          y: window.scrollY,
+          // Something on screen, to prove the page behind holds still.
+          top:
+            document
+              .elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)
+              ?.closest('.film-card')
+              ?.getBoundingClientRect().top ?? null,
+        }));
+        await page.evaluate(() =>
+          document.querySelector<HTMLButtonElement>('[data-film-pick] button')?.click(),
+        );
+        const dialog = page.locator('[data-film-pick-dialog]');
+        await dialog.waitFor({ state: 'visible' });
+        const during = await page.evaluate(() => {
+          const box = document.querySelector('[data-film-pick-dialog]')!.getBoundingClientRect();
+          return {
+            inView: box.top >= 0 && box.bottom <= window.innerHeight + 1,
+            title: document.getElementById('film-pick-title')?.textContent ?? '',
+          };
+        });
+        assert.ok(during.inView, `${close}: the dialog isn't in the viewport`);
+        assert.ok(during.title.trim().length > 0, 'no film shown');
+        assert.match(
+          (await page.locator('[data-film-pick-status]').textContent()) ?? '',
+          /^Picked .+ \(\d{4}\)\.$/,
+        );
+        if (close === 'escape') {
+          const first = await titleShown();
+          await page.locator('[data-film-pick-again]').click();
+          assert.notEqual(await titleShown(), first, 'Another drew the same film');
+          await page.keyboard.press('Escape');
+        } else if (close === 'outside') {
+          await page.mouse.click(4, 4);
+        } else {
+          await page.locator('[data-film-pick-close]').click();
+        }
+        await dialog.waitFor({ state: 'hidden' });
+        const after = await page.evaluate(() => window.scrollY);
+        assert.equal(
+          after,
+          before.y,
+          `${close}: the page moved (${String(before.y)} → ${String(after)})`,
+        );
+        if (before.top !== null) {
+          const top = await page.evaluate(
+            () =>
+              document
+                .elementFromPoint(window.innerWidth / 2, window.innerHeight / 2)
+                ?.closest('.film-card')
+                ?.getBoundingClientRect().top ?? null,
+          );
+          assert.equal(top, before.top, `${close}: what was on screen moved`);
+        }
+      }
+    },
+    options,
   );
-  assert.match(
-    (await page.locator('[data-film-pick-status]').textContent()) ?? '',
-    /^Picked .+ \(\d{4}\)\.$/,
-  );
-});
+}
