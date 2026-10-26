@@ -107,6 +107,14 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
+/* Browsers give form controls text-transform: none and their own letter
+   spacing; here a button or select speaks in whatever voice its line is
+   set in (the label voice's capitals, most often) unless it says otherwise. */
+button,
+select {
+  text-transform: inherit;
+  letter-spacing: inherit;
+}
 
 .skip-link {
   position: absolute;
@@ -210,30 +218,30 @@ body {
 
 /*
  * The archive's one recurring "label" voice — a wall label or a colophon
- * line, not an app affordance. Small caps in the body serif, not an
- * uppercase sans grabbing attention it hasn't earned. Every metadata line
- * in the site (film stock, position markers) shares this; dates are set
- * in .dateline, just below.
+ * line, not an app affordance. Tracked capitals in the body serif, set
+ * small (~0.72rem, 0.08em): Newsreader has no true small caps, and the
+ * browser's synthesised ones were thin, unevenly spaced shrunken capitals
+ * ("Expo sures"), so every label on the site now uses this instead
+ * (docs/decisions.md, 2026-10-26). Navigation, metadata, counts and
+ * controls all share it; dates are set in .dateline, just below.
  */
 .eyebrow {
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.875rem;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.71875rem;
+  letter-spacing: 0.08em;
   color: var(--muted);
   margin: 0 0 0.5rem;
 }
-/* Dates: the one departure from .eyebrow's small caps. Day, month, year
-   in spaced capitals a step smaller than the line around them, the way a
-   catalogue dates a plate — set wherever a date appears, inside an eyebrow
-   or a meta line alike, so every date on the site reads the same. Lining
-   figures, so the numerals stand as tall as the capitals. */
+/* Dates: the label voice, with lining figures so the numerals stand as
+   tall as the capitals — the way a catalogue dates a plate. Set wherever
+   a date appears, inside an eyebrow or a meta line alike, so every date on
+   the site reads the same. */
 .dateline {
   font-family: var(--serif);
-  font-variant-caps: normal;
   font-variant-numeric: lining-nums;
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
+  font-size: 0.71875rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
   white-space: nowrap;
@@ -400,9 +408,9 @@ main {
   align-items: baseline;
   gap: 0.625rem;
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.875rem;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.71875rem;
+  letter-spacing: 0.08em;
 }
 .saved-actions-sep {
   color: var(--rule);
@@ -426,7 +434,7 @@ main {
 .saved-share {
   color: var(--ink);
   text-decoration: underline;
-  text-decoration-color: var(--rule);
+  text-decoration-color: transparent;
   text-underline-offset: 0.2em;
   transition:
     color 0.2s ease,
@@ -650,9 +658,9 @@ main {
 .share-panel-title {
   margin: 0 0 0.625rem;
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.9375rem;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
 }
 .share-panel-row {
   display: flex;
@@ -682,9 +690,9 @@ main {
   padding: 0;
   cursor: pointer;
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.9375rem;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
   color: var(--ink);
   text-decoration: underline;
   text-decoration-color: var(--rule);
@@ -804,9 +812,9 @@ main {
 .archive-index-stats {
   margin: 0.375rem 0 0;
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.8125rem;
-  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
   color: var(--muted);
 }
 
@@ -891,7 +899,7 @@ main {
   }
 }
 /* Selected Work's filter + Shuffle (selected-view.ts) — one quiet line
-   above the grid in the same small-caps register as the photography nav,
+   above the grid in the same label register as the photography nav,
    not a toolbar that competes with the photographs. Hidden until script
    reveals it, since neither control does anything without JavaScript. */
 .selected-toolbar {
@@ -902,9 +910,9 @@ main {
   gap: 1.25rem;
   margin: -1.5rem 0 1.25rem;
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.9375rem;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
 }
 .selected-toolbar[hidden] {
   display: none;
@@ -924,6 +932,13 @@ main {
   transition:
     color 0.2s ease,
     border-color 0.2s ease;
+}
+/* Shuffle and Exhibition are actions, not fields: no rule at rest (an <a>
+   also lost the browser's own underline, which sat on top of it), the
+   accent hairline only on hover or focus — the navigation's own manner. */
+.selected-shuffle {
+  text-decoration: none;
+  border-bottom-color: transparent;
 }
 .selected-filter select:hover,
 .selected-filter select:focus-visible,
@@ -958,9 +973,9 @@ main {
   margin: 2.5rem 0 0;
   text-align: right;
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.9375rem;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
 }
 .next-album a {
   color: var(--muted);
@@ -1008,9 +1023,9 @@ a:focus-visible,
   border-top: 1px solid var(--rule);
   padding: 1.5rem 0 3rem;
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.875rem;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.71875rem;
+  letter-spacing: 0.08em;
   color: var(--muted);
 }
 /* .nameplate-title/-list/-current: the markup .masthead-nameplate itself
@@ -1037,9 +1052,9 @@ a:focus-visible,
   display: inline;
   padding: 0;
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.9375rem;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
 }
 .nameplate-current {
   opacity: 0.7;
@@ -1057,6 +1072,27 @@ a:focus-visible,
 }
 .nameplate-list a.nameplate-current {
   opacity: 0.7;
+}
+/* A phone: name and Saved on one line, the four collections spread across
+   the next, and less air above and below — the masthead and title took
+   ~380px of an 844px screen before the first photograph (2026-10-26). */
+@media (max-width: 40rem) {
+  .masthead {
+    padding: 1.25rem 0 0.75rem;
+  }
+  .masthead-nameplate {
+    row-gap: 0.875rem;
+  }
+  .masthead-nameplate .nameplate-list {
+    justify-content: space-between;
+    margin-left: 0;
+  }
+  main {
+    padding-top: 2rem;
+  }
+  .album-header {
+    margin-bottom: 2rem;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -1085,7 +1121,7 @@ body.lightbox-open {
   display: flex;
   /* --lightbox-backdrop (0–1) is set by swipe.ts while a photo is pulled
      down to close, fading the scrim with it. */
-  background: color-mix(in srgb, var(--ink) calc(92% * var(--lightbox-backdrop, 1)), transparent);
+  background: color-mix(in srgb, var(--ink) calc(100% * var(--lightbox-backdrop, 1)), transparent);
   color: var(--lightbox-ink);
   /* Nothing behind the lightbox scrolls, rubber-bands, or pulls to refresh
      while it's open — every touch in here is the lightbox's own. */
@@ -1196,9 +1232,9 @@ body.lightbox-open {
   margin: 0.875rem 0 0;
   text-align: center;
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.875rem;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.71875rem;
+  letter-spacing: 0.08em;
   color: var(--lightbox-muted);
 }
 .lightbox-item-meta a {
@@ -1224,9 +1260,9 @@ body.lightbox-open {
   padding: 0;
   cursor: pointer;
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.875rem;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.71875rem;
+  letter-spacing: 0.08em;
   color: var(--lightbox-muted);
   transition: color 0.2s ease;
 }
@@ -1327,9 +1363,9 @@ body.lightbox-open {
   margin: 0;
   font-family: var(--serif);
   font-variant-numeric: tabular-nums;
-  font-variant-caps: small-caps;
-  font-size: 0.875rem;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.71875rem;
+  letter-spacing: 0.08em;
   color: var(--lightbox-muted);
 }
 @media (max-width: 39.9375rem) {

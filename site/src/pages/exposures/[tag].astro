@@ -7,6 +7,7 @@ import { allTags, loadArchive, viewForTag } from '../../photography/archive.ts';
 import { GRID_SIZES } from '../../photography/image.ts';
 import { formatDate } from '../../photography/date.ts';
 import type { View } from '../../photography/archive.ts';
+import { filmStockName } from '../../photography/film-stocks.ts';
 
 export function getStaticPaths() {
   const archive = loadArchive();
@@ -43,7 +44,7 @@ const next = nextView
     {
       view.roll?.filmStock && (
         <p class="eyebrow">
-          <a href={`/exposures/film/${view.roll.filmStock}/`}>{view.roll.filmStock}</a>
+          <a href={`/exposures/film/${view.roll.filmStock}/`}>{filmStockName(view.roll.filmStock)}</a>
           {view.date && (
             <Fragment>
               {' · '}

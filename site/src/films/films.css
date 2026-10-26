@@ -58,9 +58,9 @@
 }
 .film-control label {
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.9375rem;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
   color: var(--muted);
 }
 .film-control select {
@@ -103,9 +103,9 @@
   padding: 0;
   cursor: pointer;
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.9375rem;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
   color: var(--muted);
   border-bottom: 1px solid var(--rule);
   transition:
@@ -161,9 +161,9 @@
 .film-picked-mark {
   margin: 0 0 0.25rem;
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.8125rem;
-  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
   color: var(--accent);
 }
 @media (prefers-reduced-motion: reduce) {
@@ -213,9 +213,9 @@
 }
 .film-year-count {
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.9375rem;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
   color: var(--muted);
 }
 
@@ -332,9 +332,9 @@
 .film-meta {
   margin: 0;
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.8125rem;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
   color: var(--muted);
 }
 .film-genres {
@@ -354,9 +354,9 @@
 .film-letterboxd-link {
   margin-top: 0.25rem;
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 0.8125rem;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
   color: var(--muted);
   text-decoration: none;
   transition: color 0.2s ease;

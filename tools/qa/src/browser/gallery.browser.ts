@@ -127,3 +127,58 @@ browserTest('a tag page and a film-stock page are the same grid', async ({ page 
     assert.deepEqual(grid.distorted, [], path);
   }
 });
+
+browserTest(
+  'every film-stock option shows exactly that stock’s photographs, under its printed name',
+  async ({ page }) => {
+    await page.goto(`${BASE}/exposures/`);
+    await waitForFirstScreen(page);
+    const options = await page.evaluate(() =>
+      Array.from(
+        document.querySelectorAll<HTMLOptionElement>('[data-film-filter] option'),
+        (o) => ({ value: o.value, text: o.text }),
+      ),
+    );
+    assert.equal(options[0]?.text, 'SELECT FILM STOCK');
+    const stocks = options.slice(1);
+    assert.ok(stocks.length > 0, 'no film stocks offered');
+    const inData = await page.evaluate(() =>
+      [
+        ...new Set(
+          Array.from(
+            document.querySelectorAll<HTMLElement>('[data-grid] > [data-photo-id]'),
+            (f) => f.dataset['filmStock'] ?? '',
+          ),
+        ),
+      ]
+        .filter((s) => s !== '')
+        .sort(),
+    );
+    assert.deepEqual(
+      stocks.map((o) => o.value).sort(),
+      inData,
+      'the options are not the stocks the photographs carry',
+    );
+    for (const { value, text } of stocks) {
+      assert.equal(text, text.toUpperCase(), `${value}: not uppercase`);
+      assert.notEqual(text, value.toUpperCase(), `${value}: shown as its identifier`);
+      await page.selectOption('[data-film-filter]', value);
+      const shown = await page.evaluate(() =>
+        Array.from(document.querySelectorAll<HTMLElement>('[data-grid] > [data-photo-id]'))
+          .filter((f) => !f.hidden && f.getBoundingClientRect().height > 0)
+          .map((f) => f.dataset['filmStock']),
+      );
+      const expected = await page.evaluate(
+        (v) => document.querySelectorAll(`[data-grid] > [data-film-stock="${v}"]`).length,
+        value,
+      );
+      assert.ok(shown.length > 0, `${text}: nothing shown`);
+      assert.ok(
+        shown.every((stock) => stock === value),
+        `${text}: shows other stocks`,
+      );
+      assert.equal(shown.length, expected, `${text}: missing some of its photographs`);
+    }
+    await page.selectOption('[data-film-filter]', '');
+  },
+);

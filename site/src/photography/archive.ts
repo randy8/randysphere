@@ -5,6 +5,7 @@ import { parse } from 'yaml';
 
 import type { AlbumManifest, Photo } from './manifest.ts';
 import { readManifest } from './manifest.ts';
+import { filmStockName } from './film-stocks.ts';
 
 /**
  * The canonical archive is a single flat list of photographs. A "trip" like
@@ -450,7 +451,7 @@ export function viewForTag(archive: Archive, tag: string): View {
 export function viewForFilmStock(archive: Archive, filmStock: string): View {
   const photos = byFilmStock(archive, filmStock);
   if (photos.length === 0) throw new Error(`No photographs are shot on "${filmStock}".`);
-  return buildView(filmStock, filmStock, photos);
+  return buildView(filmStock, filmStockName(filmStock), photos);
 }
 
 /**

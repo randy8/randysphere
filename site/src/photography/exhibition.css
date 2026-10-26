@@ -1,6 +1,6 @@
 /*
  * The exhibition: a black wall, one photograph, and as little else as
- * possible. The controls speak in the site's own label voice (small caps
+ * possible. The controls speak in the site's own label voice (tracked capitals
  * in the body serif), at the edges, and leave after a moment of
  * stillness — along with the cursor.
  */
@@ -86,9 +86,9 @@ html:has(.exhibition) body {
   bottom: calc(var(--mat-bottom) / 2);
   transform: translateY(50%);
   margin: 0;
-  font-variant-caps: small-caps;
-  font-size: 0.875rem;
-  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 0.71875rem;
+  letter-spacing: 0.08em;
   color: var(--wall-muted);
   opacity: 0;
   transition: opacity 0.6s ease;
@@ -136,8 +136,9 @@ html:has(.exhibition) body {
 
 .exhibition-title {
   margin: 0;
-  font-variant-caps: small-caps;
-  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 0.8em;
+  letter-spacing: 0.08em;
   color: var(--wall-ink);
   min-width: 0;
   overflow: hidden;
@@ -163,8 +164,9 @@ html:has(.exhibition) body {
   background: none;
   color: var(--wall-muted);
   font: inherit;
-  font-variant-caps: small-caps;
-  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 0.8em;
+  letter-spacing: 0.08em;
   padding: 0.5rem 0.75rem;
   min-height: 2.75rem;
   min-width: 2.75rem;
@@ -183,7 +185,7 @@ html:has(.exhibition) body {
   font-size: 1.75rem;
   line-height: 1;
   font-variant-caps: normal;
-  /* The guillemet sits on the baseline; lift it to the small caps' middle. */
+  /* The guillemet sits on the baseline; lift it to the capitals' middle. */
   transform: translateY(-0.12em);
 }
 .exhibition-button:hover,
@@ -230,8 +232,9 @@ html:has(.exhibition) body {
   float: left;
   width: 8rem;
   padding: 0;
-  font-variant-caps: small-caps;
-  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 0.8em;
+  letter-spacing: 0.08em;
   color: var(--wall-muted);
 }
 .exhibition-settings label {

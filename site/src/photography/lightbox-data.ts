@@ -3,6 +3,7 @@ import { formatCameraLine } from './camera.ts';
 import { photography } from './config.ts';
 import { assetUrl, smallest, srcset, variantsOf } from './image.ts';
 import type { Variant } from './manifest.ts';
+import { filmStockName } from './film-stocks.ts';
 
 /**
  * Everything the lightbox shows for one photograph, as data rather than
@@ -24,6 +25,10 @@ export interface LightboxPhoto {
   readonly color: string;
   readonly alt: string;
   readonly filmStock: string | null;
+  /** The stock as its maker prints it (film-stocks.ts); the slug above is for its URL. */
+  readonly filmStockName: string | null;
+  /** Its frame on the roll — the number the roll page prints under it. */
+  readonly frame: number;
   readonly caption: string | null;
   readonly camera: string | null;
 }
@@ -57,6 +62,8 @@ export function lightboxPhoto(entry: ArchivePhoto, maxWidth?: number): LightboxP
     color: photo.color,
     alt: entry.alt,
     filmStock: entry.roll.filmStock || null,
+    filmStockName: entry.roll.filmStock ? filmStockName(entry.roll.filmStock) : null,
+    frame: entry.frame,
     caption: entry.caption,
     camera: formatCameraLine(entry) || null,
   };

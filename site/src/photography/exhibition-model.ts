@@ -6,6 +6,7 @@
 
 import type { LightboxPhoto } from './lightbox-data.ts';
 import { resolveIds, sharedPrefixes } from './share-code.ts';
+import { filmStockName } from './film-stocks.ts';
 
 export interface ExhibitionPhoto extends LightboxPhoto {
   readonly tags: readonly string[];
@@ -77,7 +78,7 @@ export function titleOf(source: Source, titles: Readonly<Record<string, string>>
   if (source.code !== null) return 'Shared photographs';
   const parts = [
     source.tag === null ? null : (titles[source.tag] ?? source.tag),
-    source.film,
+    source.film === null ? null : filmStockName(source.film),
   ].filter((part): part is string => part !== null);
   return parts.length > 0 ? parts.join(' · ') : 'Selected Work';
 }
@@ -301,7 +302,7 @@ export function drift(random: () => number = Math.random): Drift {
 /** The wall label's line: film stock, the first place, the date — whichever exist. */
 export function labelOf(photo: ExhibitionPhoto, formatDate: (iso: string) => string): string[] {
   return [
-    photo.filmStock,
+    photo.filmStock === null || photo.filmStock === '' ? null : filmStockName(photo.filmStock),
     photo.places[0] ?? null,
     photo.date === null ? null : formatDate(photo.date),
   ].filter((part): part is string => part !== null && part !== '');

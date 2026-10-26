@@ -48,8 +48,10 @@
 }
 .recipe-index-meta {
   margin: 0;
-  font-family: var(--sans);
-  font-size: 0.8125rem;
+  font-family: var(--serif);
+  font-size: 0.71875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -74,8 +76,10 @@
   flex-wrap: wrap;
   row-gap: 0.375rem;
   margin: 0 0 3rem;
-  font-family: var(--sans);
-  font-size: 0.875rem;
+  font-family: var(--serif);
+  font-size: 0.71875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
@@ -97,16 +101,19 @@
    choosing is faster than opening a menu. */
 .recipe-scale {
   display: flex;
-  gap: 0.5rem;
+  gap: 1.25rem;
   margin: 0 0 3rem;
 }
+/* Text toggles in the page's own voice, not boxed form controls: the
+   chosen one is in ink and underlined, the others muted. */
 .recipe-scale button {
   appearance: none;
   cursor: pointer;
   background: none;
-  border: 1px solid var(--rule);
-  border-radius: 0.25rem;
-  padding: 0.25rem 0.75rem;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  padding: 0.25rem 0;
   font-family: var(--serif);
   font-variant-numeric: oldstyle-nums;
   font-size: 0.9375rem;
@@ -138,13 +145,13 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 0.75rem;
-  font-family: var(--sans);
-  font-size: 0.75rem;
+  font-family: var(--serif);
+  font-size: 0.71875rem;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.08em;
   color: var(--muted);
   margin: 0 0 1.5rem;
-  font-weight: 600;
+  font-weight: 500;
 }
 /* Empty (no text content) until at least one box in that section is
    checked — see checklist.ts. A "0/11 · 0%" nobody asked for is worse
@@ -305,7 +312,7 @@
 
 .recipe-doc-footer {
   margin-top: clamp(2rem, 3vw, 2.75rem);
-  font-family: var(--sans);
+  font-family: var(--serif);
   font-size: 0.8125rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;

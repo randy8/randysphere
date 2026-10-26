@@ -235,9 +235,9 @@ html.tune-viewing {
   padding: 0.5rem 0;
   background: none;
   font-family: var(--serif);
-  font-variant-caps: small-caps;
-  font-size: 1rem;
-  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
   color: var(--room-muted);
   text-decoration: none;
   cursor: pointer;

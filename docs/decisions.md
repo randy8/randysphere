@@ -2990,3 +2990,35 @@ baselines in the gate (every photo page shuffles; a new photograph would
 fail them). Selecting by import graph (a readable table is enough at this
 size, and unknown paths run everything). Retries (a flaky test is a bug to
 fix, not to hide).
+
+## 2026-10-26 — Labels in tracked capitals; proper names; Saved as a word; an opaque lightbox
+
+From the art-direction review (an artifact, 2026-10-26), decided on the
+owner's instruction to use best judgment.
+
+- **Labels.** The self-hosted Newsreader has no small-caps glyphs (setting
+  `smcp` changes nothing; `font-synthesis: none` makes small caps vanish),
+  so all 23 `font-variant-caps: small-caps` rules were the browser's
+  shrunken capitals — thin, unevenly spaced ("Expo sures"). They are now
+  real capitals, ~0.72–0.75rem, tracked 0.08em; `.dateline` matches.
+  Buttons and selects inherit `text-transform` and `letter-spacing` (a
+  browser's default is none, which left "Shuffle" in lowercase). Dishes'
+  system-sans metadata and section heads moved to the same serif voice;
+  the scale buttons are text toggles, not boxes. **Rejected:** hunting for
+  a Newsreader build with true small caps — unverifiable today, and the
+  tracked-capital voice already existed in `.dateline`.
+- **Film stocks by name.** `film-stocks.ts` maps each `rolls.yaml` slug to
+  its printed name (a test fails if a stock in the data has none); every
+  display — the Exposures filter (uppercase in the option text, since a
+  native option list ignores CSS), roll pages, film page titles, the
+  lightbox, Exhibition — uses it. Slugs stay the key in data, URLs and
+  filtering.
+- **Saved** is the word and its count in the navigation, not a cart icon:
+  nothing is for sale, and the cart misnamed the feature.
+- **Lightbox.** The backdrop is opaque (was 92%: the grid and masthead
+  showed through). The caption's first line is the edge print — stock and
+  frame ("CINESTILL 400D · FRAME 22") — as on a negative's rebate.
+- **Actions** (Shuffle, Exhibition, Saved's Share all) have no underline
+  at rest; the accent hairline appears on hover or focus.
+- **Phone masthead** tightened (name and Saved on one line, collections
+  spread beneath, less padding).

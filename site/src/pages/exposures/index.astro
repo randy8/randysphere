@@ -10,6 +10,7 @@ import {
 } from '../../photography/archive.ts';
 import { GRID_SIZES } from '../../photography/image.ts';
 import { photography } from '../../photography/config.ts';
+import { filmStockName } from '../../photography/film-stocks.ts';
 
 const archive = loadArchive();
 const photos = selectedWork(archive);
@@ -17,7 +18,7 @@ const photos = selectedWork(archive);
 // filter down to nothing is just a dead end.
 const filmStocks = [
   ...new Set(photos.map((entry) => entry.roll.filmStock).filter((stock) => stock.length > 0)),
-].sort();
+].sort((a, b) => filmStockName(a).localeCompare(filmStockName(b)));
 // Same rule for places: only cities some Selected Work photo is tagged with,
 // in albums/cities.yaml's order.
 const locations = archive.cities.filter((city) =>
@@ -54,9 +55,13 @@ const locations = archive.cities.filter((city) =>
           )}
           <label class="selected-filter">
             <select data-film-filter aria-label="Film stock">
-              <option value="">Select film stock</option>
+              {/* Uppercase in the text itself, not by CSS: a native option
+                  list (a phone's especially) ignores text-transform, and the
+                  closed select and its open list should read the same.
+                  Values stay the roll's own identifiers (rolls.yaml). */}
+              <option value="">SELECT FILM STOCK</option>
               {filmStocks.map((stock) => (
-                <option value={stock}>{stock}</option>
+                <option value={stock}>{filmStockName(stock).toUpperCase()}</option>
               ))}
             </select>
           </label>

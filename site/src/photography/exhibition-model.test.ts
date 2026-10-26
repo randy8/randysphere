@@ -32,6 +32,8 @@ const photo = (id: string, extra: Partial<ExhibitionPhoto> = {}): ExhibitionPhot
   color: '#000',
   alt: '',
   filmStock: null,
+  filmStockName: null,
+  frame: 1,
   caption: null,
   camera: null,
   tags: [],
