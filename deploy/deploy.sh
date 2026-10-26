@@ -38,9 +38,13 @@ if ((batches < manifests)); then
   exit 1
 fi
 
-step "Dependencies match the lockfile"
+step "Dependencies match the lockfile, and load"
 stage="dependencies"
 pnpm install --frozen-lockfile --silent
+# pnpm can report "up to date" with packages missing from disk (2026-10-26:
+# 113 of them, which broke Lighthouse inside the weekly measurement). This
+# imports every declared dependency and starts the tools the jobs use.
+node tools/qa/src/deps-check.ts
 
 step "Format, lint, types, tests, trial build"
 stage="verify"

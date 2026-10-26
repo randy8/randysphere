@@ -3179,3 +3179,26 @@ Tailscale v4/v6 → 200.
 **Rejected.** A password (the tailnet already authenticates the device); a
 header from Tailscale serve (spoofable through any other path); listing it
 in robots.txt (that would advertise it).
+
+## 2026-10-26 — The deploy proves dependencies load, not just that pnpm says so
+
+**What happened.** After merging /system, the deploy's `pnpm install
+--frozen-lockfile` reported "Already up to date" while 113 packages were
+missing from disk — `tslib` among them, which Lighthouse's i18n needs. The
+gate passed (nothing it ran needed those packages), and the failure showed
+up later as Lighthouse returning nothing in the measurement (both a manual
+run and the first systemd run). pnpm's state files (`.modules.yaml`,
+`.pnpm/lock.yaml`, `.pnpm-workspace-state-v1.json`) all claimed a complete
+install; only `pnpm install --frozen-lockfile --force` relinked it — no
+version changed.
+
+**Decision.** `tools/qa/src/deps-check.ts`, run by the deploy straight
+after the install: for each workspace package, import every declared
+dependency from that package's directory in a fresh process, start
+Lighthouse's CLI, and check Playwright's browser is on disk. ~2 s. A
+failure stops the deploy at the "dependencies" stage, recorded on /system,
+with the fix printed.
+
+**Rejected.** Comparing `node_modules/.pnpm` against the lockfile entry by
+entry (pnpm's directory naming for peer-dependency variants is an internal
+detail; loading the modules is what actually matters).
