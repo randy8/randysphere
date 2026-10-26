@@ -14,9 +14,6 @@ import { films as config } from '../../films/config.ts';
 const films = loadFilms();
 const groups = filmsByYearRated(films);
 const genres = allGenres(films);
-const years = films.map((film) => film.ratedOn.slice(0, 4)).filter((year) => year.length === 4);
-const range =
-  years.length > 0 ? `${[...years].sort().at(0)}–${[...years].sort().at(-1)}` : null;
 const hasPosters = films.some((film) => film.posterPath !== null);
 // "29 December": the day each film was seen (rated), as the catalogue line
 // prints it. UTC, so the build machine's time zone never shifts a date.
@@ -30,11 +27,6 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
 <Base title={config.title} description={config.description}>
   <header class="album-header film-header">
     <h1>{config.title}</h1>
-    <p class="lede">
-      {films.length} film{films.length === 1 ? '' : 's'} rated five stars on Letterboxd{
-        range && `, ${range}`
-      }.
-    </p>
   </header>
 
   {
