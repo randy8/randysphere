@@ -2922,3 +2922,26 @@ Cancelling, rather than finishing, an interrupted fade (leaves an
 arbitrary blend on the wall). Controls over the photograph while visible
 (never overlap). Dropping the drift: it's a ≤3% scale inside the margin,
 not movement between photographs, and off under reduced motion.
+
+## 2026-10-26 — Grid: first-screen priority read from the layout, not the DOM
+
+**Measured** (live Exposures, 390×844 @3×, 1.6 Mbps / 150 ms, 4× CPU,
+median of five, each phase from Resource and Navigation Timing). The
+inline grid script blocked the main thread for 2.9 s, 2.4 s of it in the
+loop that picks the first screen's photographs: each iteration read
+`getComputedStyle(item).transform` after the last had removed `src`/`srcset`
+attributes, forcing a fresh style pass — 251 times. Fixed by keeping each
+figure's `top` from `layout()` (a WeakMap). Same conditions, production
+HTML against the new build: script 2.9 → 0.95 s, DOMContentLoaded 5.7 →
+3.0 s, first photo painted 6.0 → 4.1 s, LCP 7.8 → 5.6 s.
+
+**Tried and dropped.** Priority hints within the first screen — high for
+the first row (or top half), low for the rest — made no measurable
+difference; the remaining load time is nine full-quality photographs over
+1.6 Mbps. `sizes` is already exact: a portrait tile's 636 px-wide variant
+(named 960, its long edge) is the smallest that covers 163 CSS px at 3×.
+Exhibition (first photograph 1.4 s desktop / 3.4 s throttled phone; every
+transition's photograph decoded before its fade; heap flat at ~1.2 MB and
+two `<img>` over two minutes of autoplay; about one 50–80 ms frame per
+transition, with no script attributed — the incoming image's first raster
+at near-zero opacity) had no measured bottleneck worth a change.

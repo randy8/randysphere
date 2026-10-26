@@ -44,6 +44,9 @@ function placeGrid(grid, deal) {
     grid.append(...tiles);
   }
 
+  // Each figure's distance from the grid's top, as last placed — kept so
+  // nothing has to read it back out of the DOM.
+  const tops = new WeakMap();
   const layout = () => {
     const items = Array.from(grid.children).filter(
       (child) => child instanceof HTMLElement && !child.hidden,
@@ -60,6 +63,7 @@ function placeGrid(grid, deal) {
       const column = columnHeights.indexOf(Math.min(...columnHeights));
       const top = columnHeights[column];
       item.style.transform = `translate(${column * (width + gap)}px, ${top}px)`;
+      tops.set(item, top);
       columnHeights[column] = top + heights[index] + gap;
     });
     grid.style.height = `${Math.max(0, Math.max(...columnHeights) - gap)}px`;
@@ -84,8 +88,10 @@ function placeGrid(grid, deal) {
   for (const item of grid.children) {
     const img = item.querySelector('img');
     if (!img) continue;
-    const top = new DOMMatrixReadOnly(getComputedStyle(item).transform).m42;
-    if (top < viewportBottom) {
+    // From layout(), not getComputedStyle: this loop also edits attributes,
+    // so each read would force a fresh style pass — 251 of them on
+    // Exposures, 3 s of main thread on a 4×-throttled phone (2026-10-26).
+    if ((tops.get(item) ?? Infinity) < viewportBottom) {
       img.loading = 'eager';
       img.fetchPriority = 'high';
       visible.push(img);
