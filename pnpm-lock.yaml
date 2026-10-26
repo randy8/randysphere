@@ -69,6 +69,15 @@ importers:
         specifier: ^24.3.0
         version: 24.13.3
 
+  tools/qa:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.3.0
+        version: 24.13.3
+      playwright-core:
+        specifier: 1.62.1
+        version: 1.62.1
+
   tools/serve:
     dependencies:
       yaml:
@@ -1653,6 +1662,11 @@ packages:
   picomatch@4.0.7:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
     engines: {node: '>=12'}
+
+  playwright-core@1.62.1:
+    resolution: {integrity: sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   postcss@8.5.31:
     resolution: {integrity: sha512-YUbWYCgErwnMAVkjUnYa+KlMBzGpHwiIt/DE7f0G33AuX2LH9UcTk6KgWxd3zRU+pN3u/C+Xl3EnMLM4Hea7Sg==}
@@ -3435,6 +3449,8 @@ snapshots:
   picomatch@2.3.2: {}
 
   picomatch@4.0.7: {}
+
+  playwright-core@1.62.1: {}
 
   postcss@8.5.31:
     dependencies:

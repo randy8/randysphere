@@ -2945,3 +2945,23 @@ transition's photograph decoded before its fade; heap flat at ~1.2 MB and
 two `<img>` over two minutes of autoplay; about one 50–80 ms frame per
 transition, with no script attributed — the incoming image's first raster
 at near-zero opacity) had no measured bottleneck worth a change.
+
+## 2026-10-26 — Security headers on every response; a parallel, cached `pnpm check`
+
+**Headers.** Production sent none. `tools/serve` now sets, on every
+response: HSTS (one year; not `includeSubDomains`, which would bind hosts
+this server doesn't own; not preloaded), `nosniff`,
+`strict-origin-when-cross-origin`, and `X-Frame-Options: DENY` plus
+`frame-ancestors 'none'` — no page is meant to be framed, the `/private`
+login least of all. `HEAD /private` now answers like `GET` (it was 404).
+**Deferred:** a full CSP — the inline grid script, the inline JSON
+payloads and Cloudflare's injected analytics beacon need a considered
+policy, and a wrong one breaks the site silently.
+
+**`pnpm check`** (tools/qa/src/check.ts) runs format, lint, each package's
+types and the unit tests side by side, each with its own cache
+(`prettier --cache`, `eslint --cache`, `tsc --incremental`). The same steps
+in sequence, uncached, took ~97 s; warm, `check` takes 9–14 s. `verify` is
+now `check` plus the trial build, so the pre-push hook and `pnpm deploy`
+use it too. Everything still runs every time: the unit suite is ~7 s, too
+cheap to select from.

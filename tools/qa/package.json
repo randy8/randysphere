@@ -1,0 +1,12 @@
+{
+  "name": "@photo/qa",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The checks around the site: the fast local check, browser tests against a built release, risk-based test selection, the deep audit, and the read-only status data behind /system. Drives a real browser; ships nothing to visitors.",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "playwright-core": "1.62.1"
+  }
+}

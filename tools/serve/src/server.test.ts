@@ -5,7 +5,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 
-import { canonicalPagePath, createPrivateSiteServer, legacyRedirect } from './server.ts';
+import {
+  canonicalPagePath,
+  createPrivateSiteServer,
+  legacyRedirect,
+  SECURITY_HEADERS,
+} from './server.ts';
 
 const PASSWORD = 'letmein';
 const SECRET = 'test-session-secret';
@@ -529,4 +534,26 @@ test('/healthz answers JSON, uncached, and 503 names what the site is missing', 
   assert.equal(response.status, 503);
   assert.equal(health.ok, false);
   assert.deepEqual(health.checks, { page: true, manifest: true, image: false });
+});
+
+test('every response carries the security headers — pages, assets, errors and /private alike', async () => {
+  for (const path of [
+    '/',
+    '/exposures/',
+    '/private',
+    '/private/photos/fence.txt',
+    '/no-such-page/',
+  ]) {
+    const res = await fetch(`${baseUrl}${path}`, { redirect: 'manual' });
+    for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+      assert.equal(res.headers.get(name), value, `${name} on ${path}`);
+    }
+  }
+});
+
+test('HEAD /private answers like GET, with no body and still no-store', async () => {
+  const res = await fetch(`${baseUrl}/private`, { method: 'HEAD' });
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get('cache-control'), 'private, no-store');
+  assert.equal(await res.text(), '');
 });

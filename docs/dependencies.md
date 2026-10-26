@@ -69,6 +69,21 @@ Formatting, so that formatting is never discussed again. No plugins.
 
 ---
 
+## `tools/qa`
+
+One dependency, development only. Nothing here ships to visitors.
+
+### `playwright-core` — `1.62.1` (dev)
+
+Drives a real Chromium (later Firefox and WebKit) for the browser tests and
+measurements: the bugs fixed on 2026-10-26 — Exhibition holding two
+photographs on the wall, the lightbox showing a stale photograph, a 2.9 s
+layout loop — were all invisible to `node:test` alone. The library, not
+`@playwright/test`: tests stay on `node:test`, the repository's one test
+runner. Pinned exactly, because each release expects one specific browser
+build (this one, Chromium revision 1234, already in `~/.cache/ms-playwright`);
+`playwright-core` downloads no browser at install time.
+
 ## `tools/pipeline`
 
 Five runtime dependencies. Each one does something that would be irresponsible

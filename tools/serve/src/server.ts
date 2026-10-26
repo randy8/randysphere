@@ -109,6 +109,22 @@ function cacheControlFor(relative: string): string | undefined {
 const NO_STORE = { 'cache-control': 'private, no-store' };
 
 /**
+ * Sent with every response. The site is HTTPS-only behind Cloudflare, so
+ * HSTS is safe (one year; not includeSubDomains, which would bind hosts
+ * this server doesn't own). No page is meant to be framed — the /private
+ * login least of all. CSP is deliberately absent for now: the inline grid
+ * script and Cloudflare's injected beacon need a considered policy
+ * (docs/decisions.md, 2026-10-26).
+ */
+export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
+  'strict-transport-security': 'max-age=31536000',
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'x-frame-options': 'DENY',
+  'content-security-policy': "frame-ancestors 'none'",
+};
+
+/**
  * A static file, with validators: a weak ETag (size and modification time —
  * weak because Cloudflare drops strong ETags when it re-compresses) and
  * Last-Modified, answered with a body-less 304 when the browser already has
@@ -324,7 +340,7 @@ async function route(
   // static file serving — private/ is never inside site/dist to begin
   // with, but this keeps the routing itself explicit about the boundary
   // rather than relying only on that filesystem fact.
-  if (pathname === '/private' && method === 'GET') {
+  if (pathname === '/private' && (method === 'GET' || method === 'HEAD')) {
     if (isAuthenticated(config, req)) {
       sendHtml(res, 200, renderArchive(loadNotes(config.notesPath)), NO_STORE);
     } else {
@@ -522,6 +538,7 @@ export function createPrivateSiteServer(config: ServeConfig): Server {
   // One per server, so failed logins are counted for this process alone.
   const limiter = new LoginLimiter();
   return createServer((req, res) => {
+    for (const [name, value] of Object.entries(SECURITY_HEADERS)) res.setHeader(name, value);
     handleRequest(config, limiter, req, res);
   });
 }

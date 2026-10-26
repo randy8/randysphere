@@ -131,7 +131,8 @@ pnpm deploy              # verify, sync, build beside the live site, prove it on
                          # switch; restarts photography-serve only if its code changed
 pnpm rollback            # swap back to the previous release (no restart)
 pnpm status              # services, health, releases, disk, recent errors
-pnpm verify              # format:check, lint, typecheck, test, build —
+pnpm check               # format, lint, types, unit tests — parallel and cached, ~10 s warm
+pnpm verify              # pnpm check + the trial build —
                          # also the pre-push hook (.githooks/, core.hooksPath)
 ```
 

@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // DOM too: page.evaluate() callbacks run in the browser.
+  "compilerOptions": { "lib": ["esnext", "dom", "dom.iterable"] },
+  "include": ["**/*.ts"],
+}
