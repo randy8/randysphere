@@ -1,0 +1,10 @@
+[Unit]
+Description=Measure randyliang.net weekly (status/perf.json, read by /system)
+
+[Timer]
+OnCalendar=Sun *-*-* 04:00:00
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,20 @@
+# Installed at /etc/systemd/system/photography-measure.service; started
+# weekly by photography-measure.timer. Measures production (Lighthouse and
+# a throttled-phone browser, tools/qa/src/measure.ts) and appends the
+# result to status/perf.json for /system. Reads the public site only.
+# Runs as randy; takes ~10 minutes.
+
+[Unit]
+Description=randyliang.net weekly performance measurement
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=randy
+Group=randy
+WorkingDirectory=/home/randy/Development/photography
+ExecStart=/home/randy/.local/nodejs/bin/node tools/qa/src/measure.ts
+NoNewPrivileges=yes
+PrivateTmp=yes
+TimeoutStartSec=45min

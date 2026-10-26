@@ -75,20 +75,26 @@ function changedPaths(ref: string): string[] {
 }
 
 let areas: readonly Area[];
+// What /system shows as this run's risk: the table's verdict, or how the
+// scope was chosen by hand.
+let risk = 'smoke only';
 if (args.includes('--smoke')) {
   areas = [];
   console.log('areas: none beyond smoke (--smoke)');
 } else if (args.includes('--all')) {
   areas = AREAS;
+  risk = 'everything (--all)';
   console.log('areas: all (--all)');
 } else if (named.length > 0) {
   areas = named as Area[];
+  risk = 'named areas';
   console.log(`areas: ${areas.join(', ')} (named)`);
 } else {
   const ref = flag('changed') ?? liveCommit() ?? 'origin/main';
   const paths = changedPaths(ref);
   const result = classify(paths);
   areas = result.areas;
+  risk = result.risk;
   console.log(`changes since ${ref}: ${String(paths.length)} path(s), risk ${result.risk}`);
   for (const reason of result.reasons) console.log(`  ${reason}`);
   console.log(`areas: ${areas.length > 0 ? areas.join(', ') : 'none beyond smoke'}`);
@@ -171,12 +177,22 @@ console.log(
 );
 
 const started = Date.now();
-const outcome = { passed: 0, failed: 0, skipped: 0, failures: [] as string[] };
+const outcome = {
+  passed: 0,
+  failed: 0,
+  skipped: 0,
+  failures: [] as string[],
+  tests: [] as { name: string; file: string; ok: boolean }[],
+};
+const fileOf = (event: { file?: string }): string => (event.file ?? '').split('/').pop() ?? '';
 const stream = run({ files, concurrency: Math.min(files.length, 3) });
 stream.on('test:pass', (event) => {
   if (event.details.type === 'suite' || event.nesting > 0) return;
   if (event.skip) outcome.skipped++;
-  else outcome.passed++;
+  else {
+    outcome.passed++;
+    outcome.tests.push({ name: event.name, file: fileOf(event), ok: true });
+  }
 });
 stream.on('test:fail', (event) => {
   // A file that crashes outside any test is reported as a failure named
@@ -184,6 +200,7 @@ stream.on('test:fail', (event) => {
   if (event.details.type === 'suite' || event.nesting > 0) return;
   outcome.failed++;
   outcome.failures.push(event.name);
+  outcome.tests.push({ name: event.name, file: fileOf(event), ok: false });
 });
 stream.compose(spec).pipe(process.stdout);
 await new Promise((done) => stream.on('end', done));
@@ -203,11 +220,13 @@ if (reportPath !== undefined) {
     finishedAt: new Date().toISOString(),
     browser,
     areas,
+    risk,
     files: files.map((file) => file.split('/').pop()),
     passed: outcome.passed,
     failed: outcome.failed,
     skipped: outcome.skipped,
     failures: outcome.failures,
+    tests: outcome.tests,
     seconds: Math.round(seconds * 10) / 10,
     ok,
   };

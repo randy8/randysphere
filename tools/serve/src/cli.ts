@@ -60,6 +60,7 @@ if (!password || !sessionSecret) {
     // Matches astro.config.mjs's `site` — see the duplication note in
     // share-preview.ts/docs/decisions.md.
     siteOrigin: 'https://randyliang.net',
+    statusDir: join(ROOT, 'status'),
   });
   server.listen(port, () => {
     console.log(

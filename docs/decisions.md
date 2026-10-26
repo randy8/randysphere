@@ -3120,3 +3120,38 @@ the brief "if useful"; telling cached from late reliably needs per-image
 script, and the colour placeholder already makes arrival calm). Fewer or
 smaller first-screen photographs (fidelity). A service worker (HTML
 revalidation already costs one round trip and no bytes).
+
+## 2026-10-26 — /system: the site's health, recorded by jobs, read by a page
+
+**Shape.** `status/` (git-ignored, machine-local) holds three files, each
+written whole and renamed into place: `deploys.json` (last 50) by
+`deploy/deploy.sh` through `tools/qa/src/status-record.ts` on every way a
+deploy ends — a step failing (blocked, via an ERR trap naming the stage),
+the candidate's browser checks failing (blocked), production failing after
+the switch (rolled back), or success; `watchdog.json` by the minute
+watchdog (when it ran, whether the server and the public address
+answered); `perf.json` (last 90) by `pnpm measure` — Lighthouse 12.6.0
+mobile and desktop and the throttled-phone Exposures and Exhibition
+measurements used for the 2026-10-26 performance work, medians of three,
+each run carrying its config and a version. `photography-measure.timer`
+runs it weekly. `tools/serve/src/system.ts` renders /system from those
+files at request time, plus the same in-process health check /healthz
+runs; it never starts a test, build or measurement.
+
+**Honesty rules, all tested.** A missing or malformed file is "no data" or
+"could not be read", never an error page or a guess. The verdict follows
+printed rules (Incident: live health fails; Unknown: no health or no
+deploys; Degraded: watchdog stale over 10 minutes or failing, or the
+latest deploy stopped or rolled back after the serving release;
+otherwise Operational). Measurements older than 8 days say stale. Runs
+with different setups are never compared, and trend lines break between
+them. Changes within noise (Lighthouse ±5, timings ±10%, CLS ±0.02) read
+"within noise". Uptime says "Not monitored": every check runs on this
+machine. Only allowlisted fields reach the page; a deploy note is the
+commit subject up to its first colon, and any text that looks like a path,
+address or port is dropped (a test feeds it hostile records).
+
+**Not done.** External uptime monitoring (a paid or third-party service:
+needs the owner's decision), real-user field data (INP), Firefox/WebKit
+runs, visual-regression screenshots, Exhibition endurance runs — each shows
+as "Not run" or "Not monitored" on the page, not as passing.

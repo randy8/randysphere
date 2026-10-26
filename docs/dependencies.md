@@ -84,6 +84,18 @@ runner. Pinned exactly, because each release expects one specific browser
 build (this one, Chromium revision 1234, already in `~/.cache/ms-playwright`);
 `playwright-core` downloads no browser at install time.
 
+### `lighthouse` — `12.6.0` (dev)
+
+Google's Lighthouse, run by `pnpm measure` (tools/qa/src/measure.ts) weekly
+against production for /system's performance section: performance,
+accessibility, best-practices and SEO scores, LCP, CLS, TBT and transfer
+size, median of three runs, mobile and desktop presets. It drives the
+Chromium `playwright-core` already brings (CHROME_PATH), so it downloads no
+browser. Pinned exactly: a new Lighthouse version scores differently, so an
+upgrade must bump measure.ts's VERSION and show as a break in the trends,
+never as a change in the site. Development only; never imported by the
+site or the server.
+
 ## `tools/pipeline`
 
 Five runtime dependencies. Each one does something that would be irresponsible

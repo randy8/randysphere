@@ -129,6 +129,8 @@ pnpm films:posters       # TMDB details for films not looked up yet (TMDB_READ_A
                          # skipped with a warning if unset): --only, --regenerate
 pnpm serve               # production server (needs PRIVATE_SITE_PASSWORD,
                          # PRIVATE_SESSION_SECRET in .env)
+pnpm measure             # Lighthouse + throttled-phone lab measurements of production
+                         # into status/perf.json for /system (~10 min; weekly timer)
 pnpm deploy              # verify, sync, build beside the live site, prove it on :4398,
                          # switch; restarts photography-serve only if its code changed
 pnpm rollback            # swap back to the previous release (no restart)
@@ -167,6 +169,10 @@ pnpm verify              # pnpm check + the trial build —
   (e.g. via filebrowser) can be ingested half-finished. Wait for the copy.
 - `filebrowser/` (untracked, compose file) has write access to `originals/`;
   it binds the Tailscale address only. Its `database/` is git-ignored.
+- `/system` (unlisted, noindex) is the read-only health page, rendered by
+  `tools/serve/src/system.ts` from `status/` (git-ignored): deploy records
+  (deploy.sh), watchdog checks (watchdog.sh), `pnpm measure` runs. Viewing it
+  runs nothing; only allowlisted fields are shown.
 - `/exposures/archive/` (tag index) and `/exposures/archives/` (every photo,
   newest batch first) are both deliberately unlinked.
 - `pnpm describe`'s Claude provider has only been tested against a fake.

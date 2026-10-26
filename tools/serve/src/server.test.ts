@@ -147,6 +147,8 @@ before(async () => {
     derivativesDir,
     generatedAlbumsDir,
     siteOrigin: SITE_ORIGIN,
+    // Deliberately empty: /system must render with no data at all.
+    statusDir: join(root, 'status'),
   });
   await new Promise<void>((resolve) => server.listen(0, resolve));
   const { port } = server.address() as AddressInfo;
@@ -556,4 +558,20 @@ test('HEAD /private answers like GET, with no body and still no-store', async ()
   assert.equal(res.status, 200);
   assert.equal(res.headers.get('cache-control'), 'private, no-store');
   assert.equal(await res.text(), '');
+});
+
+test('/system renders with no recorded data, uncached and not indexed, and says so rather than guessing', async () => {
+  const res = await fetch(`${baseUrl}/system`);
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get('cache-control'), 'no-cache');
+  assert.equal(res.headers.get('x-robots-tag'), 'noindex');
+  assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
+  const html = await res.text();
+  assert.match(html, /<h1>System<\/h1>/);
+  assert.match(html, /Deployments: no data yet/);
+  assert.match(html, /Uptime<\/dt><dd>Not monitored/);
+  assert.equal((await fetch(`${baseUrl}/system/`)).status, 200);
+  const head = await fetch(`${baseUrl}/system`, { method: 'HEAD' });
+  assert.equal(head.status, 200);
+  assert.equal(await head.text(), '');
 });

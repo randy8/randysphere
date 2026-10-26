@@ -157,6 +157,7 @@ for (const path of [
   '/pictures/',
   '/exposures/saved/',
   '/exposures/archive/',
+  '/system',
 ]) {
   browserTest(`${path} renders without errors`, async ({ page }) => {
     const response = await page.goto(`${BASE}${path}`);

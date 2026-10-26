@@ -7,6 +7,7 @@ import { extname, join } from 'node:path';
 import { clearSessionCookie, readSessionCookie, setSessionCookie } from './cookies.ts';
 import { loadNotes } from './notes.ts';
 import { checkHealth } from './health.ts';
+import { readStatus, renderSystem } from './system.ts';
 import { LoginLimiter, clientAddress } from './login-limiter.ts';
 import { renderArchive, renderGate } from './pages.ts';
 import { createSessionToken, passwordMatches, verifySessionToken } from './session.ts';
@@ -35,6 +36,8 @@ export interface ServeConfig {
   readonly generatedAlbumsDir: string;
   /** Matches astro.config.mjs's `site` — used to build absolute og:image URLs. */
   readonly siteOrigin: string;
+  /** status/ — what the deploy, watchdog and `pnpm measure` recorded, read by /system. */
+  readonly statusDir: string;
 }
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
@@ -326,6 +329,31 @@ async function route(
   // Readiness, for the deploy's candidate check and the watchdog: 200 when
   // this process can serve the site (health.ts), 503 with what's missing
   // otherwise. Never cached — Cloudflare included.
+  // The engineering status page: public but unlisted and not indexed,
+  // read-only — it renders what jobs recorded and runs only the same cheap
+  // health check as /healthz (system.ts).
+  if (
+    (pathname === '/system' || pathname === '/system/') &&
+    (method === 'GET' || method === 'HEAD')
+  ) {
+    let health = null;
+    try {
+      health = await checkHealth(config);
+    } catch {
+      // Shown as Unknown.
+    }
+    const html = renderSystem({
+      now: new Date(),
+      health,
+      files: await readStatus(config.statusDir),
+    });
+    sendHtml(res, 200, method === 'HEAD' ? '' : html, {
+      'cache-control': 'no-cache',
+      'x-robots-tag': 'noindex',
+    });
+    return;
+  }
+
   if (pathname === '/healthz' && (method === 'GET' || method === 'HEAD')) {
     const health = await checkHealth(config);
     res.writeHead(health.ok ? 200 : 503, {

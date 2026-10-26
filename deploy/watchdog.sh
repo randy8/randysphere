@@ -14,7 +14,11 @@ THRESHOLD=3
 
 count() { cat "$STATE/$1" 2>/dev/null || echo 0; }
 
+origin_ok=false
+public_ok=false
+
 if check_site "$ORIGIN" 2>"$STATE/last-error"; then
+  origin_ok=true
   echo 0 >"$STATE/origin-failures"
 else
   failures=$(($(count origin-failures) + 1))
@@ -33,9 +37,18 @@ else
 fi
 
 if curl -fsS --max-time 10 "$PUBLIC/healthz" -o /dev/null; then
+  public_ok=true
   echo 0 >"$STATE/public-failures"
 else
   failures=$(($(count public-failures) + 1))
   echo "$failures" >"$STATE/public-failures"
   echo "public check failed ($failures in a row) — not restarting anything; see \`pnpm status\`"
 fi
+
+# For /system: when this last ran and what it saw — nothing else (no error
+# text, which can name hosts and ports). Written whole and renamed, so the
+# page never reads half a file.
+mkdir -p "$REPO/status"
+printf '{"at":"%s","origin":%s,"public":%s}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$origin_ok" "$public_ok" >"$REPO/status/watchdog.json.tmp" &&
+  mv "$REPO/status/watchdog.json.tmp" "$REPO/status/watchdog.json"

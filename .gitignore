@@ -67,3 +67,7 @@ Thumbs.db
 
 # Browser-test failures: screenshots, traces, reports (tools/qa).
 /tools/qa/test-results/
+
+# /system's data: deploy records, watchdog checks, measurements, written by
+# jobs on this machine (tools/qa/src/status-store.ts). Machine-local state.
+/status/
