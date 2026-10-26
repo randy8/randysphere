@@ -176,3 +176,33 @@ browserTest(
   },
   { ...PHONE, seed: 6 },
 );
+
+browserTest(
+  'the caption names only the film stock, and tapping it opens every photograph on that stock',
+  async ({ page }) => {
+    await page.goto(`${BASE}/exposures/`);
+    await waitForFirstScreen(page);
+    // A photograph whose roll has a stock noted.
+    const tile = page
+      .locator('[data-grid] > [data-photo-id][data-film-stock]:not([data-film-stock=""])')
+      .first();
+    const stock = await tile.getAttribute('data-film-stock');
+    await tile.locator('a').tap();
+    await activeLoaded(page, null);
+    const meta = page.locator('.lightbox-item.is-active [data-slot-film]');
+    const text = (await meta.innerText()).trim();
+    assert.doesNotMatch(text, /frame/i, 'the frame number is shown');
+    assert.equal(text, text.toUpperCase());
+    assert.ok(text.length > 0 && !text.includes('·'), `unexpected caption "${text}"`);
+    await meta.locator('a').tap();
+    await page.waitForURL(`**/exposures/film/${stock ?? ''}/`);
+    const shown = await page.evaluate(() =>
+      Array.from(
+        document.querySelectorAll<HTMLElement>('[data-grid] > [data-photo-id]'),
+        (f) => f.dataset['photoId'],
+      ),
+    );
+    assert.ok(shown.length > 0, 'the stock page is empty');
+  },
+  { ...PHONE, seed: 12 },
+);

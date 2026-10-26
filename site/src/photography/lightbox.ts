@@ -118,19 +118,18 @@ function fill(slot: HTMLElement, photo: LightboxPhoto): void {
     if (thumbnail !== null) img.style.backgroundImage = `url("${thumbnail}")`;
     img.src = photo.src;
   }
-  // The edge print: stock and frame, the way they're printed along the
-  // negative's rebate. Every photograph has a frame; the stock only when
-  // its roll has one noted.
+  // The film stock, and only that: a way to every photograph on it. (The
+  // frame number stays in the data — roll pages order and print by it —
+  // but isn't shown here: it described the negative, not the picture.)
   const film = slot.querySelector<HTMLElement>('[data-slot-film]');
   const filmLink = film?.querySelector('a');
-  const frame = film?.querySelector<HTMLElement>('[data-slot-frame]');
-  if (film && filmLink && frame) {
-    film.hidden = false;
-    filmLink.hidden = photo.filmStock === null;
+  if (film && filmLink) {
+    film.hidden = photo.filmStock === null;
     filmLink.textContent = photo.filmStockName ?? '';
     filmLink.href = photo.filmStock === null ? '' : `/exposures/film/${photo.filmStock}/`;
-    const number = `Frame ${String(photo.frame).padStart(2, '0')}`;
-    frame.textContent = photo.filmStock === null ? number : ` · ${number}`;
+    const where = `All photographs on ${photo.filmStockName ?? ''}`;
+    filmLink.title = where;
+    filmLink.setAttribute('aria-label', where);
   }
   const caption = slot.querySelector<HTMLElement>('[data-slot-caption]');
   if (caption) {

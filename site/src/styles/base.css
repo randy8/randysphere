@@ -1257,13 +1257,26 @@ body.lightbox-open {
   color: var(--lightbox-muted);
 }
 .lightbox-item-meta a {
+  /* Padding for a finger, cancelled by the margin so nothing moves. */
+  display: inline-block;
+  padding: 0.6rem 0.4rem;
+  margin: -0.6rem -0.4rem;
   color: inherit;
-  text-decoration: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--paper) 30%, transparent);
-  transition: border-color 0.2s ease;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--paper) 30%, transparent);
+  text-underline-offset: 0.3em;
+  transition:
+    color 0.2s ease,
+    text-decoration-color 0.2s ease;
 }
-.lightbox-item-meta a:hover {
-  border-color: var(--lightbox-ink);
+.lightbox-item-meta a:hover,
+.lightbox-item-meta a:focus-visible {
+  color: var(--lightbox-ink);
+  text-decoration-color: var(--lightbox-ink);
+}
+.lightbox-item-meta a:focus-visible {
+  outline: 1px solid var(--lightbox-muted);
+  outline-offset: -0.3rem;
 }
 /* The one control on a photograph — last in reading order, after every
    descriptive line, so it reads as a footer action rather than competing
