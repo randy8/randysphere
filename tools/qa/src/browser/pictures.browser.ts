@@ -46,26 +46,16 @@ for (const [label, options] of [
   );
 }
 
-browserTest(
-  'every card carries its catalogue number, and the year’s numbers run from its count down to 1',
-  async ({ page }) => {
-    await page.goto(`${BASE}/pictures/`);
-    const years = await page.evaluate(() =>
-      Array.from(document.querySelectorAll<HTMLElement>('.film-year-group'), (group) =>
-        Array.from(group.querySelectorAll('.film-catalogue'), (line) =>
-          Number(/№\s*(\d+)/.exec(line.textContent ?? '')?.[1]),
-        ),
-      ),
-    );
-    assert.ok(years.length > 0);
-    for (const numbers of years) {
-      assert.deepEqual(
-        numbers,
-        numbers.map((_, i) => numbers.length - i),
-      );
-    }
-  },
-);
+browserTest('each film’s date line is the day it was seen, and nothing else', async ({ page }) => {
+  await page.goto(`${BASE}/pictures/`);
+  const lines = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('.film-catalogue'), (line) =>
+      (line.textContent ?? '').trim(),
+    ),
+  );
+  assert.ok(lines.length > 0, 'no date lines');
+  for (const line of lines) assert.match(line, /^\d{1,2} [A-Za-z]+$/, `"${line}"`);
+});
 
 browserTest(
   'one way between years: no year dropdown, small year headings above their films, posters near the top',

@@ -212,7 +212,7 @@ export interface FilmYearGroup {
   readonly films: readonly Film[];
 }
 
-/** Films grouped by the year they were rated, newest year first — the archive's own rolls, for a viewing log. */
+/** Films grouped by the year they were rated, newest year first — each year's favorites. */
 export function filmsByYearRated(films: readonly Film[]): FilmYearGroup[] {
   const groups = new Map<string, Film[]>();
   for (const film of films) {

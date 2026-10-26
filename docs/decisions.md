@@ -3233,3 +3233,12 @@ throughout: the first posters start ~360px down at 1440×900 (were 500+).
 Also fixed: Pick for me announced "Picked ." with no year since the
 title became a link — it reads the title from the heading's text and the
 year from the card's `data-year`.
+
+## 2026-10-26 — Pictures: each year's favorites, dated
+
+The films are the owner's favorites of the year they were watched, not a
+log of everything seen. The "№" viewing-order number is gone from each
+card; the date line is just the day it was watched ("18 October"). Copy
+follows: "27 favorites" under each year, "775 favorites since 28 January
+2020" to close, and the collection's description "Favorite films, by the
+year I watched them." Order and identifiers unchanged.

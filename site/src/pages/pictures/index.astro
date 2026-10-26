@@ -15,7 +15,8 @@ const films = loadFilms();
 const groups = filmsByYearRated(films);
 const genres = allGenres(films);
 const hasPosters = films.some((film) => film.posterPath !== null);
-// "29 December": the day each film was seen (rated), as the catalogue line
+// "29 December": the day each favorite was watched (and rated), as its date
+// line prints it — each year's films are that year's favorites, not a log.
 // prints it. UTC, so the build machine's time zone never shifts a date.
 const seenOn = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
 const seen = (iso: string): string | null =>
@@ -88,7 +89,7 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
         <div class="film-year-heading">
           <h2>{group.year}</h2>
           <p class="film-year-count">
-            {group.films.length} film{group.films.length === 1 ? '' : 's'} seen
+            {group.films.length} favorite{group.films.length === 1 ? '' : 's'}
           </p>
         </div>
         <ul class="film-grid">
@@ -101,9 +102,6 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
             const style = cropped
               ? `--focal-x:${String(film.posterFocal?.x)}%;--focal-y:${String(film.posterFocal?.y)}%;--focal-zoom:${String(film.posterFocal?.zoom)};`
               : undefined;
-            // Its place in the year's viewing order: the list is newest first,
-            // so the year's first film seen is the last card, № 1.
-            const number = group.films.length - filmIndex;
             const seenDay = seen(film.ratedOn);
             const credits = [film.director, film.year > 0 ? String(film.year) : null]
               .filter((part): part is string => Boolean(part))
@@ -135,10 +133,7 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
                   )}
                 </div>
                 <div class="film-card-body">
-                  <p class="film-catalogue">
-                    № {number}
-                    {seenDay && <span> · {seenDay}</span>}
-                  </p>
+                  {seenDay && <p class="film-catalogue">{seenDay}</p>}
                   <h3 class="film-title">
                     <a href={film.letterboxdUrl} target="_blank" rel="noopener noreferrer">
                       {film.title}
@@ -169,7 +164,7 @@ const longDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long
   {
     firstSeen && (
       <p class="film-colophon">
-        {films.length} films, the first seen {longDate.format(new Date(`${firstSeen}T00:00:00Z`))}.
+        {films.length} favorites since {longDate.format(new Date(`${firstSeen}T00:00:00Z`))}.
       </p>
     )
   }

@@ -280,8 +280,8 @@
   flex-direction: column;
   gap: 0.3rem;
 }
-/* The catalogue line: the film's number in the year's viewing order and
-   the day it was seen — the archive's own coordinate, above the title. */
+/* The day it was watched, above the title — the diary's own date line.
+   (A number in the year's viewing order went with it until 2026-10-26.) */
 .film-catalogue {
   margin: 0;
   font-family: var(--serif);
