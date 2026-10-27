@@ -3,7 +3,8 @@
 Operating guide for Claude Code sessions here. Rules and a map, not history:
 `docs/decisions.md` (append-only, dated) records _why_ each call was made,
 `docs/dependencies.md` why each dependency exists, `docs/deployment.md` how
-randyliang.net stays up, and `CHANGELOG.md` the milestones. Grep
+randyliang.net stays up, `docs/architecture.md` the whole in two diagrams
+and why it's shaped that way, and `CHANGELOG.md` the milestones. Grep
 `docs/decisions.md` for a topic before re-litigating it.
 
 ## What this is
