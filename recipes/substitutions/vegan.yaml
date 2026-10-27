@@ -164,12 +164,7 @@
     - id: plant-mozzarella
       use: vegan mozzarella
       confidence: recipe-dependent
-      products:
-        [
-          Miyoko's Liquid Vegan Pizza Mozzarella,
-          Violife Mozzarella Shreds,
-          Daiya Mozzarella Style Shreds,
-        ]
+      products: [Miyoko's Liquid Vegan Pizza Mozzarella, Violife Mozzarella Shreds]
       why: Melts and stretches on pizza and baked pasta, less so in a cold salad (where fresh mozzarella's milky softness has no close match).
 
 - id: cheddar
@@ -179,12 +174,7 @@
     - id: plant-cheddar
       use: vegan cheddar
       confidence: recipe-dependent
-      products:
-        [
-          Violife Epic Mature Cheddar Flavor,
-          Daiya Cheddar Style Shreds,
-          Tillamook Farmhouse Style Cheddar Shreds (dairy-free),
-        ]
+      products: [Violife Epic Mature Cheddar Flavor]
       why: Good melted and in sandwiches. Sharpness varies a lot between brands; taste before seasoning.
 
 - id: cheese
@@ -195,8 +185,8 @@
     - id: plant-cheese
       use: vegan cheese
       confidence: recipe-dependent
-      products: [Violife, Miyoko's, Daiya]
-      why: Pick one for the job — Violife and Daiya melt, Miyoko's for eating as it is.
+      products: [Violife, Miyoko's]
+      why: Pick one for the job — Violife melts, Miyoko's for eating as it is.
 
 - id: yogurt
   category: dairy
