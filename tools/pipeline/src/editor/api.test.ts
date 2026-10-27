@@ -177,11 +177,11 @@ test('deleteTagEverywhere removes a tag from every photo that carries it', async
   for (const photo of after.photos) assert.deepEqual(photo.tags, []);
 });
 
-test('listPhotos reports featured and cover status from photos.yaml and album.md', async () => {
+test('listPhotos reports rating and cover status from photos.yaml and album.md', async () => {
   const paths = await fixtureAlbum('paris-2025', ['001.jpg', '002.jpg']);
   await scaffoldAlbumMarkdown(join(paths.albums, 'paris-2025'), 'paris-2025', null, '001.jpg');
   await applyEdits(paths, {
-    edits: [{ album: 'paris-2025', file: '002.jpg', featured: true, featuredOrder: 1 }],
+    edits: [{ album: 'paris-2025', file: '002.jpg', rating: 3, featuredOrder: 1 }],
     expectedVersions: (await listPhotos(paths, config)).albumVersions,
   });
 
@@ -190,8 +190,8 @@ test('listPhotos reports featured and cover status from photos.yaml and album.md
   const second = response.photos.find((p) => p.file === '002.jpg');
   assert.equal(first?.cover, true);
   assert.equal(second?.cover, false);
-  assert.equal(first?.featured, false);
-  assert.equal(second?.featured, true);
+  assert.equal(first?.rating, 0);
+  assert.equal(second?.rating, 3);
   assert.equal(second?.featuredOrder, 1);
 });
 

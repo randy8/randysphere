@@ -12,25 +12,25 @@ photos:
     alt: ''
     tags:
       - '0271'
-    featured: true
+    rating: 1
   - file: 000002710004.tif
     sourceId: 86f0ee8ff7ecd233
     alt: ''
     tags:
       - '0271'
-    featured: true
+    rating: 1
   - file: 000002710005.tif
     sourceId: 57199a0a9a7bb66c
     alt: ''
     tags:
       - '0271'
-    featured: true
+    rating: 1
   - file: 000002710006.tif
     sourceId: cfd828618aeedb04
     alt: ''
     tags:
       - '0271'
-    featured: true
+    rating: 1
   - file: 000002710007.tif
     sourceId: 719f2bb7fd16eb8b
     alt: ''
@@ -46,13 +46,13 @@ photos:
     alt: ''
     tags:
       - '0271'
-    featured: true
+    rating: 1
   - file: 000002710010.tif
     sourceId: 4a4606fe3dbe4930
     alt: ''
     tags:
       - '0271'
-    featured: true
+    rating: 1
   - file: 000002710011.tif
     sourceId: 1c3e58977b87331c
     alt: ''
@@ -63,7 +63,7 @@ photos:
     alt: ''
     tags:
       - '0271'
-    featured: true
+    rating: 1
   - file: 000002710013.tif
     sourceId: eaafe6e14d9ad52d
     alt: ''
@@ -84,7 +84,7 @@ photos:
     alt: ''
     tags:
       - '0271'
-    featured: true
+    rating: 1
   - file: 000002710017.tif
     sourceId: 78d97ede7e9d05f3
     alt: ''
@@ -95,7 +95,7 @@ photos:
     alt: ''
     tags:
       - '0271'
-    featured: true
+    rating: 1
   - file: 000002710019.tif
     sourceId: cf9bcee0d53bb341
     alt: ''
@@ -131,19 +131,19 @@ photos:
     alt: ''
     tags:
       - '0271'
-    featured: true
+    rating: 1
   - file: 000002710026.tif
     sourceId: 7b016a8e376692dc
     alt: ''
     tags:
       - '0271'
-    featured: true
+    rating: 1
   - file: 000002710027.tif
     sourceId: ac294301361d8376
     alt: ''
     tags:
       - '0271'
-    featured: true
+    rating: 1
   - file: 000002710028.tif
     sourceId: df268abc28fec8b4
     alt: ''
@@ -154,7 +154,7 @@ photos:
     alt: ''
     tags:
       - '0271'
-    featured: true
+    rating: 1
   - file: 000002710030.tif
     sourceId: b13e225e030587d1
     alt: ''
@@ -165,19 +165,19 @@ photos:
     alt: ''
     tags:
       - '0271'
-    featured: true
+    rating: 1
   - file: 000002710032.tif
     sourceId: 521cdaceccd8e95d
     alt: ''
     tags:
       - '0271'
-    featured: true
+    rating: 1
   - file: 000002710033.tif
     sourceId: 0a58405759a41215
     alt: ''
     tags:
       - '0271'
-    featured: true
+    rating: 1
   - file: 000002710034.tif
     sourceId: 611e3a32b18ad348
     alt: ''

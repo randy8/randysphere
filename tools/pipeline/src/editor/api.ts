@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 
 import { applyPhotoEdits, StaleAlbumFileError, updateAlbumCover } from '../album-files.ts';
-import type { PhotoEdit } from '../album-files.ts';
+import type { PhotoEdit, Rating } from '../album-files.ts';
 import { readCities } from '../cities.ts';
 import type { City } from '../cities.ts';
 import type { PipelineConfig } from '../config.ts';
@@ -27,7 +27,7 @@ export interface EditorPhotoView {
   readonly alt: string;
   readonly caption: string | null;
   readonly tags: readonly string[];
-  readonly featured: boolean;
+  readonly rating: Rating;
   readonly featuredOrder: number | null;
   readonly rotate: Rotation;
   readonly appliedRotate: Rotation;
@@ -60,7 +60,7 @@ export async function listPhotos(
       alt: photo.alt,
       caption: photo.caption,
       tags: photo.tags,
-      featured: photo.featured,
+      rating: photo.rating,
       featuredOrder: photo.featuredOrder,
       rotate: photo.rotate,
       appliedRotate: photo.appliedRotate,

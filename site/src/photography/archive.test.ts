@@ -14,8 +14,9 @@ import {
   selectedWork,
   viewForFilmStock,
   viewForTag,
+  weightOf,
 } from './archive.ts';
-import type { Archive, ArchivePhoto } from './archive.ts';
+import type { Archive, ArchivePhoto, Rating } from './archive.ts';
 import type { AlbumManifest, Photo, Variant } from './manifest.ts';
 
 const VARIANT: Variant = {
@@ -155,16 +156,16 @@ test('joinBatch reads featured and featuredOrder per photo from photos.yaml, not
   const rolls = joinRolls(m, [], 'test-batch');
   const photos = joinBatch(
     m,
-    [{ file: '0827/001.tif', featured: true, featuredOrder: 2 }, { file: '0827/002.tif' }],
+    [{ file: '0827/001.tif', rating: 3, featuredOrder: 2 }, { file: '0827/002.tif' }],
     rolls,
     'test-batch',
     null,
   );
   const first = photos.find((p) => p.photo.file === '0827/001.tif');
   const second = photos.find((p) => p.photo.file === '0827/002.tif');
-  assert.equal(first?.featured, true);
+  assert.equal(first?.rating, 3);
   assert.equal(first?.featuredOrder, 2);
-  assert.equal(second?.featured, false);
+  assert.equal(second?.rating, 0);
   assert.equal(second?.featuredOrder, null);
 });
 
@@ -194,7 +195,7 @@ function stubPhoto(
   file: string,
   tags: readonly string[],
   takenAt: string | null = null,
-  featured = false,
+  rating: Rating = 0,
   rollId = '0827',
   cover = false,
   frame = 1,
@@ -210,7 +211,7 @@ function stubPhoto(
     alt: '',
     caption: null,
     location: null,
-    featured,
+    rating,
     featuredOrder,
     cover,
   };
@@ -258,8 +259,8 @@ test('viewForTag throws for a tag nothing carries', () => {
 
 test('byFilmStock queries roll-level film stock, not a tag', () => {
   const archive = archiveOf([
-    stubPhoto('001.tif', [], null, false, '0827', false, 1, null, 'portra400'),
-    stubPhoto('002.tif', [], null, false, '0828', false, 1, null, 'ektar100'),
+    stubPhoto('001.tif', [], null, 0, '0827', false, 1, null, 'portra400'),
+    stubPhoto('002.tif', [], null, 0, '0828', false, 1, null, 'ektar100'),
   ]);
   assert.deepEqual(
     byFilmStock(archive, 'portra400').map((p) => p.photo.file),
@@ -269,28 +270,28 @@ test('byFilmStock queries roll-level film stock, not a tag', () => {
 
 test('allFilmStocks excludes rolls with no film stock noted yet, rather than listing ""', () => {
   const archive = archiveOf([
-    stubPhoto('001.tif', [], null, false, '0827', false, 1, null, 'portra400'),
-    stubPhoto('002.tif', [], null, false, '0828', false, 1, null, ''),
+    stubPhoto('001.tif', [], null, 0, '0827', false, 1, null, 'portra400'),
+    stubPhoto('002.tif', [], null, 0, '0828', false, 1, null, ''),
   ]);
   assert.deepEqual(allFilmStocks(archive), ['portra400']);
 });
 
 test('viewForFilmStock throws for a stock nothing was shot on', () => {
   const archive = archiveOf([
-    stubPhoto('001.tif', [], null, false, '0827', false, 1, null, 'portra400'),
+    stubPhoto('001.tif', [], null, 0, '0827', false, 1, null, 'portra400'),
   ]);
   assert.throws(() => viewForFilmStock(archive, 'nowhere'), /No photographs are shot on "nowhere"/);
 });
 
 test('coverPhoto defaults to the chronologically first photo — presentation order falls back to archival order', () => {
-  const first = stubPhoto('001.tif', [], null, false, '0827', false, 1);
-  const second = stubPhoto('002.tif', [], null, false, '0827', false, 2);
+  const first = stubPhoto('001.tif', [], null, 0, '0827', false, 1);
+  const second = stubPhoto('002.tif', [], null, 0, '0827', false, 2);
   assert.equal(coverPhoto([first, second]), first);
 });
 
 test('coverPhoto prefers a manually chosen cover over the chronologically first photo — presentation order independent of archival order', () => {
-  const first = stubPhoto('001.tif', [], null, false, '0827', false, 1);
-  const chosen = stubPhoto('002.tif', [], null, false, '0827', true, 2);
+  const first = stubPhoto('001.tif', [], null, 0, '0827', false, 1);
+  const chosen = stubPhoto('002.tif', [], null, 0, '0827', true, 2);
   assert.equal(coverPhoto([first, chosen]), chosen);
 });
 
@@ -298,11 +299,11 @@ test('coverPhoto throws for an empty view', () => {
   assert.throws(() => coverPhoto([]), /This view has no photographs/);
 });
 
-test('selectedWork includes only photos marked featured, archive-wide, regardless of tag', () => {
+test('selectedWork includes only rated photos, archive-wide, regardless of tag', () => {
   const archive = archiveOf([
-    stubPhoto('001.tif', ['paris-2025'], null, true),
-    stubPhoto('002.tif', ['tokyo-2024'], null, false),
-    stubPhoto('003.tif', [], null, true),
+    stubPhoto('001.tif', ['paris-2025'], null, 1),
+    stubPhoto('002.tif', ['tokyo-2024'], null, 0),
+    stubPhoto('003.tif', [], null, 1),
   ]);
   assert.deepEqual(
     selectedWork(archive).map((p) => p.photo.file),
@@ -311,8 +312,8 @@ test('selectedWork includes only photos marked featured, archive-wide, regardles
 });
 
 test('selectedWork sorts by featuredOrder, a deliberate sequence rather than chronology', () => {
-  const early = stubPhoto('early.tif', [], '2025-01-01', true, '0827', false, 1, 2);
-  const late = stubPhoto('late.tif', [], '2025-12-01', true, '0827', false, 2, 1);
+  const early = stubPhoto('early.tif', [], '2025-01-01', 1, '0827', false, 1, 2);
+  const late = stubPhoto('late.tif', [], '2025-12-01', 1, '0827', false, 2, 1);
   const archive = archiveOf([early, late]);
   assert.deepEqual(
     selectedWork(archive).map((p) => p.photo.file),
@@ -321,8 +322,8 @@ test('selectedWork sorts by featuredOrder, a deliberate sequence rather than chr
 });
 
 test('selectedWork places photos with no featuredOrder after every ordered one, in archival order', () => {
-  const ordered = stubPhoto('ordered.tif', [], null, true, '0827', false, 2, 1);
-  const unordered = stubPhoto('unordered.tif', [], null, true, '0827', false, 1, null);
+  const ordered = stubPhoto('ordered.tif', [], null, 1, '0827', false, 2, 1);
+  const unordered = stubPhoto('unordered.tif', [], null, 1, '0827', false, 1, null);
   const archive = archiveOf([unordered, ordered]);
   assert.deepEqual(
     selectedWork(archive).map((p) => p.photo.file),
@@ -347,11 +348,18 @@ test('a city tag is titled by its cities.yaml name, and citiesOf finds it on a p
   ]);
 });
 
-test('featuredOnly keeps only featured photos, so tags and film stocks with none drop out', () => {
+test('weightOf: unrated 1×, Decent 1.5×, Good 2×, Great 3×', () => {
+  assert.deepEqual(
+    ([0, 1, 2, 3] as const).map((rating) => weightOf(rating)),
+    [1, 1.5, 2, 3],
+  );
+});
+
+test('featuredOnly keeps only rated photos, so tags and film stocks with none drop out', () => {
   const archive = featuredOnly(
     archiveOf([
-      stubPhoto('001.tif', ['paris-2025'], null, true, '0827', false, 1, null, 'Portra 400'),
-      stubPhoto('002.tif', ['paris-2025', 'street'], null, false, '0827', false, 2, null, 'HP5'),
+      stubPhoto('001.tif', ['paris-2025'], null, 1, '0827', false, 1, null, 'Portra 400'),
+      stubPhoto('002.tif', ['paris-2025', 'street'], null, 0, '0827', false, 2, null, 'HP5'),
     ]),
   );
   assert.deepEqual(

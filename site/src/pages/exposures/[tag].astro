@@ -3,7 +3,7 @@ import GridLayout from '../../photography/GridLayout.astro';
 import Lightbox from '../../photography/Lightbox.astro';
 import Photo from '../../photography/Photo.astro';
 import Base from '../../layouts/Base.astro';
-import { allTags, loadArchive, viewForTag } from '../../photography/archive.ts';
+import { allTags, loadArchive, viewForTag, weightOf } from '../../photography/archive.ts';
 import { GRID_SIZES } from '../../photography/image.ts';
 import { formatDate } from '../../photography/date.ts';
 import type { View } from '../../photography/archive.ts';
@@ -75,7 +75,7 @@ const next = nextView
   <div class="grid" data-grid>
     {
       view.photos.map((entry, index) => (
-        <figure data-photo-id={entry.photo.sourceId}>
+        <figure data-photo-id={entry.photo.sourceId} data-w={weightOf(entry.rating)}>
           <Photo
             entry={entry}
             sizes={GRID_SIZES}

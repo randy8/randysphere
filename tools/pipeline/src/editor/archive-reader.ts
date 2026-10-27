@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { PHOTOS_FILE, readAlbumCover, readPhotosFile } from '../album-files.ts';
+import type { Rating } from '../album-files.ts';
 import type { PipelineConfig } from '../config.ts';
 import { sha256Hex } from '../hash.ts';
 import type { PhotoRecord, VariantRecord } from '../manifest.ts';
@@ -32,7 +33,7 @@ export interface EditorPhoto {
   readonly alt: string;
   readonly caption: string | null;
   readonly tags: readonly string[];
-  readonly featured: boolean;
+  readonly rating: Rating;
   readonly featuredOrder: number | null;
   /** The turn photos.yaml asks for. */
   readonly rotate: Rotation;
@@ -121,7 +122,7 @@ export async function loadEditorArchive(
         alt: entry?.alt ?? '',
         caption: entry?.caption ?? null,
         tags: entry?.tags ?? [],
-        featured: entry?.featured ?? false,
+        rating: entry?.rating ?? 0,
         featuredOrder: entry?.featuredOrder ?? null,
         rotate: entry?.rotate ?? 0,
         appliedRotate: config === undefined ? (entry?.rotate ?? 0) : appliedRotation(photo, config),

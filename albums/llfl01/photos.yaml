@@ -22,7 +22,7 @@ photos:
     alt: ''
     tags:
       - llfl01
-    featured: true
+    rating: 1
   - file: RLiang07082612.tif
     sourceId: d93dc09e1c8be719
     alt: ''
@@ -38,31 +38,30 @@ photos:
     alt: ''
     tags:
       - llfl01
-    featured: true
+    rating: 1
   - file: RLiang07082615.tif
     sourceId: 81fea26e3758cd3e
     alt: ''
     tags:
       - llfl01
-    featured: true
+    rating: 1
   - file: RLiang07082616.tif
     sourceId: 0092dbf93ac35da8
     alt: ''
     tags:
       - llfl01
-    featured: true
+    rating: 1
   - file: RLiang07082617.tif
     sourceId: 8cb9e924e871c2eb
     alt: ''
     tags:
       - llfl01
-    featured: false
   - file: RLiang07082618.tif
     sourceId: 11c7773077866214
     alt: ''
     tags:
       - llfl01
-    featured: true
+    rating: 1
   - file: RLiang07082619.tif
     sourceId: 560963012ddb666b
     alt: ''
@@ -73,13 +72,13 @@ photos:
     alt: ''
     tags:
       - llfl01
-    featured: true
+    rating: 1
   - file: RLiang07082620.tif
     sourceId: db11dbc2484cc5c2
     alt: ''
     tags:
       - llfl01
-    featured: true
+    rating: 1
   - file: RLiang07082621.tif
     sourceId: 395951871f886b8a
     alt: ''
@@ -95,13 +94,13 @@ photos:
     alt: ''
     tags:
       - llfl01
-    featured: true
+    rating: 1
   - file: RLiang07082624.tif
     sourceId: 0f8da39c52bf9383
     alt: ''
     tags:
       - llfl01
-    featured: true
+    rating: 1
   - file: RLiang07082625.tif
     sourceId: c71f9f95fda9a984
     alt: ''
@@ -132,7 +131,7 @@ photos:
     alt: ''
     tags:
       - llfl01
-    featured: true
+    rating: 1
   - file: RLiang07082630.tif
     sourceId: c62c9273cbffa397
     alt: ''
@@ -178,13 +177,13 @@ photos:
     alt: ''
     tags:
       - llfl01
-    featured: true
+    rating: 1
   - file: RLiang0708265.tif
     sourceId: 142dc63befde1b74
     alt: ''
     tags:
       - llfl01
-    featured: true
+    rating: 1
   - file: RLiang0708266.tif
     sourceId: 94f38fe47b09262c
     alt: ''
@@ -195,13 +194,13 @@ photos:
     alt: ''
     tags:
       - llfl01
-    featured: true
+    rating: 1
   - file: RLiang0708268.tif
     sourceId: 236edad2b0f9837c
     alt: ''
     tags:
       - llfl01
-    featured: true
+    rating: 1
   - file: RLiang0708269.tif
     sourceId: a9bda98c3316596a
     alt: ''

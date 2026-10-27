@@ -77,7 +77,9 @@ function init(): void {
   }
 
   const shuffle = (): void => {
-    for (const figure of shuffled(figures)) grid.appendChild(figure);
+    for (const figure of shuffled(figures, (tile) => Number(tile.dataset['w']) || 1)) {
+      grid.appendChild(figure);
+    }
   };
   shuffleButton?.addEventListener('click', () => {
     shuffle();

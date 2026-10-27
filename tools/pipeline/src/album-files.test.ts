@@ -410,22 +410,24 @@ test('applyPhotoEdits sets alt and clears caption via null without disturbing ot
   assert.doesNotMatch(updated, /caption:/);
 });
 
-test('applyPhotoEdits sets featured and featuredOrder, and null clears featuredOrder', async () => {
+test('applyPhotoEdits sets rating and featuredOrder; null clears featuredOrder, 0 clears rating', async () => {
   const directory = await emptyAlbumDirectory();
   await syncPhotosFile(directory, refs(['001.jpg', '002.jpg']), 'paris-2025');
 
-  await applyPhotoEdits(directory, [{ file: '001.jpg', featured: true, featuredOrder: 2 }], null);
+  await applyPhotoEdits(directory, [{ file: '001.jpg', rating: 2, featuredOrder: 2 }], null);
   let updated = await readFile(join(directory, 'photos.yaml'), 'utf8');
-  assert.match(updated, /file: 001\.jpg[\s\S]*?featured: true[\s\S]*?featuredOrder: 2/);
+  assert.match(updated, /file: 001\.jpg[\s\S]*?rating: 2[\s\S]*?featuredOrder: 2/);
+  assert.equal((await readPhotosFile(directory))[0]?.rating, 2);
 
   await applyPhotoEdits(directory, [{ file: '001.jpg', featuredOrder: null }], null);
   updated = await readFile(join(directory, 'photos.yaml'), 'utf8');
-  assert.match(updated, /file: 001\.jpg[\s\S]*?featured: true/);
+  assert.match(updated, /file: 001\.jpg[\s\S]*?rating: 2/);
   assert.doesNotMatch(updated, /featuredOrder/);
 
-  await applyPhotoEdits(directory, [{ file: '001.jpg', featured: false }], null);
+  await applyPhotoEdits(directory, [{ file: '001.jpg', rating: 0 }], null);
   updated = await readFile(join(directory, 'photos.yaml'), 'utf8');
-  assert.match(updated, /file: 001\.jpg[\s\S]*?featured: false/);
+  assert.doesNotMatch(updated, /rating/);
+  assert.equal((await readPhotosFile(directory))[0]?.rating, 0);
 });
 
 test('applyPhotoEdits throws StaleAlbumFileError when the file changed since expectedVersion was captured', async () => {
@@ -546,4 +548,15 @@ test('a hand-typed rotate that is not a quarter turn is refused, naming the phot
     (await readFile(path, 'utf8')).replace('  alt:', '  rotate: 45\n    alt:'),
   );
   await assert.rejects(readPhotosFile(directory), /001\.jpg has rotate: 45/);
+});
+
+test('a hand-typed rating outside 1–3 is refused, naming the photo', async () => {
+  const directory = await emptyAlbumDirectory();
+  await syncPhotosFile(directory, refs(['001.jpg']), 'paris-2025');
+  const path = join(directory, 'photos.yaml');
+  await writeFileAtomic(
+    path,
+    (await readFile(path, 'utf8')).replace('  alt:', '  rating: 5\n    alt:'),
+  );
+  await assert.rejects(readPhotosFile(directory), /001\.jpg has rating: 5/);
 });

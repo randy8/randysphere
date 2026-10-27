@@ -37,7 +37,7 @@ function entry(variants: Variant[], overrides: Partial<ArchivePhoto> = {}): Arch
     alt: 'A street in the rain',
     caption: 'Rue de Rivoli',
     location: null,
-    featured: true,
+    rating: 1,
     featuredOrder: null,
     cover: false,
     ...overrides,

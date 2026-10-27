@@ -17,7 +17,7 @@ const state = {
   focusKey: null,
   undoStack: [], // [{description, undo: () => Promise<void>}]
   saving: false,
-  selectedWorkMode: false, // reorder view: shows only featured photos, sorted by featuredOrder, draggable
+  selectedWorkMode: false, // reorder view: shows only rated photos, sorted by featuredOrder, draggable
   reviewKey: null, // set while the full-size review overlay is open
   cities: [], // albums/cities.yaml — [{tag, name}], one-click tag buttons
 };
@@ -74,13 +74,13 @@ function filteredPhotos() {
 
 /**
  * Selected Work, in its actual display order — featuredOrder ascending,
- * with any photo marked featured but not yet given an order sorted after
- * every ordered one (mirrors archive.ts's selectedWork() on the site).
- * Spans every album; only the featured flag decides membership.
+ * with any rated photo not yet given an order sorted after every ordered
+ * one (mirrors archive.ts's selectedWork() on the site). Spans every
+ * album; any rating (one heart or more) decides membership.
  */
 function selectedWorkPhotos() {
   return state.photos
-    .filter((p) => p.featured)
+    .filter((p) => p.rating > 0)
     .slice()
     .sort((a, b) => {
       if (a.featuredOrder !== null && b.featuredOrder !== null)
@@ -134,7 +134,7 @@ function applyLocally(edits) {
     }
     if (edit.alt !== undefined) photo.alt = edit.alt;
     if (edit.caption !== undefined) photo.caption = edit.caption;
-    if (edit.featured !== undefined) photo.featured = edit.featured;
+    if (edit.rating !== undefined) photo.rating = edit.rating;
     if (edit.featuredOrder !== undefined) photo.featuredOrder = edit.featuredOrder;
     if (edit.rotate !== undefined) photo.rotate = edit.rotate;
   }
@@ -191,10 +191,31 @@ function rotateButtons(photos) {
   return row;
 }
 
-/** Selected Work — toggling off clears featuredOrder too, since an unfeatured photo has no place in an order. */
-async function setFeatured(photo, featured) {
-  const edit = { album: photo.album, file: photo.file, featured };
-  if (!featured) edit.featuredOrder = null;
+/**
+ * The hearts: photos.yaml's `rating` (album-files.ts's Rating). Any heart
+ * publishes the photo; how many weights the site's shuffles (archive.ts's
+ * weightOf). Clicking cycles Unrated → Decent → Good → Great → Unrated.
+ */
+const RATING_NAMES = ['Unrated', 'Decent', 'Good', 'Great'];
+
+function nextRating(rating) {
+  return (rating + 1) % RATING_NAMES.length;
+}
+
+/** All three places, filled and empty — the inspector and review, where there's room. */
+function heartsOf(rating) {
+  return '♥'.repeat(rating) + '♡'.repeat(RATING_NAMES.length - 1 - rating);
+}
+
+function ratingTitle(rating) {
+  const next = nextRating(rating);
+  return `${RATING_NAMES[rating]} — click for ${RATING_NAMES[next]}${next === 0 ? ' (unpublishes)' : ''}`;
+}
+
+/** Back to unrated clears featuredOrder too, since an unpublished photo has no place in an order. */
+async function setRating(photo, rating) {
+  const edit = { album: photo.album, file: photo.file, rating };
+  if (rating === 0) edit.featuredOrder = null;
   const ok = await sendEdits([edit]);
   if (ok) renderAll();
 }
@@ -453,20 +474,22 @@ function renderGrid() {
     }
 
     if (!state.selectedWorkMode) {
-      const star = document.createElement('button');
-      star.type = 'button';
-      star.className = photo.featured ? 'featured-star is-featured' : 'featured-star';
-      star.title = photo.featured ? 'Remove from Selected Work' : 'Add to Selected Work';
-      star.setAttribute('aria-pressed', String(photo.featured));
-      star.textContent = photo.featured ? '★' : '☆';
-      // Toggles directly from the grid — the fast path for picking Selected
-      // Work without opening the inspector. Stops propagation so it never
-      // also fires the cell's own click-to-select handler below.
-      star.addEventListener('click', (event) => {
+      const hearts = document.createElement('button');
+      hearts.type = 'button';
+      hearts.className = photo.rating > 0 ? 'rating-hearts is-rated' : 'rating-hearts';
+      hearts.dataset.rating = String(photo.rating);
+      hearts.title = ratingTitle(photo.rating);
+      hearts.setAttribute('aria-label', `Rating: ${RATING_NAMES[photo.rating]}`);
+      // Compact: only the hearts given, an outline when none.
+      hearts.textContent = photo.rating > 0 ? '♥'.repeat(photo.rating) : '♡';
+      // Cycles directly from the grid — the fast path for rating without
+      // opening the inspector. Stops propagation so it never also fires
+      // the cell's own click-to-select handler below.
+      hearts.addEventListener('click', (event) => {
         event.stopPropagation();
-        void setFeatured(photo, !photo.featured);
+        void setRating(photo, nextRating(photo.rating));
       });
-      cell.appendChild(star);
+      cell.appendChild(hearts);
     }
     if (photo.cover) {
       const coverMark = document.createElement('span');
@@ -663,19 +686,14 @@ function renderInspector(photo) {
 
   const selectedField = document.createElement('div');
   selectedField.className = 'field selected-work-field';
-  const selectedLabel = document.createElement('label');
-  const selectedCheckbox = document.createElement('input');
-  selectedCheckbox.type = 'checkbox';
-  selectedCheckbox.id = 'featured-input';
-  selectedCheckbox.checked = photo.featured;
-  selectedCheckbox.addEventListener(
-    'change',
-    () => void setFeatured(photo, selectedCheckbox.checked),
-  );
-  selectedLabel.appendChild(selectedCheckbox);
-  selectedLabel.append(' Selected Work');
-  selectedField.appendChild(selectedLabel);
-  if (photo.featured) {
+  const ratingButton = document.createElement('button');
+  ratingButton.type = 'button';
+  ratingButton.className = photo.rating > 0 ? 'rating-button is-rated' : 'rating-button';
+  ratingButton.title = ratingTitle(photo.rating);
+  ratingButton.textContent = `${heartsOf(photo.rating)} ${RATING_NAMES[photo.rating]}`;
+  ratingButton.addEventListener('click', () => void setRating(photo, nextRating(photo.rating)));
+  selectedField.appendChild(ratingButton);
+  if (photo.rating > 0) {
     const orderInput = document.createElement('input');
     orderInput.type = 'number';
     orderInput.min = '0';
@@ -838,9 +856,9 @@ function renderAll() {
 // ---------------------------------------------------------------------------
 // Review overlay — thumbnails in the grid are small by design (fitting many
 // on screen at once), which makes them a poor way to actually look at a
-// photo or reliably click its tiny star. Review shows one photo large,
+// photo or reliably click its tiny hearts. Review shows one photo large,
 // moved through with the keyboard alone: R opens it at the focused photo,
-// arrows/h j k l move to the next/previous, F stars it, Esc closes.
+// arrows/h j k l move to the next/previous, F cycles its hearts, Esc closes.
 // ---------------------------------------------------------------------------
 
 function isReviewOpen() {
@@ -885,9 +903,10 @@ function renderReview() {
     (photo.alt.trim() === '' ? ' · no alt text yet' : '');
   document.getElementById('review-caption').textContent = caption;
 
-  const star = document.getElementById('review-star');
-  star.textContent = photo.featured ? '★ Selected Work ( F )' : '☆ Selected Work ( F )';
-  star.classList.toggle('is-featured', photo.featured);
+  const hearts = document.getElementById('review-rating');
+  hearts.textContent = `${heartsOf(photo.rating)} ${RATING_NAMES[photo.rating]} ( F )`;
+  hearts.title = ratingTitle(photo.rating);
+  hearts.classList.toggle('is-rated', photo.rating > 0);
 
   const visible = visiblePhotos();
   const index = visible.findIndex((p) => p.key === photo.key);
@@ -899,10 +918,10 @@ function renderReview() {
   renderGrid();
 }
 
-async function toggleReviewFeatured() {
+async function cycleReviewRating() {
   const photo = state.photos.find((p) => p.key === state.reviewKey);
   if (!photo) return;
-  await setFeatured(photo, !photo.featured);
+  await setRating(photo, nextRating(photo.rating));
   renderReview();
 }
 
@@ -1049,7 +1068,7 @@ function attachKeyboard() {
       }
       if (event.key.toLowerCase() === 'f') {
         event.preventDefault();
-        void toggleReviewFeatured();
+        void cycleReviewRating();
         return;
       }
       return;
@@ -1186,8 +1205,8 @@ function init() {
   document.getElementById('review-prev').addEventListener('click', () => reviewMove(-1));
   document.getElementById('review-next').addEventListener('click', () => reviewMove(1));
   document
-    .getElementById('review-star')
-    .addEventListener('click', () => void toggleReviewFeatured());
+    .getElementById('review-rating')
+    .addEventListener('click', () => void cycleReviewRating());
 
   attachKeyboard();
   loadAll().catch((error) => {

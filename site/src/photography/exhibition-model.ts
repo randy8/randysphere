@@ -14,6 +14,8 @@ export interface ExhibitionPhoto extends LightboxPhoto {
   readonly places: readonly string[];
   /** YYYY-MM-DD, or null when neither the frame nor its roll carries a date. */
   readonly date: string | null;
+  /** archive.ts's weightOf(rating): how strongly a shuffle favours it. */
+  readonly weight: number;
 }
 
 export interface ExhibitionData {
@@ -173,19 +175,28 @@ export function writeSettings(url: URL, settings: Settings, order: Order): void 
   }
 }
 
-/** Fisher–Yates; `random` is injectable for tests. */
-export function shuffle<T>(items: readonly T[], random: () => number = Math.random): T[] {
-  const result = [...items];
-  for (let i = result.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(random() * (i + 1));
-    [result[i], result[j]] = [result[j] as T, result[i] as T];
-  }
-  return result;
+/**
+ * Efraimidis–Spirakis, as every photo page deals (grid-layout.js): each
+ * item draws u^(1/weight), largest first, so a heavier item tends to come
+ * earlier, never certainly. Equal weights are a uniform shuffle. `random`
+ * is injectable for tests.
+ */
+export function shuffle<T>(
+  items: readonly T[],
+  weight: (item: T) => number = () => 1,
+  random: () => number = Math.random,
+): T[] {
+  return items
+    .map((item) => ({ item, key: random() ** (1 / weight(item)) }))
+    .sort((a, b) => b.key - a.key)
+    .map(({ item }) => item);
 }
 
 /**
- * The running order over `length` photographs. In sequence it simply
- * loops. Shuffled, every photograph is shown once before any repeats, and
+ * The running order over photographs with these `weights`. In sequence it
+ * simply loops. Shuffled — weighted, so a higher-rated photograph tends to
+ * come up sooner in each round — every photograph is shown once before
+ * any repeats, and
  * a new round never opens on the photograph the last one closed with.
  * `peek` names the photograph after the current one without moving, so
  * it can load while the current one is on the wall.
@@ -196,11 +207,13 @@ export class Playlist {
   #position = 0;
   readonly #shuffled: boolean;
   readonly #random: () => number;
+  readonly #weights: readonly number[];
 
-  constructor(length: number, order: Order, random: () => number = Math.random) {
+  constructor(weights: readonly number[], order: Order, random: () => number = Math.random) {
     this.#shuffled = order === 'shuffle';
     this.#random = random;
-    this.#round = this.#deal(length, null);
+    this.#weights = weights;
+    this.#round = this.#deal(weights.length, null);
   }
 
   get current(): number {
@@ -249,7 +262,7 @@ export class Playlist {
   #deal(length: number, avoidFirst: number | null): number[] {
     const indices = Array.from({ length }, (_, index) => index);
     if (!this.#shuffled) return indices;
-    const round = shuffle(indices, this.#random);
+    const round = shuffle(indices, (index) => this.#weights[index] ?? 1, this.#random);
     if (round.length > 1 && round[0] === avoidFirst) {
       [round[0], round[1]] = [round[1] as number, round[0]];
     }

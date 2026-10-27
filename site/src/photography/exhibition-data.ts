@@ -1,4 +1,4 @@
-import { allTags, citiesOf, viewForTag } from './archive.ts';
+import { allTags, citiesOf, viewForTag, weightOf } from './archive.ts';
 import type { Archive } from './archive.ts';
 import { lightboxPhoto } from './lightbox-data.ts';
 import type { ExhibitionData } from './exhibition-model.ts';
@@ -21,6 +21,7 @@ export function exhibitionData(archive: Archive, photos: Archive['photos']): Exh
       tags: entry.tags,
       places: citiesOf(archive, entry).map((city) => city.name),
       date: entry.photo.camera?.takenAt?.slice(0, 10) ?? entry.roll.date,
+      weight: weightOf(entry.rating),
     })),
     titles: Object.fromEntries(
       allTags(archive).map((tag) => [tag, viewForTag(archive, tag).title]),

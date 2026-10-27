@@ -9,7 +9,10 @@
  *
  * 1. Deal (pages that shuffle): a random order, before the browser lays
  *    out — and starts loading — the server's archival order. Random per
- *    visit, kept for the rest of the session (see below).
+ *    visit, kept for the rest of the session (see below). Weighted by each
+ *    figure's `data-w` (archive.ts's weightOf: the photographer's rating),
+ *    so a better photograph tends to come earlier — never certainly.
+ *    No data-w is 1.
  * 2. Masonry: each figure into whichever column is shortest, at its own
  *    aspect ratio (width/height attributes are on every <img>, so heights
  *    are known before any image loads). Only positions change, never DOM
@@ -69,12 +72,15 @@ function placeGrid(grid, deal) {
       t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
-    const tiles = Array.from(grid.children);
-    for (let i = tiles.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(random() * (i + 1));
-      [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
-    }
-    grid.append(...tiles);
+    // Efraimidis–Spirakis: each figure draws u^(1/weight) and the largest
+    // go first — a uniform shuffle when every weight is equal, as
+    // shuffle-grid.ts and exhibition-model.ts deal too.
+    const keyed = Array.from(grid.children, (tile) => {
+      const weight = Number(tile.getAttribute('data-w')) || 1;
+      return { tile, key: Math.pow(random(), 1 / weight) };
+    });
+    keyed.sort((a, b) => b.key - a.key);
+    grid.append(...keyed.map(({ tile }) => tile));
   }
 
   // Each figure's distance from the grid's top, as last placed — kept so

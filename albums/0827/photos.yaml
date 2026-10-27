@@ -17,7 +17,7 @@ photos:
     alt: ''
     tags:
       - '0827'
-    featured: true
+    rating: 1
   - file: 000008270006.tif
     sourceId: 3e952236334d447b
     alt: ''
@@ -28,19 +28,19 @@ photos:
     alt: ''
     tags:
       - '0827'
-    featured: true
+    rating: 1
   - file: 000008270008.tif
     sourceId: c2ecb89f92defd8e
     alt: ''
     tags:
       - '0827'
-    featured: true
+    rating: 1
   - file: 000008270009.tif
     sourceId: 48c6de30ee228b24
     alt: ''
     tags:
       - '0827'
-    featured: true
+    rating: 1
   - file: 000008270010.tif
     sourceId: e506d8843bcb12c1
     alt: ''
@@ -61,7 +61,7 @@ photos:
     alt: ''
     tags:
       - '0827'
-    featured: true
+    rating: 1
   - file: 000008270014.tif
     sourceId: cac0392d6f1e5e2c
     alt: ''
@@ -72,7 +72,7 @@ photos:
     alt: ''
     tags:
       - '0827'
-    featured: true
+    rating: 1
   - file: 000008270016.tif
     sourceId: 9a5599194c04f270
     alt: ''
@@ -93,13 +93,13 @@ photos:
     alt: ''
     tags:
       - '0827'
-    featured: true
+    rating: 1
   - file: 000008270020.tif
     sourceId: 353ef21967e31bdc
     alt: ''
     tags:
       - '0827'
-    featured: true
+    rating: 1
   - file: 000008270021.tif
     sourceId: ab8d861ccd3baa44
     alt: ''
@@ -110,7 +110,7 @@ photos:
     alt: ''
     tags:
       - '0827'
-    featured: true
+    rating: 1
   - file: 000008270023.tif
     sourceId: fcbd3623c055ecf9
     alt: ''
@@ -121,7 +121,7 @@ photos:
     alt: ''
     tags:
       - '0827'
-    featured: true
+    rating: 1
   - file: 000008270025.tif
     sourceId: d6632667848ff428
     alt: ''
@@ -132,13 +132,13 @@ photos:
     alt: ''
     tags:
       - '0827'
-    featured: true
+    rating: 1
   - file: 000008270027.tif
     sourceId: 9dc2676b85239a35
     alt: ''
     tags:
       - '0827'
-    featured: true
+    rating: 1
   - file: 000008270028.tif
     sourceId: d57177348bc002ee
     alt: ''
@@ -154,13 +154,13 @@ photos:
     alt: ''
     tags:
       - '0827'
-    featured: true
+    rating: 1
   - file: 000008270031.tif
     sourceId: ccf278c7e0ba98d5
     alt: ''
     tags:
       - '0827'
-    featured: true
+    rating: 1
   - file: 000008270032.tif
     sourceId: 7de2a96676718583
     alt: ''
@@ -186,7 +186,7 @@ photos:
     alt: ''
     tags:
       - '0827'
-    featured: true
+    rating: 1
   - file: 000008270037.tif
     sourceId: ef416a2473cf8705
     alt: ''
@@ -197,7 +197,7 @@ photos:
     alt: ''
     tags:
       - '0827'
-    featured: true
+    rating: 1
   - file: 000008270039.tif
     sourceId: b14a77278fddfd73
     alt: ''

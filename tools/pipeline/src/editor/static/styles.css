@@ -12,6 +12,7 @@
   --danger: #d97a6a;
   --chip: #2a2d33;
   --chip-mixed: #4a3f2a;
+  --heart: #e88a96;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
@@ -172,18 +173,25 @@ textarea {
   background: var(--danger);
 }
 
-.cell .featured-star {
+/*
+ * The hearts (rating). One colour throughout; the count is the
+ * distinction — compact here (only the hearts given, an outline when none),
+ * all three places in the inspector and review.
+ */
+.cell .rating-hearts {
   position: absolute;
   top: 4px;
   left: 4px;
   z-index: 1;
-  width: 22px;
+  min-width: 22px;
   height: 22px;
+  padding: 0 5px;
   display: flex;
   align-items: center;
   justify-content: center;
+  letter-spacing: 1px;
   border: none;
-  border-radius: 50%;
+  border-radius: 11px;
   background: rgba(0, 0, 0, 0.45);
   color: #fff;
   font-size: 0.9rem;
@@ -194,17 +202,17 @@ textarea {
     opacity 0.1s,
     transform 0.1s;
 }
-.cell:hover .featured-star,
-.cell.focused .featured-star,
-.cell .featured-star.is-featured {
+.cell:hover .rating-hearts,
+.cell.focused .rating-hearts,
+.cell .rating-hearts.is-rated {
   opacity: 1;
 }
-.cell .featured-star.is-featured {
-  color: #f2c14e;
+.cell .rating-hearts.is-rated {
+  color: var(--heart);
   background: rgba(0, 0, 0, 0.55);
 }
-.cell .featured-star:hover {
-  transform: scale(1.15);
+.cell .rating-hearts:hover {
+  transform: scale(1.1);
 }
 
 .cell .cover-mark {
@@ -341,10 +349,18 @@ textarea {
   gap: 0.5rem;
   margin-bottom: 0.75rem;
 }
-.selected-work-field label {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
+.rating-button {
+  background: var(--chip);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  color: var(--dim);
+  letter-spacing: 1px;
+}
+.rating-button.is-rated {
+  border-color: var(--heart);
+  color: var(--heart);
 }
 .featured-order-input {
   width: 8rem;
@@ -582,10 +598,10 @@ textarea {
 
 /*
  * Review: a fast, full-size, keyboard-driven way to look at one photo at a
- * time and star it — the grid's thumbnails are deliberately small (fitting
+ * time and rate it — the grid's thumbnails are deliberately small (fitting
  * many on screen), which makes them the wrong tool for actually judging or
  * reliably clicking a photo. R opens it, arrows/h j k l move through,
- * F stars, Esc closes.
+ * F cycles the hearts, Esc closes.
  */
 #review {
   position: fixed;
@@ -675,7 +691,7 @@ textarea {
   right: 1rem;
 }
 
-#review-star {
+#review-rating {
   margin-top: 1.25rem;
   background: var(--chip);
   border: 1px solid var(--border);
@@ -684,9 +700,9 @@ textarea {
   cursor: pointer;
   color: var(--text);
 }
-#review-star.is-featured {
-  border-color: #f2c14e;
-  color: #f2c14e;
+#review-rating.is-rated {
+  border-color: var(--heart);
+  color: var(--heart);
 }
 
 @media (prefers-color-scheme: light) {

@@ -41,10 +41,12 @@ export interface ArchivePhoto {
   /** Hand-written in photos.yaml, same boundary as caption — no per-photo location until a photograph actually names one. */
   readonly location: string | null;
   /**
-   * Hand-picked for Selected Work, from photos.yaml — a photographer's
-   * editorial choice, per photo, not derived. See `selectedWork()`.
+   * The photographer's rating, from photos.yaml's `rating` (the editor's
+   * hearts): 0 unrated, 1 Decent, 2 Good, 3 Great. Any rating publishes
+   * the photograph (`featuredOnly`, `selectedWork()`); `weightOf` turns it
+   * into how often it leads a shuffle. Never rendered.
    */
-  readonly featured: boolean;
+  readonly rating: Rating;
   /** Manual sequence position within Selected Work; null if unset. See `selectedWork()`. */
   readonly featuredOrder: number | null;
   /**
@@ -61,6 +63,25 @@ export interface ArchivePhoto {
 export interface City {
   readonly tag: string;
   readonly name: string;
+}
+
+/** See `ArchivePhoto.rating`; same values as the pipeline's `Rating` (tools/pipeline/src/album-files.ts). */
+export type Rating = 0 | 1 | 2 | 3;
+
+const WEIGHTS: Readonly<Record<Rating, number>> = { 0: 1, 1: 1.5, 2: 2, 3: 3 };
+
+/**
+ * How much more likely a photograph is to land early in a shuffle than an
+ * unrated one — the only number a page carries (as `data-w`) about a
+ * rating. Read by the weighted shuffles: grid-layout.js's deal,
+ * shuffle-grid.ts, exhibition-model.ts.
+ */
+export function weightOf(rating: Rating): number {
+  return WEIGHTS[rating];
+}
+
+function readRating(value: unknown): Rating {
+  return value === 1 || value === 2 || value === 3 ? value : 0;
 }
 
 export interface Archive {
@@ -101,8 +122,8 @@ interface PhotoEntry {
   readonly caption?: string;
   readonly location?: string;
   readonly tags?: string[];
-  /** Hand-picked for Selected Work — a photographer's editorial choice, per photo, not derived. */
-  readonly featured?: boolean;
+  /** 1–3 publishes the photograph; absent is unrated. See `ArchivePhoto.rating`. */
+  readonly rating?: number;
   /** Manual sequence position within Selected Work; lower sorts first. Photos without one sort after those with one, by archival order. */
   readonly featuredOrder?: number;
 }
@@ -210,7 +231,7 @@ export function joinBatch(
     caption: string | null,
     location: string | null,
     tags: readonly string[],
-    featured: boolean,
+    rating: Rating,
     featuredOrder: number | null,
   ): ArchivePhoto {
     const roll = rollsById.get(photo.roll);
@@ -230,7 +251,7 @@ export function joinBatch(
       alt,
       caption,
       location,
-      featured,
+      rating,
       featuredOrder,
       cover: photo.file === coverFile,
     };
@@ -255,7 +276,7 @@ export function joinBatch(
         entry.caption?.trim() ? entry.caption.trim() : null,
         entry.location?.trim() ? entry.location.trim() : null,
         entry.tags ?? [],
-        entry.featured === true,
+        readRating(entry.rating),
         typeof entry.featuredOrder === 'number' ? entry.featuredOrder : null,
       ),
     );
@@ -264,7 +285,7 @@ export function joinBatch(
   // Anything ingested but not yet listed still appears, at the end, rather
   // than silently vanishing from the archive.
   for (const photo of byFile.values()) {
-    ordered.push(toArchivePhoto(photo, '', null, null, [], false, null));
+    ordered.push(toArchivePhoto(photo, '', null, null, [], 0, null));
   }
   return ordered;
 }
@@ -300,7 +321,7 @@ function loadBatch(slug: string): ArchivePhoto[] {
 
 /**
  * Reads every batch's manifest and merges them into one canonical, flat
- * archive — every photograph, featured or not. Only /exposures/archives/
+ * archive — every photograph, rated or not. Only /exposures/archives/
  * shows this; every other page reads `loadArchive()`.
  */
 export function loadFullArchive(): Archive {
@@ -327,10 +348,10 @@ export function loadFullArchive(): Archive {
 }
 
 /**
- * The archive the public site shows: only photographs marked `featured`
- * (Selected Work). Tag, film-stock, tag-index, Saved and Share pages — and
+ * The archive the public site shows: only rated photographs (any number
+ * of hearts — Selected Work). Tag, film-stock, tag-index, Saved and Share pages — and
  * the counts and sitemap URLs in collections.ts — all read this, so an
- * unstarred photo, and a tag or film stock with no starred photo, simply
+ * unrated photo, and a tag or film stock with no rated photo, simply
  * doesn't exist outside /exposures/archives/. See docs/decisions.md.
  */
 export function loadArchive(): Archive {
@@ -338,7 +359,7 @@ export function loadArchive(): Archive {
 }
 
 export function featuredOnly(archive: Archive): Archive {
-  return { ...archive, photos: archive.photos.filter((photo) => photo.featured) };
+  return { ...archive, photos: archive.photos.filter((photo) => photo.rating > 0) };
 }
 
 /** Missing file means no cities yet, not an error; a malformed entry is skipped. */
@@ -457,7 +478,7 @@ export function viewForFilmStock(archive: Archive, filmStock: string): View {
 /**
  * Selected Work: a hand-picked, hand-ordered sequence across the whole
  * archive — deliberately not chronological. A photo is included by
- * `photos.yaml`'s per-photo `featured: true`; its position comes from
+ * `photos.yaml`'s per-photo `rating` (any); its position comes from
  * `featuredOrder` (lower first). A photo with `featured: true` but no
  * `featuredOrder` set yet still appears, after every ordered one, in the
  * archive's own chronological order — so marking a photo Selected Work is
@@ -465,7 +486,7 @@ export function viewForFilmStock(archive: Archive, filmStock: string): View {
  */
 export function selectedWork(archive: Archive): ArchivePhoto[] {
   return archive.photos
-    .filter((photo) => photo.featured)
+    .filter((photo) => photo.rating > 0)
     .sort((a, b) => {
       if (a.featuredOrder !== null && b.featuredOrder !== null) {
         return a.featuredOrder - b.featuredOrder || byRollAndFrame(a, b);

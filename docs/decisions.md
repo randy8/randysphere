@@ -3343,3 +3343,37 @@ this page's own controls follow you.
 
 Also: Society (1989) had matched Dead Poets Society on TMDB; pinned to
 22244 in `films/tmdb-corrections.yaml`.
+
+---
+
+## 2026-10-26 — Hearts replace the star: a three-tier rating that publishes and weights
+
+**Decision.** photos.yaml's `featured: true` becomes `rating: 1|2|3`
+(Decent, Good, Great); absent is unrated. Any rating publishes the photo,
+exactly as the star did — `featuredOnly`, `selectedWork()` now test
+`rating > 0` — so one field decides both whether and how strongly a photo is
+shown, and the two can never disagree. The editor's star becomes a heart
+control that cycles Unrated → Decent → Good → Great → Unrated (grid,
+inspector, and review's F). Migration: every `featured: true` (251) became
+`rating: 1`, every `featured: false` (10) was dropped; nothing changed on
+the public site. No fallback reader for `featured` — the same no-migration
+stance as the manifest schema.
+
+**Weighting.** `weightOf` (archive.ts): unrated 1, Decent 1.5, Good 2,
+Great 3. Every shuffle — the pre-paint deal in grid-layout.js, Selected
+Work's Shuffle, Exhibition's rounds — is Efraimidis–Spirakis: each photo
+draws u^(1/weight) and the largest go first. Equal weights are an ordinary
+uniform shuffle; a heavier photo tends to land earlier, never certainly
+(3× against 1× leads three times in four — a unit test holds that). The
+deal stays seeded per visit, so Back still finds the same arrangement.
+There is no selection step to weight: every page shows all its photos, so
+weight only moves position (and how soon Exhibition reaches a photo).
+
+**Visibility.** The shuffle runs in the browser, so each tile carries its
+weight as `data-w`. Never shown, but readable in page source — accepted by
+the owner over baking a weighted order into each build (which would hide it
+at the cost of per-visit randomness).
+
+**Rejected.** Hearts beside a kept star (two controls for one judgement;
+the owner chose replacement); a separate weights file (the rating already
+is the weight); a fallback reader for old `featured:` entries.

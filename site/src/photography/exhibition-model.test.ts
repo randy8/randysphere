@@ -15,6 +15,7 @@ import {
   readSource,
   returnHref,
   selectPhotos,
+  shuffle,
   titleOf,
   writeSettings,
 } from './exhibition-model.ts';
@@ -39,6 +40,7 @@ const photo = (id: string, extra: Partial<ExhibitionPhoto> = {}): ExhibitionPhot
   tags: [],
   places: [],
   date: null,
+  weight: 1,
   ...extra,
 });
 
@@ -128,7 +130,7 @@ test('settings round-trip through the URL, writing only what differs from the de
 });
 
 test('in sequence, the playlist loops in order and steps back', () => {
-  const list = new Playlist(3, 'sequence');
+  const list = new Playlist([1, 1, 1], 'sequence');
   assert.equal(list.current, 0);
   assert.equal(list.peek(), 1);
   assert.deepEqual([list.next(), list.next(), list.next()], [1, 2, 0]);
@@ -143,7 +145,7 @@ test('shuffled, every photograph shows once per round, and a round never opens o
     seed = (seed * 16807) % 2147483647;
     return seed / 2147483647;
   };
-  const list = new Playlist(5, 'shuffle', random);
+  const list = new Playlist([1, 1.5, 2, 3, 1], 'shuffle', random);
   for (let round = 0; round < 50; round += 1) {
     const seen = [list.current];
     for (let i = 1; i < 5; i += 1) seen.push(list.next());
@@ -155,8 +157,27 @@ test('shuffled, every photograph shows once per round, and a round never opens o
   }
 });
 
+test('a weighted shuffle favours the heavier photograph in proportion, never always', () => {
+  let seed = 11;
+  const random = (): number => {
+    seed = (seed * 16807) % 2147483647;
+    return seed / 2147483647;
+  };
+  // Two photographs, 3× against 1×: the heavier leads 3/4 of the time.
+  let heavierFirst = 0;
+  const runs = 4000;
+  for (let run = 0; run < runs; run += 1) {
+    const [first] = shuffle(['great', 'unrated'], (item) => (item === 'great' ? 3 : 1), random);
+    if (first === 'great') heavierFirst += 1;
+  }
+  assert.ok(
+    Math.abs(heavierFirst / runs - 0.75) < 0.03,
+    `${String(heavierFirst)} of ${String(runs)}`,
+  );
+});
+
 test('a single photograph is its own next', () => {
-  const list = new Playlist(1, 'shuffle');
+  const list = new Playlist([1], 'shuffle');
   assert.equal(list.peek(), 0);
   assert.equal(list.next(), 0);
 });

@@ -3,7 +3,7 @@ import GridLayout from '../../../photography/GridLayout.astro';
 import Lightbox from '../../../photography/Lightbox.astro';
 import Photo from '../../../photography/Photo.astro';
 import Base from '../../../layouts/Base.astro';
-import { loadFullArchive } from '../../../photography/archive.ts';
+import { loadFullArchive, weightOf } from '../../../photography/archive.ts';
 import { GRID_SIZES } from '../../../photography/image.ts';
 
 // Deliberately unlinked — not in any nav, not in collections.ts's
@@ -12,7 +12,7 @@ import { GRID_SIZES } from '../../../photography/image.ts';
 // photograph in the collection, flattened, not one cover per tag the way
 // that page is — this is the real "everything" view, for one visitor who
 // already knows the URL. The one page that reads the full archive: every
-// other page shows only featured photographs (archive.ts, loadArchive).
+// other page shows only rated photographs (archive.ts, loadArchive).
 const archive = loadFullArchive();
 
 // Archival order here; shuffle-on-load.ts deals a random one in the browser.
@@ -30,7 +30,7 @@ const { photos } = archive;
   <div class="grid" data-grid>
     {
       photos.map((entry, index) => (
-        <figure data-photo-id={entry.photo.sourceId}>
+        <figure data-photo-id={entry.photo.sourceId} data-w={weightOf(entry.rating)}>
           <Photo
             entry={entry}
             sizes={GRID_SIZES}

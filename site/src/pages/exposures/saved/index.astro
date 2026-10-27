@@ -3,7 +3,7 @@ import GridLayout from '../../../photography/GridLayout.astro';
 import Lightbox from '../../../photography/Lightbox.astro';
 import Photo from '../../../photography/Photo.astro';
 import Base from '../../../layouts/Base.astro';
-import { loadArchive } from '../../../photography/archive.ts';
+import { loadArchive, weightOf } from '../../../photography/archive.ts';
 import { GRID_SIZES } from '../../../photography/image.ts';
 import { photography } from '../../../photography/config.ts';
 
@@ -88,7 +88,7 @@ const archive = loadArchive();
   <ul class="grid saved-grid" data-saved-grid>
     {
       archive.photos.map((entry, index) => (
-        <li data-photo-id={entry.photo.sourceId}>
+        <li data-photo-id={entry.photo.sourceId} data-w={weightOf(entry.rating)}>
           <Photo
             entry={entry}
             sizes={GRID_SIZES}

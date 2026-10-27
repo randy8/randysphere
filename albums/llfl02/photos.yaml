@@ -12,7 +12,7 @@ photos:
     alt: ''
     tags:
       - llfl02
-    featured: true
+    rating: 1
   - file: RLiang08072610.tif
     sourceId: 2974a7c16d97062d
     alt: ''
@@ -23,13 +23,13 @@ photos:
     alt: ''
     tags:
       - llfl02
-    featured: true
+    rating: 1
   - file: RLiang08072612.tif
     sourceId: e32a47b93641c066
     alt: ''
     tags:
       - llfl02
-    featured: true
+    rating: 1
   - file: RLiang08072613.tif
     sourceId: 31f7406aa2d8c090
     alt: ''
@@ -40,7 +40,7 @@ photos:
     alt: ''
     tags:
       - llfl02
-    featured: true
+    rating: 1
   - file: RLiang08072615.tif
     sourceId: 33a540749929898a
     alt: ''
@@ -56,7 +56,7 @@ photos:
     alt: ''
     tags:
       - llfl02
-    featured: true
+    rating: 1
   - file: RLiang08072618.tif
     sourceId: 092fbcb8efe93aef
     alt: ''
@@ -92,25 +92,25 @@ photos:
     alt: ''
     tags:
       - llfl02
-    featured: true
+    rating: 1
   - file: RLiang08072624.tif
     sourceId: 3a0641b16d846baf
     alt: ''
     tags:
       - llfl02
-    featured: true
+    rating: 1
   - file: RLiang08072625.tif
     sourceId: 382bfc2dd36ab03e
     alt: ''
     tags:
       - llfl02
-    featured: true
+    rating: 1
   - file: RLiang08072626.tif
     sourceId: 8bba3181ad7abfea
     alt: ''
     tags:
       - llfl02
-    featured: true
+    rating: 1
   - file: RLiang08072627.tif
     sourceId: c615217b8c1ca71b
     alt: ''
@@ -146,7 +146,7 @@ photos:
     alt: ''
     tags:
       - llfl02
-    featured: true
+    rating: 1
   - file: RLiang08072633.tif
     sourceId: f1a202b9c3d0dfe1
     alt: ''

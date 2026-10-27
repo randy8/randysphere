@@ -37,7 +37,7 @@ originals/<batch>/[<roll>/]*.tif|jpg|png|webp   git-ignored, immutable, never up
    ▼
 generated/albums/<batch>.json    committed manifest — the pipeline↔site contract
 generated/derivatives/p/<hash>/  git-ignored, rebuildable encoded images
-albums/<batch>/photos.yaml       hand-edited: alt, caption, tags, featured,
+albums/<batch>/photos.yaml       hand-edited: alt, caption, tags, rating,
                                  featuredOrder, rotate
 albums/<batch>/rolls.yaml        hand-edited: filmStock, notes
 albums/<batch>/album.md          only `cover:` is read
@@ -61,12 +61,17 @@ tools/serve/            production server: site/release/ (written only by `pnpm 
   public meaning. A _trip is a tag_ — `/exposures/<tag>/` is `viewForTag`,
   identical code for trips, places, subjects. Never reintroduce a structural
   "trip"/"album" type that owns photographs.
-- **Only featured photos are public.** `loadArchive()` returns only
-  `featured: true` photos — every tag, film-stock, Saved and Share page and
+- **Only rated photos are public.** `rating: 1|2|3` in photos.yaml (the
+  editor's hearts: Decent, Good, Great; absent = unrated). `loadArchive()`
+  returns only rated photos — every tag, film-stock, Saved and Share page and
   the sitemap see that subset. `loadFullArchive()` (everything) is read by
-  `/exposures/archives/` alone. Starring a photo in the editor is publishing it.
+  `/exposures/archives/` alone. Giving a photo a heart is publishing it.
+- **The rating weights every shuffle**: 1.5×/2×/3× against unrated 1×
+  (`weightOf` in archive.ts → `data-w` on each tile → Efraimidis–Spirakis in
+  `grid-layout.js`, `shuffle-grid.ts`, `exhibition-model.ts`). Favoured,
+  never guaranteed; the rating itself is never rendered.
 - Non-tag queries: film stock (`rolls.yaml` → `/exposures/film/<stock>/`),
-  Selected Work (`featured`/`featuredOrder` → `selectedWork()`, the
+  Selected Work (`rating`/`featuredOrder` → `selectedWork()`, the
   `/exposures/` front page), and cover (`album.md`).
 - **Every photo page opens in a random order** on each visit and on every
   refresh; coming back to it (Back, or a link) finds the arrangement it

@@ -203,7 +203,10 @@ function start(root: HTMLElement, data: ExhibitionData): void {
 
   // --- Playing -----------------------------------------------------------------
 
-  let playlist = new Playlist(photos.length, settings.order);
+  let playlist = new Playlist(
+    photos.map((photo) => photo.weight),
+    settings.order,
+  );
   let front = first;
   let back = second;
   let playing = true;
@@ -561,7 +564,10 @@ function start(root: HTMLElement, data: ExhibitionData): void {
     if (settings.order !== previous.order) {
       // Carry on from the photograph on the wall, in the new order.
       const current = playlist.current;
-      playlist = new Playlist(photos.length, settings.order);
+      playlist = new Playlist(
+        photos.map((photo) => photo.weight),
+        settings.order,
+      );
       playlist.seek(current);
       preloadNext(step);
     }

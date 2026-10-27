@@ -7,6 +7,7 @@ import {
   citiesOf,
   loadArchive,
   selectedWork,
+  weightOf,
 } from '../../photography/archive.ts';
 import { GRID_SIZES } from '../../photography/image.ts';
 import { photography } from '../../photography/config.ts';
@@ -37,8 +38,8 @@ const locations = archive.cities.filter((city) =>
   {
     photos.length === 0 ? (
       <p class="lede">
-        Nothing is featured yet — mark a photo <code>featured: true</code> in its
-        batch's photos.yaml to have it appear here.
+        Nothing is published yet — give a photo a heart in the editor (its
+        batch's photos.yaml <code>rating</code>) to have it appear here.
       </p>
     ) : (
       <Fragment>
@@ -77,6 +78,7 @@ const locations = archive.cities.filter((city) =>
           {photos.map((entry, index) => (
             <figure
               data-photo-id={entry.photo.sourceId}
+              data-w={weightOf(entry.rating)}
               data-film-stock={entry.roll.filmStock}
               data-cities={citiesOf(archive, entry)
                 .map((city) => city.tag)

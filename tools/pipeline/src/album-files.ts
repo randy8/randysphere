@@ -120,10 +120,36 @@ export interface PhotosFileEntry {
   readonly alt: string;
   readonly caption: string | null;
   readonly tags: readonly string[];
-  readonly featured: boolean;
+  /** Published, and how strongly — see `Rating`. 0 when absent. */
+  readonly rating: Rating;
   readonly featuredOrder: number | null;
   /** Clockwise quarter turn baked into the derivatives by `pnpm ingest`; 0 when absent. */
   readonly rotate: Rotation;
+}
+
+/**
+ * A photograph's curatorial rating, set from the editor's hearts: 0
+ * unrated (unpublished — absent from photos.yaml), 1 Decent, 2 Good, 3
+ * Great. Any rating publishes the photograph; the site weights its
+ * shuffles by it (archive.ts's `weightOf`). One field, so publishing and
+ * weighting can never disagree.
+ */
+export type Rating = 0 | 1 | 2 | 3;
+
+export function isRating(value: unknown): value is Rating {
+  return value === 0 || value === 1 || value === 2 || value === 3;
+}
+
+/** Same rule as rotate: a hand-typed `rating: 5` fails loudly. */
+function readRating(item: YAMLMap, source: string, file: string): Rating {
+  const value: unknown = item.get('rating');
+  if (value === undefined) return 0;
+  if (!isRating(value)) {
+    throw new PipelineError(
+      `${source}: ${file} has rating: ${JSON.stringify(value)}; it must be 1, 2, or 3.`,
+    );
+  }
+  return value;
 }
 
 /** A hand-typed `rotate: 45` fails loudly rather than being silently ignored. */
@@ -167,7 +193,7 @@ export async function readPhotosFile(albumDirectory: string): Promise<PhotosFile
       alt: typeof alt === 'string' ? alt : '',
       caption: typeof caption === 'string' && caption.length > 0 ? caption : null,
       tags: readTags(map),
-      featured: map.get('featured') === true,
+      rating: readRating(map, source, file),
       featuredOrder: typeof featuredOrder === 'number' ? featuredOrder : null,
       rotate: readRotate(map, source, file),
     };
@@ -588,8 +614,8 @@ export interface PhotoEdit {
   readonly alt?: string;
   /** Present & string => replace. Present & null => delete the key entirely. Absent => leave untouched. */
   readonly caption?: string | null;
-  /** Present => replace. Absent => leave untouched. Selected Work — see archive.ts's selectedWork(). */
-  readonly featured?: boolean;
+  /** Present & non-zero => replace. Present & 0 => delete the key entirely (unpublished). Absent => leave untouched. See `Rating`. */
+  readonly rating?: Rating;
   /** Present & number => replace. Present & null => delete the key entirely (unordered, sorts after every ordered photo). Absent => leave untouched. */
   readonly featuredOrder?: number | null;
   /** Present & non-zero => replace. Present & 0 => delete the key entirely. Absent => leave untouched. */
@@ -675,7 +701,13 @@ export async function applyPhotoEdits(
       }
       item.set('tags', document.createNode(kept));
     }
-    if (edit.featured !== undefined) item.set('featured', edit.featured);
+    if (edit.rating !== undefined) {
+      if (!isRating(edit.rating)) {
+        throw new PipelineError(`rating must be 0, 1, 2, or 3, got ${String(edit.rating)}.`);
+      }
+      if (edit.rating === 0) item.delete('rating');
+      else item.set('rating', edit.rating);
+    }
     if (edit.featuredOrder !== undefined) {
       if (edit.featuredOrder === null) item.delete('featuredOrder');
       else item.set('featuredOrder', edit.featuredOrder);

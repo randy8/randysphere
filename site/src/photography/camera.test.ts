@@ -49,7 +49,7 @@ function entry(overrides: { camera?: Camera | null; location?: string | null } =
     alt: '',
     caption: null,
     location: overrides.location ?? null,
-    featured: false,
+    rating: 0,
     featuredOrder: null,
     cover: false,
   };

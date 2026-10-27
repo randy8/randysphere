@@ -12,15 +12,15 @@ photos:
     alt: ''
     tags:
       - '0425'
-    featured: true
+    rating: 1
   - file: 000004250004.tif
     sourceId: ea82b133227dc19a
     alt: ''
     tags:
       - '0425'
-    featured: true
+    rating: 1
   - file: 000004250005.tif
-    featured: true
+    rating: 1
     sourceId: 82f386e5e5085816
     alt: ''
     tags:
@@ -30,7 +30,7 @@ photos:
     alt: ''
     tags:
       - '0425'
-    featured: true
+    rating: 1
   - file: 000004250007.tif
     sourceId: 381b787a59c1c52b
     alt: ''
@@ -46,13 +46,13 @@ photos:
     alt: ''
     tags:
       - '0425'
-    featured: true
+    rating: 1
   - file: 000004250010.tif
     sourceId: b918d371323f2333
     alt: ''
     tags:
       - '0425'
-    featured: true
+    rating: 1
   - file: 000004250011.tif
     sourceId: 7a713e87418fda30
     alt: ''
@@ -63,25 +63,25 @@ photos:
     alt: ''
     tags:
       - '0425'
-    featured: true
+    rating: 1
   - file: 000004250013.tif
     sourceId: 5ec5f8b62f82a152
     alt: ''
     tags:
       - '0425'
-    featured: true
+    rating: 1
   - file: 000004250014.tif
     sourceId: 14266ef25f24190f
     alt: ''
     tags:
       - '0425'
-    featured: true
+    rating: 1
   - file: 000004250015.tif
     sourceId: 5ece81f93a18c15d
     alt: ''
     tags:
       - '0425'
-    featured: true
+    rating: 1
   - file: 000004250016.tif
     sourceId: e7d10f09a4687f95
     alt: ''
@@ -92,7 +92,7 @@ photos:
     alt: ''
     tags:
       - '0425'
-    featured: true
+    rating: 1
   - file: 000004250018.tif
     sourceId: 20ba66b7a2d8476a
     alt: ''
@@ -113,15 +113,15 @@ photos:
     alt: ''
     tags:
       - '0425'
-    featured: true
+    rating: 1
   - file: 000004250022.tif
-    featured: true
+    rating: 1
     sourceId: 148e497cbc93c4ad
     alt: ''
     tags:
       - '0425'
   - file: 000004250023.tif
-    featured: true
+    rating: 1
     sourceId: a404da7a83a5aae4
     alt: ''
     tags:
@@ -142,7 +142,7 @@ photos:
     tags:
       - '0425'
   - file: 000004250027.tif
-    featured: true
+    rating: 1
     sourceId: 5fc953c24f46a3c6
     alt: ''
     tags:
@@ -153,7 +153,7 @@ photos:
     tags:
       - '0425'
   - file: 000004250029.tif
-    featured: true
+    rating: 1
     sourceId: c848fdc67722b519
     alt: ''
     tags:
@@ -163,13 +163,13 @@ photos:
     alt: ''
     tags:
       - '0425'
-    featured: true
+    rating: 1
   - file: 000004250031.tif
     sourceId: 5aa80498e839866d
     alt: ''
     tags:
       - '0425'
-    featured: true
+    rating: 1
   - file: 000004250032.tif
     sourceId: 7d706efa42fbe2c9
     alt: ''
@@ -180,9 +180,9 @@ photos:
     alt: ''
     tags:
       - '0425'
-    featured: true
+    rating: 1
   - file: 000004250034.tif
-    featured: true
+    rating: 1
     sourceId: 069193b2a3b8e5dd
     alt: ''
     tags:
