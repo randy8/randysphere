@@ -930,6 +930,11 @@ main {
   color: var(--accent);
   border-color: var(--accent);
 }
+/* No browser focus ring: it stayed lit after picking an option with the
+   mouse. The accent hairline above marks keyboard focus instead. */
+.selected-filter select:focus {
+  outline: none;
+}
 .selected-filter select {
   padding-right: 1rem;
   background-image:
