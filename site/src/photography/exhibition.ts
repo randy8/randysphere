@@ -107,10 +107,12 @@ function start(root: HTMLElement, data: ExhibitionData): void {
   if (stage === null || first === undefined || second === undefined) return;
 
   const title = titleOf(source, data.titles);
-  document.title = `${title} — ${document.title}`;
-  stage.setAttribute('aria-label', title);
-  const titleEl = root.querySelector('[data-title]');
-  if (titleEl !== null) titleEl.textContent = title;
+  if (title !== null) {
+    document.title = `${title} — ${document.title}`;
+    stage.setAttribute('aria-label', title);
+    const titleEl = root.querySelector('[data-title]');
+    if (titleEl !== null) titleEl.textContent = title;
+  }
   for (const link of root.querySelectorAll<HTMLAnchorElement>('[data-close]')) {
     link.href = returnHref(source);
   }

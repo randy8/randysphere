@@ -75,14 +75,17 @@ export function selectPhotos(
   );
 }
 
-/** What the exhibition is called on screen, and in the tab. */
-export function titleOf(source: Source, titles: Readonly<Record<string, string>>): string {
+/**
+ * What the exhibition is called on screen, and in the tab; null for the
+ * default (no source), which needs no name.
+ */
+export function titleOf(source: Source, titles: Readonly<Record<string, string>>): string | null {
   if (source.code !== null) return 'Shared photographs';
   const parts = [
     source.tag === null ? null : (titles[source.tag] ?? source.tag),
     source.film === null ? null : filmStockName(source.film),
   ].filter((part): part is string => part !== null);
-  return parts.length > 0 ? parts.join(' · ') : 'Selected Work';
+  return parts.length > 0 ? parts.join(' · ') : null;
 }
 
 /** Where Close goes: the page this exhibition was opened from. */

@@ -88,7 +88,7 @@ test('a share code naming nothing public shows nothing — never the whole archi
 
 test('titles and the way back follow the source', () => {
   const titles = { 'paris-2025': 'Paris 2025' };
-  assert.equal(titleOf(readSource(params('')), titles), 'Selected Work');
+  assert.equal(titleOf(readSource(params('')), titles), null);
   assert.equal(titleOf(readSource(params('tag=paris-2025')), titles), 'Paris 2025');
   assert.equal(
     titleOf(readSource(params('tag=paris-2025&film=Gold+200')), titles),

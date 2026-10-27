@@ -150,6 +150,10 @@ html:has(.exhibition) body {
   color: var(--wall-muted);
   font-variant-numeric: tabular-nums lining-nums;
 }
+/* Untitled (the default, no source): the count stands alone. */
+[data-title]:empty + .exhibition-position {
+  margin-left: 0;
+}
 
 .exhibition-transport,
 .exhibition-options {
