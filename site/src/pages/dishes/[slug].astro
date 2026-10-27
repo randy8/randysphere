@@ -141,7 +141,6 @@ const both = (line: VeganLine, render: (text: string) => string): string =>
                     <span class="recipe-swap-to">{swap.into.charAt(0).toLowerCase() + swap.into.slice(1)}</span>
                     <span class="recipe-swap-confidence">{CONFIDENCE_LABEL[swap.option.confidence]}</span>
                   </p>
-                  <p class="recipe-swap-why">{swap.option.why}</p>
                   {swap.option.products.length > 0 && (
                     <p class="recipe-swap-products">Try {swap.option.products.join(', ')}.</p>
                   )}

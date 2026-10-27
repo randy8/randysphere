@@ -455,7 +455,6 @@
   color: var(--muted);
   white-space: nowrap;
 }
-.recipe-swap-why,
 .recipe-swap-products {
   margin: 0.35rem 0 0;
   font-size: 0.9375rem;

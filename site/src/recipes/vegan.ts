@@ -11,9 +11,11 @@
  *   already fine; each entry's `unless`/`unlessFollowedBy` rule out the
  *   rest ("peanut butter", "cream of tartar").
  * - A swap keeps the recipe's own quantity. Ratios (flax per egg) live in
- *   the explanation, never as a new bold quantity the scaler would scale.
- * - `reformulate` swaps are never applied: the line stays as written, the
- *   page says why, and the recipe isn't offered as vegan.
+ *   the library's `why`, never as a new bold quantity the scaler would scale.
+ *   The page lists each swap and its products only; `why` stays in the
+ *   library as the reasoning behind it, unrendered.
+ * - `reformulate` swaps are never applied: the line stays as written, and
+ *   the recipe isn't offered as vegan.
  * - Instructions change only for ingredients the recipe actually swapped,
  *   with the same choice, so the list and the steps always agree.
  */

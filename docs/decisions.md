@@ -3377,3 +3377,23 @@ at the cost of per-visit randomness).
 **Rejected.** Hearts beside a kept star (two controls for one judgement;
 the owner chose replacement); a separate weights file (the rating already
 is the weight); a fallback reader for old `featured:` entries.
+
+## 2026-10-27 — Vegan swaps list the swap and the products, not the reasoning
+
+The Vegan swaps section on a recipe showed each option's `why` — a few
+sentences on how the substitute behaves ("Grated over pasta or vegetables
+it reads the same…"). Too verbose for the page. It now shows the swap
+(`butter → plant-based butter`), its confidence, and "Try …" products.
+`why` stays required in `recipes/substitutions/vegan.yaml` as the library's
+own reasoning, unrendered.
+
+**Cost.** Ratios that live only in `why` (flax per egg, lemon per cup of
+soy milk) no longer reach the page. No current recipe uses those swaps;
+when one does, the ratio belongs in a short `use` or in the recipe itself.
+
+**Rejected.** Deleting `why` from the library (it's how the options were
+chosen, and the tests rely on each option being explained).
+
+Same day: recipe notes that read as generic filler rather than the
+author's own voice were removed (one teriyaki note kept), following the
+Crunchwrap's notes on 2026-10-26.
