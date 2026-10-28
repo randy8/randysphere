@@ -97,6 +97,36 @@ export default defineConfig([
   },
 
   {
+    // The family chat's page script, served as-is by tools/serve — plain
+    // browser JavaScript, no bundler, same reasoning as the editor's.
+    files: ['tools/serve/src/family/static/**/*.js'],
+    languageOptions: {
+      globals: {
+        document: 'readonly',
+        window: 'readonly',
+        navigator: 'readonly',
+        location: 'readonly',
+        fetch: 'readonly',
+        crypto: 'readonly',
+        localStorage: 'readonly',
+        matchMedia: 'readonly',
+        getComputedStyle: 'readonly',
+        innerWidth: 'readonly',
+        innerHeight: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        createImageBitmap: 'readonly',
+        EventSource: 'readonly',
+        HTMLElement: 'readonly',
+        IntersectionObserver: 'readonly',
+        ResizeObserver: 'readonly',
+        URL: 'readonly',
+        Intl: 'readonly',
+      },
+    },
+  },
+
+  {
     // grid-layout.js is inlined into pages as text (GridLayout.astro), so
     // it's plain browser JavaScript with no bundler in between.
     files: ['site/src/**/*.js'],

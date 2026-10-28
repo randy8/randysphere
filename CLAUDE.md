@@ -25,6 +25,10 @@ shared `src/lib/`:
 | Music       | `/tunes/`     | `music/tracks.yaml`, hand-written                                    | `site/src/music/`       |
 | Films       | `/pictures/`  | `films/ratings.csv` (Letterboxd's export, as-is) + `films/tmdb.json` | `site/src/films/`       |
 
+Not a collection: the **family chat** at `/family/` (`tools/serve/src/family/`,
+`docs/family.md`) — accounts, SQLite in `private/family/`, live over SSE,
+served by `tools/serve` alone; the Astro build knows nothing of it.
+
 Adding a collection: one entry in `collections.ts`, its own `src/pages/<slug>/`,
 and (if needed) its own `src/<slug>/`. `Base.astro` stays collection-agnostic,
 with one deliberate exception: Saved, as a cart (`photography/SavedCart.astro`),
@@ -131,6 +135,8 @@ pnpm run edit            # local editor, 127.0.0.1:4500: tags, alt, captions,
                          # Bare `pnpm edit` is
                          # pnpm's own reserved command — always `pnpm run edit`.
 pnpm doctor              # report drift, change nothing
+pnpm family <command>    # family chat accounts and backups (docs/family.md):
+                         # list, add, passwd, revoke, backup, restore
 pnpm describe            # optional: draft alt text via Claude (ANTHROPIC_API_KEY)
 pnpm films:posters       # TMDB details for films not looked up yet (TMDB_READ_ACCESS_TOKEN;
                          # skipped with a warning if unset): --only, --regenerate
@@ -164,7 +170,9 @@ pnpm verify              # pnpm check + the trial build —
    currently 2) with no migration — old manifests are rejected, re-ingest.
 9. `pnpm run edit` binds `127.0.0.1` only — it writes with no authentication.
 10. Nothing under `site/src/` reads `private/`. Only `tools/serve` does, and
-    only after `verifySessionToken`.
+    only after `verifySessionToken` (`/private`) or a family session
+    (`/family/`, `FamilyStore.resolveSession`) — every chat route, photo and
+    stream resolves the session first.
 11. No new dependency without a `docs/dependencies.md` entry.
 12. `/infra` (tools/serve/src/infra.ts) is served only to the owner's own
     tailnet devices: the connection must arrive on this machine's Tailscale

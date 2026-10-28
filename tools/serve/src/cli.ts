@@ -1,9 +1,11 @@
 import { randomBytes } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import { createPrivateSiteServer } from './server.ts';
 import { tailscaledWhois } from './infra.ts';
+import { FamilyChat } from './family/routes.ts';
 
 function repositoryRoot(): string {
   let directory = process.cwd();
@@ -50,6 +52,13 @@ if (!password || !sessionSecret) {
   console.error(`${distDir} has no build yet. Run \`pnpm build\` first.`);
   process.exitCode = 1;
 } else {
+  // --preview gets an empty chat of its own: looking at a build must never
+  // read, or write to, the family's real conversation.
+  const family = new FamilyChat({
+    dataDir: preview
+      ? mkdtempSync(join(tmpdir(), 'family-preview-'))
+      : join(ROOT, 'private', 'family'),
+  });
   const server = createPrivateSiteServer({
     distDir,
     notesPath: join(ROOT, 'private', 'notes.yaml'),
@@ -64,6 +73,7 @@ if (!password || !sessionSecret) {
     statusDir: join(ROOT, 'status'),
     infraServicesPath: join(ROOT, 'infra', 'services.yaml'),
     whois: tailscaledWhois(),
+    family,
   });
   server.listen(port, () => {
     console.log(
@@ -76,6 +86,9 @@ if (!password || !sessionSecret) {
   // connection can't hold a restart up past TimeoutStopSec.
   process.once('SIGTERM', () => {
     console.log('SIGTERM: finishing in-flight requests');
+    // Open chat streams never go idle by themselves; ending them lets the
+    // close finish, and every browser reconnects to the next server.
+    family.shutdown();
     server.close(() => process.exit(0));
     server.closeIdleConnections();
     setTimeout(() => process.exit(0), 5000).unref();

@@ -3459,3 +3459,49 @@ here, against ~100 for the visualizer). New tracks should be held to the
 same rule.
 
 **Why.** Direct owner request: the page is for the songs, not their videos.
+
+---
+
+## 2026-10-28 — Family chat
+
+**Decision.** A private group chat at `/family/`, inside `tools/serve`
+(`src/family/`): per-person accounts (username + password, Argon2id via
+`node:crypto`), revocable database sessions (random token, SHA-256 at rest,
+400-day sliding cookie scoped to `/family`), SQLite via `node:sqlite` in
+`private/family/chat.db` (WAL, `synchronous = FULL`), live delivery over
+Server-Sent Events with a global `rev` for replay, client-generated ids for
+idempotent sends, photos stored by random id and sniffed from their bytes.
+Admin is a Members page for admin accounts plus `pnpm family` for the first
+account, backups and restore. iMessage-like interface, own stylesheet and
+script under `static/`, strict CSP, no third-party asset. Owner's three
+requests (chat, iMessage look, password accounts) arrived together and were
+built as one.
+
+**Why.** The existing server already owns every private boundary (`/private`,
+`/infra`), runs as one supervised process, and is what Cloudflare reaches; a
+second app would mean a second service, port and ingress rule for a handful
+of users. Node 24 ships Argon2id and SQLite, so no dependency (invariant 11
+not triggered). SSE over WebSockets: plain HTTP the server and Cloudflare
+already handle, built-in browser reconnect with `Last-Event-ID`, and the
+only thing that must flow server → client live is events; sends are ordinary
+POSTs with ordinary error handling. Passwords over the first draft's invite
+links: the owner asked for them, and a password works on a new phone without
+him sending anything through WeChat. Mother in mainland China shaped the
+rest: nothing from Google or any CDN, no email/SMS/CAPTCHA, reconnect and
+replay assumed to be routine rather than exceptional.
+
+**Rejected.** WebSockets (a dependency or a hand-rolled framing layer, and
+nothing gained at this volume). The existing `/private` HMAC token for
+sessions (stateless, so not revocable per person). A separate service or a
+hosted chat backend (Firebase etc. are unreliable from China and put
+messages with a third party). Rendering the chat in the Astro build
+(invariant 10's whole point is that the build never sees private data).
+Per-username lockout only, or per-address only: both, so a guesser can't
+spread one name across addresses, and one address can't spray names.
+Claiming end-to-end encryption: it isn't; Cloudflare terminates TLS and the
+database is plaintext on disk, and docs/family.md says so.
+
+**Contrast note.** `#007AFF` (the owner's specified blue) under white 17px
+text is 4.0:1, under WCAG AA's 4.5:1 for normal text; kept as specified
+since it's the defining colour of the look, with text at 17px. `#0066D6`
+would reach 5.4:1 if that ever matters more.

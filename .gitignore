@@ -51,6 +51,11 @@ Thumbs.db
 # Images referenced by private/notes.yaml — served only behind /private's
 # password, never committed (same as notes.yaml itself).
 /private/photos/
+# The family chat: its database, photos, and backups (tools/serve/src/family,
+# docs/family.md). Served only to signed-in members, never committed.
+/private/family/
+/private/family-backups/
+/private/family-replaced-*/
 
 # Cache of each original's SHA-256 by size+mtime, so an ingest with nothing
 # new skips reading every original (see tools/pipeline/src/source-hashes.ts).

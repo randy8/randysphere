@@ -7,6 +7,7 @@ import { extname, join } from 'node:path';
 import { clearSessionCookie, readSessionCookie, setSessionCookie } from './cookies.ts';
 import { loadNotes } from './notes.ts';
 import { checkHealth } from './health.ts';
+import type { FamilyChat } from './family/routes.ts';
 import { readStatus, renderSystem } from './system.ts';
 import { loadServices, mayViewInfra, probe, renderInfra } from './infra.ts';
 import type { WhoisLookup } from './infra.ts';
@@ -44,6 +45,8 @@ export interface ServeConfig {
   readonly infraServicesPath: string;
   /** Asks tailscaled who a tailnet address is (infra.ts); /infra is a 404 for anyone it can't vouch for. */
   readonly whois: WhoisLookup;
+  /** The family chat at /family/ (family/routes.ts), or null where there is none (a test). */
+  readonly family: FamilyChat | null;
 }
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
@@ -332,8 +335,13 @@ async function route(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const { pathname } = new URL(req.url ?? '/', 'http://localhost');
+  const url = new URL(req.url ?? '/', 'http://localhost');
+  const { pathname } = url;
   const method = req.method ?? 'GET';
+
+  // The family chat answers for all of /family itself, session first, and
+  // never falls through to static files (family/routes.ts).
+  if (config.family !== null && (await config.family.handle(req, res, url))) return;
 
   // Readiness, for the deploy's candidate check and the watchdog: 200 when
   // this process can serve the site (health.ts), 503 with what's missing

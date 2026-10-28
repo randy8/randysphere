@@ -1,0 +1,1209 @@
+/*
+ * The family chat. Its proportions follow a phone's own messaging app —
+ * 17/22 type, 18px bubble radii, a tail only on the last bubble of a run —
+ * in the site's own voice: the header and sign-in title are set in the
+ * site's Newsreader, and the light ground is the site's warm white rather
+ * than a cold UI gray. Everything is self-hosted (no font or script from
+ * another host), so it renders the same from Shanghai as from New York.
+ */
+
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/newsreader-variable.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+2000-206F;
+}
+
+:root {
+  color-scheme: light dark;
+  --bg: #fbfaf8;
+  --text: #000;
+  /* 4.9:1 on --bg: secondary text stays readable, not merely present. */
+  --secondary: #6e6e73;
+  --in-bubble: #e9e9eb;
+  --in-text: #000;
+  --out-bubble: #007aff;
+  --out-text: #fff;
+  --separator: rgb(60 60 67 / 0.22);
+  --bar-bg: rgb(251 250 248 / 0.84);
+  --field-bg: #fff;
+  --field-border: #c9c9cd;
+  --fill: #e9e9eb;
+  --menu-bg: rgb(246 246 248 / 0.94);
+  --danger: #d70015;
+  --scrim: rgb(0 0 0 / 0.18);
+  --ui:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB',
+    'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --serif: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', 'Songti SC', serif;
+  --spring: cubic-bezier(0.2, 1.3, 0.35, 1);
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000;
+    --text: #fff;
+    --secondary: #98989f;
+    --in-bubble: #262628;
+    --in-text: #fff;
+    --out-bubble: #0a84ff;
+    --separator: rgb(84 84 88 / 0.5);
+    --bar-bg: rgb(22 22 24 / 0.8);
+    --field-bg: #000;
+    --field-border: #3a3a3c;
+    --fill: #2c2c2e;
+    --menu-bg: rgb(44 44 46 / 0.94);
+    --danger: #ff453a;
+    --scrim: rgb(0 0 0 / 0.42);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ui);
+  font-size: 17px;
+  line-height: 22px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--out-bubble);
+  outline-offset: 2px;
+}
+
+/* ---- the conversation ------------------------------------------------- */
+
+body.family-chat {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/*
+ * Sized to the visual viewport by chat.js (--vvh, --vvt), so the composer
+ * rides on top of the on-screen keyboard and the header stays put while
+ * Safari's toolbars come and go; 100dvh until the script runs.
+ */
+.app {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 100vh;
+  height: var(--vvh, 100dvh);
+  transform: translateY(var(--vvt, 0px));
+  display: flex;
+  flex-direction: column;
+}
+
+.bar {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) max(8px, env(safe-area-inset-right, 0px)) 7px
+    max(8px, env(safe-area-inset-left, 0px));
+  background: var(--bar-bg);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 0.5px solid var(--separator);
+}
+
+.bar-side {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--out-bubble);
+  text-decoration: none;
+}
+
+.bar-title {
+  text-align: center;
+  min-width: 0;
+}
+
+.avatars {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 3px;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin: 0 -4px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  background: linear-gradient(#a5abb8, #858994);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.bar h1 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 19px;
+}
+
+.bar-subtitle {
+  margin: 0;
+  overflow: hidden;
+  color: var(--secondary);
+  font-size: 11px;
+  line-height: 14px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: color 0.2s var(--ease);
+}
+
+.bar-subtitle.is-offline {
+  color: var(--danger);
+}
+
+.bar-menu {
+  position: relative;
+}
+
+.bar-menu summary {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  list-style: none;
+  cursor: pointer;
+  fill: currentColor;
+}
+
+.bar-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.bar-menu-items {
+  position: absolute;
+  right: 4px;
+  top: 44px;
+  min-width: 180px;
+  padding: 4px 0;
+  border-radius: 13px;
+  background: var(--menu-bg);
+  -webkit-backdrop-filter: blur(30px);
+  backdrop-filter: blur(30px);
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.18);
+  color: var(--text);
+  font-size: 16px;
+}
+
+.bar-menu-items a,
+.bar-menu-items button {
+  display: block;
+  width: 100%;
+  padding: 11px 16px;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.bar-menu-items form {
+  margin: 0;
+}
+
+.scroller {
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding-top: var(--bar-h, 96px);
+  outline: none;
+  touch-action: pan-y;
+  /* chat.js keeps the reader's place itself when older messages load;
+     the browser's own anchoring would move it a second time. */
+  overflow-anchor: none;
+}
+
+.history-sentinel {
+  height: 1px;
+}
+
+.history-spinner {
+  margin: 10px auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--fill);
+  border-top-color: var(--secondary);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.messages {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 6px max(16px, env(safe-area-inset-right, 0px)) 10px
+    max(16px, env(safe-area-inset-left, 0px));
+  list-style: none;
+  /* The swipe-to-see times wait just outside this box, hidden until pulled in. */
+  overflow-x: clip;
+  --reveal: 0px;
+}
+
+.empty,
+.noscript {
+  padding: 3rem 1rem;
+  color: var(--secondary);
+  font-size: 15px;
+  text-align: center;
+}
+
+.sep {
+  margin: 18px 0 8px;
+  color: var(--secondary);
+  font-size: 11px;
+  line-height: 14px;
+  text-align: center;
+}
+
+.sep b {
+  font-weight: 600;
+}
+
+.msg {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin-top: 2px;
+}
+
+.msg.run-start {
+  margin-top: 10px;
+}
+
+.msg-out {
+  align-items: flex-end;
+}
+
+.msg-in {
+  align-items: flex-start;
+}
+
+.msg-author {
+  margin: 0 0 2px 12px;
+  color: var(--secondary);
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.bubble {
+  position: relative;
+  isolation: isolate;
+  max-width: min(75%, 30rem);
+  padding: 7px 12px 7px;
+  border-radius: 18px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-break: auto;
+  cursor: default;
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: none;
+  transition:
+    opacity 0.2s var(--ease),
+    transform 0.25s var(--spring);
+}
+
+.bubble + .bubble {
+  margin-top: 2px;
+}
+
+.msg-out .bubble {
+  background: var(--out-bubble);
+  color: var(--out-text);
+}
+
+.msg-in .bubble {
+  background: var(--in-bubble);
+  color: var(--in-text);
+}
+
+.bubble a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* The tail: two pseudo-elements under the text (isolation above), only on
+   the last bubble of a run. */
+.msg.run-end .bubble:not(.jumbo, .photo)::before,
+.msg.run-end .bubble:not(.jumbo, .photo)::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  bottom: 0;
+  height: 20px;
+}
+
+.msg-out.run-end .bubble:not(.jumbo, .photo)::before {
+  right: -7px;
+  width: 20px;
+  background: var(--out-bubble);
+  border-bottom-left-radius: 16px 14px;
+}
+
+.msg-out.run-end .bubble:not(.jumbo, .photo)::after {
+  right: -26px;
+  width: 26px;
+  background: var(--bg);
+  border-bottom-left-radius: 10px;
+}
+
+.msg-in.run-end .bubble:not(.jumbo, .photo)::before {
+  left: -7px;
+  width: 20px;
+  background: var(--in-bubble);
+  border-bottom-right-radius: 16px 14px;
+}
+
+.msg-in.run-end .bubble:not(.jumbo, .photo)::after {
+  left: -26px;
+  width: 26px;
+  background: var(--bg);
+  border-bottom-right-radius: 10px;
+}
+
+/* On a phone a long press opens the menu (with Copy), as in a native
+   messaging app, instead of starting a text selection. */
+@media (pointer: coarse) {
+  .bubble {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
+/* One to three emoji on their own: large, no bubble. */
+.bubble.jumbo {
+  padding: 0 2px;
+  background: none !important;
+  font-size: 44px;
+  line-height: 52px;
+}
+
+.bubble.photo {
+  padding: 0;
+  overflow: hidden;
+  background: var(--fill) !important;
+  line-height: 0;
+}
+
+.bubble-image {
+  display: block;
+  width: min(240px, 62vw);
+  height: auto;
+  max-height: 60vh;
+  object-fit: cover;
+  cursor: zoom-in;
+}
+
+.msg-static-time {
+  display: none;
+}
+
+.quote {
+  max-width: min(70%, 26rem);
+  margin: 0 8px 2px;
+  padding: 5px 10px;
+  border-radius: 14px;
+  border: 1px solid var(--separator);
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 18px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.quote b {
+  font-weight: 600;
+}
+
+.receipt {
+  margin: 3px 4px 0;
+  color: var(--secondary);
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.msg.pending .bubble {
+  opacity: 0.62;
+}
+
+.msg.failed .bubble {
+  opacity: 1;
+}
+
+.failed-note {
+  margin: 4px 2px 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--danger);
+  font-size: 11px;
+  line-height: 14px;
+  cursor: pointer;
+}
+
+.failed-note::before {
+  content: '!';
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.msg.flash .bubble {
+  animation: flash 0.9s var(--ease);
+}
+
+@keyframes flash {
+  30% {
+    transform: scale(1.04);
+  }
+}
+
+/* Swipe left to see every message's time, as on a phone. */
+.msg-time {
+  position: absolute;
+  /* Past the column's 16px padding, so wholly outside until revealed. */
+  right: -74px;
+  bottom: 2px;
+  width: 56px;
+  color: var(--secondary);
+  font-size: 11px;
+  line-height: 14px;
+  text-align: left;
+  white-space: nowrap;
+  transform: translateX(calc(var(--reveal) * -1));
+  pointer-events: none;
+}
+
+.msg-out > .bubble,
+.msg-out > .quote,
+.msg-out > .receipt,
+.msg-out > .failed-note {
+  transform: translateX(calc(var(--reveal) * -1));
+}
+
+.messages.revealing .msg-time,
+.messages.revealing .msg-out > * {
+  transition: none;
+}
+
+.messages:not(.revealing) .msg-time,
+.messages:not(.revealing) .msg-out > * {
+  transition: transform 0.35s var(--spring);
+}
+
+/* New messages arrive with a small spring, from their own side. */
+.msg.enter > .bubble,
+.msg.enter > .quote {
+  animation: arrive 0.42s var(--spring) both;
+}
+
+.msg-out.enter > .bubble {
+  transform-origin: 100% 100%;
+}
+
+.msg-in.enter > .bubble {
+  transform-origin: 0 100%;
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.86);
+  }
+}
+
+.typing {
+  margin-top: 10px;
+}
+
+.typing .bubble {
+  display: flex;
+  gap: 4px;
+  padding: 12px 13px;
+}
+
+.typing .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--secondary);
+  opacity: 0.4;
+  animation: dot 1.3s infinite var(--ease);
+}
+
+.typing .dot:nth-child(2) {
+  animation-delay: 0.18s;
+}
+
+.typing .dot:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+@keyframes dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 0.9;
+    transform: translateY(-2px);
+  }
+}
+
+.jump {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: calc(var(--composer-h, 56px) + 10px);
+  transform: translateX(-50%);
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--menu-bg);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 2px 14px rgb(0 0 0 / 0.14);
+  color: var(--out-bubble);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 18px;
+  cursor: pointer;
+  animation: arrive 0.35s var(--spring) both;
+}
+
+/* ---- the composer ----------------------------------------------------- */
+
+.composer {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  padding: 6px max(10px, env(safe-area-inset-right, 0px)) max(8px, env(safe-area-inset-bottom, 0px))
+    max(10px, env(safe-area-inset-left, 0px));
+  background: var(--bg);
+}
+
+/* With the keyboard up, the home indicator's inset is under the keyboard. */
+.keyboard-open .composer {
+  padding-bottom: 6px;
+}
+
+.composer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 52rem;
+  margin: 0 auto;
+}
+
+.attach {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--secondary);
+  cursor: pointer;
+}
+
+.attach input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.attach:focus-within {
+  outline: 2px solid var(--out-bubble);
+  outline-offset: 2px;
+}
+
+.field {
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 3px 0 13px;
+  border: 1px solid var(--field-border);
+  border-radius: 18px;
+  background: var(--field-bg);
+}
+
+.field textarea {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  max-height: 140px;
+  margin: 0;
+  padding: 6px 0;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--text);
+  /* 17px: below 16px, Safari zooms the whole page on focus. */
+  font: inherit;
+  font-size: 17px;
+  line-height: 22px;
+  transition: height 0.16s var(--ease);
+}
+
+.field textarea::placeholder {
+  color: var(--secondary);
+  opacity: 0.8;
+}
+
+.send {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: 3px 0 3px 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--out-bubble);
+  color: #fff;
+  cursor: pointer;
+  transition:
+    transform 0.28s var(--spring),
+    background-color 0.15s var(--ease),
+    opacity 0.15s var(--ease);
+}
+
+.send:disabled {
+  background: var(--field-border);
+  cursor: default;
+  transform: scale(0.86);
+}
+
+.send:not(:disabled):active {
+  transform: scale(0.9);
+}
+
+.reply-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 52rem;
+  margin: 0 auto 6px;
+  padding: 0 4px 0 12px;
+  color: var(--secondary);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.reply-bar-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.reply-cancel {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: none;
+  color: var(--secondary);
+  cursor: pointer;
+}
+
+/* ---- the long-press menu ---------------------------------------------- */
+
+.menu-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: var(--scrim);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  animation: fade 0.18s var(--ease) both;
+}
+
+.menu-layer.closing {
+  animation: fade 0.16s var(--ease) reverse both;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.menu-bubble {
+  position: fixed;
+  margin: 0;
+  pointer-events: none;
+  animation: lift 0.32s var(--spring) both;
+}
+
+.menu-bubble .bubble {
+  max-width: none;
+}
+
+@keyframes lift {
+  to {
+    transform: scale(1.04);
+  }
+}
+
+.menu {
+  position: fixed;
+  min-width: 220px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--menu-bg);
+  box-shadow: 0 12px 48px rgb(0 0 0 / 0.22);
+  list-style: none;
+  animation: pop 0.3s var(--spring) both;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+
+.menu-time {
+  padding: 9px 16px 7px;
+  color: var(--secondary);
+  font-size: 12px;
+  line-height: 16px;
+  border-bottom: 0.5px solid var(--separator);
+}
+
+.menu button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-bottom: 0.5px solid var(--separator);
+  background: none;
+  color: var(--text);
+  font-size: 17px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu li:last-child button {
+  border-bottom: 0;
+}
+
+.menu button:hover,
+.menu button:focus-visible {
+  background: rgb(127 127 127 / 0.14);
+  outline: none;
+}
+
+.menu button.danger {
+  color: var(--danger);
+}
+
+.menu svg {
+  flex: none;
+  margin-left: 16px;
+}
+
+/* A photo, full screen. */
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 11;
+  display: grid;
+  place-items: center;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  background: rgb(0 0 0 / 0.94);
+  animation: fade 0.2s var(--ease) both;
+  cursor: zoom-out;
+}
+
+.viewer img {
+  max-width: 100vw;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* ---- desktop ---------------------------------------------------------- */
+
+@media (pointer: fine) and (min-width: 700px) {
+  body {
+    font-size: 15px;
+    line-height: 20px;
+  }
+
+  .bubble {
+    padding: 6px 12px 7px;
+  }
+
+  .field textarea {
+    font-size: 15px;
+    line-height: 20px;
+    height: 32px;
+  }
+
+  .field {
+    min-height: 34px;
+  }
+
+  .bubble-image {
+    width: 280px;
+  }
+}
+
+/* ---- sign in ---------------------------------------------------------- */
+
+body.family-auth {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  place-items: center;
+  padding: env(safe-area-inset-top, 0px) 20px env(safe-area-inset-bottom, 0px);
+}
+
+.auth {
+  width: 100%;
+  max-width: 340px;
+  padding: 40px 0 15vh;
+  text-align: center;
+}
+
+.auth-icon {
+  display: block;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 16px;
+  border-radius: 16px;
+}
+
+.auth-title {
+  margin: 0 0 28px;
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 36px;
+  letter-spacing: -0.01em;
+}
+
+.auth-fields {
+  overflow: hidden;
+  border-radius: 12px;
+  border: 0.5px solid var(--separator);
+  background: var(--field-bg);
+}
+
+.auth-field {
+  display: block;
+}
+
+.auth-field + .auth-field {
+  border-top: 0.5px solid var(--separator);
+}
+
+.auth-field input {
+  display: block;
+  width: 100%;
+  height: 50px;
+  padding: 0 16px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 17px;
+}
+
+.auth-field input::placeholder {
+  color: var(--secondary);
+  opacity: 0.8;
+}
+
+.auth-field:focus-within {
+  box-shadow: inset 3px 0 0 var(--out-bubble);
+}
+
+.auth-error {
+  min-height: 20px;
+  margin: 10px 4px;
+  color: var(--danger);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.auth-submit {
+  width: 100%;
+  height: 50px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--out-bubble);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s var(--spring);
+}
+
+.auth-submit:active {
+  transform: scale(0.98);
+}
+
+/* ---- members (admin) -------------------------------------------------- */
+
+body.family-admin {
+  background: var(--bg);
+}
+
+.admin {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px 4rem;
+  font-size: 16px;
+}
+
+.admin h1 {
+  margin: 4px 4px 20px;
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 500;
+}
+
+.back {
+  color: var(--out-bubble);
+  text-decoration: none;
+}
+
+.notice {
+  margin: 0 4px 20px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--fill);
+}
+
+.group {
+  margin: 0 0 28px;
+}
+
+.group-title {
+  margin: 0 16px 6px;
+  color: var(--secondary);
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.group > .cell:first-of-type,
+.group > form.cell:first-of-type {
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.group > :last-child {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 16px;
+  background: var(--field-bg);
+  border-bottom: 0.5px solid var(--separator);
+}
+
+.cell-stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.cell-block {
+  display: block;
+}
+
+.cell-actions {
+  justify-content: flex-start;
+}
+
+.cell form {
+  margin: 0;
+}
+
+.cell input,
+.cell select {
+  flex: 1 1 10rem;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--field-border);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+}
+
+.cell select {
+  flex: 0 0 auto;
+}
+
+.cell button {
+  padding: 6px 2px;
+  border: 0;
+  background: none;
+  color: var(--out-bubble);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.cell-danger button {
+  color: var(--danger);
+}
+
+.dim {
+  color: var(--secondary);
+}
+
+.pill {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.pill-on {
+  background: rgb(52 199 89 / 0.18);
+  color: #1f8a3b;
+}
+
+.pill-off {
+  background: var(--fill);
+}
+
+.diag {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.diag time {
+  display: inline-block;
+  min-width: 6.5em;
+}
+
+.foot {
+  margin: 0 16px;
+  color: var(--secondary);
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

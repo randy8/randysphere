@@ -932,3 +932,24 @@ images are no longer copied into the site at all — the server and the dev
 server read them where ingest writes them — which removes 5.9 GB from every
 build and, with it, the window during each deploy when the live site was
 half-built.
+
+---
+
+## 2026-10-28 — A private family chat
+
+The site gained its first part that isn't an archive: a conversation at
+`/family/` for the owner and his family, chiefly so his mother in mainland
+China can write without WeChat. It is deliberately small — one group, an
+account per person made by the owner, text and photos — and lives inside the
+existing production server rather than beside it: `tools/serve` mounts it,
+Node's own SQLite stores it under `private/family/`, and Server-Sent Events
+carry it live. No dependency was added; Argon2id, SQLite and the event stream
+are all built into Node 24.
+
+Its shape is a phone's messaging app (bubbles, tails, long-press menus, a
+home-screen icon) in the site's own voice (Newsreader in the header, the warm
+paper white), and it keeps the site's promise of working without JavaScript:
+the page is server-rendered, with a form that posts. Reliability was the
+design brief — a message is on disk before "Delivered", retries can't
+duplicate, a reconnect replays exactly what was missed — because the network
+between Shanghai and a Cloudflare POP is the weakest link it has.

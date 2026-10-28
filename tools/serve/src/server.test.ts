@@ -153,6 +153,7 @@ before(async () => {
     // Vouches for everyone: proves the refusal below comes from the
     // connection itself (loopback), not from tailscaled saying no.
     whois: () => Promise.resolve({ login: 'owner@example.com', capabilities: [] }),
+    family: null,
   });
   await new Promise<void>((resolve) => server.listen(0, resolve));
   const { port } = server.address() as AddressInfo;

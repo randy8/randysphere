@@ -212,6 +212,23 @@ void test('security: headers on public and private responses; /private is gated 
   assert.equal((await fetch(`${BASE}/originals/`)).status, 404);
 });
 
+void test('security: the family chat is a sign-in screen to strangers, and every endpoint refuses them', async () => {
+  const page = await fetch(`${BASE}/family/`);
+  assert.equal(page.status, 200);
+  assert.equal(page.headers.get('cache-control'), 'private, no-store');
+  assert.equal(page.headers.get('x-robots-tag'), 'noindex, nofollow');
+  assert.match(page.headers.get('content-security-policy') ?? '', /default-src 'none'/);
+  assert.match(await page.text(), /autocomplete="current-password"/);
+  for (const path of [
+    '/family/api/history',
+    '/family/api/events',
+    '/family/images/' + '0'.repeat(32),
+  ]) {
+    assert.equal((await fetch(`${BASE}${path}`)).status, 401, path);
+  }
+  assert.equal((await fetch(`${BASE}/family/admin`)).status, 404);
+});
+
 browserTest('every page’s footer links to Site status, and it opens', async ({ page }) => {
   for (const path of ['/exposures/', '/pictures/', '/dishes/']) {
     await page.goto(`${BASE}${path}`);
