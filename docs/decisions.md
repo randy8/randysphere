@@ -3397,3 +3397,21 @@ chosen, and the tests rely on each option being explained).
 Same day: recipe notes that read as generic filler rather than the
 author's own voice were removed (one teriyaki note kept), following the
 Crunchwrap's notes on 2026-10-26.
+
+---
+
+## 2026-10-27 — Tunes is removed
+
+**Decision.** The Music collection is gone: `/tunes/`, `site/src/music/`,
+`music/tracks.yaml`, its `collections.ts` entry (so it leaves the masthead,
+`/collections/` and the sitemap), and the `/music/` → `/tunes/` legacy
+redirect. `/tunes/` and `/music/` now get the ordinary 404. The track list
+survives only in git history.
+
+**Why.** Direct owner request. Asked whether the screening room should
+show stills instead of playing videos, the owner chose to drop the page
+entirely rather than keep a reduced version.
+
+**Rejected.** A still-only room linking out to YouTube; a still covering a
+still-playing player (YouTube's terms forbid hiding the embed); sending
+`/tunes/` somewhere else with a redirect (there is no successor page).

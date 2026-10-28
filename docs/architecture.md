@@ -68,7 +68,6 @@ flowchart LR
   subgraph handwritten["Hand-written, committed"]
     albums["albums/&lt;batch&gt;/<br/>photos.yaml, rolls.yaml, album.md"]
     recipes["recipes/*.yaml"]
-    music["music/tracks.yaml"]
     ratings["films/ratings.csv<br/>(Letterboxd export)"]
   end
 
@@ -98,7 +97,6 @@ flowchart LR
   manifests --> build
   albums --> build
   recipes --> build
-  music --> build
   ratings --> build
   tmdb --> build
   build --> release --> serve

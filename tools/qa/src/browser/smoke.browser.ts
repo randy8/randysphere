@@ -153,7 +153,6 @@ browserTest(
 for (const path of [
   '/collections/',
   '/dishes/',
-  '/tunes/',
   '/pictures/',
   '/exposures/saved/',
   '/exposures/archive/',

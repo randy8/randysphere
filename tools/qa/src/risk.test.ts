@@ -10,7 +10,7 @@ test('documentation alone is low risk and runs no area tests (the smoke suite st
 
 test('an isolated non-photo collection change stays low', () => {
   assert.equal(
-    classify(['site/src/music/music.css', 'music/tracks.yaml', 'recipes/soup.yaml']).risk,
+    classify(['site/src/pages/collections/index.astro', 'recipes/soup.yaml']).risk,
     'low',
   );
 });

@@ -13,7 +13,7 @@ A personal, long-term archive at randyliang.net — closer to a photobook or a
 museum archive than a portfolio. No engagement mechanics, no feeds, no chrome
 that doesn't help someone browse. `/` redirects to `/exposures/`.
 
-Four **collections** (`site/src/collections.ts`, introduced at `/collections/`),
+Three **collections** (`site/src/collections.ts`, introduced at `/collections/`),
 each bringing only the machinery its own content needs — the asymmetry is the
 design; don't hoist one collection's shape onto another, and don't add a
 shared `src/lib/`:
@@ -22,7 +22,6 @@ shared `src/lib/`:
 | ----------- | ------------- | -------------------------------------------------------------------- | ----------------------- |
 | Photography | `/exposures/` | `originals/` → pipeline → `generated/albums/*.json`                  | `site/src/photography/` |
 | Recipes     | `/dishes/`    | `recipes/*.yaml`, hand-written, read off disk                        | `site/src/recipes/`     |
-| Music       | `/tunes/`     | `music/tracks.yaml`, hand-written                                    | `site/src/music/`       |
 | Films       | `/pictures/`  | `films/ratings.csv` (Letterboxd's export, as-is) + `films/tmdb.json` | `site/src/films/`       |
 
 Adding a collection: one entry in `collections.ts`, its own `src/pages/<slug>/`,

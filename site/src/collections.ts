@@ -1,7 +1,5 @@
 import { loadFilms } from './films/films.ts';
 import { films } from './films/config.ts';
-import { loadTracks } from './music/music.ts';
-import { music } from './music/config.ts';
 import { allFilmStocks, allTags, loadArchive } from './photography/archive.ts';
 import { photography } from './photography/config.ts';
 import { loadRecipes } from './recipes/recipes.ts';
@@ -68,17 +66,6 @@ export const collections: readonly Collection[] = [
       return `${String(count)} recipe${count === 1 ? '' : 's'}`;
     },
     urls: () => ['/dishes/', ...loadRecipes().map((recipe) => `/dishes/${recipe.slug}/`)],
-  },
-  {
-    slug: 'tunes',
-    title: music.title,
-    description: music.description,
-    href: '/tunes/',
-    stats: () => {
-      const count = loadTracks().length;
-      return `${String(count)} track${count === 1 ? '' : 's'}`;
-    },
-    urls: () => ['/tunes/'],
   },
   {
     slug: 'pictures',

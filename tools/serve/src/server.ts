@@ -266,7 +266,6 @@ const LEGACY_PREFIXES: readonly (readonly [string, string])[] = [
   ['/photography/', '/exposures/'],
   ['/films/', '/pictures/'],
   ['/recipes/', '/dishes/'],
-  ['/music/', '/tunes/'],
 ];
 
 export function legacyRedirect(pathname: string): string | null {
