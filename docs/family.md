@@ -122,7 +122,8 @@ content is never logged anywhere.
   15 MB, stored under a random name, served with `sandbox` CSP and never
   cached by Cloudflare. The phone re-encodes photos before upload, which
   removes their location metadata.
-- Every response is `private, no-store` and `noindex`.
+- Every response is `private, no-store` and `noindex`. Plain HTTP is
+  redirected to HTTPS before anything else is read (`arrivedOverHttp`).
 
 **What it is not:** end-to-end encrypted. Traffic is HTTPS to Cloudflare and
 encrypted again through the tunnel to this machine, but Cloudflare terminates

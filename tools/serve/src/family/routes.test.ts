@@ -464,3 +464,17 @@ test('static files are public and versioned; nothing else under /family/static i
   assert.equal((await call('/family/static/chat.db')).status, 404);
   assert.ok(host.length > 0);
 });
+
+test('plain HTTP through the tunnel is sent to HTTPS before anything else happens', async () => {
+  const response = await call('/family/api/history?x=1', {
+    cookie: momCookie,
+    headers: { 'x-forwarded-proto': 'http' },
+  });
+  assert.equal(response.status, 308);
+  assert.equal(response.headers.get('location'), `https://${host}/family/api/history?x=1`);
+  const https = await call('/family/api/history', {
+    cookie: momCookie,
+    headers: { 'x-forwarded-proto': 'https' },
+  });
+  assert.equal(https.status, 200);
+});

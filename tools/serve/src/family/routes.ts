@@ -1,5 +1,12 @@
 import { createHash } from 'node:crypto';
-import { createReadStream, readdirSync, readFileSync, statSync } from 'node:fs';
+import {
+  chmodSync,
+  createReadStream,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+} from 'node:fs';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { extname, join } from 'node:path';
@@ -146,6 +153,17 @@ function sameOrigin(req: IncomingMessage): boolean {
   return site === undefined || site === 'same-origin' || site === 'none';
 }
 
+const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+
+export function arrivedOverHttp(req: IncomingMessage): boolean {
+  return (
+    LOOPBACK.has(req.socket.remoteAddress ?? '') &&
+    req.headers['x-forwarded-proto'] === 'http' &&
+    typeof req.headers.host === 'string' &&
+    /^[a-z0-9.-]+(:\d+)?$/i.test(req.headers.host)
+  );
+}
+
 function sendJson(
   res: ServerResponse,
   status: number,
@@ -211,6 +229,9 @@ export class FamilyChat {
   constructor(config: FamilyConfig) {
     this.#config = config;
     this.#imagesDir = join(config.dataDir, 'images');
+    // Owner-only: other accounts on this machine can't read the conversation.
+    mkdirSync(config.dataDir, { recursive: true, mode: 0o700 });
+    chmodSync(config.dataDir, 0o700);
     this.store = new FamilyStore(openDatabase(join(config.dataDir, 'chat.db')));
     this.store.pruneExpiredSessions();
     for (const name of readdirSync(STATIC_DIR)) {
@@ -244,6 +265,17 @@ export class FamilyChat {
     const { pathname } = url;
     if (pathname !== '/family' && !pathname.startsWith('/family/')) return false;
     const method = req.method ?? 'GET';
+    // Never over plain HTTP: a password typed there would cross the
+    // internet unencrypted, and the Secure cookie wouldn't stick anyway.
+    // cloudflared says which scheme the visitor used; believed only from
+    // loopback, as clientAddress() believes CF-Connecting-IP.
+    if (arrivedOverHttp(req)) {
+      res.writeHead(308, {
+        location: `https://${String(req.headers.host)}${req.url ?? '/family/'}`,
+      });
+      res.end();
+      return true;
+    }
     try {
       if (method !== 'GET' && method !== 'HEAD' && !sameOrigin(req)) {
         throw new HttpError(403, 'Cross-site request refused.');
