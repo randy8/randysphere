@@ -92,7 +92,7 @@ function init(gridElement: HTMLElement): void {
     actions?.removeAttribute('hidden');
     if (exhibitLink !== null) {
       const ids = tiles().map((tile) => tile.dataset['photoId'] ?? '');
-      exhibitLink.href = `/exposures/exhibition/?p=${encodeIds(ids)}`;
+      exhibitLink.href = `/exposures/gallery/?p=${encodeIds(ids)}`;
     }
     for (const group of document.querySelectorAll<HTMLElement>('[data-mode]')) {
       group.hidden = group.dataset['mode'] !== mode;

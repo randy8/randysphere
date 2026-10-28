@@ -3415,3 +3415,25 @@ entirely rather than keep a reduced version.
 **Rejected.** A still-only room linking out to YouTube; a still covering a
 still-playing player (YouTube's terms forbid hiding the embed); sending
 `/tunes/` somewhere else with a redirect (there is no successor page).
+
+---
+
+## 2026-10-27 — Exhibition is called Gallery
+
+**Decision.** Visitors see "Gallery" wherever they saw "Exhibition": every
+link to it (Selected Work, tag, film stock, Saved, Share), the page's
+title and label, and /system's measurement labels. It lives at
+`/exposures/gallery/`; `tools/serve` 301s `/exposures/exhibition/…` there,
+query string intact, so every link already shared (whose URL is the whole
+state) still plays. Code keeps the name exhibition (`exhibition.ts`,
+`exhibition-model.ts`, CSS classes, the `exhibition` test area, the
+`exhibitionFirstPhotoMs` field in `status/perf.json`, the preferences key in
+localStorage).
+
+**Why.** Direct owner request.
+
+**Rejected.** Renaming the code too: in this codebase "gallery" already
+names the photo grid (`.grid`, `grid-layout.js`, the `gallery` browser-test
+area), so a full rename would merge two different things under one name,
+and renaming the perf field and the localStorage key would break recorded
+history and visitors' saved settings for no visible gain.

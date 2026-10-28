@@ -338,7 +338,7 @@ const COMPARED: readonly MetricSpec[] = [
     relative: true,
   },
   {
-    label: 'Exhibition, first photograph',
+    label: 'Gallery, first photograph',
     pick: (r) => r.exhibitionFirstPhotoMs,
     format: ms,
     higherIsBetter: false,
@@ -648,7 +648,7 @@ export function renderSystem({ now, health, files }: SystemInput): string {
         <tr><th>Refresh</th><td class="n">${v(refresh, 'fcpMs', ms)}</td><td class="n">${v(refresh, 'lcpMs', ms)}</td><td class="n">${v(refresh, 'cls', cls)}</td><td class="n">${v(refresh, 'firstScreenMs', ms)}</td></tr>
       </tbody>
     </table></div>
-    <p class="source">On that phone: ${v(cold, 'jsKB', kb)} of JavaScript and ${v(cold, 'requests', score)} requests on a first visit; Exhibition shows its first photograph after ${latestPerf.exhibitionFirstPhotoMs === null ? '—' : ms(latestPerf.exhibitionFirstPhotoMs)}. Real-visitor measurements (field data, INP): not collected.</p>
+    <p class="source">On that phone: ${v(cold, 'jsKB', kb)} of JavaScript and ${v(cold, 'requests', score)} requests on a first visit; Gallery shows its first photograph after ${latestPerf.exhibitionFirstPhotoMs === null ? '—' : ms(latestPerf.exhibitionFirstPhotoMs)}. Real-visitor measurements (field data, INP): not collected.</p>
     <h3 class="label">Trends</h3>
     ${
       history.length < 2
@@ -727,7 +727,7 @@ export function renderSystem({ now, health, files }: SystemInput): string {
     .find((x) => x.tests.length > 0);
   const exhibitionSection = `
   <section aria-labelledby="exhibition">
-    <h2 id="exhibition" class="label">Exhibition</h2>
+    <h2 id="exhibition" class="label">Gallery</h2>
     ${
       exhibitionRun
         ? `<p>Its own tests, last run ${timeTag(now, exhibitionRun.d.at)}:</p><ul class="tests">${exhibitionRun.tests

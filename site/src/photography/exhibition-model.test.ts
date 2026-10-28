@@ -120,7 +120,7 @@ test('settings: URL over preferences over defaults; anything off the menu is ign
 });
 
 test('settings round-trip through the URL, writing only what differs from the defaults', () => {
-  const url = new URL('https://example.test/exposures/exhibition/?tag=paris-2025');
+  const url = new URL('https://example.test/exposures/gallery/?tag=paris-2025');
   writeSettings(url, { ...DEFAULTS, order: 'shuffle' }, 'shuffle');
   assert.equal(url.search, '?tag=paris-2025');
   const custom = { slide: 30, fade: 4, motion: false, info: true, order: 'sequence' as const };

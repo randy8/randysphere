@@ -91,7 +91,7 @@ browserTest(
   async ({ page }) => {
     const tag = await mixedTag();
     await page.goto(
-      `${BASE}/exposures/exhibition/?tag=${tag}&order=sequence&slide=30&fade=1&motion=0`,
+      `${BASE}/exposures/gallery/?tag=${tag}&order=sequence&slide=30&fade=1&motion=0`,
     );
     await page.waitForFunction(
       () => document.querySelector('[data-position]')?.textContent?.startsWith('1 /'),

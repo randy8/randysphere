@@ -56,7 +56,7 @@ if (grid !== null) {
     const exhibitBar = document.querySelector<HTMLElement>('[data-exhibit-bar]');
     const exhibit = exhibitBar?.querySelector<HTMLAnchorElement>('[data-exhibit]');
     if (exhibitBar && exhibit) {
-      exhibit.href = `/exposures/exhibition/${location.search}`;
+      exhibit.href = `/exposures/gallery/${location.search}`;
       exhibitBar.hidden = false;
     }
 

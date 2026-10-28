@@ -13,7 +13,7 @@ import { BASE, browserTest, mixedTag, PHONE, publicPhotos } from './harness.ts';
 
 async function open(page: Page, query: string): Promise<string> {
   const tag = await mixedTag();
-  await page.goto(`${BASE}/exposures/exhibition/?tag=${tag}&order=sequence&${query}`);
+  await page.goto(`${BASE}/exposures/gallery/?tag=${tag}&order=sequence&${query}`);
   await atPosition(page, 1);
   await exhibitionAtRest(page);
   return tag;

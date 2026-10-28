@@ -266,6 +266,9 @@ const LEGACY_PREFIXES: readonly (readonly [string, string])[] = [
   ['/photography/', '/exposures/'],
   ['/films/', '/pictures/'],
   ['/recipes/', '/dishes/'],
+  // Exhibition was renamed Gallery; its links carry their whole state in
+  // the query string, which the redirect keeps.
+  ['/exposures/exhibition/', '/exposures/gallery/'],
 ];
 
 export function legacyRedirect(pathname: string): string | null {

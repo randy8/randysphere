@@ -4,7 +4,7 @@ import { lightboxPhoto } from './lightbox-data.ts';
 import type { ExhibitionData } from './exhibition-model.ts';
 
 /**
- * Everything /exposures/exhibition/ needs, as one JSON payload: every
+ * Everything /exposures/gallery/ needs, as one JSON payload: every
  * public photograph, as the lightbox already describes it (the same image
  * sources, at full size), plus what the exhibition filters and labels by —
  * its tags, its places, its date — and each tag's display title. The page

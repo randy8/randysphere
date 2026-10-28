@@ -1,5 +1,5 @@
 /**
- * /exposures/exhibition/: one photograph at a time, full screen, on a dark
+ * /exposures/gallery/: one photograph at a time, full screen, on a dark
  * wall. What plays and how comes from the URL (exhibition-model.ts); this
  * draws it.
  *

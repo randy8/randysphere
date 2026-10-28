@@ -213,7 +213,7 @@ async function exhibition(): Promise<number | null> {
   for (let i = 0; i < RUNS; i++) {
     const { page, close } = await phonePage();
     try {
-      await page.goto(`${BASE}/exposures/exhibition/`, { waitUntil: 'commit', timeout: 120_000 });
+      await page.goto(`${BASE}/exposures/gallery/`, { waitUntil: 'commit', timeout: 120_000 });
       await page.waitForFunction(
         () => (window as unknown as { __m: { firstPhoto: number | null } }).__m.firstPhoto !== null,
         null,

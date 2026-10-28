@@ -52,7 +52,7 @@ function init(): void {
       if (place !== '') query.set('tag', place);
       if (stock !== '') query.set('film', stock);
       const search = query.toString();
-      exhibit.href = `/exposures/exhibition/${search === '' ? '' : `?${search}`}`;
+      exhibit.href = `/exposures/gallery/${search === '' ? '' : `?${search}`}`;
     }
   };
 

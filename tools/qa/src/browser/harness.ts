@@ -182,9 +182,9 @@ export interface Photo {
  * working as the archive changes.
  */
 export async function publicPhotos(): Promise<readonly Photo[]> {
-  const html = await (await fetch(`${BASE}/exposures/exhibition/`)).text();
+  const html = await (await fetch(`${BASE}/exposures/gallery/`)).text();
   const json = /data-exhibition-photos[^>]*>([\s\S]*?)<\/script>/.exec(html)?.[1];
-  if (json === undefined) throw new Error('no exhibition payload on /exposures/exhibition/');
+  if (json === undefined) throw new Error('no exhibition payload on /exposures/gallery/');
   return (JSON.parse(json) as { photos: Photo[] }).photos;
 }
 
