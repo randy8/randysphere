@@ -297,6 +297,7 @@ main {
   :is(
     :is([data-grid], [data-saved-grid], [data-share-grid]) > [data-photo-id],
     .film-card:not(.film-pick-card),
+    .tune,
     .archive-entry
   ):not(.is-revealed) {
   opacity: 0;
@@ -1075,7 +1076,7 @@ a:focus-visible,
 .nameplate-list a.nameplate-current {
   opacity: 0.7;
 }
-/* A phone: name and Saved on one line, the three collections spread across
+/* A phone: name and Saved on one line, the four collections spread across
    the next, and less air above and below — the masthead and title took
    ~380px of an 844px screen before the first photograph (2026-10-26). */
 @media (max-width: 40rem) {
@@ -1095,7 +1096,7 @@ a:focus-visible,
   .album-header {
     margin-bottom: 2rem;
   }
-  /* All three collections on one line down to 360px. */
+  /* All four collections on one line down to 360px. */
   .nameplate-list {
     column-gap: 1rem;
   }

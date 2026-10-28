@@ -1,0 +1,72 @@
+# Not a playlist library — songs I keep coming back to. One entry each:
+# a bare YouTube (or Spotify) share link, the song's title, and who it's
+# by. `postedAt` is the day it was added; it orders the page, newest
+# first, but is never shown.
+- url: https://www.youtube.com/watch?v=hEQwWKj8Sns
+  postedAt: '2026-08-13'
+  title: 'Stateside + Zara Larsson'
+  artist: 'PinkPantheress'
+- url: https://www.youtube.com/watch?v=uS0BaaHljyA
+  postedAt: '2026-08-17'
+  title: 'I Never Play Basketball Now'
+  artist: 'Prefab Sprout'
+- url: https://www.youtube.com/watch?v=YxSlgBDr-Eo
+  postedAt: '2026-08-19'
+  title: 'Kitten'
+  artist: 'Not For Radio'
+- url: https://www.youtube.com/watch?v=nL87GCAqHmE
+  postedAt: '2026-10-18'
+  title: 'Melatonin'
+  artist: 'Tinashe'
+- url: https://www.youtube.com/watch?v=GaNzHwSQqwk
+  postedAt: '2026-10-25'
+  title: 'Stay True'
+  artist: 'True Love'
+- url: https://www.youtube.com/watch?v=ZW7WfdTuth8
+  postedAt: '2026-10-25'
+  title: "Rock'n Roll"
+  artist: 'Daft Punk'
+- url: https://www.youtube.com/watch?v=0XFpyTijIjk
+  postedAt: '2026-10-25'
+  title: "I Don't Need Love, I've Got My Band"
+  artist: 'The Radio Dept.'
+- url: https://www.youtube.com/watch?v=R6Yfk-RL_9A
+  postedAt: '2026-10-26'
+  title: 'Sexy Boy'
+  artist: 'Air'
+- url: https://www.youtube.com/watch?v=8isxXZY2O_Q
+  postedAt: '2026-10-26'
+  title: 'Residue'
+  artist: 'A. G. Cook'
+- url: https://www.youtube.com/watch?v=XC_kzdypwPo
+  postedAt: '2026-10-26'
+  title: 'Pegasus Blood Harmony Korine'
+  artist: 'Peachole'
+- url: https://www.youtube.com/watch?v=h42Dv8ReWqo
+  postedAt: '2026-10-26'
+  title: "Still Tippin'"
+  artist: 'Mike Jones'
+- url: https://www.youtube.com/watch?v=h26nk2L0YSU
+  postedAt: '2026-10-26'
+  title: 'Back in Blood'
+  artist: 'Snow Strippers'
+- url: https://www.youtube.com/watch?v=bdKdpyLH-IM
+  postedAt: '2026-10-26'
+  title: '夢中人 (Dreams)'
+  artist: 'Faye Wong'
+- url: https://www.youtube.com/watch?v=PgXlMNDezk4
+  postedAt: '2026-10-26'
+  title: 'Mysteries of Love'
+  artist: 'Julee Cruise'
+- url: https://www.youtube.com/watch?v=TZOdKdxP8Wk
+  postedAt: '2026-10-26'
+  title: 'Common People'
+  artist: 'Pulp'
+- url: https://www.youtube.com/watch?v=kBZPaYUGP6o
+  postedAt: '2026-10-26'
+  title: "Let's Save Tony Orlando's House"
+  artist: 'Yo La Tengo'
+- url: https://www.youtube.com/watch?v=65BZ_jxBSLQ
+  postedAt: '2026-10-27'
+  title: 'Shoes'
+  artist: 'Lil Wayne'

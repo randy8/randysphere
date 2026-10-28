@@ -427,6 +427,7 @@ test('pre-rename URLs map to where their content lives now', () => {
   assert.equal(legacyRedirect('/films/'), '/pictures/');
   assert.equal(legacyRedirect('/recipes/miso-soup/'), '/dishes/miso-soup/');
   assert.equal(legacyRedirect('/exposures/exhibition/'), '/exposures/gallery/');
+  assert.equal(legacyRedirect('/music/'), '/tunes/');
   assert.equal(legacyRedirect('/exposures/'), null);
   assert.equal(legacyRedirect('/photographyx/'), null);
 });

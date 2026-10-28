@@ -19,9 +19,9 @@
 
 /** Keep in step with the selector in base.css (`.motion :is(…)`). */
 const TARGETS =
-  ':is([data-grid], [data-saved-grid], [data-share-grid]) > [data-photo-id], .film-card:not(.film-pick-card), .archive-entry';
+  ':is([data-grid], [data-saved-grid], [data-share-grid]) > [data-photo-id], .film-card:not(.film-pick-card), .tune, .archive-entry';
 /** What follows its image a beat later. */
-const FOLLOWERS = 'figcaption, .frame-mark, .film-card-body, .archive-entry-mark';
+const FOLLOWERS = 'figcaption, .frame-mark, .film-card-body, .tune-meta, .archive-entry-mark';
 
 const DURATION = 750;
 const STAGGER = 80;

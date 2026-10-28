@@ -109,13 +109,13 @@ export const RULES: readonly Rule[] = [
     why: 'Dishes: recipes, scaling, Make It Vegan',
   },
   {
-    match: /^site\/src\/pages\/collections\//,
+    match: /^site\/src\/music\/|^site\/src\/pages\/(tunes|collections)\//,
     risk: 'low',
     areas: [],
-    why: 'the collections index (the smoke suite loads it)',
+    why: 'one non-photo collection (the smoke suite loads its page)',
   },
   {
-    match: /^(albums|generated\/albums|recipes)\//,
+    match: /^(albums|generated\/albums|recipes|music)\//,
     risk: 'low',
     areas: [],
     why: 'content, not code',

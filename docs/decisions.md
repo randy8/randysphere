@@ -3437,3 +3437,25 @@ names the photo grid (`.grid`, `grid-layout.js`, the `gallery` browser-test
 area), so a full rename would merge two different things under one name,
 and renaming the perf field and the localStorage key would break recorded
 history and visitors' saved settings for no visible gain.
+
+---
+
+## 2026-10-28 — Tunes is back, still-image uploads only
+
+**Decision.** The 2026-10-27 removal is reverted: `/tunes/`, `site/src/music/`,
+`music/tracks.yaml`, its `collections.ts` entry and the `/music/` → `/tunes/`
+redirect return as they were. "Favorite Girl" (Justin Bieber) is dropped from
+the list. Every YouTube entry now points at a still-image upload of the song
+— the artist's own "Official Audio" where it has one, otherwise the "Artist -
+Topic" art track (the first such result) — never a music video. Seven links
+changed: Stateside, Kitten, Melatonin, Residue, Still Tippin', 夢中人, and
+Sexy Boy (whose earlier "Official Audio" upload is an animated visualizer;
+the band's other Moon Safari upload is a still).
+
+**How it was checked.** Each video's three auto-captured frames
+(`i.ytimg.com/vi/<id>/{1,2,3}.jpg`, at 25/50/75% of its length) were
+compared; a still image's frames are near-identical (mean difference < 2/255
+here, against ~100 for the visualizer). New tracks should be held to the
+same rule.
+
+**Why.** Direct owner request: the page is for the songs, not their videos.

@@ -1,0 +1,514 @@
+/*
+ * A collection of film stills that happen to play: one 16:9 still per
+ * song, its title under it, who it's by under that. No player chrome at
+ * rest, no cards, no dates — the platform's own player appears only when a
+ * still is opened (tunes.ts). Two columns from 44rem, divided into rows by
+ * hairlines that break at the gutter like a printed page's column rules.
+ */
+
+/* The full width of the page, not a narrower column: two stills side by
+   side then span exactly what the masthead's double rule spans above them,
+   which is what makes the grid read as part of the page. */
+.tune-grid {
+  /* The archive-index's lighter tint of --rule (base.css): a page of
+     pictures wants quieter dividers than a caption's. */
+  --tune-rule: color-mix(in srgb, var(--rule) 70%, var(--paper));
+  --tune-row: clamp(2rem, 4vw, 2.75rem);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: clamp(1.75rem, 4vw, 3rem);
+  /* Every entry carries its own --tune-row above and below its rule; the
+     last row's padding below would only add to main's own. */
+  margin: 0 0 calc(-1 * var(--tune-row));
+  padding: 0;
+  list-style: none;
+}
+.tune {
+  padding-block: var(--tune-row);
+  border-top: 1px solid var(--tune-rule);
+}
+.tune:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+@media (min-width: 44rem) {
+  .tune-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tune:nth-child(2) {
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+
+.tune-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+.tune-link:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 0.375rem;
+}
+
+/* The box owns the 16:9, so nothing shifts while a still loads and a 4:3
+   fallback (tunes.ts) is cropped to the same frame. Paper-tinted until
+   then, never a grey UI skeleton. */
+.tune-still {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--rule) 45%, var(--paper));
+}
+.tune-still img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* A hairline drawn over the picture's own edge, so a pale still keeps a
+     defined edge against the paper. The colours are the video's own. */
+  outline: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+  outline-offset: -1px;
+}
+.tune-still-blank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-style: italic;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+/* Always shown, not only on hover — a touch screen has no hover to reveal
+   it. Square like the still; the accent arrives only on interaction, as
+   everywhere else on the site. */
+.tune-play {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.75rem;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+  transition: background-color 0.2s ease;
+}
+.tune-play::before {
+  content: '';
+  margin-left: 0.1875rem;
+  border-style: solid;
+  border-width: 0.4375rem 0 0.4375rem 0.75rem;
+  border-color: transparent transparent transparent var(--paper);
+}
+.tune-link:hover .tune-play,
+.tune-link:focus-visible .tune-play {
+  background: var(--accent);
+}
+
+.tune-caption {
+  display: block;
+  margin-top: 0.875rem;
+}
+.tune-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  transition: color 0.2s ease;
+}
+.tune-link:hover .tune-title,
+.tune-link:focus-visible .tune-title {
+  color: var(--accent);
+}
+.tune-artist {
+  margin: 0.125rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* ---------------------------------------------------------------------------
+   The screening room. The grid stays paper and ink; the room is the one
+   place on the site that goes dark, and it only exists once a visitor has
+   asked to watch something. A warm near-black, not YouTube's grey or a
+   streaming service's blue-black, lit from behind the screen by three
+   colours read from the video's still (palette.ts) — set as registered
+   custom properties so a change of song fades the light rather than
+   cutting it.
+   --------------------------------------------------------------------------- */
+
+@property --ambient-1 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(74 58 44);
+}
+@property --ambient-2 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(58 46 38);
+}
+@property --ambient-3 {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(44 36 30);
+}
+
+html.tune-viewing {
+  overflow: hidden;
+}
+
+.tune-viewer {
+  --room: #0d0b09;
+  --room-ink: color-mix(in srgb, var(--paper) 92%, transparent);
+  --room-muted: color-mix(in srgb, var(--paper) 58%, transparent);
+  --room-rule: color-mix(in srgb, var(--paper) 16%, transparent);
+  /* Room left around the screen, and the caption's share of the height. */
+  --room-gutter: clamp(1.25rem, 6vw, 6rem);
+  --caption-height: 5.5rem;
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: max(0.75rem, env(safe-area-inset-top))
+    max(var(--room-gutter), env(safe-area-inset-right)) max(1.25rem, env(safe-area-inset-bottom))
+    max(var(--room-gutter), env(safe-area-inset-left));
+  background: var(--room);
+  color: var(--room-ink);
+  color-scheme: dark;
+  overscroll-behavior: contain;
+  transition:
+    --ambient-1 1.2s ease,
+    --ambient-2 1.2s ease,
+    --ambient-3 1.2s ease;
+}
+.tune-viewer[hidden] {
+  display: none;
+}
+
+/* Bias lighting: one wide glow from behind the screen and two fainter
+   ones at opposite corners, fading into the room. Plain gradients, not a
+   blurred image — the same softness at no filter cost, nothing animating
+   once a song has settled. */
+.tune-viewer-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse 70% 60% at 50% 48%,
+      color-mix(in srgb, var(--ambient-1) 75%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 50% 55% at 6% 12%,
+      color-mix(in srgb, var(--ambient-2) 50%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 50% 55% at 94% 92%,
+      color-mix(in srgb, var(--ambient-3) 50%, transparent),
+      transparent 70%
+    );
+}
+.tune-viewer > :not(.tune-viewer-ambient) {
+  position: relative;
+  z-index: 1;
+}
+
+.tune-viewer-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+}
+.tune-viewer-back,
+.tune-viewer-external {
+  appearance: none;
+  border: 0;
+  padding: 0.5rem 0;
+  background: none;
+  font-family: var(--serif);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  color: var(--room-muted);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.tune-viewer-back:hover,
+.tune-viewer-back:focus-visible,
+.tune-viewer-external:hover,
+.tune-viewer-external:focus-visible {
+  color: var(--room-ink);
+}
+
+/* The stage is a size container, so the column can be exactly as wide as
+   the screen that fits it: full width, or full height at 16:9 with the
+   caption below, whichever is smaller. Never cropped, never letterboxed by
+   this page. */
+.tune-viewer-stage {
+  container-type: size;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+.tune-viewer-column {
+  width: min(72rem, 100cqw, (100cqh - var(--caption-height)) * 16 / 9);
+}
+
+.tune-screen {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #000;
+  view-transition-name: tune-screen;
+}
+.tune-screen-poster,
+.tune-screen iframe {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.tune-screen-poster {
+  object-fit: cover;
+}
+.tune-screen iframe {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.tune-screen iframe.is-loaded {
+  opacity: 1;
+}
+/* Spotify's player is a fixed-height strip, centred in the screen. */
+.tune-screen[data-platform='spotify'] iframe {
+  top: 50%;
+  height: 352px;
+  transform: translateY(-50%);
+}
+
+/* Over the poster, which stays: the still is still the song. */
+.tune-screen-blocked {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: color-mix(in srgb, var(--room) 72%, transparent);
+  text-align: center;
+}
+.tune-screen-blocked[hidden] {
+  display: none;
+}
+.tune-screen-blocked p {
+  margin: 0;
+  font-style: italic;
+  color: var(--room-muted);
+}
+.tune-screen-blocked a {
+  color: var(--room-ink);
+  text-underline-offset: 0.2em;
+  text-decoration-color: var(--room-rule);
+}
+
+.tune-viewer-caption {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  min-height: var(--caption-height);
+  padding-top: 1.25rem;
+}
+.tune-viewer-meta {
+  min-width: 0;
+  view-transition-name: tune-meta;
+}
+.tune-viewer-title {
+  margin: 0;
+  font-size: clamp(1.375rem, 1rem + 1.2vw, 1.875rem);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--room-ink);
+}
+.tune-viewer-artist {
+  margin: 0.375rem 0 0;
+  font-size: 0.9375rem;
+  color: var(--room-muted);
+}
+
+/* Two quiet arrows, separated by a hairline rather than boxed. */
+.tune-viewer-steps {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+.tune-viewer-step {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  appearance: none;
+  border: 0;
+  background: none;
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  color: var(--room-muted);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.tune-viewer-step + .tune-viewer-step {
+  border-left: 1px solid var(--room-rule);
+}
+.tune-viewer-step:hover,
+.tune-viewer-step:focus-visible {
+  color: var(--room-ink);
+}
+.tune-viewer :focus-visible {
+  outline: 1px solid var(--room-muted);
+  outline-offset: 0.25rem;
+}
+/* The two text controls take an underline, as links do, not a box. */
+.tune-viewer .tune-viewer-back:focus-visible,
+.tune-viewer .tune-viewer-external:focus-visible {
+  outline: none;
+  text-decoration: underline;
+  text-decoration-color: var(--room-muted);
+  text-underline-offset: 0.3em;
+}
+
+/* A phone held upright: the screen runs edge to edge, like a phone's own
+   video, and the caption keeps the room's margins below it. */
+@media (max-width: 40rem) and (orientation: portrait) {
+  .tune-viewer {
+    --caption-height: 7rem;
+    padding-inline: 0;
+  }
+  .tune-viewer-bar,
+  .tune-viewer-caption {
+    padding-inline: max(1.25rem, env(safe-area-inset-left));
+  }
+  .tune-viewer-stage {
+    place-items: start center;
+    padding-top: 12vh;
+  }
+}
+/* A phone on its side: every line of height goes to the picture. */
+@media (max-height: 30rem) and (orientation: landscape) {
+  .tune-viewer {
+    --caption-height: 3.5rem;
+  }
+  .tune-viewer-bar {
+    padding-bottom: 0.25rem;
+  }
+  .tune-viewer-back,
+  .tune-viewer-external {
+    padding-block: 0.25rem;
+  }
+  .tune-viewer-caption {
+    align-items: center;
+    padding-top: 0.5rem;
+  }
+  .tune-viewer-artist {
+    display: none;
+  }
+  .tune-viewer-title {
+    overflow: hidden;
+    font-size: 1.125rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Transitions (tunes.ts, where the browser has View Transitions and the
+   visitor hasn't asked for reduced motion). Opening: the still grows into
+   the screen while the page fades to the room. Stepping: the screen
+   crossfades in place and the caption slides a few pixels the way the
+   visitor is going. Nothing scales past its own size or bounces.
+   --------------------------------------------------------------------------- */
+
+::view-transition-group(tune-screen) {
+  animation-duration: 0.55s;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.45s;
+}
+/* Opening and closing: the caption arrives just after the screen does. */
+::view-transition-new(tune-meta):only-child {
+  animation: tune-meta-in 0.5s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+::view-transition-old(tune-meta):only-child {
+  animation: tune-fade-out 0.2s ease both;
+}
+html[data-tune-step] ::view-transition-group(tune-meta) {
+  animation: none;
+}
+html[data-tune-step='next'] ::view-transition-old(tune-meta) {
+  animation: tune-meta-out-left 0.3s ease both;
+}
+html[data-tune-step='next'] ::view-transition-new(tune-meta) {
+  animation: tune-meta-in-right 0.45s 0.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+html[data-tune-step='previous'] ::view-transition-old(tune-meta) {
+  animation: tune-meta-out-right 0.3s ease both;
+}
+html[data-tune-step='previous'] ::view-transition-new(tune-meta) {
+  animation: tune-meta-in-left 0.45s 0.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes tune-meta-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+@keyframes tune-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes tune-meta-out-left {
+  to {
+    opacity: 0;
+    transform: translateX(-0.75rem);
+  }
+}
+@keyframes tune-meta-out-right {
+  to {
+    opacity: 0;
+    transform: translateX(0.75rem);
+  }
+}
+@keyframes tune-meta-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(0.75rem);
+  }
+}
+@keyframes tune-meta-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-0.75rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tune-viewer,
+  .tune-screen iframe {
+    transition: none;
+  }
+}
