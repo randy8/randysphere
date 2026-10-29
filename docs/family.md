@@ -84,7 +84,7 @@ never on opening the page.
 - **Mac / Windows / Linux:** Chrome, Edge, Firefox and Safari all work in
   an ordinary tab.
 
-**Send a Test Notification** (same sheet) proves the whole path to that
+**Send Test Notification** (same sheet) proves the whole path to that
 one device.
 
 What a notification says is per device. By default only **“New message”**

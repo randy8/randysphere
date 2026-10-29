@@ -3647,3 +3647,16 @@ was rejected: the request was that it be optional.
 **Rejected:** One shared account across chats (it would reconnect what
 was just separated); making the 8-character minimum apply to starters
 (the owner would have to invent and hand out other passwords).
+
+## 2026-10-29 — Chats: Apple's capitalization, and its wording
+
+**Decision:** Labels follow the Human Interface Guidelines: title-style
+capitalization for anything tapped or named (buttons, menu items, rows,
+headings — "Turn Off Notifications", "Show Name & Message"), sentence-style
+for anything read (footnotes, explanations). "&" for "and" in labels, as in
+Settings. Wording is iPhone's: no articles in a button ("Send Test
+Notification"), and qualifiers like "on this device" go in the footnote,
+not the button. Section headings show as written, not forced to capitals.
+
+**Rejected:** Sentence case throughout (tried and undone the same hour —
+iOS doesn't write its controls that way).

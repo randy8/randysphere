@@ -459,7 +459,7 @@ export function renderAdmin(input: {
       : `<form class="cell cell-danger" method="POST" action="${assets.base}/admin/delete">
     <input type="hidden" name="id" value="${id}">
     <input name="confirm" placeholder="Type ${escapeHtml(user.username)} to delete" aria-label="Type the username to confirm deletion" autocomplete="off" autocapitalize="none">
-    <button type="submit">Delete Account and Messages</button>
+    <button type="submit">Delete Account & Messages</button>
   </form>`
   }
 </section>`;

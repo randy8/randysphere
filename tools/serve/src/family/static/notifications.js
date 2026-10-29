@@ -8,11 +8,11 @@ const STRINGS = {
   en: {
     heading: 'Notifications',
     turnOn: 'Turn On Notifications',
-    turnOff: 'Turn Off on This Device',
-    preview: 'Show Name and Message',
+    turnOff: 'Turn Off Notifications',
+    preview: 'Show Name & Message',
     previewNote:
-      'Off, a notification says only “New message”. On, it shows who wrote and the first line — on the lock screen too.',
-    test: 'Send a Test Notification',
+      'Off, a notification says only “New message”. On, it shows who wrote and the first line — on the lock screen too. These settings are for this device only.',
+    test: 'Send Test Notification',
     testSent: 'Sent. It should arrive in a few seconds.',
     testFailed: 'It didn’t go through. Try turning notifications off and on again.',
     blocked:
@@ -26,9 +26,10 @@ const STRINGS = {
   zh: {
     heading: '通知',
     turnOn: '开启通知',
-    turnOff: '在此设备上关闭',
+    turnOff: '关闭通知',
     preview: '显示发送人和内容',
-    previewNote: '关闭时，通知只显示“新消息”。开启后会显示是谁发的和第一行内容——锁屏上也会显示。',
+    previewNote:
+      '关闭时，通知只显示“新消息”。开启后会显示是谁发的和第一行内容——锁屏上也会显示。以上设置仅适用于此设备。',
     test: '发送测试通知',
     testSent: '已发送，几秒钟内会收到。',
     testFailed: '没有发送成功。请关闭通知后再重新开启。',
