@@ -3682,3 +3682,41 @@ keep consistent with `rev`, for no gain at this size); bumping `rev`
 without `sent_rev` (edits would have re-counted as unread and re-armed
 receipts); pushing a "retract" for an unsent message's notification
 (iPhone revokes a subscription whose pushes show nothing).
+
+## 2026-10-29 — Chats: the performance audit, and three changes it justified
+
+**Measured** (synthetic data in a throwaway database, never production's;
+store calls timed in-process, 8 members): at 20,000 messages and 1,000
+photos the hourly orphan-photo cleanup took 2.4 s, synchronously, on the
+server that also serves the site; unread counts (one per notified person
+per message) and read stamping (each read) scanned every message, 5 ms
+each at 20,000 and 34–41 ms at 200,000. Everything else was already
+index-bound and flat with size: a page of history ~1.3 ms, a reconnect's
+replay ~1.2 ms, a send/edit/Tapback 0.4–0.7 ms including the fsync of
+`synchronous = FULL`. Over HTTP, a send reached 30 open streams (10 people ×
+3 devices) in 11 ms; 30 idle streams cost ~0.1 % of a core; disconnects left
+no connection behind. In production both `chat.db` files were still 4 KB
+with everything in the WAL: never checkpointed, because the WAL hadn't
+reached 1,000 pages and the server never closed the database.
+
+**Decision:** (1) A partial index `messages(image_id)`: the cleanup is 1 ms
+at 20,000 messages and 9 ms at 200,000 (was minutes). (2) Unread counts
+and read stamping also bound `rev > last_read_rev` — a message's rev is
+never below the rev it was sent at, so it narrows the index range without
+changing the result: 70 µs and 230 µs for someone 30 messages behind, at
+either size. (3) A PASSIVE checkpoint when a chat shuts down, so `chat.db`
+is whole after every deploy (PASSIVE never waits on the candidate server).
+A test asserts the query plans, so a later edit can't quietly bring the
+scans back.
+
+**Not changed, on purpose:** `synchronous = FULL` (0.4 ms a send is the
+price of "Delivered" meaning on disk). Search's `LIKE '%…%'` scan (5–8 ms
+at 20,000, 54 ms at 200,000, only when someone searches; FTS5 if it ever
+matters, and it won't for years). No Redis, queue, WebSockets or second
+database: nothing measured comes near needing one. Cloudflare raises the
+`no-cache` on `/family/sw.js` and unversioned `/family/static/*` to its
+4-hour browser TTL; browsers fetch a service worker's script past the HTTP
+cache anyway and pages only reference versioned assets, so it's noted, not
+fixed. SSE writes don't check backpressure; a dead connection is found by
+the 20 s heartbeat long before its buffer could matter at a family's
+volume.

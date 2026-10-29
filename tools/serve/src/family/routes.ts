@@ -339,6 +339,15 @@ export class FamilyChat {
   shutdown(): void {
     clearInterval(this.#cleanup);
     this.hub.shutdown();
+    // Copies what the WAL holds into chat.db, so the file is whole after
+    // every stop and deploy (it had sat at 4 KB, everything in the WAL).
+    // PASSIVE: never waits on another connection, such as a deploy's
+    // candidate server, so it can't hold up the stop.
+    try {
+      this.store.db.exec('PRAGMA wal_checkpoint(PASSIVE)');
+    } catch {
+      // Already closed, or busy: the next automatic checkpoint does it.
+    }
   }
 
   /** Deletes photos that were uploaded and never sent (see ORPHAN_AFTER_MS). */

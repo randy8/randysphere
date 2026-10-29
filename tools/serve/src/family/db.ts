@@ -214,6 +214,13 @@ const MIGRATIONS: readonly string[] = [
   ) WITHOUT ROWID;
   CREATE INDEX reactions_user ON reactions(user_id);
   `,
+  `
+  -- Which message holds a photo. Without it the hourly orphan cleanup
+  -- (store.ts takeOrphanImages) compared every photo with every message:
+  -- measured 2.4 s of a blocked server at 20,000 messages and 1,000 photos
+  -- (docs/decisions.md, 2026-10-29, the chat audit).
+  CREATE INDEX messages_image ON messages(image_id) WHERE image_id IS NOT NULL;
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

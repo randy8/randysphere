@@ -443,5 +443,35 @@ test('migration 7 keeps every message, with the rev it was sent at', () => {
   db.exec(`INSERT INTO messages (user_id, client_id, body, created_at, rev)
            VALUES (1, 'c2', 'overlap', 0, 8)`);
   assert.equal(old.history(null, 10).messages[1]?.sentRev, 8);
-  assert.equal(SCHEMA_VERSION, 7);
+  assert.equal(SCHEMA_VERSION, 8);
+});
+
+test('the hot queries use indexes, never a scan of every message', () => {
+  const plan = (sql: string, ...args: (number | string)[]): string =>
+    (store.db.prepare(`EXPLAIN QUERY PLAN ${sql}`).all(...args) as { detail: string }[])
+      .map((row) => row.detail)
+      .join(' | ');
+  // The orphan cleanup, unread counts and read stamping, as store.ts runs them.
+  const orphans = plan(
+    `SELECT id FROM images WHERE created_at < ?
+     AND NOT EXISTS (SELECT 1 FROM messages WHERE image_id = images.id)`,
+    0,
+  );
+  assert.match(orphans, /messages_image/);
+  const unread = plan(
+    `SELECT COUNT(*) AS n FROM messages m JOIN users u ON u.id = ?
+     WHERE m.rev > u.last_read_rev AND coalesce(m.sent_rev, m.rev) > u.last_read_rev
+       AND m.user_id != u.id AND m.deleted_at IS NULL AND m.unsent_at IS NULL`,
+    1,
+  );
+  assert.doesNotMatch(unread, /SCAN m\b/);
+  const stamp = plan(
+    `SELECT id FROM messages WHERE rev > ? AND coalesce(sent_rev, rev) > ?
+     AND coalesce(sent_rev, rev) <= ? AND user_id <> ?`,
+    1,
+    1,
+    2,
+    3,
+  );
+  assert.doesNotMatch(stamp, /SCAN messages/);
 });

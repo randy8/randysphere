@@ -769,10 +769,12 @@ export class FamilyStore {
         .prepare(
           `INSERT OR IGNORE INTO message_reads (message_id, user_id, read_at)
            SELECT id, ?, ? FROM messages
-           WHERE coalesce(sent_rev, rev) > ? AND coalesce(sent_rev, rev) <= ? AND user_id <> ?
-             AND deleted_at IS NULL AND unsent_at IS NULL`,
+           WHERE rev > ? AND coalesce(sent_rev, rev) > ? AND coalesce(sent_rev, rev) <= ?
+             AND user_id <> ? AND deleted_at IS NULL AND unsent_at IS NULL`,
         )
-        .run(userId, now, row.last_read_rev, target, userId);
+        // rev > …: a message's rev is never below the rev it was sent at, so
+        // this only narrows the search to the rev index, never the result.
+        .run(userId, now, row.last_read_rev, row.last_read_rev, target, userId);
       this.db.prepare('UPDATE users SET last_read_rev = ? WHERE id = ?').run(target, userId);
       this.db.exec('COMMIT');
       return target;
@@ -890,7 +892,8 @@ export class FamilyStore {
       this.db
         .prepare(
           `SELECT COUNT(*) AS n FROM messages m JOIN users u ON u.id = ?
-           WHERE coalesce(m.sent_rev, m.rev) > u.last_read_rev AND m.user_id != u.id
+           WHERE m.rev > u.last_read_rev AND coalesce(m.sent_rev, m.rev) > u.last_read_rev
+             AND m.user_id != u.id
              AND m.deleted_at IS NULL AND m.unsent_at IS NULL`,
         )
         .get(userId) as { n: number }
