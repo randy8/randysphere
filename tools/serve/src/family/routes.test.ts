@@ -246,6 +246,7 @@ test('every private endpoint refuses a visitor with no session, or a forged one'
     ['GET', `/family/images/${imageId}`],
     ['POST', '/family/api/typing'],
     ['POST', '/family/api/read'],
+    ['GET', '/family/api/rooms'],
   ];
   for (const cookie of [undefined, 'family_session=forged-token-value']) {
     for (const [method, path] of paths) {
@@ -789,5 +790,127 @@ test('a broadcast racing a stream that was just ended is dropped, not a crash', 
   chat.hub.broadcast('typing', { userId: 1 });
   chat.hub.heartbeat();
   await settle();
+  open.close();
+});
+
+test('rooms: a message lands in its own room, live to room-aware pages and never to an old one', async () => {
+  const disc = chat.store.roomBySlug('disc');
+  assert.ok(disc);
+  const aware = await stream(dadCookie, {}, '?rooms=all');
+  const awareHello = (await aware.next('hello')).data as { rooms: { slug: string }[] };
+  assert.deepEqual(
+    awareHello.rooms.map((room) => room.slug),
+    ['family', 'disc'],
+  );
+  // A page from before rooms (a home-screen app left open over the deploy).
+  const old = await stream(dadCookie);
+  await old.next('hello');
+
+  const sent = await call('/family/api/messages', {
+    cookie: momCookie,
+    json: { clientId: 'room-disc-001', body: 'tee time?', roomId: disc.id },
+  });
+  assert.equal(sent.status, 201);
+  const live = (await aware.next('message')).data as { roomId: number; body: string };
+  assert.equal(live.roomId, disc.id);
+  assert.equal(live.body, 'tee time?');
+
+  // No room named: Family, as before; the old page sees that one only.
+  await call('/family/api/messages', {
+    cookie: momCookie,
+    json: { clientId: 'room-fam-0001', body: 'dinner' },
+  });
+  const legacy = (await old.next('message')).data as { body: string; roomId: number };
+  assert.equal(legacy.body, 'dinner');
+  assert.equal(legacy.roomId, 1);
+  assert.ok(!old.events.some((e) => (e.data as { body?: string }).body === 'tee time?'));
+
+  const discPage = (await (
+    await call(`/family/api/history?room=${String(disc.id)}`, { cookie: dadCookie })
+  ).json()) as { messages: { body: string }[] };
+  assert.deepEqual(
+    discPage.messages.map((m) => m.body),
+    ['tee time?'],
+  );
+  const familyPage = (await (await call('/family/api/history', { cookie: dadCookie })).json()) as {
+    messages: { body: string }[];
+  };
+  assert.ok(!familyPage.messages.some((m) => m.body === 'tee time?'));
+
+  // Unread is per room, and reading one leaves the other.
+  const before = (await (await call('/family/api/rooms', { cookie: dadCookie })).json()) as {
+    rooms: { id: number; unread: number }[];
+  };
+  assert.ok((before.rooms.find((r) => r.id === disc.id)?.unread ?? 0) >= 1);
+  await call('/family/api/read', {
+    cookie: dadCookie,
+    json: { roomId: disc.id, rev: chat.store.currentRev() },
+  });
+  const after = (await (await call('/family/api/rooms', { cookie: dadCookie })).json()) as {
+    rooms: { id: number; unread: number }[];
+  };
+  assert.equal(after.rooms.find((r) => r.id === disc.id)?.unread, 0);
+  assert.ok((after.rooms.find((r) => r.id === 1)?.unread ?? 0) >= 1);
+
+  assert.equal(
+    (
+      await call('/family/api/messages', {
+        cookie: momCookie,
+        json: { clientId: 'room-none-001', body: 'x', roomId: 999 },
+      })
+    ).status,
+    404,
+  );
+  aware.close();
+  old.close();
+});
+
+test('rooms: each has its own page, and the no-JavaScript form posts into the room it is on', async () => {
+  const page = await (await call('/family/?room=disc', { cookie: momCookie })).text();
+  assert.match(page, /<span data-room-name>Disc<\/span>/);
+  assert.match(page, /name="roomId" value="2"/);
+  assert.match(page, /data-view="room"/);
+  assert.match(
+    await (await call('/family/?rooms', { cookie: momCookie })).text(),
+    /data-view="list"/,
+  );
+  assert.equal((await call('/family/?room=nope', { cookie: momCookie })).status, 303);
+
+  const posted = await call('/family/send', {
+    cookie: momCookie,
+    form: { body: 'from a form', clientId: 'nojs-room-0001', roomId: '2' },
+  });
+  assert.equal(posted.status, 303);
+  assert.equal(posted.headers.get('location'), '/family/?room=disc');
+  assert.ok(chat.store.history(null, 50, 2).messages.some((m) => m.body === 'from a form'));
+});
+
+test('rooms: someone looking at Family is still notified about Disc', async () => {
+  const phone = device('randy-rooms-phone');
+  await call('/family/api/push', { cookie: randyCookie, json: phone.subscription });
+  const open = await stream(randyCookie, {}, '?rooms=all&room=1');
+  const hello = (await open.next('hello')).data as { stream: number };
+  await call('/family/api/presence', {
+    cookie: randyCookie,
+    json: { stream: hello.stream, visible: true, roomId: 1 },
+  });
+  const toRandy = (): typeof pushed =>
+    pushed.filter((p) => p.endpoint === phone.subscription.endpoint);
+
+  pushed.length = 0;
+  await call('/family/api/messages', {
+    cookie: momCookie,
+    json: { clientId: 'room-push-0001', body: 'family' },
+  });
+  await call('/family/api/messages', {
+    cookie: momCookie,
+    json: { clientId: 'room-push-0002', body: 'disc', roomId: 2 },
+  });
+  await settle();
+  assert.equal(toRandy().length, 1, 'Family on screen: only Disc notifies');
+  const payload = phone.read(toRandy()[0]?.body ?? Buffer.alloc(0));
+  assert.equal(payload['title'], 'Disc');
+  assert.equal(payload['room'], 'disc');
+  assert.equal(toRandy()[0]?.headers['topic'], 'family-disc');
   open.close();
 });

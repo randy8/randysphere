@@ -32,7 +32,7 @@ self.addEventListener('push', (event) => {
         renotify: true,
         icon: '/family/static/icon-192.png',
         badge: '/family/static/badge-96.png',
-        data: { messageId: data.messageId || 0 },
+        data: { messageId: data.messageId || 0, room: data.room || '' },
       });
       if (typeof data.badge === 'number' && 'setAppBadge' in self.navigator) {
         await (
@@ -46,14 +46,17 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const id = event.notification.data?.messageId || 0;
-  const target = id > 0 ? `/family/#m${id}` : '/family/';
+  // Family is /family/ itself; any other room is ?room=<slug>.
+  const room = event.notification.data?.room || '';
+  const page = room && room !== 'family' ? `/family/?room=${encodeURIComponent(room)}` : '/family/';
+  const target = id > 0 ? `${page}#m${id}` : page;
   event.waitUntil(
     (async () => {
       const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       const open = windows.find((client) => new URL(client.url).pathname.startsWith('/family'));
       if (open) {
         // The page that's already open goes to the message itself.
-        open.postMessage({ type: 'open-message', id });
+        open.postMessage({ type: 'open-message', id, room });
         await open.focus();
         return;
       }

@@ -953,3 +953,17 @@ the page is server-rendered, with a form that posts. Reliability was the
 design brief — a message is on disk before "Delivered", retries can't
 duplicate, a reconnect replays exactly what was missed — because the network
 between Shanghai and a Cloudflare POP is the weakest link it has.
+
+## 2026-10-29 — The family chat gets rooms
+
+`/family/` is no longer one conversation but a few: Family, where every
+message so far now lives, and Disc, a second room among the same people. A
+conversation list sits beside the chat on a wide screen and behind the
+header's ‹ on a phone, counting what's unread in each room; switching never
+reloads the page. The header itself now reads like iMessage's: the faces,
+then the room's name in small type with a ›.
+
+Underneath, a message gains a room and a person's read position becomes
+per room, but the machinery is the same one stream, one counter and one
+replay rule, so a dropped connection still catches up on everything at
+once. Another room is one command (`pnpm family add-room`).

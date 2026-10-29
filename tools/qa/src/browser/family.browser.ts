@@ -102,7 +102,7 @@ browserTest(
     const randy = await signIn(other, 'randy', 'battery staple');
 
     await send(randy, 'Dinner at 7?');
-    await mom.getByText('Dinner at 7?').waitFor();
+    await mom.locator('[data-messages]').getByText('Dinner at 7?').waitFor();
     await randy.locator('.receipt').waitFor();
     assert.equal((await bubbles(mom)).filter((text) => text === 'Dinner at 7?').length, 1);
     assert.equal((await bubbles(randy)).filter((text) => text === 'Dinner at 7?').length, 1);
@@ -125,7 +125,10 @@ browserTest(
       body: 'while you were away',
     });
     chat.hub.broadcast('message', message, { id: message.rev });
-    await mom.getByText('while you were away').waitFor({ timeout: 10_000 });
+    await mom
+      .locator('[data-messages]')
+      .getByText('while you were away')
+      .waitFor({ timeout: 10_000 });
     await mom.waitForTimeout(500);
     assert.equal((await bubbles(mom)).filter((text) => text === 'while you were away').length, 1);
   },
@@ -201,4 +204,68 @@ browserTest(
     const caches = await page.evaluate(async () => (await window.caches.keys()).length);
     assert.equal(caches, 0);
   },
+);
+
+browserTest(
+  'rooms: switching is instant, each room keeps its own messages, and others count what you missed',
+  async ({ context, page: unused }) => {
+    await unused.close();
+    const randy = await signIn(context, 'randy', 'battery staple');
+    // Wide: the list is a sidebar beside the conversation.
+    await randy.locator('.rooms .room[data-room="2"]').waitFor();
+    const title = (): Promise<string> => randy.locator('[data-room-name]').innerText();
+    assert.equal(await title(), 'Family');
+    const loaded = await randy.evaluate(() => performance.getEntriesByType('navigation').length);
+
+    const mom = chat.store.findUserByUsername('mom')?.id ?? 0;
+    const { message } = chat.store.postMessage({
+      userId: mom,
+      roomId: 2,
+      clientId: 'browser-disc-1',
+      body: '飞盘？',
+    });
+    chat.hub.broadcast('message', message, { id: message.rev, room: 2 });
+    const badge = randy.locator('.room[data-room="2"] .room-unread');
+    await badge.waitFor();
+    assert.equal(await badge.innerText(), '1');
+    assert.ok(!(await bubbles(randy)).includes('飞盘？'), 'stays in Disc');
+
+    await randy.click('.room[data-room="2"]');
+    await randy.locator('[data-messages]').getByText('飞盘？').waitFor();
+    assert.equal(await title(), 'Disc');
+    assert.equal(new URL(randy.url()).search, '?room=disc');
+    await badge.waitFor({ state: 'detached' });
+    await send(randy, 'Saturday');
+    await randy.locator('.receipt').waitFor();
+    assert.equal(chat.store.history(null, 50, 2).messages.at(-1)?.body, 'Saturday');
+
+    await randy.goBack();
+    await randy.waitForFunction(
+      () => document.querySelector('[data-room-name]')?.textContent === 'Family',
+    );
+    assert.ok(!(await bubbles(randy)).includes('Saturday'));
+    assert.equal(
+      await randy.evaluate(() => performance.getEntriesByType('navigation').length),
+      loaded,
+      'no reload',
+    );
+  },
+);
+
+browserTest(
+  'rooms on a phone: the list is its own screen, Back shows it, a row opens the room',
+  async ({ context, page: unused }) => {
+    await unused.close();
+    const mom = await signIn(context, 'mom', 'correct horse');
+    const rooms = mom.locator('[data-rooms]');
+    assert.ok(!(await rooms.isVisible()));
+    await mom.click('[data-back]');
+    await rooms.waitFor({ state: 'visible' });
+    assert.ok(!(await mom.locator('[data-app]').isVisible()));
+    await mom.click('.room[data-room="2"]');
+    await mom.locator('[data-input]').waitFor({ state: 'visible' });
+    assert.equal(await mom.locator('[data-room-name]').innerText(), 'Disc');
+    assert.ok(!(await rooms.isVisible()));
+  },
+  PHONE,
 );

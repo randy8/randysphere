@@ -17,6 +17,15 @@ export interface Connection {
   readonly stillAuthorized: () => boolean;
   lastRev: number;
   /**
+   * Null: every room's events (the page has a room list). A room id: only
+   * that room's — a tab opened before rooms existed (a home-screen app left
+   * open across the deploy) knows nothing else, and would show another
+   * room's messages as Family's.
+   */
+  readonly onlyRoom: number | null;
+  /** The room this tab has on screen, while `visibleUntil` lasts. */
+  viewingRoom: number;
+  /**
    * Until when this tab counts as being looked at. The page renews it
    * while it's visible (POST /family/api/presence) and gives it up when
    * hidden; it lapses on its own, so a phone that went to sleep without
@@ -96,10 +105,13 @@ export class Hub {
     return this.#connections.get(id);
   }
 
-  /** Someone with the conversation on screen right now doesn't need a notification for it. */
-  isViewing(userId: number, now: number = Date.now()): boolean {
+  /** Someone with this room on screen right now doesn't need a notification for it. */
+  isViewing(userId: number, roomId: number, now: number = Date.now()): boolean {
     return this.connections().some(
-      (connection) => connection.userId === userId && connection.visibleUntil > now,
+      (connection) =>
+        connection.userId === userId &&
+        connection.viewingRoom === roomId &&
+        connection.visibleUntil > now,
     );
   }
 
@@ -116,9 +128,20 @@ export class Hub {
     }
   }
 
-  broadcast(event: string, data: unknown, options: { id?: number; except?: number } = {}): void {
+  /** To every stream; with `room`, not to streams limited to another room. */
+  broadcast(
+    event: string,
+    data: unknown,
+    options: { id?: number; except?: number; room?: number } = {},
+  ): void {
     for (const connection of this.connections()) {
       if (connection.userId === options.except) continue;
+      if (
+        options.room !== undefined &&
+        connection.onlyRoom !== null &&
+        connection.onlyRoom !== options.room
+      )
+        continue;
       this.send(connection, event, data, options.id);
     }
   }

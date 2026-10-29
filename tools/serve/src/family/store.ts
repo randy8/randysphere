@@ -14,11 +14,21 @@ export interface User {
   readonly createdAt: number;
   readonly disabledAt: number | null;
   readonly lastSeenAt: number | null;
-  readonly lastReadRev: number;
 }
+
+export interface Room {
+  readonly id: number;
+  /** Its name in a URL: /family/?room=<slug>. */
+  readonly slug: string;
+  readonly name: string;
+}
+
+/** Family: where every message from before rooms went, and what a request that names no room means. */
+export const DEFAULT_ROOM_ID = 1;
 
 export interface Message {
   readonly id: number;
+  readonly roomId: number;
   readonly userId: number;
   readonly clientId: string;
   readonly body: string;
@@ -45,6 +55,7 @@ const TOUCH_INTERVAL_MS = 60 * 60 * 1000;
 export const MAX_BODY_CHARS = 4000;
 export const MAX_DISPLAY_NAME_CHARS = 40;
 const USERNAME = /^[a-z0-9][a-z0-9._-]{1,31}$/i;
+const ROOM_SLUG = /^[a-z0-9][a-z0-9-]{0,31}$/;
 
 export class FamilyError extends Error {}
 
@@ -58,11 +69,11 @@ interface UserRow {
   created_at: number;
   disabled_at: number | null;
   last_seen_at: number | null;
-  last_read_rev: number;
 }
 
 interface MessageRow {
   id: number;
+  room_id: number;
   user_id: number;
   client_id: string;
   body: string;
@@ -87,7 +98,6 @@ function toUser(row: UserRow): User {
     createdAt: row.created_at,
     disabledAt: row.disabled_at,
     lastSeenAt: row.last_seen_at,
-    lastReadRev: row.last_read_rev,
   };
 }
 
@@ -95,6 +105,7 @@ function toMessage(row: MessageRow): Message {
   const deleted = row.deleted_at !== null;
   return {
     id: row.id,
+    roomId: row.room_id,
     userId: row.user_id,
     clientId: row.client_id,
     // A deletion keeps the row (its rev tells reconnecting clients to drop
@@ -111,7 +122,7 @@ function toMessage(row: MessageRow): Message {
   };
 }
 
-const MESSAGE_COLUMNS = `m.id, m.user_id, m.client_id, m.body, m.image_id, i.width, i.height,
+const MESSAGE_COLUMNS = `m.id, m.room_id, m.user_id, m.client_id, m.body, m.image_id, i.width, i.height,
   m.reply_to, m.created_at, m.deleted_at, m.rev`;
 const MESSAGE_FROM = 'messages m LEFT JOIN images i ON i.id = m.image_id';
 
@@ -356,6 +367,60 @@ export class FamilyStore {
     this.db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(now);
   }
 
+  // ---- rooms -------------------------------------------------------------
+
+  rooms(): Room[] {
+    return this.db
+      .prepare('SELECT id, slug, name FROM rooms ORDER BY position, id')
+      .all() as unknown as Room[];
+  }
+
+  getRoom(id: number): Room | null {
+    const row = this.db.prepare('SELECT id, slug, name FROM rooms WHERE id = ?').get(id) as
+      Room | undefined;
+    return row ?? null;
+  }
+
+  roomBySlug(slug: string): Room | null {
+    const row = this.db.prepare('SELECT id, slug, name FROM rooms WHERE slug = ?').get(slug) as
+      Room | undefined;
+    return row ?? null;
+  }
+
+  createRoom(input: { slug: string; name: string; now?: number }): Room {
+    const slug = input.slug.trim().toLowerCase();
+    if (!ROOM_SLUG.test(slug)) {
+      throw new FamilyError('A room’s slug is 1–32 lowercase letters, digits or dashes.');
+    }
+    const name = normalizeDisplayName(input.name);
+    if (this.roomBySlug(slug)) throw new FamilyError('There is already a room by that slug.');
+    const result = this.db
+      .prepare(
+        `INSERT INTO rooms (slug, name, position, created_at)
+         VALUES (?, ?, (SELECT COALESCE(MAX(position), -1) + 1 FROM rooms), ?)`,
+      )
+      .run(slug, name, input.now ?? Date.now());
+    const room = this.getRoom(Number(result.lastInsertRowid));
+    if (!room) throw new FamilyError('No such room.');
+    return room;
+  }
+
+  /**
+   * Every room as one person's conversation list shows it: how many
+   * messages from others they haven't read there, and the newest message.
+   */
+  roomSummaries(userId: number): (Room & { unread: number; last: Message | null })[] {
+    const unread = this.unreadByRoom(userId);
+    const newest = this.db.prepare(
+      `SELECT ${MESSAGE_COLUMNS} FROM ${MESSAGE_FROM}
+       WHERE m.room_id = ? AND m.deleted_at IS NULL ORDER BY m.id DESC LIMIT 1`,
+    );
+    return this.rooms().map((room) => {
+      const row = newest.get(room.id) as MessageRow | undefined;
+      return { ...room, unread: unread.get(room.id) ?? 0, last: row ? toMessage(row) : null };
+    });
+  }
+
   // ---- messages ----------------------------------------------------------
 
   currentRev(): number {
@@ -389,6 +454,7 @@ export class FamilyStore {
    */
   postMessage(input: {
     userId: number;
+    roomId?: number;
     clientId: string;
     body: string;
     imageId?: string | null;
@@ -402,6 +468,8 @@ export class FamilyStore {
       .get(input.userId, input.clientId) as MessageRow | undefined;
     if (existing) return { message: toMessage(existing), created: false };
 
+    const roomId = input.roomId ?? DEFAULT_ROOM_ID;
+    if (!this.getRoom(roomId)) throw new FamilyError('No such room.');
     const body = input.body.normalize('NFC').replace(/\r\n?/g, '\n').trim();
     if ([...body].length > MAX_BODY_CHARS) throw new FamilyError('That message is too long.');
     const imageId = input.imageId ?? null;
@@ -414,7 +482,11 @@ export class FamilyStore {
       if (!image || image.user_id !== input.userId) throw new FamilyError('Unknown image.');
     }
     let replyTo = input.replyTo ?? null;
-    if (replyTo !== null && !this.db.prepare('SELECT 1 FROM messages WHERE id = ?').get(replyTo)) {
+    // A reply quotes something in its own room, never another one.
+    if (
+      replyTo !== null &&
+      !this.db.prepare('SELECT 1 FROM messages WHERE id = ? AND room_id = ?').get(replyTo, roomId)
+    ) {
       replyTo = null;
     }
 
@@ -422,10 +494,19 @@ export class FamilyStore {
       const rev = this.#nextRev();
       const result = this.db
         .prepare(
-          `INSERT INTO messages (user_id, client_id, body, image_id, reply_to, created_at, rev)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO messages (room_id, user_id, client_id, body, image_id, reply_to, created_at, rev)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .run(input.userId, input.clientId, body, imageId, replyTo, input.now ?? Date.now(), rev);
+        .run(
+          roomId,
+          input.userId,
+          input.clientId,
+          body,
+          imageId,
+          replyTo,
+          input.now ?? Date.now(),
+          rev,
+        );
       return Number(result.lastInsertRowid);
     });
     return { message: this.requireMessage(id), created: true };
@@ -444,26 +525,34 @@ export class FamilyStore {
     return message;
   }
 
-  /** The newest `limit` live messages before `beforeId` (or the very newest), oldest first. */
-  history(beforeId: number | null, limit: number): { messages: Message[]; hasMore: boolean } {
+  /** A room's newest `limit` live messages before `beforeId` (or the very newest), oldest first. */
+  history(
+    beforeId: number | null,
+    limit: number,
+    roomId: number = DEFAULT_ROOM_ID,
+  ): { messages: Message[]; hasMore: boolean } {
     const rows = this.db
       .prepare(
         `SELECT ${MESSAGE_COLUMNS} FROM ${MESSAGE_FROM}
-         WHERE m.deleted_at IS NULL AND m.id < ? ORDER BY m.id DESC LIMIT ?`,
+         WHERE m.room_id = ? AND m.deleted_at IS NULL AND m.id < ? ORDER BY m.id DESC LIMIT ?`,
       )
-      .all(beforeId ?? Number.MAX_SAFE_INTEGER, limit + 1) as unknown as MessageRow[];
+      .all(roomId, beforeId ?? Number.MAX_SAFE_INTEGER, limit + 1) as unknown as MessageRow[];
     const hasMore = rows.length > limit;
     return { messages: rows.slice(0, limit).reverse().map(toMessage), hasMore };
   }
 
-  /** Every message inserted or deleted after `rev`, in rev order — what a reconnect missed. */
-  changesSince(rev: number, limit: number): Message[] {
+  /**
+   * Every message inserted or deleted after `rev`, in rev order — what a
+   * reconnect missed. Every room's, or only `roomId`'s.
+   */
+  changesSince(rev: number, limit: number, roomId: number | null = null): Message[] {
     return (
       this.db
         .prepare(
-          `SELECT ${MESSAGE_COLUMNS} FROM ${MESSAGE_FROM} WHERE m.rev > ? ORDER BY m.rev LIMIT ?`,
+          `SELECT ${MESSAGE_COLUMNS} FROM ${MESSAGE_FROM}
+           WHERE m.rev > ? AND (? IS NULL OR m.room_id = ?) ORDER BY m.rev LIMIT ?`,
         )
-        .all(rev, limit) as unknown as MessageRow[]
+        .all(rev, roomId, roomId, limit) as unknown as MessageRow[]
     ).map(toMessage);
   }
 
@@ -498,10 +587,24 @@ export class FamilyStore {
     return { message: this.requireMessage(id), imageId };
   }
 
-  markRead(userId: number, rev: number): void {
+  /** Everything in `roomId` up to `rev` has been read by `userId`. */
+  markRead(userId: number, rev: number, roomId: number = DEFAULT_ROOM_ID): void {
+    if (!this.getRoom(roomId)) return;
     this.db
-      .prepare('UPDATE users SET last_read_rev = MAX(last_read_rev, ?) WHERE id = ?')
-      .run(Math.min(rev, this.currentRev()), userId);
+      .prepare(
+        `INSERT INTO room_reads (user_id, room_id, last_read_rev) VALUES (?, ?, ?)
+         ON CONFLICT (user_id, room_id) DO UPDATE
+           SET last_read_rev = MAX(last_read_rev, excluded.last_read_rev)`,
+      )
+      .run(userId, roomId, Math.min(rev, this.currentRev()));
+  }
+
+  /** How far `userId` has read in `roomId` (0: nothing yet). */
+  lastReadRev(userId: number, roomId: number): number {
+    const row = this.db
+      .prepare('SELECT last_read_rev FROM room_reads WHERE user_id = ? AND room_id = ?')
+      .get(userId, roomId) as { last_read_rev: number } | undefined;
+    return row?.last_read_rev ?? 0;
   }
 
   // ---- images ------------------------------------------------------------
@@ -577,16 +680,24 @@ export class FamilyStore {
     return this.epoch();
   }
 
-  /** Messages from others this person hasn't read yet: the app badge's number. */
+  /** Messages from others this person hasn't read yet, in every room: the app badge's number. */
   unreadCount(userId: number): number {
-    return (
-      this.db
-        .prepare(
-          `SELECT COUNT(*) AS n FROM messages m JOIN users u ON u.id = ?
-           WHERE m.rev > u.last_read_rev AND m.user_id != u.id AND m.deleted_at IS NULL`,
-        )
-        .get(userId) as { n: number }
-    ).n;
+    let total = 0;
+    for (const n of this.unreadByRoom(userId).values()) total += n;
+    return total;
+  }
+
+  /** Unread messages from others, per room (rooms with none are absent). */
+  unreadByRoom(userId: number): Map<number, number> {
+    const rows = this.db
+      .prepare(
+        `SELECT m.room_id, COUNT(*) AS n FROM messages m
+         LEFT JOIN room_reads r ON r.user_id = ? AND r.room_id = m.room_id
+         WHERE m.rev > COALESCE(r.last_read_rev, 0) AND m.user_id != ? AND m.deleted_at IS NULL
+         GROUP BY m.room_id`,
+      )
+      .all(userId, userId) as { room_id: number; n: number }[];
+    return new Map(rows.map((row) => [row.room_id, row.n]));
   }
 
   // ---- notifications -------------------------------------------------------

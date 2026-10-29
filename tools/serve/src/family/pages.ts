@@ -1,6 +1,7 @@
 import { escapeHtml } from '../pages.ts';
 import type { Connection, HubEvent } from './hub.ts';
-import type { Lang, Message, SessionInfo, User } from './store.ts';
+import { DEFAULT_ROOM_ID } from './store.ts';
+import type { Lang, Message, Room, SessionInfo, User } from './store.ts';
 
 export interface Assets {
   /** `/family/static/<name>?v=<hash>` for each static file. */
@@ -9,7 +10,7 @@ export interface Assets {
   readonly modules: readonly string[];
 }
 
-/** The conversation's name, in the header and the home-screen title. */
+/** The app's name: the sign-in screen, the home-screen title, notifications. */
 export const GROUP_NAME = 'Family';
 
 const STRINGS = {
@@ -22,6 +23,9 @@ const STRINGS = {
     noScript: 'Without JavaScript, new messages appear when you reload the page.',
     empty: 'No messages yet. Say hello.',
     details: 'Details & Notifications',
+    rooms: 'Messages',
+    back: 'Messages',
+    photo: 'Photo',
   },
   zh: {
     placeholder: '信息',
@@ -32,6 +36,9 @@ const STRINGS = {
     noScript: '未启用 JavaScript：刷新页面即可看到新消息。',
     empty: '还没有消息，打个招呼吧。',
     details: '详细信息与通知',
+    rooms: '信息',
+    back: '信息',
+    photo: '照片',
   },
 } as const;
 
@@ -110,26 +117,53 @@ function renderStaticMessage(message: Message, users: ReadonlyMap<number, User>,
 </li>`;
 }
 
+export type RoomSummary = Room & { readonly unread: number; readonly last: Message | null };
+
+/** A room's page: Family is /family/ itself, as it was before there were rooms. */
+export const roomHref = (room: Room): string =>
+  room.id === DEFAULT_ROOM_ID ? '/family/' : `/family/?room=${encodeURIComponent(room.slug)}`;
+
+/** One row of the conversation list. chat.js builds the same row (roomRow) when it redraws. */
+function renderRoomRow(room: RoomSummary, current: Room, t: (typeof STRINGS)[Lang]): string {
+  const last = room.last;
+  const preview = last === null ? '' : last.body !== '' ? last.body : last.image ? t.photo : '';
+  return `<li><a class="room" href="${roomHref(room)}" data-room="${String(room.id)}"${room.id === current.id ? ' aria-current="page"' : ''}>
+    <span class="room-avatar" aria-hidden="true">${escapeHtml([...room.name][0] ?? '')}</span>
+    <span class="room-main">
+      <span class="room-top"><span class="room-name">${escapeHtml(room.name)}</span>${last === null ? '' : `<time class="room-time" datetime="${new Date(last.createdAt).toISOString()}">${formatTime(last.createdAt).slice(0, 10)}</time>`}</span>
+      <span class="room-preview">${escapeHtml(preview.replace(/\s+/g, ' ').slice(0, 120))}</span>
+    </span>
+    ${room.unread > 0 ? `<span class="room-unread">${String(room.unread)}</span>` : ''}
+  </a></li>`;
+}
+
 /**
- * The conversation. The newest messages are in the HTML and the composer
- * is a real form, so it works with JavaScript off (the site's promise);
- * chat.js then replaces the list with a live one.
+ * The conversation, beside the list of rooms (a sidebar on a wide screen;
+ * on a phone, one or the other — `view`). The newest messages are in the
+ * HTML and the composer is a real form, so it works with JavaScript off
+ * (the site's promise); chat.js then replaces the list with a live one and
+ * switches rooms without reloading.
  */
 export function renderChat(input: {
   assets: Assets;
   me: User;
   members: readonly User[];
+  rooms: readonly RoomSummary[];
+  room: Room;
+  view: 'room' | 'list';
   recent: readonly Message[];
   notice?: string | null;
 }): string {
-  const { assets, me, members, recent } = input;
+  const { assets, me, members, recent, room, rooms } = input;
   const t = STRINGS[me.lang];
   const users = new Map(members.map((user) => [user.id, user]));
   const boot = JSON.stringify({
     me: { id: me.id, name: me.displayName, lang: me.lang, isAdmin: me.isAdmin },
+    room: room.id,
+    rooms,
   }).replace(/</g, '\\u003c');
   const others = members.filter((user) => user.id !== me.id && user.disabledAt === null);
-  const subtitle = others.map((user) => user.displayName).join(', ');
+  const elsewhere = rooms.reduce((n, r) => n + (r.id === room.id ? 0 : r.unread), 0);
   const avatars = others
     .slice(0, 3)
     .map(
@@ -138,17 +172,29 @@ export function renderChat(input: {
     )
     .join('');
 
-  return `${head(GROUP_NAME, assets, me.lang)}
+  const chevronLeft = `<svg viewBox="0 0 12 20" width="12" height="20" aria-hidden="true"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+  return `${head(room.name, assets, me.lang)}
 <body class="family-chat">
+<div class="shell" data-shell data-view="${input.view}">
+<nav class="rooms" aria-label="${t.rooms}" data-rooms>
+  <header class="rooms-bar">
+    <a class="bar-side bar-home" href="/exposures/" aria-label="randyliang.net">${chevronLeft}</a>
+    <h2 class="rooms-title">${t.rooms}</h2>
+  </header>
+  <ul class="room-list" data-room-list>
+${rooms.map((r) => renderRoomRow(r, room, t)).join('\n')}
+  </ul>
+</nav>
 <div class="app" data-app>
   <header class="bar">
-    <a class="bar-side bar-home" href="/exposures/" aria-label="randyliang.net">
-      <svg viewBox="0 0 12 20" width="12" height="20" aria-hidden="true"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <a class="bar-side bar-back" href="/family/?rooms${room.id === DEFAULT_ROOM_ID ? '' : `&room=${encodeURIComponent(room.slug)}`}" aria-label="${t.back}" data-back>
+      ${chevronLeft}<span class="bar-back-count" data-back-count${elsewhere > 0 ? '' : ' hidden'}>${String(elsewhere)}</span>
     </a>
     <div class="bar-title">
       <div class="avatars">${avatars}</div>
-      <h1>${GROUP_NAME}</h1>
-      <p class="bar-subtitle" data-subtitle>${escapeHtml(subtitle)}</p>
+      <h1><span data-room-name>${escapeHtml(room.name)}</span><svg class="bar-title-chevron" viewBox="0 0 8 14" width="6" height="10" aria-hidden="true"><path d="m1.5 1.5 5 5.5-5 5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></h1>
+      <p class="bar-subtitle" data-subtitle hidden></p>
     </div>
     <details class="bar-side bar-menu">
       <summary aria-label="Menu">
@@ -185,6 +231,7 @@ ${recent.length === 0 ? `<li class="empty" data-static>${t.empty}</li>` : recent
       <div class="field">
         <textarea name="body" rows="1" placeholder="${t.placeholder}" aria-label="${t.placeholder}" data-input
           autocomplete="off" maxlength="4000" required></textarea>
+        <input type="hidden" name="roomId" value="${String(room.id)}" data-room-field>
         <input type="hidden" name="clientId" value="nojs-${String(Date.now())}-${String(Math.random()).slice(2, 10)}">
         <button class="send" type="submit" data-send aria-label="${t.send}">
           <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 20V5M5.5 11.5 12 5l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -192,6 +239,7 @@ ${recent.length === 0 ? `<li class="empty" data-static>${t.empty}</li>` : recent
       </div>
     </div>
   </form>
+</div>
 </div>
 <div class="menu-layer" data-menu-layer hidden></div>
 <script type="application/json" id="family-boot">${boot}</script>

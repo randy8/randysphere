@@ -1,9 +1,9 @@
 # Family chat
 
-A private conversation for the family at **https://randyliang.net/family/**:
-one group, each person with their own account, messages and photos kept on
-this machine. Not a messaging platform: no public sign-up, no other rooms, no
-third-party services.
+A private chat for the family at **https://randyliang.net/family/**: a few
+rooms (**Family**, **Disc**) among the same members, each person with their
+own account, messages and photos kept on this machine. Not a messaging
+platform: no public sign-up, no third-party services.
 
 Code: `tools/serve/src/family/`. Data: `private/family/` (git-ignored):
 `chat.db` (SQLite) and `images/`. Nothing in the Astro build knows it exists.
@@ -18,6 +18,7 @@ Code: `tools/serve/src/family/`. Data: `private/family/` (git-ignored):
 | Sending   | Each message carries a client-generated id, unique per author: a retry after a lost response returns the original instead of a duplicate. Unsent text survives a reload (localStorage outbox) and is retried with backoff until it goes through.                                                                                |
 | Accounts  | Username + password, hashed with Argon2id (`node:crypto`, 64 MiB, 3 passes). Sessions are random tokens, stored only as SHA-256 hashes, so they can be revoked; the cookie is `HttpOnly; Secure; SameSite=Lax`, 400 days, renewed as it's used.                                                                                 |
 | Interface | Server-rendered page + plain ES modules (`static/chat.js` and the modules it imports), no framework, no build step: at startup the server stamps every relative import with one shared version and the page preloads them, so they arrive together. Works without JavaScript too: the latest 50 messages and a form that posts. |
+| Rooms     | A `rooms` table; every message has a `room_id` (Family is room 1, where everything from before rooms went). One event stream per tab carries every room's events, each tagged with its room, on the one global `rev` — so replay, ordering and epochs are unchanged. Read positions are per person per room (`room_reads`).     |
 | Notify    | Web Push (RFC 8291 encryption, RFC 8292 VAPID) in `webpush.ts`, `node:crypto` only. A service worker (`static/sw.js`) shows notifications and does nothing else — no `fetch` handler, so nothing private is ever cached.                                                                                                        |
 
 The reasoning, and what was rejected, is in `docs/decisions.md`
@@ -85,6 +86,30 @@ too. Subscriptions the push service reports gone (404/410) are deleted at
 once; one failing for other reasons is deleted after 20 failures in a row.
 The server's key is `private/family/vapid.json`, made on first start and
 copied by backups — replacing it would silently unsubscribe every device.
+
+## Rooms
+
+Every member is in every room. `/family/` is Family; another room is
+`/family/?room=<slug>`. On a wide screen the conversation list is a sidebar;
+on a phone it is its own screen behind the **‹** in the header (which counts
+what's unread in the other rooms, as iMessage's does). Switching rooms never
+reloads the page, and each room keeps its own unsent draft. Without
+JavaScript, the list is `/family/?rooms` and the form posts into the room
+it's on.
+
+```sh
+pnpm family rooms                          # each room and how many messages it holds
+pnpm family add-room <slug> --name=<name>  # a new room, for everyone
+```
+
+A new room appears in open pages with its first message (or on reload).
+Notifications are per room: someone looking at Family is still notified
+about Disc. Family's notifications read as they always did; any other
+room's name its room ("Disc", or "Randy · Disc" with Preview on).
+
+A page opened before rooms existed (a home-screen app left open across the
+deploy that added them) is sent Family's events only, and everything it
+sends goes to Family, until it reloads.
 
 ## Accounts
 
@@ -241,3 +266,5 @@ server to Apple/Google, so nothing extra has to be reachable from China.
 ## Not built (yet)
 
 - Read receipts beyond your own "Delivered"; reactions; editing; search.
+- Rooms with only some of the members, muting a room, renaming or removing
+  a room (by hand in SQLite for now).

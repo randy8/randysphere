@@ -33,6 +33,7 @@ const T = zh
       done: '完成',
       members: '成员',
       openDetails: '聊天详细信息',
+      empty: '还没有消息，打个招呼吧。',
     }
   : {
       today: 'Today',
@@ -56,6 +57,7 @@ const T = zh
       done: 'Done',
       members: 'Members',
       openDetails: 'Conversation details',
+      empty: 'No messages yet. Say hello.',
     };
 
 const $ = (selector) => document.querySelector(selector);
@@ -75,15 +77,38 @@ const jump = $('[data-jump]');
 const replyBar = $('[data-reply-bar]');
 const replyText = $('[data-reply-text]');
 const layer = $('[data-menu-layer]');
+const shell = $('[data-shell]');
+const roomList = $('[data-room-list]');
+const roomName = $('[data-room-name]');
+const roomField = $('[data-room-field]');
+const back = $('[data-back]');
+const backCount = $('[data-back-count]');
+/** Wide enough for the room list to sit beside the conversation (family.css). */
+const wide = matchMedia('(min-width: 768px)');
 const finePointer = matchMedia('(pointer: fine)').matches;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
+/** Family: the room a request that names none means (store.ts, DEFAULT_ROOM_ID). */
+const DEFAULT_ROOM = 1;
 const RUN_GAP_MS = 10 * 60 * 1000;
 const SEPARATOR_GAP_MS = 60 * 60 * 1000;
 const OUTBOX_KEY = `family-outbox-${me.id}`;
 
-/** @type {Map<number, any>} live messages by id */
+/** @type {Map<number, any>} live messages by id, every room's */
 const messages = new Map();
+/** The room on screen. Every room's events arrive on the one stream; only this one's are drawn. */
+let currentRoom = boot.room;
+/** @type {Map<number, any>} each room as the list shows it: name, unread, newest message */
+const rooms = new Map(boot.rooms.map((room) => [room.id, room]));
+/** The rev the room summaries were taken at: only events after it change them. */
+let roomsRev = Infinity;
+/** Rooms whose newest page has been fetched, and whether each has older messages. */
+const loadedRooms = new Set();
+const hasMore = new Map();
+/** Unsent text per room, kept while you look at another. */
+const drafts = new Map();
+/** How far each room has been reported read. */
+const readRevs = new Map();
 /** @type {Map<string, any>} unsent messages by clientId, in send order */
 const pending = new Map();
 /** @type {Map<string, HTMLElement>} rendered nodes by key */
@@ -96,7 +121,6 @@ let epoch = null;
 /** This tab's event stream, by the server's id for it: what presence pings name. */
 let streamId = 0;
 let presenceTimer = 0;
-let hasMore = false;
 let loadingOlder = false;
 let replyTo = null;
 let stick = true;
@@ -106,8 +130,8 @@ let source = null;
 let connected = false;
 let offlineTimer = 0;
 let lastTypingSent = 0;
-let lastReadRev = 0;
 let readTimer = 0;
+let readPending = null;
 
 // ---- small helpers ----------------------------------------------------
 
@@ -271,8 +295,12 @@ function typingNode() {
 
 /** Every message to show, in order: stored ones by id, then this device's unsent ones. */
 function sequence() {
-  const stored = [...messages.values()].sort((a, b) => a.id - b.id);
-  const unsent = [...pending.values()].map((p) => ({ ...p, userId: me.id, key: `p${p.clientId}` }));
+  const stored = [...messages.values()]
+    .filter((m) => m.roomId === currentRoom)
+    .sort((a, b) => a.id - b.id);
+  const unsent = [...pending.values()]
+    .filter((p) => p.roomId === currentRoom)
+    .map((p) => ({ ...p, userId: me.id, key: `p${p.clientId}` }));
   return [...stored.map((m) => ({ ...m, key: `m${m.id}` })), ...unsent];
 }
 
@@ -326,6 +354,11 @@ function render({ animate = new Set() } = {}) {
     wanted.push(node);
     previous = item;
   });
+
+  if (items.length === 0 && loadedRooms.has(currentRoom)) {
+    if (!nodes.has('empty')) nodes.set('empty', el('li', 'empty', T.empty));
+    wanted.push(nodes.get('empty'));
+  }
 
   const typingIds = [...typers.keys()].filter((id) => id !== me.id);
   if (typingIds.length > 0) {
@@ -446,12 +479,11 @@ root.style.setProperty('--bar-h', `${bar.offsetHeight}px`);
 
 // ---- connection status ------------------------------------------------
 
+/** Under the room's name, as in iMessage, nothing — unless the connection is down. */
 function showSubtitle() {
-  const others = [...members.entries()]
-    .filter(([id, member]) => id !== me.id && member.active)
-    .map(([, member]) => member.name);
+  subtitle.hidden = connected;
   if (connected) {
-    subtitle.textContent = others.join(zh ? '、' : ', ');
+    subtitle.textContent = '';
     subtitle.classList.remove('is-offline');
   } else {
     subtitle.textContent = navigator.onLine ? T.connecting : T.offline;
@@ -498,7 +530,8 @@ function setMembers(list) {
   showSubtitle();
 }
 
-function accept(message, { fromStream = false } = {}) {
+function accept(message, { fromStream = false, eventRev = 0 } = {}) {
+  if (fromStream && eventRev > roomsRev && !message.deleted) noteInRoom(message);
   if (message.deleted) {
     removeMessage(message.id);
     return false;
@@ -531,33 +564,48 @@ function removeMessage(id) {
   }
 }
 
-async function loadLatest() {
-  const response = await api('/family/api/history');
+/** A room's newest page, merged in (whatever the stream brought meanwhile stays). */
+async function loadRoom(roomId) {
+  const response = await api(`/family/api/history?room=${roomId}`);
   if (!response.ok) throw new Error(String(response.status));
   const page = await response.json();
   setMembers(page.members);
-  for (const node of list.querySelectorAll('[data-static]')) node.remove();
-  messages.clear();
   for (const message of page.messages) messages.set(message.id, message);
+  hasMore.set(roomId, page.hasMore);
+  loadedRooms.add(roomId);
+  return page;
+}
+
+/** Starts over from the server: at first, and after a reset (a restore, or too much missed). */
+async function loadLatest() {
+  messages.clear();
+  loadedRooms.clear();
+  const page = await loadRoom(currentRoom);
+  for (const node of list.querySelectorAll('[data-static]')) node.remove();
   rev = page.rev;
   epoch = page.epoch;
-  hasMore = page.hasMore;
   render();
   scrollToBottom(false);
   stick = true;
 }
 
 async function loadOlder() {
-  if (!hasMore || loadingOlder || messages.size === 0) return;
+  const own = [...messages.values()].filter((m) => m.roomId === currentRoom);
+  if (!hasMore.get(currentRoom) || loadingOlder || own.length === 0) return;
   loadingOlder = true;
+  const roomId = currentRoom;
   const spinner = el('div', 'history-spinner');
   sentinel.after(spinner);
   try {
-    const oldest = Math.min(...messages.keys());
-    const response = await api(`/family/api/history?before=${oldest}`);
+    const oldest = Math.min(...own.map((m) => m.id));
+    const response = await api(`/family/api/history?room=${roomId}&before=${oldest}`);
     if (!response.ok) return;
     const page = await response.json();
-    hasMore = page.hasMore;
+    hasMore.set(roomId, page.hasMore);
+    if (roomId !== currentRoom) {
+      for (const message of page.messages) messages.set(message.id, message);
+      return;
+    }
     const before = scroller.scrollHeight - scroller.scrollTop;
     spinner.remove();
     for (const message of page.messages) messages.set(message.id, message);
@@ -582,7 +630,7 @@ new IntersectionObserver(
 function connect() {
   source?.close();
   source = new EventSource(
-    `/family/api/events?after=${rev}${epoch === null ? '' : `&epoch=${epoch}`}`,
+    `/family/api/events?rooms=all&room=${currentRoom}&after=${rev}${epoch === null ? '' : `&epoch=${epoch}`}`,
   );
   const advance = (event) => {
     const id = Number(event.lastEventId);
@@ -593,6 +641,7 @@ function connect() {
     const hello = JSON.parse(event.data);
     setConnected(true);
     setMembers(hello.members);
+    setRooms(hello.rooms, hello.rev);
     streamId = hello.stream;
     sendPresence();
     flushOutbox();
@@ -600,12 +649,17 @@ function connect() {
   source.addEventListener('message', (event) => {
     advance(event);
     const message = JSON.parse(event.data);
-    typers.delete(message.userId);
-    const incoming = accept(message, { fromStream: true }) && message.userId !== me.id;
-    renderAndFollow({
-      animate: new Set([`m${message.id}`]),
-      incoming: incoming ? 1 : 0,
-    });
+    const here = message.roomId === currentRoom;
+    if (here) typers.delete(message.userId);
+    const incoming =
+      accept(message, { fromStream: true, eventRev: Number(event.lastEventId) }) &&
+      message.userId !== me.id;
+    if (here) {
+      renderAndFollow({
+        animate: new Set([`m${message.id}`]),
+        incoming: incoming ? 1 : 0,
+      });
+    }
     if (incoming && document.hidden) {
       hiddenUnread += 1;
       updateTitle();
@@ -614,11 +668,16 @@ function connect() {
   });
   source.addEventListener('delete', (event) => {
     advance(event);
-    removeMessage(JSON.parse(event.data).id);
-    render();
+    const { id, roomId } = JSON.parse(event.data);
+    removeMessage(id);
+    if (roomId === currentRoom) render();
+    // The list's preview or count may have been this message: ask again.
+    const room = rooms.get(roomId);
+    if (room && (room.last?.id === id || room.unread > 0)) refreshRooms();
   });
   source.addEventListener('typing', (event) => {
-    const { userId } = JSON.parse(event.data);
+    const { userId, roomId } = JSON.parse(event.data);
+    if (roomId !== currentRoom) return;
     clearTimeout(typers.get(userId));
     typers.set(
       userId,
@@ -648,21 +707,40 @@ function connect() {
   });
 }
 
+/** The conversation is what's on screen: not hidden, and not the phone's room list. */
+function reading() {
+  return !document.hidden && (wide.matches || shell.dataset.view === 'room');
+}
+
 function markRead() {
-  if (document.hidden || !stick) return;
+  if (!reading() || !stick) return;
   if (hiddenUnread > 0) {
     hiddenUnread = 0;
     updateTitle();
   }
+  const room = rooms.get(currentRoom);
+  if (room?.unread > 0) {
+    room.unread = 0;
+    renderRooms();
+  }
   // At most every few seconds: a burst of messages is one "read".
-  if (rev <= lastReadRev || readTimer) return;
-  readTimer = setTimeout(() => {
-    readTimer = 0;
-    lastReadRev = rev;
-    api('/family/api/read', { method: 'POST', json: { rev } }).catch(() => {});
-    // Read here is read everywhere: the badge a notification set goes too.
-    navigator.clearAppBadge?.().catch(() => {});
-  }, 1500);
+  if (rev <= (readRevs.get(currentRoom) ?? 0) || readTimer) return;
+  readPending = { roomId: currentRoom, rev };
+  readTimer = setTimeout(flushRead, 1500);
+}
+
+/** Sends the waiting "read" now (before switching rooms, so it isn't lost or misfiled). */
+function flushRead() {
+  clearTimeout(readTimer);
+  readTimer = 0;
+  if (!readPending) return;
+  const { roomId, rev: upTo } = readPending;
+  readPending = null;
+  readRevs.set(roomId, upTo);
+  api('/family/api/read', { method: 'POST', json: { roomId, rev: upTo } }).catch(() => {});
+  // Read here is read everywhere: the badge a notification set follows.
+  const left = [...rooms.values()].reduce((n, r) => n + r.unread, 0);
+  (left > 0 ? navigator.setAppBadge?.(left) : navigator.clearAppBadge?.())?.catch(() => {});
 }
 
 /**
@@ -673,17 +751,18 @@ function markRead() {
 function sendPresence() {
   clearTimeout(presenceTimer);
   if (!streamId) return;
-  const visible = !document.hidden;
+  const visible = reading();
   api('/family/api/presence', {
     method: 'POST',
-    json: { stream: streamId, visible },
+    json: { stream: streamId, visible, roomId: currentRoom },
     keepalive: true,
   }).catch(() => {});
   if (visible) presenceTimer = setTimeout(sendPresence, 25_000);
 }
 
 function updateTitle() {
-  document.title = hiddenUnread > 0 ? `(${hiddenUnread}) Family` : 'Family';
+  const name = rooms.get(currentRoom)?.name ?? '';
+  document.title = hiddenUnread > 0 ? `(${hiddenUnread}) ${name}` : name;
   if ('setAppBadge' in navigator) {
     (hiddenUnread > 0 ? navigator.setAppBadge(hiddenUnread) : navigator.clearAppBadge()).catch(
       () => {},
@@ -717,7 +796,13 @@ function saveOutbox() {
   try {
     const text = [...pending.values()]
       .filter((p) => !p.file)
-      .map(({ clientId, body, replyTo, createdAt }) => ({ clientId, body, replyTo, createdAt }));
+      .map(({ clientId, roomId, body, replyTo, createdAt }) => ({
+        clientId,
+        roomId,
+        body,
+        replyTo,
+        createdAt,
+      }));
     localStorage.setItem(OUTBOX_KEY, JSON.stringify(text));
   } catch {
     // Private browsing: the outbox lives only as long as the page.
@@ -728,7 +813,8 @@ function restoreOutbox() {
   try {
     for (const p of JSON.parse(localStorage.getItem(OUTBOX_KEY) ?? '[]')) {
       if (typeof p.clientId === 'string' && typeof p.body === 'string') {
-        pending.set(p.clientId, { ...p, state: 'sending', attempts: 0 });
+        // Saved before rooms existed: it was written in Family (room 1).
+        pending.set(p.clientId, { roomId: DEFAULT_ROOM, ...p, state: 'sending', attempts: 0 });
       }
     }
   } catch {
@@ -754,7 +840,13 @@ async function deliver(p) {
     }
     const response = await api('/family/api/messages', {
       method: 'POST',
-      json: { clientId: p.clientId, body: p.body, imageId: p.imageId ?? null, replyTo: p.replyTo },
+      json: {
+        clientId: p.clientId,
+        roomId: p.roomId,
+        body: p.body,
+        imageId: p.imageId ?? null,
+        replyTo: p.replyTo,
+      },
     });
     if (!response.ok) throw Object.assign(new Error('send'), { status: response.status, response });
     const { message } = await response.json();
@@ -790,7 +882,14 @@ function flushOutbox() {
 }
 
 function queue(p) {
-  const entry = { clientId: clientId(), createdAt: Date.now(), replyTo, state: 'sending', ...p };
+  const entry = {
+    clientId: clientId(),
+    roomId: currentRoom,
+    createdAt: Date.now(),
+    replyTo,
+    state: 'sending',
+    ...p,
+  };
   pending.set(entry.clientId, entry);
   saveOutbox();
   setReply(null);
@@ -848,7 +947,7 @@ input.addEventListener('input', () => {
   const now = Date.now();
   if (input.value.trim() !== '' && now - lastTypingSent > 2500) {
     lastTypingSent = now;
-    api('/family/api/typing', { method: 'POST' }).catch(() => {});
+    api('/family/api/typing', { method: 'POST', json: { roomId: currentRoom } }).catch(() => {});
   }
 });
 
@@ -1226,6 +1325,175 @@ function openViewer(src) {
   viewer.focus();
 }
 
+// ---- rooms ---------------------------------------------------------------
+
+/** As pages.ts writes them: Family is /family/, any other room ?room=<slug>, the phone's list ?rooms. */
+function roomHref(room, list = false) {
+  const parts = [];
+  if (list) parts.push('rooms');
+  if (room.id !== DEFAULT_ROOM) parts.push(`room=${encodeURIComponent(room.slug)}`);
+  return parts.length === 0 ? '/family/' : `/family/?${parts.join('&')}`;
+}
+
+/** The server's word on every room (the stream's hello, or a refetch), as of `atRev`. */
+function setRooms(list, atRev) {
+  if (!Array.isArray(list)) return;
+  for (const room of list) rooms.set(room.id, room);
+  for (const id of [...rooms.keys()]) if (!list.some((room) => room.id === id)) rooms.delete(id);
+  roomsRev = atRev;
+  renderRooms();
+}
+
+async function refreshRooms() {
+  try {
+    const response = await api('/family/api/rooms');
+    if (response.ok) {
+      const body = await response.json();
+      setRooms(body.rooms, rev);
+    }
+  } catch {
+    // The next hello brings them.
+  }
+}
+
+/** A new message, as the room list sees it: the newest line, and one more unread if it's someone else's. */
+function noteInRoom(message) {
+  const room = rooms.get(message.roomId);
+  if (!room) {
+    refreshRooms(); // A room added since this page loaded.
+    return;
+  }
+  if (!room.last || message.id >= room.last.id) room.last = message;
+  if (message.userId !== me.id) room.unread += 1;
+  renderRooms();
+}
+
+function listTime(at) {
+  const days = Math.round((startOfDay(Date.now()) - startOfDay(at)) / 86_400_000);
+  if (days === 0) return timeFormat.format(at);
+  if (days === 1) return T.yesterday;
+  if (days < 7) return weekdayFormat.format(at);
+  return new Date(at).getFullYear() === new Date().getFullYear()
+    ? dateFormat.format(at)
+    : yearFormat.format(at);
+}
+
+/** One row of the list, as pages.ts renders it: avatar, name, time, newest line, unread count. */
+function roomRow(room) {
+  const a = el('a', 'room');
+  a.href = roomHref(room);
+  a.dataset.room = String(room.id);
+  if (room.id === currentRoom) a.setAttribute('aria-current', 'page');
+  const avatar = el('span', 'room-avatar', [...room.name][0] ?? '');
+  avatar.setAttribute('aria-hidden', 'true');
+  const main = el('span', 'room-main');
+  const top = el('span', 'room-top');
+  top.append(el('span', 'room-name', room.name));
+  if (room.last) {
+    const time = el('time', 'room-time', listTime(room.last.createdAt));
+    time.dateTime = new Date(room.last.createdAt).toISOString();
+    top.append(time);
+  }
+  const last = room.last;
+  const line = !last ? '' : last.body ? last.body.replace(/\s+/g, ' ') : last.image ? T.photo : '';
+  main.append(top, el('span', 'room-preview', line.slice(0, 120)));
+  a.append(avatar, main);
+  if (room.unread > 0) a.append(el('span', 'room-unread', String(room.unread)));
+  const li = el('li');
+  li.append(a);
+  return li;
+}
+
+function renderRooms() {
+  roomList.replaceChildren(...[...rooms.values()].map(roomRow));
+  // The phone's back button says how much is waiting elsewhere, as iMessage's does.
+  const elsewhere = [...rooms.values()].reduce(
+    (n, room) => n + (room.id === currentRoom ? 0 : room.unread),
+    0,
+  );
+  backCount.hidden = elsewhere === 0;
+  backCount.textContent = String(elsewhere);
+}
+
+/** On a phone, the list or the conversation (on a wide screen, both). */
+function setView(view) {
+  shell.dataset.view = view;
+  back.href = roomHref(rooms.get(currentRoom) ?? { id: DEFAULT_ROOM }, true);
+  sendPresence();
+  if (view === 'room') {
+    fitViewport();
+    markRead();
+  }
+}
+
+/** Shows a room without reloading the page: from the list, a notification, or Back. */
+async function openRoom(id, { push = true } = {}) {
+  const room = rooms.get(id);
+  if (!room) return;
+  closeMenu(true);
+  if (id !== currentRoom) {
+    flushRead();
+    drafts.set(currentRoom, input.value);
+    setReply(null);
+    for (const timer of typers.values()) clearTimeout(timer);
+    typers.clear();
+    currentRoom = id;
+    unseen = 0;
+    updateJump();
+    input.value = drafts.get(id) ?? '';
+    autosize();
+    roomField.value = String(id);
+    roomName.textContent = room.name;
+    updateTitle();
+    render();
+  }
+  if (push) history.pushState(null, '', roomHref(room));
+  setView('room');
+  renderRooms();
+  if (!loadedRooms.has(id)) {
+    try {
+      await loadRoom(id);
+    } catch {
+      // Shown empty for now; scrolling up or the next visit tries again.
+    }
+    if (id !== currentRoom) return;
+  }
+  render();
+  scrollToBottom(false);
+  stick = true;
+  markRead();
+  if (finePointer) input.focus({ preventScroll: true });
+}
+
+roomList.addEventListener('click', (event) => {
+  const link = event.target.closest('a[data-room]');
+  if (!link || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+  event.preventDefault();
+  openRoom(Number(link.dataset.room));
+});
+
+back.addEventListener('click', (event) => {
+  event.preventDefault();
+  flushRead();
+  history.pushState(null, '', back.href);
+  setView('list');
+});
+
+window.addEventListener('popstate', () => {
+  const params = new URL(location.href).searchParams;
+  const slug = params.get('room');
+  const room = [...rooms.values()].find((r) =>
+    slug === null ? r.id === DEFAULT_ROOM : r.slug === slug,
+  );
+  if (room && room.id !== currentRoom) openRoom(room.id, { push: false });
+  setView(params.has('rooms') ? 'list' : 'room');
+});
+
+wide.addEventListener('change', () => {
+  sendPresence();
+  markRead();
+});
+
 // ---- details -------------------------------------------------------------
 
 function openDetails() {
@@ -1273,13 +1541,18 @@ function reveal(id) {
 }
 
 // A notification tapped while the chat is already open (sw.js).
-navigator.serviceWorker?.addEventListener('message', (event) => {
-  if (event.data?.type === 'open-message' && event.data.id > 0) reveal(event.data.id);
+navigator.serviceWorker?.addEventListener('message', async (event) => {
+  if (event.data?.type !== 'open-message') return;
+  const room = [...rooms.values()].find((r) => r.slug === event.data.room);
+  if (room) await openRoom(room.id);
+  if (event.data.id > 0) reveal(event.data.id);
 });
 
 // ---- start ---------------------------------------------------------------
 
 attach.hidden = false;
+renderRooms();
+updateTitle();
 composer.querySelector('input[name="clientId"]')?.remove();
 input.removeAttribute('required');
 autosize();
@@ -1289,9 +1562,12 @@ async function start(attempt = 0) {
   try {
     await loadLatest();
     connect();
+    // Opening a room at its newest message is reading it.
+    markRead();
     // Opened from a notification: /family/#m<id>.
     const linked = /^#m(\d+)$/.exec(location.hash);
-    if (linked && reveal(Number(linked[1]))) history.replaceState(null, '', '/family/');
+    if (linked && reveal(Number(linked[1])))
+      history.replaceState(null, '', location.pathname + location.search);
     if (attempt === 0) registerWorker().then(() => syncSubscription(api).catch(() => {}));
   } catch {
     setConnected(false);

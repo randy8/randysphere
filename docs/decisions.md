@@ -3561,3 +3561,41 @@ whole subscribe → send → decrypt path are tested against the RFC and a
 stand-in push service; Chromium headless can't receive real pushes. The
 first real test is a phone after deploying: Details → Notifications →
 Send a Test Notification.
+
+## 2026-10-29 — Family chat: rooms
+
+**Decision.** `/family/` holds several rooms — Family and Disc to start —
+among the same members. A `rooms` table (id, slug, name, position);
+`messages.room_id` added as `NOT NULL DEFAULT 1`, so the migration moves
+every existing message into Family without rewriting a row, and a trigger
+stands in for the foreign key (SQLite won't add a `REFERENCES` column with a
+non-null default). Read positions move to `room_reads` (user, room),
+seeded from `users.last_read_rev`, which stays in place unread. One SSE
+stream per tab carries every room's events tagged with `roomId`, on the
+existing global `rev`. Presence names the room on screen, so notifications
+are suppressed per room. Any request naming no room means Family; a stream
+that doesn't ask for `rooms=all` gets Family's events only. URLs:
+`/family/` (Family), `/family/?room=<slug>`, `/family/?rooms` (the phone's
+list without JavaScript). The header now sets the room's name as iMessage
+does — small system type under the faces, with a ›, and no member list
+(the subtitle appears only for "Connecting…").
+
+**Why.** One global `rev` keeps replay, ordering and the restore epoch
+exactly as they were: a reconnect is still "everything after N", for all
+rooms at once, and the list's unread counts update live for rooms not on
+screen. Defaulting to Family is what keeps the overlap safe: during a deploy
+the previous server writes to a schema-3 database (its inserts land in
+Family; it still finds `users.last_read_rev`), and a home-screen app left
+open across the deploy keeps working as a Family-only page instead of
+showing Disc's messages as Family's. Every member in every room because
+that's the request and the existing access model; a membership table can be
+added later without touching messages.
+
+**Rejected.** A stream per room (a reconnect per switch, and per-room revs
+would mean per-room replay and epochs). Rebuilding `messages` to get a real
+foreign key (a copy of every row, `AUTOINCREMENT` and the self-referencing
+`reply_to` to carry across, for a constraint a trigger gives). Dropping
+`users.last_read_rev` (breaks the previous server mid-deploy). Path-style
+room URLs (`/family/disc`), which would share a namespace with `admin`,
+`api`, `static` and the rest. Opening `/family/` on the list on phones:
+Mom opens the app to Family and should keep doing so.

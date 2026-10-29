@@ -108,11 +108,49 @@ const MIGRATIONS: readonly string[] = [
 
   CREATE INDEX images_created ON images(created_at);
   `,
+  `
+  -- Rooms: separate conversations among the same members. Another room is
+  -- one INSERT (or pnpm family add-room); nothing else is per room but
+  -- messages and read positions.
+  CREATE TABLE rooms (
+    id         INTEGER PRIMARY KEY,
+    slug       TEXT NOT NULL UNIQUE,
+    name       TEXT NOT NULL,
+    position   INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+  );
+  INSERT INTO rooms (id, slug, name, position, created_at) VALUES
+    (1, 'family', 'Family', 0, unixepoch() * 1000),
+    (2, 'disc', 'Disc', 1, unixepoch() * 1000);
+
+  -- Every message already sent belongs to Family (room 1), and a server
+  -- still running the previous code during a deploy keeps writing there.
+  -- No REFERENCES: SQLite won't add a foreign-key column with a non-null
+  -- default, so the trigger below is the foreign key.
+  ALTER TABLE messages ADD COLUMN room_id INTEGER NOT NULL DEFAULT 1;
+  CREATE INDEX messages_room ON messages(room_id, id);
+  CREATE TRIGGER messages_room_exists BEFORE INSERT ON messages
+    WHEN NOT EXISTS (SELECT 1 FROM rooms WHERE id = NEW.room_id)
+    BEGIN SELECT RAISE(ABORT, 'no such room'); END;
+
+  -- How far each person has read, per room. Supersedes users.last_read_rev,
+  -- which stays (unread by this code) so the previous server still works
+  -- against this schema for the seconds a deploy overlaps them.
+  CREATE TABLE room_reads (
+    user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    room_id       INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+    last_read_rev INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, room_id)
+  );
+  INSERT INTO room_reads (user_id, room_id, last_read_rev)
+    SELECT id, 1, last_read_rev FROM users;
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;
 
-function migrate(db: DatabaseSync): void {
+/** Brings `db` up to `target` (every migration, unless a test wants an older schema to upgrade). */
+export function migrate(db: DatabaseSync, target: number = MIGRATIONS.length): void {
   const row = db.prepare('PRAGMA user_version').get() as { user_version: number };
   const current = row.user_version;
   if (current > MIGRATIONS.length) {
@@ -120,7 +158,7 @@ function migrate(db: DatabaseSync): void {
       `chat.db is at schema ${String(current)}, newer than this code (${String(MIGRATIONS.length)}).`,
     );
   }
-  for (let index = current; index < MIGRATIONS.length; index += 1) {
+  for (let index = current; index < target; index += 1) {
     db.exec('BEGIN IMMEDIATE');
     try {
       db.exec(MIGRATIONS[index] ?? '');

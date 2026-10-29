@@ -34,6 +34,8 @@ const USAGE = `pnpm family <command>
   rename <username> <display name>
   disable <username> | enable <username>
   revoke <username>                      sign them out on every device
+  rooms                                  the conversations, and how many messages each holds
+  add-room <slug> --name=<name>          a new conversation for everyone (/family/?room=<slug>)
   backup [<directory>]                   a consistent copy, safe while the server runs
                                          (default: private/family-backups/<time>/)
   restore <directory>                    replace the chat with a backup; stop the server first`;
@@ -257,6 +259,25 @@ async function main(): Promise<void> {
       const user = userOrFail(store, first);
       store.revokeSessions(user.id);
       console.log(`${user.displayName} is signed out everywhere (open pages notice within 20 s).`);
+      return;
+    }
+    case 'rooms': {
+      const counts = store.db
+        .prepare(
+          'SELECT room_id, COUNT(*) AS n FROM messages WHERE deleted_at IS NULL GROUP BY room_id',
+        )
+        .all() as { room_id: number; n: number }[];
+      for (const room of store.rooms()) {
+        const n = counts.find((row) => row.room_id === room.id)?.n ?? 0;
+        console.log(`${room.slug.padEnd(16)} ${room.name.padEnd(14)} ${String(n)} message(s)`);
+      }
+      return;
+    }
+    case 'add-room': {
+      const name = option(args, 'name');
+      if (!first || !name) throw new FamilyError(USAGE);
+      const room = store.createRoom({ slug: first, name });
+      console.log(`Added ${room.name}. Open pages list it with its first message, or on reload.`);
       return;
     }
     case 'backup': {

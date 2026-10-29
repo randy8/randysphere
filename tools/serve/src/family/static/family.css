@@ -150,7 +150,8 @@ body.family-chat {
   left: 0;
   right: 0;
   display: grid;
-  grid-template-columns: 44px 1fr 44px;
+  /* Wide enough for "‹ 12" on the left; the same on the right keeps the title centred. */
+  grid-template-columns: 72px 1fr 72px;
   align-items: center;
   padding: calc(env(safe-area-inset-top, 0px) + 6px) max(8px, env(safe-area-inset-right, 0px)) 7px
     max(8px, env(safe-area-inset-left, 0px));
@@ -195,12 +196,50 @@ body.family-chat {
   line-height: 1;
 }
 
+/* As iMessage sets a group's name: small, plain, under the faces, with a › that says "tap for details". */
 .bar h1 {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 100%;
   margin: 0;
-  font-family: var(--serif);
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 19px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.bar h1 span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bar-title-chevron {
+  flex: none;
+  color: var(--secondary);
+}
+
+.bar-back {
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: auto;
+  min-width: 44px;
+  padding-left: 8px;
+}
+
+.bar-back-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--out-bubble);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  text-align: center;
 }
 
 .bar-subtitle {
@@ -220,6 +259,7 @@ body.family-chat {
 
 .bar-menu {
   position: relative;
+  justify-self: end;
 }
 
 .bar-menu summary {
@@ -655,6 +695,191 @@ body.family-chat {
   line-height: 18px;
   cursor: pointer;
   animation: arrive 0.35s var(--spring) both;
+}
+
+/* ---- rooms ------------------------------------------------------------ */
+
+/*
+ * The conversation list. On a phone it is a screen of its own, in place of
+ * the conversation (chat.js switches `data-view`, the server sets it for a
+ * page without JavaScript); from 768px it is a sidebar beside it.
+ */
+.rooms {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100vh;
+  height: var(--vvh, 100dvh);
+  transform: translateY(var(--vvt, 0px));
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.shell[data-view='room'] .rooms,
+.shell[data-view='list'] .app {
+  display: none;
+}
+
+.rooms-bar {
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) max(8px, env(safe-area-inset-right, 0px)) 0
+    max(8px, env(safe-area-inset-left, 0px));
+}
+
+.rooms-title {
+  margin: 0 8px 6px;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 40px;
+}
+
+.room-list {
+  flex: 1;
+  margin: 0;
+  padding: 0 0 env(safe-area-inset-bottom, 0px);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  list-style: none;
+}
+
+.room {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px
+    max(16px, env(safe-area-inset-left, 0px));
+  color: inherit;
+  text-decoration: none;
+}
+
+.room::after {
+  content: '';
+  position: absolute;
+  left: 76px;
+  right: 0;
+  bottom: 0;
+  border-bottom: 0.5px solid var(--separator);
+}
+
+.room:active {
+  background: var(--fill);
+}
+
+.room-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(#a5abb8, #858994);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.room-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.room-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.room-name {
+  flex: 1;
+  overflow: hidden;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.room-time,
+.room-preview {
+  color: var(--secondary);
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.room-preview {
+  display: -webkit-box;
+  min-height: 20px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.room-unread {
+  flex: none;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 11px;
+  background: var(--out-bubble);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 22px;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .rooms {
+    width: 300px;
+    border-right: 0.5px solid var(--separator);
+  }
+
+  .app {
+    left: 300px;
+  }
+
+  .shell[data-view] .rooms,
+  .shell[data-view] .app {
+    display: flex;
+  }
+
+  /* The list is on screen already. */
+  .bar-back {
+    visibility: hidden;
+  }
+
+  .rooms-title {
+    font-size: 22px;
+    line-height: 30px;
+  }
+
+  .room {
+    margin: 0 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+  }
+
+  .room::after {
+    display: none;
+  }
+
+  .room-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 17px;
+  }
+
+  .room[aria-current='page'] {
+    background: var(--fill);
+  }
+
+  /* The open conversation's count is the jump button's business, not the list's. */
+  .room[aria-current='page'] .room-unread {
+    display: none;
+  }
 }
 
 /* ---- the composer ----------------------------------------------------- */
