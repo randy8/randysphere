@@ -163,6 +163,12 @@ const MIGRATIONS: readonly string[] = [
   ALTER TABLE messages DROP COLUMN room_id;
   DROP TABLE rooms;
   `,
+  `
+  -- Set on an account made with a starter password (pnpm <chat> add
+  -- --suggest-change): after signing in, they're offered the chance to
+  -- choose their own, once, and may decline.
+  ALTER TABLE users ADD COLUMN suggest_new_password INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

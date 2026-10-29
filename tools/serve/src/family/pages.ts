@@ -20,6 +20,7 @@ const STRINGS = {
     attach: 'Add a photo',
     signOut: 'Sign out',
     admin: 'Members',
+    password: 'Change Password',
     noScript: 'Without JavaScript, new messages appear when you reload the page.',
     empty: 'No messages yet. Say hello.',
     details: 'Details & Notifications',
@@ -30,6 +31,7 @@ const STRINGS = {
     attach: '添加照片',
     signOut: '退出登录',
     admin: '成员',
+    password: '修改密码',
     noScript: '未启用 JavaScript：刷新页面即可看到新消息。',
     empty: '还没有消息，打个招呼吧。',
     details: '详细信息与通知',
@@ -83,6 +85,66 @@ export function renderLogin(assets: Assets, error: string | null, username = '')
     </div>
     <p class="auth-error" role="alert">${error === null ? '' : escapeHtml(error)}</p>
     <button class="auth-submit" type="submit">Sign In · 登录</button>
+  </form>
+</main>
+</body>
+</html>
+`;
+}
+
+const PASSWORD_STRINGS = {
+  en: {
+    title: 'Choose a Password',
+    intro: 'You signed in with a starter password. You can choose your own now — or keep it.',
+    change: 'Change Password',
+    newPassword: 'New password (8+ characters)',
+    save: 'Save',
+    keep: 'Not Now',
+    cancel: 'Cancel',
+  },
+  zh: {
+    title: '设置密码',
+    intro: '你使用的是初始密码。现在可以设置自己的密码，也可以继续使用。',
+    change: '修改密码',
+    newPassword: '新密码（至少 8 个字符）',
+    save: '保存',
+    keep: '暂不修改',
+    cancel: '取消',
+  },
+} as const;
+
+/**
+ * Choosing your own password: offered once after signing in with a starter
+ * password (`suggested`), and reachable from the menu any time. Never
+ * required — "Not Now" keeps the old one.
+ */
+export function renderPassword(
+  assets: Assets,
+  me: User,
+  suggested: boolean,
+  error: string | null = null,
+): string {
+  const t = PASSWORD_STRINGS[me.lang];
+  return `${head(t.change, assets, me.lang)}
+<body class="family-auth">
+<main class="auth">
+  <img class="auth-icon" src="${assets.url('icon-180.png')}" alt="" width="72" height="72">
+  <h1 class="auth-title">${suggested ? t.title : t.change}</h1>
+  ${suggested ? `<p class="auth-intro">${t.intro}</p>` : ''}
+  <form class="auth-form" method="POST" action="${assets.base}/password">
+    <input type="text" name="username" value="${escapeHtml(me.username)}" autocomplete="username" hidden>
+    <div class="auth-fields">
+      <label class="auth-field">
+        <span class="visually-hidden">${t.newPassword}</span>
+        <input name="password" type="password" placeholder="${t.newPassword}"
+          autocomplete="new-password" minlength="8" enterkeyhint="done" required autofocus>
+      </label>
+    </div>
+    <p class="auth-error" role="alert">${error === null ? '' : escapeHtml(error)}</p>
+    <button class="auth-submit" type="submit">${t.save}</button>
+  </form>
+  <form method="POST" action="${assets.base}/password/keep">
+    <button class="auth-secondary" type="submit">${suggested ? t.keep : t.cancel}</button>
   </form>
 </main>
 </body>
@@ -162,6 +224,7 @@ export function renderChat(input: {
       </summary>
       <div class="bar-menu-items">
         <button type="button" data-open-details hidden>${t.details}</button>
+        <a href="${assets.base}/password">${t.password}</a>
         ${me.isAdmin ? `<a href="${assets.base}/admin">${t.admin}</a>` : ''}
         <form method="POST" action="${assets.base}/logout"><button type="submit">${t.signOut}</button></form>
       </div>

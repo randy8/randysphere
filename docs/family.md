@@ -121,6 +121,17 @@ pnpm family enable <user>
 pnpm family revoke <user>              # signed out everywhere (a lost phone)
 ```
 
+Two options to `add`:
+
+- `--suggest-change` — a starter password (any length, even the username).
+  After signing in with it they're offered **Choose a Password** once;
+  **Not Now** keeps the starter. Anyone can change theirs later from the
+  ⋯ menu (Change Password), which signs out their other devices.
+- `--same-password-as=<chat>` — the password this username already has in
+  another chat, copied as its hash: how the owner has one password for
+  every chat (`pnpm disc add randy --name=Randy --admin --same-password-as=family`).
+  It's a copy: changing it in one chat later doesn't change the other.
+
 Deleting an account (Members page only, type the username to confirm) also
 deletes everything that person sent. Disable instead to keep the history.
 

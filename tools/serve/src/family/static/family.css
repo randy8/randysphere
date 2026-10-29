@@ -1061,6 +1061,26 @@ body.family-auth {
   transform: scale(0.98);
 }
 
+.auth-intro {
+  max-width: 20rem;
+  margin: -8px auto 20px;
+  color: var(--secondary);
+  font-size: 15px;
+  line-height: 20px;
+  text-align: center;
+}
+
+.auth-secondary {
+  width: 100%;
+  height: 44px;
+  margin-top: 8px;
+  border: 0;
+  background: none;
+  color: var(--out-bubble);
+  font-size: 17px;
+  cursor: pointer;
+}
+
 /* ---- members (admin) -------------------------------------------------- */
 
 body.family-admin {

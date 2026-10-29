@@ -15,6 +15,8 @@ export interface User {
   readonly disabledAt: number | null;
   readonly lastSeenAt: number | null;
   readonly lastReadRev: number;
+  /** Made with a starter password: offered the chance to choose their own (once, optional). */
+  readonly suggestNewPassword: boolean;
 }
 
 export interface Message {
@@ -59,6 +61,7 @@ interface UserRow {
   disabled_at: number | null;
   last_seen_at: number | null;
   last_read_rev: number;
+  suggest_new_password: number;
 }
 
 interface MessageRow {
@@ -88,6 +91,7 @@ function toUser(row: UserRow): User {
     disabledAt: row.disabled_at,
     lastSeenAt: row.last_seen_at,
     lastReadRev: row.last_read_rev,
+    suggestNewPassword: row.suggest_new_password === 1,
   };
 }
 
@@ -147,10 +151,18 @@ export class FamilyStore {
 
   // ---- users -------------------------------------------------------------
 
+  /**
+   * `suggestNewPassword`: a starter password, offered for replacing at the
+   * first sign-in, and exempt from the minimum length (the owner chose it,
+   * knowing). `passwordHash`: the same password as an account in another
+   * chat, copied as its hash (pnpm <chat> add --same-password-as).
+   */
   async createUser(input: {
     username: string;
     displayName: string;
     password: string;
+    passwordHash?: string;
+    suggestNewPassword?: boolean;
     lang?: Lang;
     isAdmin?: boolean;
     now?: number;
@@ -162,13 +174,20 @@ export class FamilyStore {
       );
     }
     const displayName = normalizeDisplayName(input.displayName);
-    checkPassword(input.password);
+    if (input.passwordHash === undefined) {
+      if (input.suggestNewPassword === true) {
+        if (input.password === '') throw new FamilyError('A password is needed.');
+      } else {
+        checkPassword(input.password);
+      }
+    }
     if (this.findUserByUsername(username)) throw new FamilyError('That username is taken.');
-    const hash = await hashPassword(input.password);
+    const hash = input.passwordHash ?? (await hashPassword(input.password));
     const result = this.db
       .prepare(
-        `INSERT INTO users (username, display_name, password_hash, lang, is_admin, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO users (username, display_name, password_hash, lang, is_admin, created_at,
+                            suggest_new_password)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         username,
@@ -177,6 +196,7 @@ export class FamilyStore {
         input.lang ?? 'en',
         input.isAdmin === true ? 1 : 0,
         input.now ?? Date.now(),
+        input.suggestNewPassword === true ? 1 : 0,
       );
     return this.requireUser(Number(result.lastInsertRowid));
   }
@@ -219,6 +239,34 @@ export class FamilyStore {
     this.db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, userId);
     // A new password signs every device out: that is what a reset is for.
     this.revokeSessions(userId);
+  }
+
+  /**
+   * Someone choosing their own password, signed in: their other devices
+   * are signed out, the one they're using (`keepToken`) stays.
+   */
+  async changeOwnPassword(userId: number, password: string, keepToken: string): Promise<void> {
+    checkPassword(password);
+    const hash = await hashPassword(password);
+    this.db
+      .prepare('UPDATE users SET password_hash = ?, suggest_new_password = 0 WHERE id = ?')
+      .run(hash, userId);
+    this.db
+      .prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash <> ?')
+      .run(userId, sha256(keepToken));
+  }
+
+  /** "Not now": the starter password stays, and isn't offered for replacing again. */
+  keepPassword(userId: number): void {
+    this.db.prepare('UPDATE users SET suggest_new_password = 0 WHERE id = ?').run(userId);
+  }
+
+  /** The stored hash of `username`'s password, for giving the same one in another chat. */
+  passwordHash(username: string): string | null {
+    const row = this.db
+      .prepare('SELECT password_hash FROM users WHERE username = ?')
+      .get(username.trim()) as { password_hash: string } | undefined;
+    return row?.password_hash ?? null;
   }
 
   rename(userId: number, displayName: string): User {

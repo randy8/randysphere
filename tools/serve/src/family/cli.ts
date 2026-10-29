@@ -37,6 +37,9 @@ const USAGE = `pnpm ${CHAT.slug} <command>
   list                                   everyone, and when they were last seen
   add <username> --name=<display name>   a new account; asks for its password
       [--lang=zh|en] [--admin]
+      [--suggest-change]                 a starter password (any length): offered
+                                         the chance to choose their own on sign-in
+      [--same-password-as=<chat>]        the password they have in another chat
   passwd <username>                      set a new password (signs them out everywhere)
   rename <username> <display name>
   disable <username> | enable <username>
@@ -226,10 +229,24 @@ async function main(): Promise<void> {
     case 'add': {
       const name = option(args, 'name');
       if (!first || !name) throw new FamilyError(USAGE);
+      // --same-password-as=<chat>: the password this username already has
+      // there, copied as its hash (never seen or typed again).
+      const from = option(args, 'same-password-as');
+      let passwordHash: string | undefined;
+      if (from !== undefined) {
+        if (!CHATS.some((chat) => chat.slug === from))
+          throw new FamilyError(`No chat named “${from}”.`);
+        const other = new FamilyStore(openDatabase(join(ROOT, 'private', from, 'chat.db')));
+        passwordHash = other.passwordHash(first) ?? undefined;
+        other.db.close();
+        if (!passwordHash) throw new FamilyError(`No account named “${first}” in ${from}.`);
+      }
       const user = await store.createUser({
         username: first,
         displayName: name,
-        password: await newPassword(),
+        password: passwordHash === undefined ? await newPassword() : '',
+        ...(passwordHash === undefined ? {} : { passwordHash }),
+        suggestNewPassword: args.includes('--suggest-change'),
         lang: option(args, 'lang') === 'zh' ? 'zh' : 'en',
         isAdmin: args.includes('--admin'),
       });

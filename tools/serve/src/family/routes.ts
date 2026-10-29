@@ -19,7 +19,7 @@ import { TokenBucket } from './limits.ts';
 import { Notifier } from './notify.ts';
 import { FAMILY } from './chats.ts';
 import type { ChatIdentity } from './chats.ts';
-import { renderAdmin, renderChat, renderLogin } from './pages.ts';
+import { renderAdmin, renderChat, renderLogin, renderPassword } from './pages.ts';
 import type { Assets } from './pages.ts';
 import { FamilyError, FamilyStore, SESSION_DAYS } from './store.ts';
 import type { Lang, Message, User } from './store.ts';
@@ -495,6 +495,43 @@ export class FamilyChat {
       return;
     }
 
+    // Choosing your own password (pages.ts renderPassword): a page, so a
+    // signed-out visit goes to sign in.
+    if (pathname === `${this.#base}/password` || pathname === `${this.#base}/password/keep`) {
+      if (!me) {
+        redirect(res, `${this.#base}/`);
+        return;
+      }
+      if (pathname === `${this.#base}/password` && (method === 'GET' || method === 'HEAD')) {
+        sendPage(res, 200, renderPassword(this.#assets, me, me.suggestNewPassword));
+        return;
+      }
+      if (method !== 'POST') throw new HttpError(405, 'Method not allowed.');
+      if (pathname === `${this.#base}/password/keep`) {
+        this.store.keepPassword(me.id);
+      } else {
+        const form = await readForm(req);
+        try {
+          await this.store.changeOwnPassword(
+            me.id,
+            (form.get('password') ?? '').slice(0, 1024),
+            readCookie(this.#chat, req.headers.cookie) ?? '',
+          );
+        } catch (error) {
+          if (!(error instanceof FamilyError)) throw error;
+          sendPage(
+            res,
+            400,
+            renderPassword(this.#assets, me, me.suggestNewPassword, error.message),
+          );
+          return;
+        }
+        this.hub.record('password-changed', me.id);
+      }
+      redirect(res, `${this.#base}/`);
+      return;
+    }
+
     // The admin pages don't admit to existing for anyone else.
     if (pathname === `${this.#base}/admin` || pathname.startsWith(`${this.#base}/admin/`)) {
       if (!me?.isAdmin) throw new HttpError(404, 'Not found.');
@@ -656,7 +693,10 @@ export class FamilyChat {
     this.#loginByName.recordSuccess(nameKey);
     const token = this.store.createSession(user.id, String(req.headers['user-agent'] ?? ''));
     this.hub.record('signed-in', user.id, String(req.headers['cf-ipcountry'] ?? ''));
-    redirect(res, `${this.#base}/`, { 'set-cookie': sessionCookie(this.#chat, token) });
+    // A starter password: offered the chance to choose their own first.
+    redirect(res, user.suggestNewPassword ? `${this.#base}/password` : `${this.#base}/`, {
+      'set-cookie': sessionCookie(this.#chat, token),
+    });
   }
 
   #post(me: User, body: Record<string, unknown>): { message: Message; created: boolean } {

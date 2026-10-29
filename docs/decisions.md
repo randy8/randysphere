@@ -3629,3 +3629,21 @@ chat's code into a second module (two places to fix every bug). Keeping
 migration 3's tables unused (every new Disc database would be born with a
 "Family" room in it). Rewriting migration 3 (append-only: production has
 run it).
+
+## 2026-10-29 — Chats: starter passwords below the minimum, offered for replacing
+
+**Decision:** `pnpm <chat> add --suggest-change` accepts any non-empty
+password (Disc's first members were given their usernames) and sets
+`users.suggest_new_password`; signing in with it lands on an optional
+Choose a Password page, once. Choosing one keeps the current device signed
+in and signs out the others. The owner's admin account in Disc was made with
+`--same-password-as=family`, copying the Argon2 hash rather than retyping.
+
+**Why:** The owner asked for it. A guessable password is a real weakness on
+a public sign-in page; the login limiter (per address and per username)
+slows guessing, and the prompt makes replacing it one step. Forcing a change
+was rejected: the request was that it be optional.
+
+**Rejected:** One shared account across chats (it would reconnect what
+was just separated); making the 8-character minimum apply to starters
+(the owner would have to invent and hand out other passwords).

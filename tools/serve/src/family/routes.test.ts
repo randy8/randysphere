@@ -861,3 +861,52 @@ test('Disc is a chat of its own at /disc/: its own accounts and cookie, and no w
   assert.equal(manifest['name'], 'Disc');
   assert.equal(manifest['scope'], '/disc/');
 });
+
+test('a starter password: offered the chance to choose another once, never required', async () => {
+  await disc.store.createUser({
+    username: 'chris',
+    displayName: 'Chris',
+    password: 'chris',
+    suggestNewPassword: true,
+  });
+  const signInAs = async (
+    password: string,
+  ): Promise<{ status: number; to: string; cookie: string }> => {
+    const response = await call('/disc/login', { form: { username: 'chris', password } });
+    return {
+      status: response.status,
+      to: response.headers.get('location') ?? '',
+      cookie: (response.headers.get('set-cookie') ?? '').split(';')[0] ?? '',
+    };
+  };
+  const first = await signInAs('chris');
+  assert.equal(first.to, '/disc/password');
+  const page = await (await call('/disc/password', { cookie: first.cookie })).text();
+  assert.match(page, /starter password/);
+  assert.match(page, /Not Now/);
+
+  // "Not Now": the next sign-in goes straight to the chat.
+  assert.equal(
+    (await call('/disc/password/keep', { method: 'POST', cookie: first.cookie })).status,
+    303,
+  );
+  assert.equal((await signInAs('chris')).to, '/disc/');
+
+  // Choosing one (from the menu): too short is refused and says why…
+  const other = await signInAs('chris');
+  const short = await call('/disc/password', { cookie: first.cookie, form: { password: 'short' } });
+  assert.equal(short.status, 400);
+  assert.match(await short.text(), /at least 8/);
+  // …a good one keeps this device signed in and signs out the others.
+  const changed = await call('/disc/password', {
+    cookie: first.cookie,
+    form: { password: 'a better one' },
+  });
+  assert.equal(changed.status, 303);
+  assert.equal((await call('/disc/api/history', { cookie: first.cookie })).status, 200);
+  assert.equal((await call('/disc/api/history', { cookie: other.cookie })).status, 401);
+  assert.equal((await signInAs('chris')).status, 401);
+  assert.equal((await signInAs('a better one')).to, '/disc/');
+  // Signed out, the page is the sign-in screen's.
+  assert.equal((await call('/disc/password')).headers.get('location'), '/disc/');
+});
