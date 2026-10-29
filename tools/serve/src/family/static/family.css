@@ -1191,8 +1191,6 @@ body.family-admin {
   color: var(--secondary);
   font-size: 13px;
   font-weight: 400;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
 }
 
 .group > .cell:first-of-type,

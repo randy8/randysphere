@@ -9,7 +9,6 @@ const STRINGS = {
     heading: 'Notifications',
     turnOn: 'Turn On Notifications',
     turnOff: 'Turn Off on This Device',
-    on: 'On for this device',
     preview: 'Show Name and Message',
     previewNote:
       'Off, a notification says only “New message”. On, it shows who wrote and the first line — on the lock screen too.',
@@ -19,8 +18,8 @@ const STRINGS = {
     blocked:
       'Notifications are blocked for this site in the browser’s settings. Allow them there, then come back.',
     unsupported: 'This browser can’t show notifications from a website.',
-    iosHint:
-      'On iPhone and iPad, notifications work once Family is on your Home Screen: tap Share, then “Add to Home Screen”, and open Family from there.',
+    iosHint: (name) =>
+      `On iPhone and iPad, notifications work once ${name} is on your Home Screen: tap Share, then “Add to Home Screen”, and open ${name} from there.`,
     failed: 'Couldn’t turn notifications on. Check your connection and try again.',
     working: 'One moment…',
   },
@@ -28,7 +27,6 @@ const STRINGS = {
     heading: '通知',
     turnOn: '开启通知',
     turnOff: '在此设备上关闭',
-    on: '此设备已开启',
     preview: '显示发送人和内容',
     previewNote: '关闭时，通知只显示“新消息”。开启后会显示是谁发的和第一行内容——锁屏上也会显示。',
     test: '发送测试通知',
@@ -36,8 +34,8 @@ const STRINGS = {
     testFailed: '没有发送成功。请关闭通知后再重新开启。',
     blocked: '浏览器设置中已禁止此网站的通知。请在设置中允许后再回来。',
     unsupported: '此浏览器无法显示网站通知。',
-    iosHint:
-      '在 iPhone 和 iPad 上，需要先把“家人”添加到主屏幕：轻点“分享”，再选“添加到主屏幕”，然后从主屏幕打开。',
+    iosHint: (name) =>
+      `在 iPhone 和 iPad 上，需要先把“${name}”添加到主屏幕：轻点“分享”，再选“添加到主屏幕”，然后从主屏幕打开。`,
     failed: '无法开启通知。请检查网络后重试。',
     working: '请稍候…',
   },
@@ -66,6 +64,10 @@ function sameKey(buffer, base64url) {
 
 // This chat's path, /family or /disc: the page is always at <base>/.
 const BASE = `/${location.pathname.split('/')[1]}`;
+
+// This chat's name, as on the Home Screen (pages.ts sets it).
+const chatName =
+  document.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute('content') ?? '';
 
 let registration = null;
 
@@ -135,7 +137,7 @@ export function notificationSettings(parent, { api, lang }) {
   const draw = async (message) => {
     holder.replaceChildren();
     if (!pushSupported) {
-      group(holder, t.heading, isIos && !standalone ? t.iosHint : t.unsupported);
+      group(holder, t.heading, isIos && !standalone ? t.iosHint(chatName) : t.unsupported);
       return;
     }
     if (Notification.permission === 'denied') {

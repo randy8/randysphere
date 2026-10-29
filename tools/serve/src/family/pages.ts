@@ -18,7 +18,7 @@ const STRINGS = {
     placeholder: 'Message',
     send: 'Send',
     attach: 'Add a photo',
-    signOut: 'Sign out',
+    signOut: 'Sign Out',
     admin: 'Members',
     password: 'Change Password',
     search: 'Search',
@@ -338,7 +338,8 @@ ${recent.length === 0 ? `<li class="empty" data-static>${t.empty}</li>` : recent
       </label>
       <div class="field">
         <textarea name="body" rows="1" placeholder="${t.placeholder}" aria-label="${t.placeholder}" data-input
-          autocomplete="off" maxlength="4000" required></textarea>
+          autocapitalize="sentences" autocorrect="on" spellcheck="true"
+          maxlength="4000" required></textarea>
         <input type="hidden" name="clientId" value="nojs-${String(Date.now())}-${String(Math.random()).slice(2, 10)}">
         <button class="send" type="submit" data-send aria-label="${t.send}">
           <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 20V5M5.5 11.5 12 5l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -433,17 +434,17 @@ export function renderAdmin(input: {
   ${devices || streams ? `<div class="cell cell-block"><ul class="diag">${streams}${devices}</ul></div>` : ''}
   <form class="cell" method="POST" action="${assets.base}/admin/rename">
     <input type="hidden" name="id" value="${id}">
-    <input name="displayName" value="${escapeHtml(user.displayName)}" aria-label="Display name" maxlength="40" required>
+    <input name="displayName" autocapitalize="words" value="${escapeHtml(user.displayName)}" aria-label="Display name" maxlength="40" required>
     ${langSelect(user.lang)}
     <button type="submit">Save</button>
   </form>
   <form class="cell" method="POST" action="${assets.base}/admin/password">
     <input type="hidden" name="id" value="${id}">
     <input name="password" type="text" placeholder="New password" aria-label="New password" autocomplete="off" minlength="8" required>
-    <button type="submit">Reset password</button>
+    <button type="submit">Reset Password</button>
   </form>
   <div class="cell cell-actions">
-    <form method="POST" action="${assets.base}/admin/revoke"><input type="hidden" name="id" value="${id}"><button type="submit">Sign out everywhere</button></form>
+    <form method="POST" action="${assets.base}/admin/revoke"><input type="hidden" name="id" value="${id}"><button type="submit">Sign Out Everywhere</button></form>
     ${
       self
         ? ''
@@ -458,7 +459,7 @@ export function renderAdmin(input: {
       : `<form class="cell cell-danger" method="POST" action="${assets.base}/admin/delete">
     <input type="hidden" name="id" value="${id}">
     <input name="confirm" placeholder="Type ${escapeHtml(user.username)} to delete" aria-label="Type the username to confirm deletion" autocomplete="off" autocapitalize="none">
-    <button type="submit">Delete account and messages</button>
+    <button type="submit">Delete Account and Messages</button>
   </form>`
   }
 </section>`;
@@ -481,9 +482,9 @@ export function renderAdmin(input: {
   <h1>Members</h1>
   ${input.notice === null ? '' : `<p class="notice" role="status">${escapeHtml(input.notice)}</p>`}
   <section class="group">
-    <h2 class="group-title">Add someone</h2>
+    <h2 class="group-title">Add Someone</h2>
     <form class="cell cell-stack" method="POST" action="${assets.base}/admin/create">
-      <input name="displayName" placeholder="Display name (e.g. 妈妈)" aria-label="Display name" maxlength="40" required>
+      <input name="displayName" autocapitalize="words" placeholder="Display name (e.g. 妈妈)" aria-label="Display name" maxlength="40" required>
       <input name="username" placeholder="Username (letters and digits, e.g. mom)" aria-label="Username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
       <input name="password" type="text" placeholder="Password (8+ characters)" aria-label="Password" autocomplete="off" minlength="8" required>
       ${langSelect('zh')}
