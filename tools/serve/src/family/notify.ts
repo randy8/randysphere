@@ -1,7 +1,7 @@
 import { FAMILY } from './chats.ts';
 import type { ChatIdentity } from './chats.ts';
 import type { Hub } from './hub.ts';
-import type { FamilyStore, Message, User } from './store.ts';
+import type { FamilyStore, Message, Reaction, User } from './store.ts';
 import { sendPush } from './webpush.ts';
 import type { VapidKeys } from './webpush.ts';
 
@@ -21,6 +21,45 @@ const TEXT = {
   en: { generic: 'New message', photo: 'Photo', voice: 'Voice message' },
   zh: { generic: '新消息', photo: '照片', voice: '语音消息' },
 } as const;
+
+/** iMessage's wording for a Tapback: “Mom loved “dinner at 7””. */
+const REACTED: Record<'en' | 'zh', Record<Reaction, string>> = {
+  en: {
+    love: 'loved',
+    like: 'liked',
+    dislike: 'disliked',
+    laugh: 'laughed at',
+    emphasize: 'emphasized',
+    question: 'questioned',
+  },
+  zh: {
+    love: '喜欢',
+    like: '赞了',
+    dislike: '踩了',
+    laugh: '笑了',
+    emphasize: '强调了',
+    question: '质疑了',
+  },
+};
+
+export function reactionPayload(
+  recipient: User,
+  message: Message,
+  reactor: User,
+  kind: Reaction,
+  options: { preview: boolean; unread: number; chat?: ChatIdentity },
+): PushPayload {
+  const base = payloadFor(recipient, message, null, options);
+  if (!options.preview) return base;
+  const line = [...message.body.replace(/\s+/g, ' ').trim()].slice(0, 80).join('');
+  const what = line !== '' ? line : TEXT[recipient.lang].photo;
+  const verb = REACTED[recipient.lang][kind];
+  return {
+    ...base,
+    title: reactor.displayName,
+    body: recipient.lang === 'zh' ? `${verb}“${what}”` : `${verb} “${what}”`,
+  };
+}
 
 export interface PushPayload {
   readonly title: string;
@@ -95,15 +134,38 @@ export class Notifier {
    */
   async messagePosted(message: Message): Promise<void> {
     const author = this.#store.getUser(message.userId);
+    await this.#send(
+      this.#store.members().filter((user) => user.id !== message.userId),
+      (recipient, options) => payloadFor(recipient, message, author, options),
+    );
+  }
+
+  /** A Tapback on someone's message tells them (and only them), as iMessage does. */
+  async reacted(message: Message, reactor: User, kind: Reaction): Promise<void> {
+    if (message.userId === reactor.id) return;
+    const author = this.#store.getUser(message.userId);
+    if (!author) return;
+    await this.#send([author], (recipient, options) =>
+      reactionPayload(recipient, message, reactor, kind, options),
+    );
+  }
+
+  async #send(
+    recipients: readonly User[],
+    build: (
+      recipient: User,
+      options: { preview: boolean; unread: number; chat: ChatIdentity },
+    ) => PushPayload,
+  ): Promise<void> {
     const sends: Promise<void>[] = [];
-    for (const recipient of this.#store.members()) {
-      if (recipient.id === message.userId || recipient.disabledAt !== null) continue;
+    for (const recipient of recipients) {
+      if (recipient.disabledAt !== null) continue;
       if (this.#hub.isViewing(recipient.id)) continue;
       const targets = this.#store.pushTargets(recipient.id);
       if (targets.length === 0) continue;
       const unread = this.#store.unreadCount(recipient.id);
       for (const target of targets) {
-        const payload = payloadFor(recipient, message, author, {
+        const payload = build(recipient, {
           preview: target.preview,
           unread,
           chat: this.#chat,

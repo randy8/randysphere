@@ -28,8 +28,26 @@ export interface Message {
   readonly replyTo: number | null;
   readonly createdAt: number;
   readonly deleted: boolean;
+  /** Changes with every edit, unsend and Tapback: the stream's event id for it. */
   readonly rev: number;
+  /** The rev it was sent at: what read positions and receipts are measured against. */
+  readonly sentRev: number;
+  readonly unsent: boolean;
+  /** When it was last edited, or null. */
+  readonly editedAt: number | null;
+  /** Its earlier versions, oldest first: `body` as it read until `at`. */
+  readonly edits: readonly { readonly body: string; readonly at: number }[];
+  readonly reactions: readonly { readonly userId: number; readonly kind: Reaction }[];
 }
+
+/** The six Tapbacks: ❤️ 👍 👎 😂 ‼️ ❓. */
+export const REACTIONS = ['love', 'like', 'dislike', 'laugh', 'emphasize', 'question'] as const;
+export type Reaction = (typeof REACTIONS)[number];
+
+/** iMessage's limits: an edit within 15 minutes, at most 5 of them; Undo Send within 2. */
+export const EDIT_WINDOW_MS = 15 * 60 * 1000;
+export const MAX_EDITS = 5;
+export const UNSEND_WINDOW_MS = 2 * 60 * 1000;
 
 export interface SessionInfo {
   readonly userId: number;
@@ -76,6 +94,11 @@ interface MessageRow {
   created_at: number;
   deleted_at: number | null;
   rev: number;
+  sent_rev: number;
+  edited_at: number | null;
+  unsent_at: number | null;
+  edits: string;
+  reactions: string;
 }
 
 const sha256 = (text: string): string => createHash('sha256').update(text).digest('hex');
@@ -97,26 +120,41 @@ function toUser(row: UserRow): User {
 
 function toMessage(row: MessageRow): Message {
   const deleted = row.deleted_at !== null;
+  const gone = deleted || row.unsent_at !== null;
   return {
     id: row.id,
     userId: row.user_id,
     clientId: row.client_id,
     // A deletion keeps the row (its rev tells reconnecting clients to drop
     // it) but nothing of what it said.
-    body: deleted ? '' : row.body,
+    body: gone ? '' : row.body,
     image:
-      !deleted && row.image_id !== null
+      !gone && row.image_id !== null
         ? { id: row.image_id, width: row.width ?? 0, height: row.height ?? 0 }
         : null,
     replyTo: row.reply_to,
     createdAt: row.created_at,
     deleted,
     rev: row.rev,
+    sentRev: row.sent_rev,
+    unsent: row.unsent_at !== null,
+    editedAt: gone ? null : row.edited_at,
+    edits: gone ? [] : (JSON.parse(row.edits) as Message['edits']),
+    reactions: gone ? [] : (JSON.parse(row.reactions) as Message['reactions']),
   };
 }
 
+// A message's edit history and Tapbacks come with it, as JSON from one
+// indexed lookup each (both keyed by message_id): a page of 50 messages is
+// still one query.
 const MESSAGE_COLUMNS = `m.id, m.user_id, m.client_id, m.body, m.image_id, i.width, i.height,
-  m.reply_to, m.created_at, m.deleted_at, m.rev`;
+  m.reply_to, m.created_at, m.deleted_at, m.rev, coalesce(m.sent_rev, m.rev) AS sent_rev,
+  m.edited_at, m.unsent_at,
+  (SELECT json_group_array(json_object('body', e.body, 'at', e.replaced_at))
+     FROM (SELECT body, replaced_at FROM message_edits WHERE message_id = m.id ORDER BY n) e) AS edits,
+  (SELECT json_group_array(json_object('userId', r.user_id, 'kind', r.kind))
+     FROM (SELECT user_id, kind FROM reactions WHERE message_id = m.id ORDER BY created_at) r)
+     AS reactions`;
 const MESSAGE_FROM = 'messages m LEFT JOIN images i ON i.id = m.image_id';
 
 export function normalizeDisplayName(name: string): string {
@@ -128,6 +166,12 @@ export function normalizeDisplayName(name: string): string {
     );
   }
   return trimmed;
+}
+
+function normalizeBody(text: string): string {
+  const body = text.normalize('NFC').replace(/\r\n?/g, '\n').trim();
+  if ([...body].length > MAX_BODY_CHARS) throw new FamilyError('That message is too long.');
+  return body;
 }
 
 function checkPassword(password: string): void {
@@ -296,7 +340,12 @@ export class FamilyStore {
   deleteUser(
     userId: number,
     now: number = Date.now(),
-  ): { messageIds: number[]; imageIds: string[] } {
+  ): { messageIds: number[]; imageIds: string[]; reactedIds: number[] } {
+    const reactedIds = (
+      this.db.prepare('SELECT message_id FROM reactions WHERE user_id = ?').all(userId) as {
+        message_id: number;
+      }[]
+    ).map((row) => row.message_id);
     const messageIds = (
       this.db
         .prepare('SELECT id FROM messages WHERE user_id = ? AND deleted_at IS NULL')
@@ -310,6 +359,9 @@ export class FamilyStore {
       this.db.prepare('UPDATE messages SET image_id = NULL WHERE user_id = ?').run(userId);
       this.db.prepare('DELETE FROM images WHERE user_id = ?').run(userId);
       this.db.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
+      // Their Tapbacks on everyone else's messages go with them.
+      this.db.prepare('DELETE FROM reactions WHERE user_id = ?').run(userId);
+      for (const id of reactedIds) this.#touch(id);
       // The row stays for the tombstones' foreign keys; the person is gone.
       this.db
         .prepare(
@@ -318,7 +370,11 @@ export class FamilyStore {
         )
         .run(`deleted-${String(userId)}-${String(now)}`, now, userId);
     });
-    return { messageIds, imageIds };
+    return {
+      messageIds,
+      imageIds,
+      reactedIds: reactedIds.filter((id) => !messageIds.includes(id)),
+    };
   }
 
   /** Members shown in the conversation: anyone not deleted (disabled people keep their name on what they said). */
@@ -450,8 +506,7 @@ export class FamilyStore {
       .get(input.userId, input.clientId) as MessageRow | undefined;
     if (existing) return { message: toMessage(existing), created: false };
 
-    const body = input.body.normalize('NFC').replace(/\r\n?/g, '\n').trim();
-    if ([...body].length > MAX_BODY_CHARS) throw new FamilyError('That message is too long.');
+    const body = normalizeBody(input.body);
     const imageId = input.imageId ?? null;
     if (body.length === 0 && imageId === null) throw new FamilyError('That message is empty.');
     if (imageId !== null) {
@@ -470,10 +525,20 @@ export class FamilyStore {
       const rev = this.#nextRev();
       const result = this.db
         .prepare(
-          `INSERT INTO messages (user_id, client_id, body, image_id, reply_to, created_at, rev)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO messages (user_id, client_id, body, image_id, reply_to, created_at, rev,
+                                 sent_rev)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .run(input.userId, input.clientId, body, imageId, replyTo, input.now ?? Date.now(), rev);
+        .run(
+          input.userId,
+          input.clientId,
+          body,
+          imageId,
+          replyTo,
+          input.now ?? Date.now(),
+          rev,
+          rev,
+        );
       return Number(result.lastInsertRowid);
     });
     return { message: this.requireMessage(id), created: true };
@@ -517,7 +582,7 @@ export class FamilyStore {
     const rows = this.db
       .prepare(
         `SELECT ${MESSAGE_COLUMNS} FROM ${MESSAGE_FROM}
-         WHERE m.deleted_at IS NULL AND m.body LIKE ? ESCAPE '\\' ORDER BY m.id DESC LIMIT ?`,
+         WHERE m.deleted_at IS NULL AND m.unsent_at IS NULL AND m.body LIKE ? ESCAPE '\\' ORDER BY m.id DESC LIMIT ?`,
       )
       .all(pattern, limit + 1) as unknown as MessageRow[];
     return { messages: rows.slice(0, limit).map(toMessage), hasMore: rows.length > limit };
@@ -539,6 +604,125 @@ export class FamilyStore {
     this.db
       .prepare(`UPDATE messages SET deleted_at = ?, body = '', rev = ? WHERE id = ?`)
       .run(now, rev, id);
+    this.#forget(id);
+  }
+
+  /** Everything a message said, before it is unsent or deleted: earlier versions, Tapbacks. */
+  #forget(id: number): void {
+    this.db.prepare('DELETE FROM message_edits WHERE message_id = ?').run(id);
+    this.db.prepare('DELETE FROM reactions WHERE message_id = ?').run(id);
+  }
+
+  /** A change to a message: it takes the next rev, so a reconnect replays it. */
+  #touch(id: number): void {
+    this.db.prepare('UPDATE messages SET rev = ? WHERE id = ?').run(this.#nextRev(), id);
+  }
+
+  #ownLive(actor: User, id: number): Message {
+    const message = this.getMessage(id);
+    if (!message || message.deleted || message.unsent) throw new FamilyError('No such message.');
+    if (message.userId !== actor.id)
+      throw new FamilyError('Only its author can change that message.');
+    return message;
+  }
+
+  /**
+   * Edits one's own message: within EDIT_WINDOW_MS of sending, at most
+   * MAX_EDITS times, text only (a photo can't be edited). The version it
+   * replaces is kept, for everyone's "Edited" history. `changed` is false
+   * when the text is the same, which costs no edit.
+   */
+  editMessage(
+    actor: User,
+    id: number,
+    text: string,
+    now: number = Date.now(),
+  ): { message: Message; changed: boolean } {
+    const message = this.#ownLive(actor, id);
+    if (message.body === '') throw new FamilyError('Only text can be edited.');
+    if (now - message.createdAt > EDIT_WINDOW_MS) {
+      throw new FamilyError('Messages can be edited for 15 minutes after sending.');
+    }
+    if (message.edits.length >= MAX_EDITS) {
+      throw new FamilyError('A message can be edited 5 times.');
+    }
+    const body = normalizeBody(text);
+    if (body === '') throw new FamilyError('That message is empty.');
+    if (body === message.body) return { message, changed: false };
+    this.transaction(() => {
+      this.db
+        .prepare('INSERT INTO message_edits (message_id, n, body, replaced_at) VALUES (?, ?, ?, ?)')
+        .run(id, message.edits.length, message.body, now);
+      this.db
+        .prepare('UPDATE messages SET body = ?, edited_at = ? WHERE id = ?')
+        .run(body, now, id);
+      this.#touch(id);
+    });
+    return { message: this.requireMessage(id), changed: true };
+  }
+
+  /**
+   * Undo Send: within UNSEND_WINDOW_MS, its author only. The row stays (so
+   * everyone sees "… unsent a message", and replies keep their place) but
+   * its text, earlier versions, Tapbacks and photo are gone — from every
+   * API, every page of history, every replay. The caller removes the
+   * photo's file.
+   */
+  unsendMessage(
+    actor: User,
+    id: number,
+    now: number = Date.now(),
+  ): { message: Message; imageId: string | null } {
+    const message = this.#ownLive(actor, id);
+    if (now - message.createdAt > UNSEND_WINDOW_MS) {
+      throw new FamilyError('Messages can be unsent for 2 minutes after sending.');
+    }
+    const imageId = message.image?.id ?? null;
+    this.transaction(() => {
+      this.db
+        .prepare(
+          `UPDATE messages SET unsent_at = ?, body = '', image_id = NULL, edited_at = NULL
+           WHERE id = ?`,
+        )
+        .run(now, id);
+      if (imageId !== null) this.db.prepare('DELETE FROM images WHERE id = ?').run(imageId);
+      this.#forget(id);
+      this.#touch(id);
+    });
+    return { message: this.requireMessage(id), imageId };
+  }
+
+  /**
+   * Sets `actor`'s Tapback on a message (replacing the one they had), or
+   * removes it (`kind` null). `changed` is false when nothing changed.
+   */
+  react(
+    actor: User,
+    id: number,
+    kind: Reaction | null,
+    now: number = Date.now(),
+  ): { message: Message; changed: boolean } {
+    const message = this.getMessage(id);
+    if (!message || message.deleted || message.unsent) throw new FamilyError('No such message.');
+    const current = message.reactions.find((r) => r.userId === actor.id)?.kind ?? null;
+    if (current === kind) return { message, changed: false };
+    this.transaction(() => {
+      if (kind === null) {
+        this.db
+          .prepare('DELETE FROM reactions WHERE message_id = ? AND user_id = ?')
+          .run(id, actor.id);
+      } else {
+        this.db
+          .prepare(
+            `INSERT INTO reactions (message_id, user_id, kind, created_at) VALUES (?, ?, ?, ?)
+             ON CONFLICT (message_id, user_id) DO UPDATE SET kind = excluded.kind,
+               created_at = excluded.created_at`,
+          )
+          .run(id, actor.id, kind, now);
+      }
+      this.#touch(id);
+    });
+    return { message: this.requireMessage(id), changed: true };
   }
 
   /**
@@ -585,7 +769,8 @@ export class FamilyStore {
         .prepare(
           `INSERT OR IGNORE INTO message_reads (message_id, user_id, read_at)
            SELECT id, ?, ? FROM messages
-           WHERE rev > ? AND rev <= ? AND user_id <> ? AND deleted_at IS NULL`,
+           WHERE coalesce(sent_rev, rev) > ? AND coalesce(sent_rev, rev) <= ? AND user_id <> ?
+             AND deleted_at IS NULL AND unsent_at IS NULL`,
         )
         .run(userId, now, row.last_read_rev, target, userId);
       this.db.prepare('UPDATE users SET last_read_rev = ? WHERE id = ?').run(target, userId);
@@ -606,7 +791,7 @@ export class FamilyStore {
     unread: number[];
   } | null {
     const message = this.getMessage(id);
-    if (!message || message.deleted) return null;
+    if (!message || message.deleted || message.unsent) return null;
     const times = new Map(
       (
         this.db
@@ -618,7 +803,7 @@ export class FamilyStore {
     const unread: number[] = [];
     for (const user of this.members()) {
       if (user.id === message.userId || user.disabledAt !== null) continue;
-      if (user.lastReadRev >= message.rev || times.has(user.id)) {
+      if (user.lastReadRev >= message.sentRev || times.has(user.id)) {
         read.push({ userId: user.id, at: times.get(user.id) ?? null });
       } else unread.push(user.id);
     }
@@ -705,7 +890,8 @@ export class FamilyStore {
       this.db
         .prepare(
           `SELECT COUNT(*) AS n FROM messages m JOIN users u ON u.id = ?
-           WHERE m.rev > u.last_read_rev AND m.user_id != u.id AND m.deleted_at IS NULL`,
+           WHERE coalesce(m.sent_rev, m.rev) > u.last_read_rev AND m.user_id != u.id
+             AND m.deleted_at IS NULL AND m.unsent_at IS NULL`,
         )
         .get(userId) as { n: number }
     ).n;

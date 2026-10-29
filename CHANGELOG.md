@@ -991,3 +991,14 @@ when. Search (in the ⋯ menu) finds messages in the chat you're signed in to
 and opens the conversation at the one you pick, fetching back as far as it
 has to. People given a starter password are offered the chance to choose
 their own on first sign-in, and anyone can change theirs from the menu.
+
+## 2026-10-29 — The chats learn iMessage's Edit, Undo Send and Tapbacks
+
+A long-press (or right-click) on a message now opens iMessage's Tapback
+bar above it — ❤️ 👍 👎 😂 ‼️ ❓ — and its menu: Reply, Edit, Undo Send, Info,
+Copy. Edit turns the bubble into a field in place; the message then says
+"Edited", and tapping that shows what it said before. Undo Send, within two
+minutes, takes the message back for everyone, leaving "You unsent a
+message." Swiping a message right replies to it. Every change arrives live
+on every open page and is replayed to one that was offline, through the
+same rev that already carried messages and deletions.

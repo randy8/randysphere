@@ -988,3 +988,60 @@ test('read receipts: a read is announced live, and Info is the author’s alone'
     (history.members.find((m) => m.id === mom?.id)?.lastReadRev ?? 0) >= posted.message.rev,
   );
 });
+
+test('edit, undo send and tapbacks: own messages only, live to every open page', async () => {
+  const open = await stream(momCookie);
+  await open.next('hello');
+  const send = async (clientId: string, body: string): Promise<{ id: number; rev: number }> =>
+    (
+      (await (
+        await call('/family/api/messages', { cookie: dadCookie, json: { clientId, body } })
+      ).json()) as { message: { id: number; rev: number } }
+    ).message;
+  const posted = await send('change-route-1', 'see you at 5');
+  await open.next('message');
+  const path = `/family/api/messages/${String(posted.id)}`;
+
+  assert.equal(
+    (await call(path, { method: 'PATCH', cookie: momCookie, json: { body: 'hacked' } })).status,
+    400,
+  );
+  const edited = await call(path, { method: 'PATCH', cookie: dadCookie, json: { body: 'at 6' } });
+  assert.equal(edited.status, 200);
+  const update = await open.next('update');
+  const live = update.data as { body: string; edits: { body: string }[]; rev: number };
+  assert.equal(live.body, 'at 6');
+  assert.deepEqual(
+    live.edits.map((e) => e.body),
+    ['see you at 5'],
+  );
+  assert.equal(update.id, String(live.rev));
+
+  assert.equal(
+    (await call(`${path}/reaction`, { cookie: momCookie, json: { kind: 'wave' } })).status,
+    400,
+  );
+  await call(`${path}/reaction`, { cookie: momCookie, json: { kind: 'love' } });
+  const reacted = (await open.next('update')).data as { reactions: { kind: string }[] };
+  assert.deepEqual(
+    reacted.reactions.map((r) => r.kind),
+    ['love'],
+  );
+  open.close();
+
+  // A page that missed it all gets the changes as updates, not as new messages.
+  const replay = await stream(momCookie, {}, `?after=${String(posted.rev)}`);
+  await replay.next('hello');
+  assert.ok(((await replay.next('update')).data as { id: number }).id === posted.id);
+  replay.close();
+
+  assert.equal((await call(`${path}/unsend`, { cookie: momCookie, json: {} })).status, 400);
+  const unsent = await call(`${path}/unsend`, { cookie: dadCookie, json: {} });
+  const gone = ((await unsent.json()) as { message: Record<string, unknown> }).message;
+  assert.equal(gone['unsent'], true);
+  assert.equal(gone['body'], '');
+  const history = await (await call('/family/api/history', { cookie: momCookie })).text();
+  assert.ok(!history.includes('at 6') && !history.includes('see you at 5'));
+  const page = await (await call('/family/', { cookie: momCookie })).text();
+  assert.match(page, /Dad撤回了一条信息/);
+});

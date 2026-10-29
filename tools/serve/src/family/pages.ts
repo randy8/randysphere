@@ -25,6 +25,9 @@ const STRINGS = {
     noScript: 'Without JavaScript, new messages appear when you reload the page.',
     empty: 'No messages yet. Say hello.',
     details: 'Details & Notifications',
+    edited: 'Edited',
+    unsent: (name: string) => `${name} unsent a message.`,
+    youUnsent: 'You unsent a message.',
   },
   zh: {
     placeholder: '信息',
@@ -37,6 +40,9 @@ const STRINGS = {
     noScript: '未启用 JavaScript：刷新页面即可看到新消息。',
     empty: '还没有消息，打个招呼吧。',
     details: '详细信息与通知',
+    edited: '已编辑',
+    unsent: (name: string) => `${name}撤回了一条信息。`,
+    youUnsent: '你撤回了一条信息。',
   },
 } as const;
 
@@ -250,6 +256,10 @@ function renderStaticMessage(
 ): string {
   const mine = message.userId === me.id;
   const author = users.get(message.userId)?.displayName ?? '';
+  const t = STRINGS[me.lang];
+  if (message.unsent) {
+    return `<li class="msg unsent-note" data-static>${escapeHtml(mine ? t.youUnsent : t.unsent(author))}</li>`;
+  }
   const image = message.image
     ? `<img class="bubble-image" src="${base}/images/${message.image.id}" width="${String(message.image.width)}" height="${String(message.image.height)}" alt="" loading="lazy">`
     : '';
@@ -257,7 +267,7 @@ function renderStaticMessage(
     message.body === '' ? '' : `<span class="bubble-text">${escapeHtml(message.body)}</span>`;
   return `<li class="msg ${mine ? 'msg-out' : 'msg-in'}" data-static>
   ${mine ? '' : `<span class="msg-author">${escapeHtml(author)}</span>`}
-  <div class="bubble">${image}${text}</div>
+  <div class="bubble">${image}${text}</div>${message.editedAt === null ? '' : `\n  <span class="edited-label">${t.edited}</span>`}
   <time class="msg-static-time" datetime="${new Date(message.createdAt).toISOString()}">${formatTime(message.createdAt)}</time>
 </li>`;
 }

@@ -181,6 +181,39 @@ const MIGRATIONS: readonly string[] = [
     PRIMARY KEY (message_id, user_id)
   ) WITHOUT ROWID;
   `,
+  `
+  -- Editing, unsending and Tapbacks. A message's rev now moves with every
+  -- change to it (an edit, an unsend, a reaction), so a reconnect replays
+  -- changes as it replays deletions; sent_rev keeps the rev it was sent at,
+  -- which is what read positions and unread counts are measured against.
+  -- Null on a row written by the previous server during a deploy's overlap:
+  -- readers take coalesce(sent_rev, rev).
+  ALTER TABLE messages ADD COLUMN sent_rev INTEGER;
+  UPDATE messages SET sent_rev = rev;
+  ALTER TABLE messages ADD COLUMN edited_at INTEGER;
+  -- Unsent: the row stays, as "… unsent a message", with nothing of what it said.
+  ALTER TABLE messages ADD COLUMN unsent_at INTEGER;
+
+  -- Each earlier version of an edited message, oldest first: body is the
+  -- text as it was until replaced_at.
+  CREATE TABLE message_edits (
+    message_id  INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    n           INTEGER NOT NULL,
+    body        TEXT NOT NULL,
+    replaced_at INTEGER NOT NULL,
+    PRIMARY KEY (message_id, n)
+  ) WITHOUT ROWID;
+
+  -- One Tapback per person per message, as in iMessage.
+  CREATE TABLE reactions (
+    message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind       TEXT NOT NULL CHECK (kind IN ('love', 'like', 'dislike', 'laugh', 'emphasize', 'question')),
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (message_id, user_id)
+  ) WITHOUT ROWID;
+  CREATE INDEX reactions_user ON reactions(user_id);
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

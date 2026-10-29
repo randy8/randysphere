@@ -21,8 +21,8 @@ import { FAMILY } from './chats.ts';
 import type { ChatIdentity } from './chats.ts';
 import { renderAdmin, renderChat, renderLogin, renderPassword, renderSearch } from './pages.ts';
 import type { Assets } from './pages.ts';
-import { FamilyError, FamilyStore, SESSION_DAYS } from './store.ts';
-import type { Lang, Message, User } from './store.ts';
+import { FamilyError, FamilyStore, REACTIONS, SESSION_DAYS } from './store.ts';
+import type { Lang, Message, Reaction, User } from './store.ts';
 import { isPushEndpoint, isPushKeys, loadVapidKeys, sendPush } from './webpush.ts';
 import type { VapidKeys } from './webpush.ts';
 
@@ -602,6 +602,7 @@ export class FamilyChat {
         ...page,
         rev: this.store.currentRev(),
         epoch: this.store.epoch(),
+        now: Date.now(),
         members: this.store.members().map(publicUser),
         lastReadRev: me.lastReadRev,
       });
@@ -626,10 +627,52 @@ export class FamilyChat {
     if (receiptsMatch && method === 'GET') {
       const id = Number(receiptsMatch[1]);
       const message = this.store.getMessage(id);
-      if (!message || message.deleted || message.userId !== me.id) {
+      if (!message || message.deleted || message.unsent || message.userId !== me.id) {
         throw new HttpError(404, 'Not found.');
       }
       sendJson(res, 200, this.store.receipts(id));
+      return;
+    }
+
+    // Changes to a message — an edit, Undo Send, a Tapback — reach every
+    // open page as one 'update' carrying the whole message, and a reconnect
+    // replays them (the message's rev moved; see #events).
+    const changeMatch = new RegExp(`^${this.#base}/api/messages/(\\d+)(/unsend|/reaction)?$`).exec(
+      pathname,
+    );
+    if (changeMatch && (method === 'PATCH' || method === 'POST')) {
+      const id = Number(changeMatch[1]);
+      const action = changeMatch[2] ?? '';
+      if (!this.#sends.take(String(me.id))) throw new HttpError(429, 'Slow down a little.');
+      const body = await readJson(req);
+      let message: Message;
+      let changed = true;
+      if (action === '' && method === 'PATCH') {
+        ({ message, changed } = this.store.editMessage(
+          me,
+          id,
+          typeof body['body'] === 'string' ? body['body'] : '',
+        ));
+        if (changed) this.hub.record('message-edited', me.id, `#${String(id)}`);
+      } else if (action === '/unsend' && method === 'POST') {
+        const result = this.store.unsendMessage(me, id);
+        message = result.message;
+        if (result.imageId !== null) {
+          await rm(join(this.#imagesDir, result.imageId), { force: true });
+        }
+        this.hub.record('message-unsent', me.id, `#${String(id)}`);
+      } else if (action === '/reaction' && method === 'POST') {
+        const kind = body['kind'];
+        if (kind !== null && !REACTIONS.includes(kind as Reaction)) {
+          throw new HttpError(400, 'Unknown reaction.');
+        }
+        ({ message, changed } = this.store.react(me, id, kind as Reaction | null));
+        if (changed && kind !== null) void this.#notifier.reacted(message, me, kind as Reaction);
+      } else {
+        throw new HttpError(405, 'Method not allowed.');
+      }
+      if (changed) this.hub.broadcast('update', message, { id: message.rev });
+      sendJson(res, 200, { message });
       return;
     }
 
@@ -838,6 +881,8 @@ export class FamilyChat {
     this.hub.send(connection, 'hello', {
       rev,
       epoch,
+      // The server's clock, so a page can tell how long Edit and Undo Send last.
+      now: Date.now(),
       stream: connection.id,
       members: this.store.members().map(publicUser),
     });
@@ -859,6 +904,9 @@ export class FamilyChat {
         for (const message of missed) {
           if (message.deleted)
             this.hub.send(connection, 'delete', { id: message.id, rev: message.rev }, message.rev);
+          // Sent before this page's last event: it has it, and this is a change to it.
+          else if (message.sentRev <= after)
+            this.hub.send(connection, 'update', message, message.rev);
           else this.hub.send(connection, 'message', message, message.rev);
         }
         if (missed.length > 0)
@@ -1072,11 +1120,15 @@ export class FamilyChat {
             throw new FamilyError(`Type “${user.username}” to confirm.`);
           }
           this.hub.disconnectUser(user.id);
-          const { messageIds, imageIds } = this.store.deleteUser(user.id);
+          const { messageIds, imageIds, reactedIds } = this.store.deleteUser(user.id);
           for (const id of imageIds) await rm(join(this.#imagesDir, id), { force: true });
           for (const id of messageIds) {
             const message = this.store.requireMessage(id);
             this.hub.broadcast('delete', { id, rev: message.rev }, { id: message.rev });
+          }
+          for (const id of reactedIds) {
+            const message = this.store.requireMessage(id);
+            this.hub.broadcast('update', message, { id: message.rev });
           }
           refreshMembers();
           this.hub.record('member-deleted', null, user.displayName);

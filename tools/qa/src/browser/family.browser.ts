@@ -296,3 +296,44 @@ browserTest(
     await other.close();
   },
 );
+
+browserTest(
+  'Tapback, Edit and Undo Send: from the message’s menu, live on the other side',
+  async ({ context, page: unused }) => {
+    await unused.close();
+    const randy = await signIn(context, 'randy', 'battery staple');
+    const other = await context.browser()?.newContext(PHONE);
+    assert.ok(other);
+    const mom = await signIn(other, 'mom', 'correct horse');
+    await send(randy, 'Lunch at noon');
+    const hers = mom.locator('.msg-in .bubble', { hasText: 'Lunch at noon' });
+    await hers.waitFor();
+
+    // Mom loves it: the bar over the pressed message, the badge on Randy's bubble.
+    await hers.click({ button: 'right' });
+    await mom.getByRole('button', { name: '喜欢' }).click();
+    await randy.locator('.msg-out .tapback', { hasText: '❤️' }).waitFor();
+    await mom.locator('.msg-in .tapback', { hasText: '❤️' }).waitFor();
+
+    // Randy edits it in place; Mom sees the new words and "Edited", and its history.
+    await randy
+      .locator('.msg-out .bubble', { hasText: 'Lunch at noon' })
+      .click({ button: 'right' });
+    await randy.getByRole('menuitem', { name: 'Edit' }).click();
+    const field = randy.locator('.edit-field textarea');
+    await field.fill('Lunch at one');
+    await randy.getByRole('button', { name: 'Save' }).click();
+    await mom.locator('.msg-in .bubble', { hasText: 'Lunch at one' }).waitFor();
+    await mom.getByRole('button', { name: '已编辑' }).click();
+    await mom.locator('.bubble.past', { hasText: 'Lunch at noon' }).waitFor();
+    assert.equal(await randy.locator('.tapback').count(), 1, 'the Tapback stays through an edit');
+
+    // Undo Send: gone for both, a note in its place.
+    await randy.locator('.msg-out .bubble', { hasText: 'Lunch at one' }).click({ button: 'right' });
+    await randy.getByRole('menuitem', { name: 'Undo Send' }).click();
+    await randy.getByText('You unsent a message.').waitFor();
+    await mom.getByText('Randy撤回了一条信息。').waitFor();
+    assert.equal(await mom.getByText('Lunch at').count(), 0);
+    await other.close();
+  },
+);

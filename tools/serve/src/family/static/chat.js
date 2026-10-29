@@ -45,6 +45,26 @@ const T = zh
       done: '完成',
       members: '成员',
       openDetails: '聊天详细信息',
+      edit: '编辑',
+      undoSend: '撤回',
+      edited: '已编辑',
+      hideEdits: '隐藏编辑记录',
+      save: '保存',
+      cancel: '取消',
+      youUnsent: '你撤回了一条信息。',
+      unsent: (name) => `${name}撤回了一条信息。`,
+      unsentQuote: '已撤回的信息',
+      couldntEdit: '无法编辑这条信息。',
+      couldntUnsend: '无法撤回这条信息。',
+      reactions: '回应',
+      tapback: {
+        love: '喜欢',
+        like: '赞',
+        dislike: '踩',
+        laugh: '哈哈',
+        emphasize: '强调',
+        question: '疑问',
+      },
     }
   : {
       today: 'Today',
@@ -77,7 +97,43 @@ const T = zh
       done: 'Done',
       members: 'Members',
       openDetails: 'Conversation details',
+      edit: 'Edit',
+      undoSend: 'Undo Send',
+      edited: 'Edited',
+      hideEdits: 'Hide Edits',
+      save: 'Save',
+      cancel: 'Cancel',
+      youUnsent: 'You unsent a message.',
+      unsent: (name) => `${name} unsent a message.`,
+      unsentQuote: 'Unsent message',
+      couldntEdit: 'Couldn’t edit this message.',
+      couldntUnsend: 'Couldn’t unsend this message.',
+      reactions: 'Reactions',
+      tapback: {
+        love: 'Love',
+        like: 'Like',
+        dislike: 'Dislike',
+        laugh: 'Ha Ha',
+        emphasize: 'Emphasize',
+        question: 'Question',
+      },
     };
+
+/** The six Tapbacks, in iMessage's order (store.ts REACTIONS). */
+const TAPBACKS = [
+  ['love', '❤️'],
+  ['like', '👍'],
+  ['dislike', '👎'],
+  ['laugh', '😂'],
+  ['emphasize', '‼️'],
+  ['question', '❓'],
+];
+const TAPBACK_GLYPH = new Map(TAPBACKS);
+
+// iMessage's limits, as the server keeps them (store.ts).
+const EDIT_WINDOW_MS = 15 * 60 * 1000;
+const MAX_EDITS = 5;
+const UNSEND_WINDOW_MS = 2 * 60 * 1000;
 
 const $ = (selector) => document.querySelector(selector);
 const root = document.documentElement;
@@ -130,6 +186,13 @@ let offlineTimer = 0;
 let lastTypingSent = 0;
 let lastReadRev = 0;
 let readTimer = 0;
+/** The server's clock less this device's: Edit and Undo Send are timed by the server. */
+let skew = 0;
+const serverNow = () => Date.now() + skew;
+/** Messages whose earlier versions are showing (tapped "Edited"). */
+const showingEdits = new Set();
+/** The message being edited in place, if any: { id, node, pending }. */
+let editing = null;
 
 // ---- small helpers ----------------------------------------------------
 
@@ -138,6 +201,31 @@ function el(tag, className, text) {
   if (className) node.className = className;
   if (text !== undefined) node.textContent = text;
   return node;
+}
+
+/**
+ * A light tap of the phone's haptics. Android has vibrate(); Safari on
+ * iPhone (iOS 18+) doesn't, but clicking a switch's label gives its own
+ * native tick, so a hidden one stands in.
+ */
+let hapticSwitch = null;
+function haptic() {
+  if (navigator.vibrate) {
+    navigator.vibrate(8);
+    return;
+  }
+  if (finePointer) return;
+  if (!hapticSwitch) {
+    hapticSwitch = el('label', 'visually-hidden');
+    hapticSwitch.setAttribute('aria-hidden', 'true');
+    const box = el('input');
+    box.type = 'checkbox';
+    box.setAttribute('switch', '');
+    box.tabIndex = -1;
+    hapticSwitch.append(box);
+    document.body.append(hapticSwitch);
+  }
+  hapticSwitch.click();
 }
 
 function clientId() {
@@ -223,11 +311,98 @@ const EMOJI_ONLY =
 
 function excerpt(message) {
   if (!message) return T.original;
+  if (message.unsent) return T.unsentQuote;
   if (message.body) return message.body.replace(/\s+/g, ' ').slice(0, 120);
   return message.image ? T.photo : T.original;
 }
 
+/** A reply's quote of what it answers: the original's words, or what became of them. */
+function fillQuote(quote, id) {
+  const original = messages.get(id);
+  // The text in its own box, clipped to two lines; the quote itself isn't
+  // clipped, so its thread line can reach down to the reply.
+  const text = el('span', 'quote-text');
+  if (original && !original.unsent) {
+    text.append(el('b', '', nameOf(original.userId)), ` ${excerpt(original)}`);
+  } else text.textContent = excerpt(original);
+  quote.replaceChildren(text);
+}
+
+function textBubble(body) {
+  const bubble = el('div', 'bubble');
+  if (EMOJI_ONLY.test(body.trim())) {
+    bubble.classList.add('jumbo');
+    bubble.textContent = body.trim();
+  } else {
+    bubble.append(linkify(body));
+  }
+  return bubble;
+}
+
+/**
+ * The Tapbacks on a message, at its bubble's top corner as in iMessage:
+ * one badge per kind, yours in blue. Tapping them says who.
+ */
+function setTapbacks(li, item, pop = null) {
+  li.querySelector('.tapbacks')?.remove();
+  const reactions = item.reactions ?? [];
+  li.classList.toggle('has-tapbacks', reactions.length > 0);
+  if (reactions.length === 0) return;
+  const anchor = li.querySelector('.bubble:not(.past)');
+  if (!anchor) return;
+  const holder = el('button', 'tapbacks');
+  holder.type = 'button';
+  const kinds = [...new Set(reactions.map((r) => r.kind))].slice(-3);
+  for (const kind of kinds) {
+    const mine = reactions.some((r) => r.kind === kind && r.userId === me.id);
+    const badge = el('span', `tapback${mine ? ' mine' : ''}`, TAPBACK_GLYPH.get(kind) ?? '');
+    if (kind === pop && !reducedMotion.matches) badge.classList.add('pop');
+    holder.append(badge);
+  }
+  holder.setAttribute(
+    'aria-label',
+    reactions.map((r) => `${nameOf(r.userId)}: ${T.tapback[r.kind] ?? ''}`).join(', '),
+  );
+  anchor.append(holder);
+}
+
+/** "Edited" under an edited message; tapped, its earlier versions above it. */
+function setEdited(li, item) {
+  li.querySelector('.edited-label')?.remove();
+  li.querySelector('.edit-history')?.remove();
+  if (!item.editedAt) return;
+  const open = showingEdits.has(item.id);
+  const label = el('button', 'edited-label', open ? T.hideEdits : T.edited);
+  label.type = 'button';
+  label.dataset.toggleEdits = String(item.id);
+  label.setAttribute('aria-expanded', String(open));
+  const current = li.querySelector('.bubble:not(.photo):not(.past)');
+  current?.after(label);
+  if (open && current) {
+    const history = el('div', 'edit-history');
+    (item.edits ?? []).forEach((version, index) => {
+      const past = textBubble(version.body);
+      past.classList.add('past');
+      const at = index === 0 ? item.createdAt : item.edits[index - 1].at;
+      past.title = fullFormat.format(at);
+      history.append(past);
+    });
+    current.before(history);
+  }
+}
+
+function unsentNode(item) {
+  const li = el(
+    'li',
+    'msg unsent-note',
+    item.userId === me.id ? T.youUnsent : T.unsent(nameOf(item.userId)),
+  );
+  li.tabIndex = -1;
+  return li;
+}
+
 function messageNode(item) {
+  if (item.unsent) return unsentNode(item);
   const mine = item.userId === me.id;
   const li = el('li', `msg ${mine ? 'msg-out' : 'msg-in'}`);
   li.tabIndex = -1;
@@ -236,10 +411,8 @@ function messageNode(item) {
   li.append(author);
 
   if (item.replyTo !== null && item.replyTo !== undefined) {
-    const original = messages.get(item.replyTo);
     const quote = el('div', 'quote');
-    if (original) quote.append(el('b', '', nameOf(original.userId)), ` ${excerpt(original)}`);
-    else quote.textContent = T.original;
+    fillQuote(quote, item.replyTo);
     quote.dataset.replyTo = String(item.replyTo);
     li.append(quote);
   }
@@ -263,16 +436,9 @@ function messageNode(item) {
     li.append(bubble);
   }
 
-  if (item.body) {
-    const bubble = el('div', 'bubble');
-    if (EMOJI_ONLY.test(item.body.trim())) {
-      bubble.classList.add('jumbo');
-      bubble.textContent = item.body.trim();
-    } else {
-      bubble.append(linkify(item.body));
-    }
-    li.append(bubble);
-  }
+  if (item.body) li.append(textBubble(item.body));
+  setEdited(li, item);
+  setTapbacks(li, item);
 
   const time = el('span', 'msg-time', timeFormat.format(item.createdAt));
   time.setAttribute('aria-hidden', 'true');
@@ -328,8 +494,11 @@ function render({ animate = new Set() } = {}) {
         });
       }
     }
+    // An unsent message's note stands alone, between runs.
     const runStart =
       separated ||
+      item.unsent ||
+      previous.unsent ||
       previous.userId !== item.userId ||
       item.createdAt - previous.createdAt > RUN_GAP_MS;
     const nextSeparated =
@@ -337,7 +506,11 @@ function render({ animate = new Set() } = {}) {
       startOfDay(next.createdAt) !== startOfDay(item.createdAt) ||
       next.createdAt - item.createdAt > SEPARATOR_GAP_MS;
     const runEnd =
-      nextSeparated || next.userId !== item.userId || next.createdAt - item.createdAt > RUN_GAP_MS;
+      nextSeparated ||
+      item.unsent ||
+      next.unsent ||
+      next.userId !== item.userId ||
+      next.createdAt - item.createdAt > RUN_GAP_MS;
     node.classList.toggle('run-start', runStart);
     node.classList.toggle('run-end', runEnd);
     node.classList.toggle('pending', item.key.startsWith('p') && item.state !== 'failed');
@@ -391,7 +564,7 @@ function setFootnote(node, item, isLast) {
     note.type = 'button';
     note.dataset.retry = item.clientId;
     node.append(note);
-  } else if (isLast && item.userId === me.id && item.key.startsWith('m')) {
+  } else if (isLast && item.userId === me.id && item.key.startsWith('m') && !item.unsent) {
     const text = receiptText(item);
     const receipt = el('div', 'receipt', text);
     // "Delivered" turning into "Read by…" fades across; the line never moves.
@@ -410,7 +583,7 @@ function readersOf(item) {
       member.id !== me.id &&
       member.id !== item.userId &&
       member.active &&
-      member.lastReadRev >= item.rev,
+      member.lastReadRev >= (item.sentRev ?? item.rev),
   );
 }
 
@@ -480,6 +653,25 @@ function renderAndFollow(options = {}) {
     unseen += options.incoming;
     updateJump();
   }
+}
+
+/**
+ * Runs a change that may resize messages already on screen (an edit, an
+ * unsend, Tapbacks) without moving what the reader is looking at: at the
+ * bottom they stay at the bottom; scrolled up, the first message in view
+ * keeps its place.
+ */
+function keepPlace(change) {
+  if (stick) {
+    change();
+    scrollToBottom(false);
+    return;
+  }
+  const top = scroller.getBoundingClientRect().top;
+  const anchor = [...list.children].find((node) => node.getBoundingClientRect().bottom > top);
+  const before = anchor?.getBoundingClientRect().top ?? 0;
+  change();
+  if (anchor?.isConnected) scroller.scrollTop += anchor.getBoundingClientRect().top - before;
 }
 
 // ---- the viewport: keyboard, toolbars, notch ---------------------------
@@ -563,7 +755,10 @@ function accept(message, { fromStream = false } = {}) {
     removeMessage(message.id);
     return false;
   }
-  if (messages.has(message.id)) return false;
+  if (messages.has(message.id)) {
+    applyUpdate(message);
+    return false;
+  }
   // Our own message coming back (from the response or the stream, whichever
   // is first): the unsent bubble becomes the stored one, same node.
   const unsent = message.userId === me.id ? pending.get(message.clientId) : undefined;
@@ -579,7 +774,61 @@ function accept(message, { fromStream = false } = {}) {
     return false;
   }
   messages.set(message.id, message);
-  return fromStream;
+  return fromStream && !message.unsent;
+}
+
+/**
+ * A change to a message this page has — an edit, an unsend, a Tapback —
+ * from the stream or a response. The newest version wins (its rev), and
+ * only what changed is redrawn: an edit swaps the text, a Tapback the
+ * badges, an unsend lets the bubble go and leaves the note.
+ */
+function applyUpdate(message) {
+  const old = messages.get(message.id);
+  if (!old || message.rev < old.rev) return;
+  if (editing?.id === message.id) {
+    editing.pending = message;
+    return;
+  }
+  messages.set(message.id, message);
+  const key = `m${message.id}`;
+  const node = nodes.get(key);
+  // Replies quoting it follow what it now says.
+  for (const quote of list.querySelectorAll(`.quote[data-reply-to="${message.id}"]`)) {
+    fillQuote(quote, message.id);
+  }
+  if (!node) return;
+  if (message.unsent && !old.unsent) {
+    if (menuFor === node) closeMenu(true);
+    const swap = () =>
+      keepPlace(() => {
+        nodes.delete(key);
+        node.remove();
+        render({ animate: new Set([key]) });
+      });
+    if (reducedMotion.matches || !node.isConnected) swap();
+    else {
+      node.classList.add('vanish');
+      setTimeout(swap, 320);
+    }
+    return;
+  }
+  if (message.unsent) return;
+  const item = { ...message, key };
+  keepPlace(() => {
+    if (message.body !== old.body) {
+      const current = node.querySelector('.bubble:not(.photo):not(.past)');
+      const fresh = textBubble(message.body);
+      if (current) current.replaceWith(fresh);
+      if (!reducedMotion.matches) fresh.classList.add('edited-in');
+    }
+    setEdited(node, item);
+    const added = (message.reactions ?? []).find(
+      (r) => !(old.reactions ?? []).some((o) => o.userId === r.userId && o.kind === r.kind),
+    );
+    setTapbacks(node, item, added?.kind ?? null);
+    render();
+  });
 }
 
 function removeMessage(id) {
@@ -601,6 +850,7 @@ async function loadLatest() {
   for (const message of page.messages) messages.set(message.id, message);
   rev = page.rev;
   epoch = page.epoch;
+  if (page.now) skew = page.now - Date.now();
   hasMore = page.hasMore;
   render();
   scrollToBottom(false);
@@ -653,6 +903,7 @@ function connect() {
     const hello = JSON.parse(event.data);
     setConnected(true);
     setMembers(hello.members);
+    if (hello.now) skew = hello.now - Date.now();
     streamId = hello.stream;
     sendPresence();
     flushOutbox();
@@ -671,6 +922,10 @@ function connect() {
       updateTitle();
     }
     markRead();
+  });
+  source.addEventListener('update', (event) => {
+    advance(event);
+    applyUpdate(JSON.parse(event.data));
   });
   source.addEventListener('delete', (event) => {
     advance(event);
@@ -980,6 +1235,23 @@ list.addEventListener('click', (event) => {
     }
     return;
   }
+  const toggleEdits = event.target.closest('[data-toggle-edits]');
+  if (toggleEdits) {
+    const id = Number(toggleEdits.dataset.toggleEdits);
+    if (showingEdits.has(id)) showingEdits.delete(id);
+    else showingEdits.add(id);
+    const node = nodes.get(`m${id}`);
+    const item = messages.get(id);
+    if (node && item) keepPlace(() => setEdited(node, { ...item, key: `m${id}` }));
+    return;
+  }
+  const tapbacks = event.target.closest('.tapbacks');
+  if (tapbacks) {
+    const node = tapbacks.closest('.msg');
+    const item = node && itemFor(node);
+    if (item) openTapbacks(item);
+    return;
+  }
   const quote = event.target.closest('.quote');
   if (quote) {
     const target = nodes.get(`m${quote.dataset.replyTo}`);
@@ -1076,13 +1348,27 @@ function openMenu(node) {
   const svg = (path) =>
     `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="${path}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
+  const age = serverNow() - item.createdAt;
+  const own = stored && item.userId === me.id;
   if (stored) {
     add(T.reply, svg('M10 8 4 13l6 5M4 13h10a6 6 0 0 1 6 6v1'), () => {
       closeMenu();
       setReply(item.id);
     });
   }
-  if (stored && item.userId === me.id) {
+  if (own && item.body && age < EDIT_WINDOW_MS && (item.edits ?? []).length < MAX_EDITS) {
+    add(T.edit, svg('M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4'), () => {
+      closeMenu(true);
+      startEdit(item.id);
+    });
+  }
+  if (own && age < UNSEND_WINDOW_MS) {
+    add(T.undoSend, svg('M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11'), () => {
+      closeMenu(true);
+      unsend(item.id);
+    });
+  }
+  if (own) {
     add(T.info, svg('M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 7.5v.5'), () => {
       closeMenu();
       openInfo(item);
@@ -1128,11 +1414,50 @@ function openMenu(node) {
   }
   layer.append(menu);
 
+  // The Tapback bar, above the lifted message (below it if there's no room).
+  let tapbar = null;
+  if (stored) {
+    const current = (item.reactions ?? []).find((r) => r.userId === me.id)?.kind ?? null;
+    tapbar = el('div', 'tapback-bar');
+    tapbar.setAttribute('role', 'group');
+    tapbar.setAttribute('aria-label', T.reactions);
+    for (const [kind, glyph] of TAPBACKS) {
+      const button = el('button', kind === current ? 'chosen' : '', glyph);
+      button.type = 'button';
+      button.setAttribute('aria-label', T.tapback[kind]);
+      button.setAttribute('aria-pressed', String(kind === current));
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        haptic();
+        closeMenu();
+        react(item.id, kind === current ? null : kind);
+      });
+      tapbar.append(button);
+    }
+    layer.append(tapbar);
+  }
+
   const width = Math.max(220, menu.offsetWidth);
   const height = menu.offsetHeight;
   const viewportHeight = window.visualViewport?.height ?? innerHeight;
   const below = lastRect.bottom + 10;
-  let top = below + height < viewportHeight - 12 ? below : rect.top - height - 10;
+  // Above the message: the Tapback bar, and the menu over it when there's
+  // no room for the menu below.
+  let above = rect.top - 10;
+  if (tapbar) {
+    const barHeight = tapbar.offsetHeight;
+    const barWidth = tapbar.offsetWidth;
+    const out = node.classList.contains('msg-out');
+    let barTop = rect.top - barHeight - 10;
+    if (barTop < 12) barTop = 12;
+    above = barTop - 10;
+    let barLeft = out ? Math.max(rect.right, lastRect.right) - barWidth : rect.left;
+    barLeft = Math.max(12, Math.min(barLeft, innerWidth - barWidth - 12));
+    tapbar.style.top = `${Math.max(12, barTop)}px`;
+    tapbar.style.left = `${barLeft}px`;
+    tapbar.style.transformOrigin = out ? '100% 100%' : '0 100%';
+  }
+  let top = below + height < viewportHeight - 12 ? below : above - height;
   top = Math.max(12, Math.min(top, viewportHeight - height - 12));
   const outgoing = node.classList.contains('msg-out');
   let left = outgoing
@@ -1170,7 +1495,7 @@ layer.addEventListener('click', (event) => {
 });
 
 layer.addEventListener('keydown', (event) => {
-  const buttons = [...layer.querySelectorAll('.menu button')];
+  const buttons = [...layer.querySelectorAll('.tapback-bar button, .menu button')];
   const index = buttons.indexOf(document.activeElement);
   if (event.key === 'Escape') {
     event.preventDefault();
@@ -1202,12 +1527,20 @@ list.addEventListener(
     if (event.touches.length !== 1) return;
     const touch = event.touches[0];
     const node = event.target.closest('.msg');
-    press = { x: touch.clientX, y: touch.clientY, node, timer: 0, swiping: false, moved: false };
+    press = {
+      x: touch.clientX,
+      y: touch.clientY,
+      node,
+      timer: 0,
+      swiping: false,
+      replying: false,
+      moved: false,
+    };
     if (node && event.target.closest('.bubble')) {
       press.timer = setTimeout(() => {
         if (!press || press.moved) return;
         suppressClick = true;
-        navigator.vibrate?.(8);
+        haptic();
         window.getSelection()?.removeAllRanges();
         openMenu(node);
       }, 420);
@@ -1227,8 +1560,24 @@ scroller.addEventListener(
       press.moved = true;
       clearTimeout(press.timer);
     }
-    if (!press.swiping && dx < -12 && Math.abs(dx) > Math.abs(dy) * 1.4) press.swiping = true;
-    if (press.swiping) {
+    const sideways = Math.abs(dx) > Math.abs(dy) * 1.4;
+    if (!press.swiping && !press.replying && dx < -12 && sideways) press.swiping = true;
+    // Swipe a message right to reply to it, as in iMessage.
+    if (!press.swiping && !press.replying && dx > 12 && sideways && replyable(press.node)) {
+      press.replying = true;
+      press.node.classList.add('pulling');
+    }
+    if (press.replying) {
+      event.preventDefault();
+      const pull = Math.max(0, dx - 12);
+      const shown = pull < 64 ? pull : 64 + (pull - 64) * 0.2;
+      press.node.style.setProperty('--pull', `${shown}px`);
+      const armed = pull >= 56;
+      if (armed !== press.node.classList.contains('armed')) {
+        press.node.classList.toggle('armed', armed);
+        if (armed) haptic();
+      }
+    } else if (press.swiping) {
       event.preventDefault();
       const pull = Math.max(0, -dx);
       const reveal = pull < 74 ? pull : 74 + (pull - 74) * 0.2;
@@ -1239,9 +1588,20 @@ scroller.addEventListener(
   { passive: false },
 );
 
+function replyable(node) {
+  const key = node?.dataset.key ?? '';
+  return key.startsWith('m') && !messages.get(Number(key.slice(1)))?.unsent;
+}
+
 const endPress = () => {
   if (!press) return;
   clearTimeout(press.timer);
+  if (press.replying) {
+    const node = press.node;
+    if (node.classList.contains('armed')) setReply(Number(node.dataset.key.slice(1)));
+    node.classList.remove('pulling', 'armed');
+    node.style.setProperty('--pull', '0px');
+  }
   if (press.swiping) {
     list.classList.remove('revealing');
     list.style.setProperty('--reveal', '0px');
@@ -1281,6 +1641,188 @@ list.addEventListener('keydown', (event) => {
     target.scrollIntoView({ block: 'nearest' });
   }
 });
+
+// ---- edit, undo send, tapbacks ---------------------------------------------
+
+/** A short note under a message when a change to it didn't go through. */
+function noteFailure(id, text) {
+  const node = nodes.get(`m${id}`);
+  if (!node) return;
+  node.querySelector('.change-failed')?.remove();
+  const note = el('div', 'change-failed', text);
+  note.setAttribute('role', 'status');
+  node.append(note);
+  setTimeout(() => note.remove(), 4000);
+}
+
+/** Puts a change's result in place, or puts back what was there and says so. */
+async function change(id, request, before, failure) {
+  try {
+    const response = await request();
+    if (!response.ok) throw new Error(String(response.status));
+    applyUpdate((await response.json()).message);
+  } catch {
+    const now = messages.get(id);
+    if (now) applyUpdate({ ...before, rev: now.rev + 1e-6 });
+    noteFailure(id, failure);
+  }
+}
+
+function react(id, kind) {
+  const before = messages.get(id);
+  if (!before) return;
+  const others = (before.reactions ?? []).filter((r) => r.userId !== me.id);
+  // Shown at once; the server's answer (and everyone else's stream) follows.
+  applyUpdate({
+    ...before,
+    rev: before.rev + 1e-6,
+    reactions: kind ? [...others, { userId: me.id, kind }] : others,
+  });
+  change(
+    id,
+    () => api(`${BASE}/api/messages/${id}/reaction`, { method: 'POST', json: { kind } }),
+    before,
+    T.couldntEdit,
+  );
+}
+
+function unsend(id) {
+  const before = messages.get(id);
+  if (!before) return;
+  haptic();
+  applyUpdate({
+    ...before,
+    rev: before.rev + 1e-6,
+    unsent: true,
+    body: '',
+    image: null,
+    edits: [],
+    reactions: [],
+    editedAt: null,
+  });
+  if (replyTo === id) setReply(null);
+  change(
+    id,
+    () => api(`${BASE}/api/messages/${id}/unsend`, { method: 'POST', json: {} }),
+    before,
+    T.couldntUnsend,
+  ).then(() => {
+    // Put back as it was: the bubble needs drawing afresh, not patching.
+    if (!messages.get(id)?.unsent) rebuild(id);
+  });
+}
+
+/** Draws one message again from scratch, in place. */
+function rebuild(id) {
+  const key = `m${id}`;
+  const old = nodes.get(key);
+  const item = messages.get(id);
+  if (!old || !item) return;
+  const fresh = messageNode({ ...item, key });
+  keepPlace(() => {
+    old.replaceWith(fresh);
+    nodes.set(key, fresh);
+    render();
+  });
+}
+
+/** iMessage's Edit: the bubble becomes a field, in place, with Cancel and Save. */
+function startEdit(id) {
+  const item = messages.get(id);
+  const node = nodes.get(`m${id}`);
+  const bubble = node?.querySelector('.bubble:not(.photo):not(.past)');
+  if (!item || !bubble || editing) return;
+  const form = el('form', 'edit-field');
+  const field = el('textarea');
+  field.value = item.body;
+  field.rows = 1;
+  field.maxLength = 4000;
+  field.setAttribute('aria-label', T.edit);
+  field.setAttribute('autocapitalize', 'sentences');
+  const cancel = el('button', 'edit-cancel');
+  cancel.type = 'button';
+  cancel.setAttribute('aria-label', T.cancel);
+  cancel.innerHTML =
+    '<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+  const save = el('button', 'edit-save');
+  save.type = 'submit';
+  save.setAttribute('aria-label', T.save);
+  save.innerHTML =
+    '<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><path d="m4.5 10.5 3.5 3.5 7.5-8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  form.append(cancel, field, save);
+  editing = { id, node, pending: null };
+  node.classList.add('editing');
+  bubble.hidden = true;
+  bubble.after(form);
+
+  const size = () => {
+    field.style.height = '0px';
+    field.style.height = `${Math.min(field.scrollHeight, 160)}px`;
+  };
+  const finish = () => {
+    const pending = editing?.pending;
+    editing = null;
+    node.classList.remove('editing');
+    form.remove();
+    bubble.hidden = false;
+    if (pending) applyUpdate(pending);
+  };
+  cancel.addEventListener('click', finish);
+  // Keep the keyboard up: tapping Save or Cancel mustn't blur the field first.
+  for (const button of [cancel, save]) {
+    button.addEventListener('mousedown', (event) => event.preventDefault());
+  }
+  field.addEventListener('input', size);
+  field.addEventListener('keydown', (event) => {
+    if (event.isComposing || event.keyCode === 229) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      finish();
+    } else if (event.key === 'Enter' && !event.shiftKey && finePointer) {
+      event.preventDefault();
+      form.requestSubmit();
+    }
+  });
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const body = field.value.trim();
+    const before = messages.get(id);
+    finish();
+    if (!before || body === '' || body === before.body.trim()) return;
+    const now = serverNow();
+    applyUpdate({
+      ...before,
+      rev: before.rev + 1e-6,
+      body,
+      editedAt: now,
+      edits: [...(before.edits ?? []), { body: before.body, at: now }],
+    });
+    change(
+      id,
+      () => api(`${BASE}/api/messages/${id}`, { method: 'PATCH', json: { body } }),
+      before,
+      T.couldntEdit,
+    );
+  });
+  keepPlace(size);
+  field.focus({ preventScroll: true });
+  field.setSelectionRange(field.value.length, field.value.length);
+  node.scrollIntoView({ block: 'nearest', behavior: reducedMotion.matches ? 'auto' : 'smooth' });
+}
+
+/** Who reacted with what: tapping a message's Tapbacks. */
+function openTapbacks(item) {
+  openSheet({
+    title: T.reactions,
+    closeLabel: T.done,
+    build: (body) => {
+      const { rows } = group(body);
+      for (const reaction of item.reactions ?? []) {
+        row(rows, nameOf(reaction.userId), TAPBACK_GLYPH.get(reaction.kind) ?? '');
+      }
+    },
+  });
+}
 
 // ---- photos, full screen ---------------------------------------------------
 

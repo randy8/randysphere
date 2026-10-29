@@ -310,3 +310,138 @@ test('read receipts: reading stamps each message from someone else, once, with w
     .get(own.message.id, mom.id) as { n: number };
   assert.equal(ownReads.n, 0);
 });
+
+test('editing: own text only, within 15 minutes, 5 times; every version kept', () => {
+  const t0 = 1_000_000;
+  const { message } = store.postMessage({
+    userId: dad.id,
+    clientId: 'edit-0001',
+    body: 'dinner at 6',
+    now: t0,
+  });
+  assert.throws(() => store.editMessage(mom, message.id, 'no', t0 + 1000), /author/);
+  const same = store.editMessage(dad, message.id, 'dinner at 6 ', t0 + 1000);
+  assert.equal(same.changed, false, 'the same words cost no edit');
+
+  const first = store.editMessage(dad, message.id, 'dinner at 7', t0 + 2000);
+  assert.equal(first.message.body, 'dinner at 7');
+  assert.equal(first.message.editedAt, t0 + 2000);
+  assert.deepEqual(first.message.edits, [{ body: 'dinner at 6', at: t0 + 2000 }]);
+  assert.ok(first.message.rev > message.rev, 'an edit moves the rev, for replay');
+  assert.equal(first.message.sentRev, message.rev, 'but not when it was sent');
+  assert.ok(store.changesSince(message.rev, 10).some((m) => m.id === message.id));
+
+  for (let n = 2; n <= 5; n += 1) store.editMessage(dad, message.id, `at ${String(n)}`, t0 + 3000);
+  assert.throws(() => store.editMessage(dad, message.id, 'six', t0 + 4000), /5 times/);
+  assert.equal(store.requireMessage(message.id).edits.length, 5);
+
+  const late = store.postMessage({ userId: dad.id, clientId: 'edit-0002', body: 'x', now: t0 });
+  assert.throws(
+    () => store.editMessage(dad, late.message.id, 'y', t0 + 15 * 60 * 1000 + 1),
+    /15 minutes/,
+  );
+  assert.throws(() => store.editMessage(dad, late.message.id, '  ', t0 + 1), /empty/);
+});
+
+test('an edit is no new message: unread counts and read positions ignore it', () => {
+  const t0 = Date.now();
+  const { message } = store.postMessage({
+    userId: dad.id,
+    clientId: 'edit-0003',
+    body: 'hi',
+    now: t0,
+  });
+  store.markRead(mom.id, store.currentRev());
+  const before = store.unreadCount(mom.id);
+  store.editMessage(dad, message.id, 'hello', t0 + 1);
+  store.react(randy, message.id, 'love');
+  assert.equal(store.unreadCount(mom.id), before);
+  assert.ok(store.receipts(message.id)?.read.some((r) => r.userId === mom.id));
+});
+
+test('undo send: author only, within 2 minutes; nothing of it stays but the fact', () => {
+  const t0 = 2_000_000;
+  const { message } = store.postMessage({
+    userId: dad.id,
+    clientId: 'unsend-0001',
+    body: 'oops',
+    now: t0,
+  });
+  store.editMessage(dad, message.id, 'oops!', t0 + 10);
+  store.react(mom, message.id, 'laugh');
+  assert.throws(() => store.unsendMessage(randy, message.id, t0 + 100), /author/);
+  assert.throws(() => store.unsendMessage(dad, message.id, t0 + 2 * 60 * 1000 + 1), /2 minutes/);
+
+  const { message: unsent } = store.unsendMessage(dad, message.id, t0 + 100);
+  assert.equal(unsent.unsent, true);
+  assert.equal(unsent.body, '');
+  assert.deepEqual(unsent.edits, []);
+  assert.deepEqual(unsent.reactions, []);
+  const row = store.db
+    .prepare(
+      `SELECT body, (SELECT count(*) FROM message_edits WHERE message_id = ?) AS edits,
+              (SELECT count(*) FROM reactions WHERE message_id = ?) AS reactions
+       FROM messages WHERE id = ?`,
+    )
+    .get(message.id, message.id, message.id) as { body: string; edits: number; reactions: number };
+  assert.deepEqual({ ...row }, { body: '', edits: 0, reactions: 0 }, 'gone from the database too');
+  assert.ok(store.history(null, 500).messages.some((m) => m.id === message.id && m.unsent));
+  assert.ok(!store.search('oops', 10).messages.some((m) => m.id === message.id));
+  assert.throws(() => store.unsendMessage(dad, message.id, t0 + 200), /No such/);
+  assert.throws(() => store.react(mom, message.id, 'like'), /No such/);
+});
+
+test('undo send takes a photo with it', () => {
+  const imageId = store.addImage({
+    userId: dad.id,
+    mime: 'image/png',
+    bytes: 1,
+    width: 1,
+    height: 1,
+  });
+  const { message } = store.postMessage({
+    userId: dad.id,
+    clientId: 'unsend-0002',
+    body: '',
+    imageId,
+  });
+  const { imageId: removed } = store.unsendMessage(dad, message.id);
+  assert.equal(removed, imageId);
+  assert.equal(store.getImage(imageId), null);
+  assert.equal(store.requireMessage(message.id).image, null);
+});
+
+test('tapbacks: one per person, changed or taken back', () => {
+  const { message } = store.postMessage({ userId: dad.id, clientId: 'tapback-01', body: 'yo' });
+  assert.equal(store.react(mom, message.id, 'love', 1).changed, true);
+  assert.equal(store.react(mom, message.id, 'love', 2).changed, false);
+  store.react(randy, message.id, 'like', 3);
+  // A changed Tapback is a new one: it goes to the end.
+  assert.deepEqual(store.react(mom, message.id, 'laugh', 4).message.reactions, [
+    { userId: randy.id, kind: 'like' },
+    { userId: mom.id, kind: 'laugh' },
+  ]);
+  assert.deepEqual(store.react(mom, message.id, null).message.reactions, [
+    { userId: randy.id, kind: 'like' },
+  ]);
+});
+
+test('migration 7 keeps every message, with the rev it was sent at', () => {
+  const db = new DatabaseSync(':memory:');
+  migrate(db, 6);
+  db.exec(`INSERT INTO users (id, username, display_name, password_hash, created_at)
+           VALUES (1, 'a', 'A', 'x', 0)`);
+  db.exec(`INSERT INTO messages (user_id, client_id, body, created_at, rev)
+           VALUES (1, 'c1', 'kept', 0, 7)`);
+  migrate(db);
+  const old = new FamilyStore(db);
+  const message = old.history(null, 10).messages[0];
+  assert.equal(message?.body, 'kept');
+  assert.equal(message?.sentRev, 7);
+  assert.deepEqual(message?.reactions, []);
+  // A row the previous server writes during a deploy has no sent_rev: its rev stands in.
+  db.exec(`INSERT INTO messages (user_id, client_id, body, created_at, rev)
+           VALUES (1, 'c2', 'overlap', 0, 8)`);
+  assert.equal(old.history(null, 10).messages[1]?.sentRev, 8);
+  assert.equal(SCHEMA_VERSION, 7);
+});

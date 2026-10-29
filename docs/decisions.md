@@ -3660,3 +3660,25 @@ not the button. Section headings show as written, not forced to capitals.
 
 **Rejected:** Sentence case throughout (tried and undone the same hour —
 iOS doesn't write its controls that way).
+
+## 2026-10-29 — Chats: Edit, Undo Send and Tapbacks, as iMessage has them
+
+**Decision:** iMessage's rules, kept by the server: edit your own text for
+15 minutes, 5 times; Undo Send for 2 minutes; one Tapback per person per
+message, from ❤️ 👍 👎 😂 ‼️ ❓. Every earlier version is kept and shown to
+everyone under "Edited". Undo Send deletes the text, its versions, its
+Tapbacks and its photo (file included); the row stays so everyone sees
+"… unsent a message" and replies keep their place. Every change gives the
+message the next `rev`, so the existing replay delivers it as an `update`;
+`sent_rev` (new) is what read receipts and unread counts compare against, so
+an edit or a Tapback never makes a message unread again. A message's
+versions and Tapbacks come with it as JSON from correlated subqueries
+(primary-key lookups), so a page of history stays one query. The existing
+Delete for Everyone stays (an admin's moderation, and an author's after the
+two minutes).
+
+**Rejected:** A separate change log table for replay (a second ordering to
+keep consistent with `rev`, for no gain at this size); bumping `rev`
+without `sent_rev` (edits would have re-counted as unread and re-armed
+receipts); pushing a "retract" for an unsent message's notification
+(iPhone revokes a subscription whose pushes show nothing).
