@@ -1417,14 +1417,18 @@ body.family-admin {
   cursor: pointer;
 }
 
-/* A switch: a checkbox, drawn. */
-.switch {
+/* A switch: a checkbox, drawn. `input.switch`, so it outranks `.cell input`
+   (a text field's flexible width, padding and border), which it also is. */
+input.switch {
   flex: none;
   appearance: none;
   position: relative;
   width: 51px;
+  min-width: 51px;
   height: 31px;
   margin: 0;
+  padding: 0;
+  border: 0;
   border-radius: 999px;
   background: var(--fill);
   cursor: pointer;
