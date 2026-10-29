@@ -1,7 +1,8 @@
 import { FAMILY } from './chats.ts';
 import type { ChatIdentity } from './chats.ts';
 import type { Hub } from './hub.ts';
-import type { FamilyStore, Message, Reaction, User } from './store.ts';
+import { GLYPH } from './store.ts';
+import type { FamilyStore, Message, User } from './store.ts';
 import { sendPush } from './webpush.ts';
 import type { VapidKeys } from './webpush.ts';
 
@@ -18,46 +19,34 @@ import type { VapidKeys } from './webpush.ts';
  */
 
 const TEXT = {
-  en: { generic: 'New message', photo: 'Photo', voice: 'Voice message' },
-  zh: { generic: '新消息', photo: '照片', voice: '语音消息' },
+  en: { generic: 'New message', photo: 'Photo', voice: 'Voice message', sticker: 'Sticker' },
+  zh: { generic: '新消息', photo: '照片', voice: '语音消息', sticker: '贴纸' },
 } as const;
 
-/** iMessage's wording for a Tapback: “Mom loved “dinner at 7””. */
-const REACTED: Record<'en' | 'zh', Record<Reaction, string>> = {
-  en: {
-    love: 'loved',
-    like: 'liked',
-    dislike: 'disliked',
-    laugh: 'laughed at',
-    emphasize: 'emphasized',
-    question: 'questioned',
-  },
-  zh: {
-    love: '喜欢',
-    like: '赞了',
-    dislike: '踩了',
-    laugh: '笑了',
-    emphasize: '强调了',
-    question: '质疑了',
-  },
-};
+/** A message as one line: its text, its stickers left out; "Sticker" or "Photo" if that's all. */
+function lineOf(message: Message, lang: 'en' | 'zh', max: number): string {
+  const line = [...message.body.replaceAll(GLYPH, ' ').replace(/\s+/g, ' ').trim()]
+    .slice(0, max)
+    .join('');
+  if (line !== '') return line;
+  if (message.glyphs.length > 0) return TEXT[lang].sticker;
+  return message.image ? TEXT[lang].photo : TEXT[lang].generic;
+}
 
 export function reactionPayload(
   recipient: User,
   message: Message,
   reactor: User,
-  kind: Reaction,
+  emoji: string,
   options: { preview: boolean; unread: number; chat?: ChatIdentity },
 ): PushPayload {
   const base = payloadFor(recipient, message, null, options);
   if (!options.preview) return base;
-  const line = [...message.body.replace(/\s+/g, ' ').trim()].slice(0, 80).join('');
-  const what = line !== '' ? line : TEXT[recipient.lang].photo;
-  const verb = REACTED[recipient.lang][kind];
+  const what = lineOf(message, recipient.lang, 80);
   return {
     ...base,
     title: reactor.displayName,
-    body: recipient.lang === 'zh' ? `${verb}“${what}”` : `${verb} “${what}”`,
+    body: recipient.lang === 'zh' ? `对“${what}”回应了 ${emoji}` : `Reacted ${emoji} to “${what}”`,
   };
 }
 
@@ -88,8 +77,7 @@ export function payloadFor(
       badge: options.unread,
     };
   }
-  const line = message.body.replace(/\s+/g, ' ').trim();
-  const body = line !== '' ? [...line].slice(0, 140).join('') : message.image ? t.photo : t.generic;
+  const body = lineOf(message, recipient.lang, 140);
   return {
     title: author?.displayName ?? title,
     body,
@@ -140,13 +128,13 @@ export class Notifier {
     );
   }
 
-  /** A Tapback on someone's message tells them (and only them), as iMessage does. */
-  async reacted(message: Message, reactor: User, kind: Reaction): Promise<void> {
+  /** A reaction on someone's message tells them (and only them), as iMessage does. */
+  async reacted(message: Message, reactor: User, emoji: string): Promise<void> {
     if (message.userId === reactor.id) return;
     const author = this.#store.getUser(message.userId);
     if (!author) return;
     await this.#send([author], (recipient, options) =>
-      reactionPayload(recipient, message, reactor, kind, options),
+      reactionPayload(recipient, message, reactor, emoji, options),
     );
   }
 

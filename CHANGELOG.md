@@ -1002,3 +1002,13 @@ minutes, takes the message back for everyone, leaving "You unsent a
 message." Swiping a message right replies to it. Every change arrives live
 on every open page and is replayed to one that was offline, through the
 same rev that already carried messages and deletions.
+
+## 2026-10-29 — Any emoji, Genmoji and stickers
+
+Reactions in the chats now take any emoji, Discord-style: chips with counts
+under a message, tap to join or take back, hold to see who — iMessage's six
+are still one long-press away, with a face beside them for everything else.
+The composer became a rich text box so that iPhone and Mac offer Genmoji and
+stickers there; they arrive in the message where they were typed, or large
+on their own as stickers. And the read line under your latest message now
+stays put and says who has read it: "Read by Harrison · 1 of 2".

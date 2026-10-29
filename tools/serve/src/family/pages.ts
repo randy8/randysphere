@@ -1,6 +1,7 @@
 import { escapeHtml } from '../pages.ts';
 import type { ChatIdentity } from './chats.ts';
 import type { Connection, HubEvent } from './hub.ts';
+import { GLYPH } from './store.ts';
 import type { Lang, Message, SessionInfo, User } from './store.ts';
 
 export interface Assets {
@@ -161,7 +162,7 @@ ${results
       message,
     ) => `  <a class="cell cell-stack search-result" href="${assets.base}/#m${String(message.id)}">
     <span class="search-meta"><strong>${escapeHtml(names.get(message.userId) ?? '')}</strong><time class="dim" datetime="${new Date(message.createdAt).toISOString()}">${new Date(message.createdAt).toLocaleDateString(me.lang === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}</time></span>
-    <span class="search-text">${highlight(message.body, query)}</span>
+    <span class="search-text">${highlight(message.body.replaceAll(GLYPH, ''), query)}</span>
   </a>`,
   )
   .join('\n')}
@@ -263,11 +264,21 @@ function renderStaticMessage(
   const image = message.image
     ? `<img class="bubble-image" src="${base}/images/${message.image.id}" width="${String(message.image.width)}" height="${String(message.image.height)}" alt="" loading="lazy">`
     : '';
+  // Genmoji and stickers in their places in the text (each GLYPH is the next one).
+  const parts = message.body.split(GLYPH);
+  const sticker = message.glyphs.length > 0 && parts.every((part) => part.trim() === '');
   const text =
-    message.body === '' ? '' : `<span class="bubble-text">${escapeHtml(message.body)}</span>`;
+    message.body === ''
+      ? ''
+      : `<span class="bubble-text">${parts
+          .map((part, n) => {
+            const glyph = message.glyphs[n - 1];
+            return `${glyph ? `<img class="glyph" src="${base}/images/${glyph.id}" alt="" width="${String(glyph.width)}" height="${String(glyph.height)}">` : ''}${escapeHtml(part)}`;
+          })
+          .join('')}</span>`;
   return `<li class="msg ${mine ? 'msg-out' : 'msg-in'}" data-static>
   ${mine ? '' : `<span class="msg-author">${escapeHtml(author)}</span>`}
-  <div class="bubble">${image}${text}</div>${message.editedAt === null ? '' : `\n  <span class="edited-label">${t.edited}</span>`}
+  <div class="bubble${sticker ? ' sticker' : ''}">${image}${text}</div>${message.editedAt === null ? '' : `\n  <span class="edited-label">${t.edited}</span>`}
   <time class="msg-static-time" datetime="${new Date(message.createdAt).toISOString()}">${formatTime(message.createdAt)}</time>
 </li>`;
 }

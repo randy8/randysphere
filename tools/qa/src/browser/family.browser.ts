@@ -99,14 +99,34 @@ async function signIn(
   await page.fill('input[name="username"]', username);
   await page.fill('input[name="password"]', password);
   await page.click('button[type="submit"]');
-  await page.locator('[data-input]').waitFor();
+  await page.locator('.editor').waitFor();
   await page.waitForFunction(() => !document.querySelector('[data-messages] [data-static]'));
   return page;
 }
 
 async function send(page: Page, text: string): Promise<void> {
-  await page.fill('[data-input]', text);
+  await page.fill('.editor', text);
   await page.click('[data-send]');
+}
+
+/** A small image put into the composer the way Safari puts a Genmoji there. */
+async function insertGlyph(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 64;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+    context.fillStyle = '#e33';
+    context.beginPath();
+    context.arc(32, 32, 28, 0, Math.PI * 2);
+    context.fill();
+    const editor = document.querySelector('.editor');
+    const img = document.createElement('img');
+    img.src = canvas.toDataURL('image/png');
+    img.alt = 'red circle';
+    editor?.append(img);
+    editor?.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  });
 }
 
 const bubbles = (page: Page): Promise<string[]> =>
@@ -195,7 +215,7 @@ browserTest(
       Object.defineProperty(Notification, 'permission', { get: () => 'default' });
     });
     await page.reload();
-    await page.locator('[data-input]').waitFor();
+    await page.locator('.editor').waitFor();
     await page.click('.bar-title');
     await sheet.getByRole('button', { name: 'Turn On Notifications' }).waitFor();
     for (let i = 0; i < 6; i += 1) await page.keyboard.press('Tab');
@@ -311,9 +331,17 @@ browserTest(
 
     // Mom loves it: the bar over the pressed message, the badge on Randy's bubble.
     await hers.click({ button: 'right' });
-    await mom.getByRole('button', { name: '喜欢' }).click();
-    await randy.locator('.msg-out .tapback', { hasText: '❤️' }).waitFor();
-    await mom.locator('.msg-in .tapback', { hasText: '❤️' }).waitFor();
+    await mom.locator('.tapback-bar button', { hasText: '❤️' }).click();
+    await randy.locator('.msg-out .chip', { hasText: '❤️' }).waitFor();
+    await mom.locator('.msg-in .chip.mine', { hasText: '❤️' }).waitFor();
+    // Any emoji, from the picker; then Randy adds his own to hers, from the chip.
+    await hers.click({ button: 'right' });
+    await mom.getByRole('button', { name: '添加回应' }).click();
+    await mom.locator('.emoji-grid button', { hasText: '🦖' }).first().click();
+    const dino = randy.locator('.msg-out .chip', { hasText: '🦖' });
+    await dino.waitFor();
+    await dino.click();
+    await mom.locator('.msg-in .chip', { hasText: '🦖2' }).waitFor();
 
     // Randy edits it in place; Mom sees the new words and "Edited", and its history.
     await randy
@@ -326,7 +354,7 @@ browserTest(
     await mom.locator('.msg-in .bubble', { hasText: 'Lunch at one' }).waitFor();
     await mom.getByRole('button', { name: '已编辑' }).click();
     await mom.locator('.bubble.past', { hasText: 'Lunch at noon' }).waitFor();
-    assert.equal(await randy.locator('.tapback').count(), 1, 'the Tapback stays through an edit');
+    assert.equal(await randy.locator('.chip').count(), 2, 'reactions stay through an edit');
 
     // Undo Send: gone for both, a note in its place.
     await randy.locator('.msg-out .bubble', { hasText: 'Lunch at one' }).click({ button: 'right' });
@@ -334,6 +362,34 @@ browserTest(
     await randy.getByText('You unsent a message.').waitFor();
     await mom.getByText('Randy撤回了一条信息。').waitFor();
     assert.equal(await mom.getByText('Lunch at').count(), 0);
+    await other.close();
+  },
+);
+
+browserTest(
+  'Genmoji and stickers: sent from the composer, alone large, in words inline',
+  async ({ context, page: unused }) => {
+    await unused.close();
+    const randy = await signIn(context, 'randy', 'battery staple');
+    const other = await context.browser()?.newContext(PHONE);
+    assert.ok(other);
+    const mom = await signIn(other, 'mom', 'correct horse');
+
+    await insertGlyph(randy);
+    await randy.click('[data-send]');
+    const sticker = mom.locator('.msg-in .bubble.sticker img.glyph');
+    await sticker.waitFor();
+    assert.ok(((await sticker.boundingBox())?.height ?? 0) > 60, 'alone: large');
+
+    await randy.fill('.editor', 'happy birthday ');
+    await insertGlyph(randy);
+    await randy.click('[data-send]');
+    const inline = mom.locator('.msg-in .bubble:not(.sticker)', { hasText: 'happy birthday' });
+    await inline.locator('img.glyph').waitFor();
+    assert.ok(
+      ((await inline.locator('img.glyph').boundingBox())?.height ?? 99) < 40,
+      'inline: text size',
+    );
     await other.close();
   },
 );

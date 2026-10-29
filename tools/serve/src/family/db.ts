@@ -221,6 +221,39 @@ const MIGRATIONS: readonly string[] = [
   -- (docs/decisions.md, 2026-10-29, the chat audit).
   CREATE INDEX messages_image ON messages(image_id) WHERE image_id IS NOT NULL;
   `,
+  `
+  -- Reactions with any emoji, several per person, as Discord has them: the
+  -- key gains the emoji. The column keeps its name, kind (it now holds the
+  -- emoji itself), so the previous server still reads this table during a
+  -- deploy's overlap. The six Tapbacks become their emoji.
+  CREATE TABLE reactions_any (
+    message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind       TEXT NOT NULL CHECK (length(kind) BETWEEN 1 AND 16),
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (message_id, user_id, kind)
+  ) WITHOUT ROWID;
+  INSERT INTO reactions_any (message_id, user_id, kind, created_at)
+    SELECT message_id, user_id,
+      CASE kind WHEN 'love' THEN '❤️' WHEN 'like' THEN '👍' WHEN 'dislike' THEN '👎'
+        WHEN 'laugh' THEN '😂' WHEN 'emphasize' THEN '‼️' ELSE '❓' END,
+      created_at FROM reactions;
+  DROP TABLE reactions;
+  ALTER TABLE reactions_any RENAME TO reactions;
+  CREATE INDEX reactions_user ON reactions(user_id);
+  `,
+  `
+  -- Genmoji and stickers: images set into a message's text, as iMessage
+  -- does. Each U+FFFC in the body is the next one, in order (n). Their
+  -- bytes are ordinary uploads in images/, owned by the sender.
+  CREATE TABLE message_glyphs (
+    message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    n          INTEGER NOT NULL,
+    image_id   TEXT NOT NULL REFERENCES images(id),
+    PRIMARY KEY (message_id, n)
+  ) WITHOUT ROWID;
+  CREATE INDEX message_glyphs_image ON message_glyphs(image_id);
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

@@ -1018,14 +1018,14 @@ test('edit, undo send and tapbacks: own messages only, live to every open page',
   assert.equal(update.id, String(live.rev));
 
   assert.equal(
-    (await call(`${path}/reaction`, { cookie: momCookie, json: { kind: 'wave' } })).status,
+    (await call(`${path}/reaction`, { cookie: momCookie, json: { emoji: 'wave' } })).status,
     400,
   );
-  await call(`${path}/reaction`, { cookie: momCookie, json: { kind: 'love' } });
-  const reacted = (await open.next('update')).data as { reactions: { kind: string }[] };
+  await call(`${path}/reaction`, { cookie: momCookie, json: { emoji: '🦖', on: true } });
+  const reacted = (await open.next('update')).data as { reactions: { emoji: string }[] };
   assert.deepEqual(
-    reacted.reactions.map((r) => r.kind),
-    ['love'],
+    reacted.reactions.map((r) => r.emoji),
+    ['🦖'],
   );
   open.close();
 

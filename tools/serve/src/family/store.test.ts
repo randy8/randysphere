@@ -7,7 +7,7 @@ import { before, test } from 'node:test';
 import { DatabaseSync } from 'node:sqlite';
 
 import { migrate, openDatabase, SCHEMA_VERSION } from './db.ts';
-import { FamilyError, FamilyStore, SESSION_DAYS } from './store.ts';
+import { FamilyError, FamilyStore, isEmoji, SESSION_DAYS } from './store.ts';
 import type { User } from './store.ts';
 
 const path = join(mkdtempSync(join(tmpdir(), 'family-store-')), 'chat.db');
@@ -194,7 +194,7 @@ test('a photo can only be sent by the person who uploaded it', () => {
   });
   assert.deepEqual(message.image, { id: imageId, width: 4, height: 3 });
   const removed = store.deleteMessage(mom, message.id);
-  assert.equal(removed.imageId, imageId);
+  assert.deepEqual(removed.imageIds, [imageId]);
   assert.equal(store.getImage(imageId), null);
 });
 
@@ -354,7 +354,7 @@ test('an edit is no new message: unread counts and read positions ignore it', ()
   store.markRead(mom.id, store.currentRev());
   const before = store.unreadCount(mom.id);
   store.editMessage(dad, message.id, 'hello', t0 + 1);
-  store.react(randy, message.id, 'love');
+  store.react(randy, message.id, '❤️', true);
   assert.equal(store.unreadCount(mom.id), before);
   assert.ok(store.receipts(message.id)?.read.some((r) => r.userId === mom.id));
 });
@@ -368,7 +368,7 @@ test('undo send: author only, within 2 minutes; nothing of it stays but the fact
     now: t0,
   });
   store.editMessage(dad, message.id, 'oops!', t0 + 10);
-  store.react(mom, message.id, 'laugh');
+  store.react(mom, message.id, '😂', true);
   assert.throws(() => store.unsendMessage(randy, message.id, t0 + 100), /author/);
   assert.throws(() => store.unsendMessage(dad, message.id, t0 + 2 * 60 * 1000 + 1), /2 minutes/);
 
@@ -388,7 +388,7 @@ test('undo send: author only, within 2 minutes; nothing of it stays but the fact
   assert.ok(store.history(null, 500).messages.some((m) => m.id === message.id && m.unsent));
   assert.ok(!store.search('oops', 10).messages.some((m) => m.id === message.id));
   assert.throws(() => store.unsendMessage(dad, message.id, t0 + 200), /No such/);
-  assert.throws(() => store.react(mom, message.id, 'like'), /No such/);
+  assert.throws(() => store.react(mom, message.id, '👍', true), /No such/);
 });
 
 test('undo send takes a photo with it', () => {
@@ -405,25 +405,86 @@ test('undo send takes a photo with it', () => {
     body: '',
     imageId,
   });
-  const { imageId: removed } = store.unsendMessage(dad, message.id);
-  assert.equal(removed, imageId);
+  const { imageIds: removed } = store.unsendMessage(dad, message.id);
+  assert.deepEqual(removed, [imageId]);
   assert.equal(store.getImage(imageId), null);
   assert.equal(store.requireMessage(message.id).image, null);
 });
 
-test('tapbacks: one per person, changed or taken back', () => {
+test('reactions: any emoji, several each, taken back one by one', () => {
   const { message } = store.postMessage({ userId: dad.id, clientId: 'tapback-01', body: 'yo' });
-  assert.equal(store.react(mom, message.id, 'love', 1).changed, true);
-  assert.equal(store.react(mom, message.id, 'love', 2).changed, false);
-  store.react(randy, message.id, 'like', 3);
-  // A changed Tapback is a new one: it goes to the end.
-  assert.deepEqual(store.react(mom, message.id, 'laugh', 4).message.reactions, [
-    { userId: randy.id, kind: 'like' },
-    { userId: mom.id, kind: 'laugh' },
+  assert.equal(store.react(mom, message.id, '❤️', true, 1).changed, true);
+  assert.equal(store.react(mom, message.id, '❤️', true, 2).changed, false);
+  store.react(randy, message.id, '🦖', true, 3);
+  store.react(mom, message.id, '👍🏽', true, 4);
+  store.react(mom, message.id, '🏳️‍🌈', true, 5);
+  assert.deepEqual(
+    store.requireMessage(message.id).reactions.map((r) => r.emoji),
+    ['❤️', '🦖', '👍🏽', '🏳️‍🌈'],
+  );
+  assert.deepEqual(store.react(mom, message.id, '❤️', false).message.reactions, [
+    { userId: randy.id, emoji: '🦖' },
+    { userId: mom.id, emoji: '👍🏽' },
+    { userId: mom.id, emoji: '🏳️‍🌈' },
   ]);
-  assert.deepEqual(store.react(mom, message.id, null).message.reactions, [
-    { userId: randy.id, kind: 'like' },
+  for (const notEmoji of ['', 'a', 'love', '❤️❤️', '<b>', '1', '🦖 ']) {
+    assert.throws(() => store.react(mom, message.id, notEmoji, true), /emoji/, notEmoji);
+  }
+  for (const emoji of ['🇨🇳', '1️⃣', '👨‍👩‍👧', '‼️', '©️']) {
+    assert.equal(isEmoji(emoji), true, emoji);
+  }
+});
+
+test('migration 9 turns each Tapback into its emoji', () => {
+  const db = new DatabaseSync(':memory:');
+  migrate(db, 8);
+  db.exec(`INSERT INTO users (id, username, display_name, password_hash, created_at)
+           VALUES (1, 'a', 'A', 'x', 0), (2, 'b', 'B', 'x', 0)`);
+  db.exec(`INSERT INTO messages (user_id, client_id, body, created_at, rev, sent_rev)
+           VALUES (1, 'c1', 'hi', 0, 1, 1)`);
+  db.exec(`INSERT INTO reactions (message_id, user_id, kind, created_at)
+           VALUES (1, 1, 'emphasize', 0), (1, 2, 'love', 1)`);
+  migrate(db);
+  assert.deepEqual(new FamilyStore(db).requireMessage(1).reactions, [
+    { userId: 1, emoji: '‼️' },
+    { userId: 2, emoji: '❤️' },
   ]);
+});
+
+test('genmoji and stickers: own uploads, in place in the text, gone with the message', () => {
+  const image = (): string =>
+    store.addImage({ userId: dad.id, mime: 'image/png', bytes: 1, width: 160, height: 160 });
+  const [a, b] = [image(), image()];
+  assert.throws(
+    () =>
+      store.postMessage({ userId: dad.id, clientId: 'glyph-01', body: 'hi \uFFFC', glyphs: [] }),
+    /don’t match/,
+  );
+  assert.throws(
+    () => store.postMessage({ userId: mom.id, clientId: 'glyph-02', body: '\uFFFC', glyphs: [a] }),
+    /Unknown image/,
+    'not someone else’s',
+  );
+  const { message } = store.postMessage({
+    userId: dad.id,
+    clientId: 'glyph-03',
+    body: 'happy \uFFFC birthday \uFFFC',
+    glyphs: [a, b],
+  });
+  assert.deepEqual(
+    message.glyphs.map((g) => g.id),
+    [a, b],
+  );
+  assert.throws(
+    () => store.postMessage({ userId: dad.id, clientId: 'glyph-04', body: '\uFFFC', glyphs: [a] }),
+    /Unknown image/,
+    'each once',
+  );
+  assert.throws(() => store.editMessage(dad, message.id, 'happy birthday'), /stickers/);
+  assert.equal(store.takeOrphanImages(Date.now() + 1).includes(a), false, 'in use, kept');
+  const { imageIds } = store.deleteMessage(dad, message.id);
+  assert.deepEqual(imageIds.sort(), [a, b].sort());
+  assert.equal(store.getImage(a), null);
 });
 
 test('migration 7 keeps every message, with the rev it was sent at', () => {
@@ -443,7 +504,7 @@ test('migration 7 keeps every message, with the rev it was sent at', () => {
   db.exec(`INSERT INTO messages (user_id, client_id, body, created_at, rev)
            VALUES (1, 'c2', 'overlap', 0, 8)`);
   assert.equal(old.history(null, 10).messages[1]?.sentRev, 8);
-  assert.equal(SCHEMA_VERSION, 8);
+  assert.equal(SCHEMA_VERSION, 10);
 });
 
 test('the hot queries use indexes, never a scan of every message', () => {

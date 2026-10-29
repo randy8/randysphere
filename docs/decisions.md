@@ -3720,3 +3720,33 @@ cache anyway and pages only reference versioned assets, so it's noted, not
 fixed. SSE writes don't check backpressure; a dead connection is found by
 the 20 s heartbeat long before its buffer could matter at a family's
 volume.
+
+## 2026-10-29 — Chats: any emoji as a reaction; Genmoji and stickers; who has read it
+
+**Decision:** Reactions are Discord's model, at the owner's request: any
+single emoji (checked as one grapheme of emoji on both sides), several per
+person, shown as chips with counts under the message — tap to add or take
+back yours, hold (or hover) to see who. The six Tapbacks stay as the quick
+row in the long-press bar, with a face for a picker (a curated grid, recent
+ones, and a field that takes anything the keyboard's emoji key types).
+Migration 9 re-keys `reactions` by emoji but keeps the column named `kind`,
+so the previous server keeps reading it during a deploy's overlap.
+
+Genmoji and stickers: Safari offers them only in a rich text field, so the
+composer is now a contenteditable box over the form's textarea (kept for
+no-JS). Whatever image it inserts is drawn to a PNG of at most 320px,
+uploaded as the sender's own image, and placed in the text at a U+FFFC
+(`message_glyphs`, in order). A message of glyphs alone shows large without
+a bubble, as iMessage shows stickers. Such messages can't be edited (the
+edit field is plain text). Pasted photos still go as photos; pasted text
+arrives plain. Small uploads (≤ 512 KB) have their own, roomier limit.
+
+The read line moved to your most recent message wherever it is (it had
+vanished as soon as anyone replied) and names readers with a count —
+"Read by Harrison · 1 of 2", "Read by All"; one-to-one it stays "Read".
+Tapping it opens Info.
+
+**Rejected:** Sending a Genmoji's own adaptive-glyph format (only Apple
+platforms render it; the PNG beside it renders everywhere). Bundling a
+full emoji database for the picker (the keyboard already has every emoji;
+the field takes them).

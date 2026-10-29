@@ -3,6 +3,7 @@
 // this replaces them with the live conversation.
 
 import { notificationSettings, registerWorker, syncSubscription } from './notifications.js';
+import { CATEGORIES, isEmoji, QUICK, recent, remember } from './emoji.js';
 import { group, openSheet, row } from './sheet.js';
 
 const boot = JSON.parse(document.getElementById('family-boot')?.textContent ?? '{}');
@@ -19,8 +20,9 @@ const T = zh
       yesterday: '昨天',
       delivered: '已送达',
       read: '已读',
-      readBy: (names) => `${names.join('、')} 已读`,
-      readByCount: (n) => `${n} 人已读`,
+      readOf: (names, n, total) => `${names.join('、')} 已读 · ${n}/${total}`,
+      more: (k) => `+${k}`,
+      readByAll: '全部已读',
       info: '信息',
       readHeading: '已读',
       notYet: '已送达，未读',
@@ -57,13 +59,18 @@ const T = zh
       couldntEdit: '无法编辑这条信息。',
       couldntUnsend: '无法撤回这条信息。',
       reactions: '回应',
-      tapback: {
-        love: '喜欢',
-        like: '赞',
-        dislike: '踩',
-        laugh: '哈哈',
-        emphasize: '强调',
-        question: '疑问',
+      addReaction: '添加回应',
+      anyEmoji: '输入任意表情',
+      recentEmoji: '最近使用',
+      sticker: '贴纸',
+      categories: {
+        smileys: '表情',
+        people: '人物',
+        hearts: '爱心与庆祝',
+        animals: '动物与自然',
+        food: '食物',
+        activities: '活动与物品',
+        symbols: '符号',
       },
     }
   : {
@@ -71,8 +78,10 @@ const T = zh
       yesterday: 'Yesterday',
       delivered: 'Delivered',
       read: 'Read',
-      readBy: (names) => `Read by ${names.length === 2 ? names.join(' and ') : names.join(', ')}`,
-      readByCount: (n) => `Read by ${n}`,
+      readOf: (names, n, total) =>
+        `Read by ${names.length === 2 ? names.join(' and ') : names.join(', ')} · ${n} of ${total}`,
+      more: (k) => `+${k}`,
+      readByAll: 'Read by All',
       info: 'Info',
       readHeading: 'Read By',
       notYet: 'Delivered To',
@@ -109,26 +118,23 @@ const T = zh
       couldntEdit: 'Couldn’t edit this message.',
       couldntUnsend: 'Couldn’t unsend this message.',
       reactions: 'Reactions',
-      tapback: {
-        love: 'Love',
-        like: 'Like',
-        dislike: 'Dislike',
-        laugh: 'Ha Ha',
-        emphasize: 'Emphasize',
-        question: 'Question',
+      addReaction: 'Add Reaction',
+      anyEmoji: 'Type any emoji',
+      recentEmoji: 'Recently Used',
+      sticker: 'Sticker',
+      categories: {
+        smileys: 'Smileys',
+        people: 'People',
+        hearts: 'Hearts & Celebration',
+        animals: 'Animals & Nature',
+        food: 'Food & Drink',
+        activities: 'Activities & Objects',
+        symbols: 'Symbols & Flags',
       },
     };
 
-/** The six Tapbacks, in iMessage's order (store.ts REACTIONS). */
-const TAPBACKS = [
-  ['love', '❤️'],
-  ['like', '👍'],
-  ['dislike', '👎'],
-  ['laugh', '😂'],
-  ['emphasize', '‼️'],
-  ['question', '❓'],
-];
-const TAPBACK_GLYPH = new Map(TAPBACKS);
+/** Where a Genmoji or sticker sits in a message's text (store.ts GLYPH). */
+const GLYPH = '\uFFFC';
 
 // iMessage's limits, as the server keeps them (store.ts).
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
@@ -312,7 +318,9 @@ const EMOJI_ONLY =
 function excerpt(message) {
   if (!message) return T.original;
   if (message.unsent) return T.unsentQuote;
-  if (message.body) return message.body.replace(/\s+/g, ' ').slice(0, 120);
+  const text = message.body.replaceAll(GLYPH, ' ').replace(/\s+/g, ' ').trim();
+  if (text) return text.slice(0, 120);
+  if (message.glyphs?.length) return T.sticker;
   return message.image ? T.photo : T.original;
 }
 
@@ -328,8 +336,32 @@ function fillQuote(quote, id) {
   quote.replaceChildren(text);
 }
 
-function textBubble(body) {
+/** A Genmoji or sticker, from the server or (unsent) from this device. */
+function glyphImage(glyph, large) {
+  const img = el('img', 'glyph');
+  img.src = glyph.previewUrl ?? `${BASE}/images/${glyph.id}`;
+  img.alt = T.sticker;
+  img.decoding = 'async';
+  if (!large) img.setAttribute('aria-hidden', 'true');
+  return img;
+}
+
+/**
+ * A message's text, with its Genmoji and stickers in their places. Only
+ * stickers (no words): large, without a bubble, as iMessage shows them.
+ */
+function textBubble(body, glyphs = []) {
   const bubble = el('div', 'bubble');
+  if (glyphs.length > 0) {
+    const parts = body.split(GLYPH);
+    const alone = parts.every((part) => part.trim() === '');
+    if (alone) bubble.classList.add('sticker', glyphs.length === 1 ? 'one' : 'few');
+    parts.forEach((part, n) => {
+      if (n > 0 && glyphs[n - 1]) bubble.append(glyphImage(glyphs[n - 1], alone));
+      if (!alone) bubble.append(linkify(part));
+    });
+    return bubble;
+  }
   if (EMOJI_ONLY.test(body.trim())) {
     bubble.classList.add('jumbo');
     bubble.textContent = body.trim();
@@ -340,30 +372,33 @@ function textBubble(body) {
 }
 
 /**
- * The Tapbacks on a message, at its bubble's top corner as in iMessage:
- * one badge per kind, yours in blue. Tapping them says who.
+ * Reactions under a message, as on Discord: one chip per emoji with how
+ * many chose it, yours tinted. Tapping a chip adds or takes back yours;
+ * holding it (or hovering, with a mouse) says who.
  */
-function setTapbacks(li, item, pop = null) {
-  li.querySelector('.tapbacks')?.remove();
+function setReactions(li, item, pop = null) {
+  li.querySelector('.reactions')?.remove();
   const reactions = item.reactions ?? [];
-  li.classList.toggle('has-tapbacks', reactions.length > 0);
   if (reactions.length === 0) return;
-  const anchor = li.querySelector('.bubble:not(.past)');
-  if (!anchor) return;
-  const holder = el('button', 'tapbacks');
-  holder.type = 'button';
-  const kinds = [...new Set(reactions.map((r) => r.kind))].slice(-3);
-  for (const kind of kinds) {
-    const mine = reactions.some((r) => r.kind === kind && r.userId === me.id);
-    const badge = el('span', `tapback${mine ? ' mine' : ''}`, TAPBACK_GLYPH.get(kind) ?? '');
-    if (kind === pop && !reducedMotion.matches) badge.classList.add('pop');
-    holder.append(badge);
+  const holder = el('div', 'reactions');
+  const byEmoji = new Map();
+  for (const r of reactions) byEmoji.set(r.emoji, [...(byEmoji.get(r.emoji) ?? []), r.userId]);
+  for (const [emoji, people] of byEmoji) {
+    const mine = people.includes(me.id);
+    const chip = el('button', `chip${mine ? ' mine' : ''}`);
+    chip.type = 'button';
+    chip.dataset.emoji = emoji;
+    chip.append(el('span', 'chip-emoji', emoji), el('span', 'chip-count', String(people.length)));
+    const names = people.map(nameOf).join(', ');
+    chip.title = names;
+    chip.setAttribute('aria-label', `${emoji} ${names}`);
+    chip.setAttribute('aria-pressed', String(mine));
+    if (emoji === pop && !reducedMotion.matches) chip.classList.add('pop');
+    holder.append(chip);
   }
-  holder.setAttribute(
-    'aria-label',
-    reactions.map((r) => `${nameOf(r.userId)}: ${T.tapback[r.kind] ?? ''}`).join(', '),
-  );
-  anchor.append(holder);
+  const anchor =
+    li.querySelector('.edited-label') ?? [...li.querySelectorAll('.bubble:not(.past)')].at(-1);
+  anchor?.after(holder);
 }
 
 /** "Edited" under an edited message; tapped, its earlier versions above it. */
@@ -436,9 +471,9 @@ function messageNode(item) {
     li.append(bubble);
   }
 
-  if (item.body) li.append(textBubble(item.body));
+  if (item.body) li.append(textBubble(item.body, item.glyphs));
   setEdited(li, item);
-  setTapbacks(li, item);
+  setReactions(li, item);
 
   const time = el('span', 'msg-time', timeFormat.format(item.createdAt));
   time.setAttribute('aria-hidden', 'true');
@@ -472,6 +507,7 @@ function sequence() {
  */
 function render({ animate = new Set() } = {}) {
   const items = sequence();
+  receiptKey = items.findLast((i) => i.userId === me.id && i.key.startsWith('m') && !i.unsent)?.key;
   const wanted = [];
   let previous = null;
   items.forEach((item, index) => {
@@ -518,7 +554,7 @@ function render({ animate = new Set() } = {}) {
     node.dataset.key = item.key;
     const author = node.querySelector('.msg-author');
     if (author) author.hidden = !(runStart && item.userId !== me.id);
-    setFootnote(node, item, !next);
+    setFootnote(node, item, item.key === receiptKey);
     wanted.push(node);
     previous = item;
   });
@@ -555,7 +591,7 @@ function render({ animate = new Set() } = {}) {
   else if (all.length > 0) all[all.length - 1].tabIndex = 0;
 }
 
-/** "Delivered" under your newest message while it's the last word; the failure note when it didn't go. */
+/** The read line under your most recent message, wherever it is; the failure note when one didn't go. */
 function setFootnote(node, item, isLast) {
   node.querySelector('.receipt')?.remove();
   node.querySelector('.failed-note')?.remove();
@@ -566,7 +602,10 @@ function setFootnote(node, item, isLast) {
     node.append(note);
   } else if (isLast && item.userId === me.id && item.key.startsWith('m') && !item.unsent) {
     const text = receiptText(item);
-    const receipt = el('div', 'receipt', text);
+    // Tapped: Info, who read it and when.
+    const receipt = el('button', 'receipt', text);
+    receipt.type = 'button';
+    receipt.dataset.info = String(item.id);
     // "Delivered" turning into "Read by…" fades across; the line never moves.
     if (lastReceipt.key === item.key && lastReceipt.text !== text) receipt.classList.add('changed');
     lastReceipt = { key: item.key, text };
@@ -575,6 +614,8 @@ function setFootnote(node, item, isLast) {
 }
 
 let lastReceipt = { key: '', text: '' };
+/** Your most recent message: the one that carries the read line. */
+let receiptKey;
 
 /** The others in the conversation who have read `item`: their read mark has passed it. */
 function readersOf(item) {
@@ -587,23 +628,28 @@ function readersOf(item) {
   );
 }
 
-/** iMessage's line under your newest message: Delivered, then who has read it. */
+/**
+ * The line under your most recent message: Delivered, then who has read
+ * it and how many of the others that is — "Read by Harrison · 1 of 2",
+ * "Read by All". With one other person it's iMessage's plain "Read".
+ * Tapping it opens Info: who, and when.
+ */
 function receiptText(item) {
   const others = [...members.values()].filter((member) => member.id !== me.id && member.active);
   const readers = readersOf(item);
   if (readers.length === 0) return T.delivered;
-  if (readers.length === others.length) return T.read;
-  if (readers.length > 3) return T.readByCount(readers.length);
-  return T.readBy(readers.map((member) => member.name));
+  if (others.length === 1) return T.read;
+  if (readers.length >= others.length) return T.readByAll;
+  const names = readers.slice(0, 2).map((member) => member.name);
+  if (readers.length > 2) names.push(T.more(readers.length - 2));
+  return T.readOf(names, readers.length, others.length);
 }
 
 /** Someone read further: only the receipt line changes, in place. */
 function refreshReceipt() {
-  const node = [...list.querySelectorAll('.msg:not(.typing)')].at(-1);
+  const node = receiptKey && nodes.get(receiptKey);
   const item = node && itemFor(node);
-  if (item && item.userId === me.id && node.dataset.key.startsWith('m')) {
-    setFootnote(node, { ...item, key: node.dataset.key }, true);
-  }
+  if (item) setFootnote(node, { ...item, key: receiptKey }, true);
 }
 
 // ---- scrolling --------------------------------------------------------
@@ -824,9 +870,9 @@ function applyUpdate(message) {
     }
     setEdited(node, item);
     const added = (message.reactions ?? []).find(
-      (r) => !(old.reactions ?? []).some((o) => o.userId === r.userId && o.kind === r.kind),
+      (r) => !(old.reactions ?? []).some((o) => o.userId === r.userId && o.emoji === r.emoji),
     );
-    setTapbacks(node, item, added?.kind ?? null);
+    setReactions(node, item, added?.emoji ?? null);
     render();
   });
 }
@@ -1038,7 +1084,7 @@ window.addEventListener('pageshow', (event) => {
 function saveOutbox() {
   try {
     const text = [...pending.values()]
-      .filter((p) => !p.file)
+      .filter((p) => !p.file && !p.glyphs)
       .map(({ clientId, body, replyTo, createdAt }) => ({ clientId, body, replyTo, createdAt }));
     localStorage.setItem(OUTBOX_KEY, JSON.stringify(text));
   } catch {
@@ -1074,9 +1120,29 @@ async function deliver(p) {
         throw Object.assign(new Error('upload'), { status: response.status, response });
       p.imageId = (await response.json()).imageId;
     }
+    if (p.glyphs && !p.glyphIds) {
+      const ids = [];
+      for (const glyph of p.glyphs) {
+        const response = await api(`${BASE}/api/images?w=${glyph.width}&h=${glyph.height}`, {
+          method: 'POST',
+          body: glyph.file,
+          headers: { 'content-type': 'image/png' },
+        });
+        if (!response.ok)
+          throw Object.assign(new Error('upload'), { status: response.status, response });
+        ids.push((await response.json()).imageId);
+      }
+      p.glyphIds = ids;
+    }
     const response = await api(`${BASE}/api/messages`, {
       method: 'POST',
-      json: { clientId: p.clientId, body: p.body, imageId: p.imageId ?? null, replyTo: p.replyTo },
+      json: {
+        clientId: p.clientId,
+        body: p.body,
+        imageId: p.imageId ?? null,
+        glyphs: p.glyphIds ?? [],
+        replyTo: p.replyTo,
+      },
     });
     if (!response.ok) throw Object.assign(new Error('send'), { status: response.status, response });
     const { message } = await response.json();
@@ -1121,12 +1187,103 @@ function queue(p) {
   if (entry.state !== 'failed') deliver(entry);
 }
 
-function sendText() {
-  const body = input.value.replace(/\s+$/, '');
-  if (body.trim() === '') return;
-  input.value = '';
+// The composer is a rich text box over the form's plain textarea (which
+// stays for a page without JavaScript): Safari offers Genmoji and stickers
+// only where an image can go, and puts them into the text as images.
+const editor = el('div', 'editor');
+editor.contentEditable = 'true';
+editor.setAttribute('role', 'textbox');
+editor.setAttribute('aria-multiline', 'true');
+editor.setAttribute('aria-label', input.getAttribute('aria-label') ?? '');
+editor.dataset.placeholder = input.placeholder;
+for (const name of ['autocapitalize', 'autocorrect', 'spellcheck']) {
+  const value = input.getAttribute(name);
+  if (value !== null) editor.setAttribute(name, value);
+}
+editor.enterKeyHint = finePointer ? 'send' : 'enter';
+input.hidden = true;
+input.after(editor);
+
+/** What's in the composer: its text, with GLYPH where each image (Genmoji, sticker) is. */
+function readEditor() {
+  let text = '';
+  const images = [];
+  const walk = (node) => {
+    for (const child of node.childNodes) {
+      if (child.nodeName === '#text') text += child.data;
+      else if (child.nodeName === 'BR') text += '\n';
+      else if (child.nodeName === 'IMG') {
+        text += GLYPH;
+        images.push(child);
+      } else if (child.nodeType === 1 && child.nodeName !== 'SOURCE') {
+        if (/^(DIV|P|LI)$/.test(child.nodeName) && text !== '' && !text.endsWith('\n')) {
+          text += '\n';
+        }
+        walk(child);
+      }
+    }
+  };
+  walk(editor);
+  return { text: text.replace(/\u00A0/g, ' ').replace(/\s+$/, ''), images };
+}
+
+/**
+ * Keeps the composer plain: text, line breaks and images only. Whatever
+ * else a paste or the keyboard brings (bold, links, colours) is unwrapped
+ * to its text.
+ */
+const KEEP = new Set(['DIV', 'P', 'BR', 'IMG', 'PICTURE', 'SOURCE']);
+function tidyEditor() {
+  for (const node of editor.querySelectorAll('*')) {
+    if (!KEEP.has(node.nodeName)) node.replaceWith(...node.childNodes);
+    else if (node.nodeName !== 'IMG' && node.nodeName !== 'SOURCE') node.removeAttribute('style');
+  }
+}
+
+/**
+ * A Genmoji or sticker as a small transparent PNG for sending: drawn from
+ * the image the browser shows (Safari's adaptive glyph has a PNG beside it
+ * for exactly this), at most 320px.
+ */
+async function glyphFile(img) {
+  try {
+    await img.decode();
+    const scale = Math.min(1, 320 / Math.max(img.naturalWidth, img.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    return blob ? { file: blob, width: canvas.width, height: canvas.height } : null;
+  } catch {
+    return null;
+  }
+}
+
+async function sendText() {
+  const { text, images } = readEditor();
+  if (text.trim() === '') return;
+  // Taken out of the composer at once; the images are drawn from these copies.
+  const copies = images.map((img) => img.cloneNode());
+  editor.replaceChildren();
   autosize();
-  queue({ body });
+  if (copies.length === 0) {
+    queue({ body: text });
+    return;
+  }
+  const glyphs = [];
+  let body = '';
+  const parts = text.split(GLYPH);
+  for (let n = 0; n < parts.length; n += 1) {
+    body += parts[n];
+    if (n === parts.length - 1) break;
+    const glyph = await glyphFile(copies[n]);
+    if (!glyph) continue; // Couldn't be read: left out, the words still go.
+    glyphs.push({ ...glyph, previewUrl: URL.createObjectURL(glyph.file) });
+    body += GLYPH;
+  }
+  if (body.trim() === '') return;
+  queue(glyphs.length > 0 ? { body, glyphs } : { body });
 }
 
 composer.addEventListener('submit', (event) => {
@@ -1137,8 +1294,7 @@ composer.addEventListener('submit', (event) => {
 // Keep the keyboard up: pressing Send mustn't take focus from the field.
 sendButton.addEventListener('mousedown', (event) => event.preventDefault());
 
-input.enterKeyHint = finePointer ? 'send' : 'enter';
-input.addEventListener('keydown', (event) => {
+editor.addEventListener('keydown', (event) => {
   // isComposing / 229: Enter is confirming a pinyin candidate, not sending.
   if (event.isComposing || event.keyCode === 229) return;
   if (event.key === 'Enter' && !event.shiftKey && finePointer) {
@@ -1149,33 +1305,47 @@ input.addEventListener('keydown', (event) => {
   }
 });
 
-let minHeight = 0;
-function autosize() {
-  if (minHeight === 0) minHeight = parseFloat(getComputedStyle(input).height) || 34;
-  // Empty: the stylesheet's own height, exactly — never a measurement, which
-  // iOS can make of the placeholder slightly short.
-  if (input.value === '') {
-    input.style.height = '';
-    sendButton.disabled = true;
+// Pasted photos are photos (sent as they are now); pasted text arrives
+// plain. A pasted Genmoji is let in as one.
+editor.addEventListener('paste', (event) => {
+  const data = event.clipboardData;
+  if (!data) return;
+  if (/x-apple-adaptive-glyph/.test(data.getData('text/html'))) return;
+  event.preventDefault();
+  const files = [...data.files].filter((file) => file.type.startsWith('image/'));
+  if (files.length > 0) {
+    sendPhotos(files);
     return;
   }
-  const previous = input.style.height;
-  input.style.transition = 'none';
-  input.style.height = '0px';
-  const target = Math.max(minHeight, Math.min(input.scrollHeight, 140));
-  input.style.height = previous || `${minHeight}px`;
-  void input.offsetHeight;
-  input.style.transition = '';
-  input.style.height = `${target}px`;
-  sendButton.disabled = input.value.trim() === '';
+  const text = data.getData('text/plain');
+  if (text) document.execCommand('insertText', false, text);
+});
+editor.addEventListener('drop', (event) => {
+  const files = [...(event.dataTransfer?.files ?? [])].filter((f) => f.type.startsWith('image/'));
+  if (files.length === 0) return;
+  event.preventDefault();
+  sendPhotos(files);
+});
+
+/** The send button, and the placeholder: shown while there's nothing in the composer. */
+function autosize() {
+  const { text } = readEditor();
+  const empty = text.trim() === '';
+  editor.classList.toggle('is-empty', empty && editor.querySelector('img') === null);
+  // A box emptied by deleting can keep a stray <br>; empty is empty.
+  if (empty && editor.querySelector('img') === null && editor.childNodes.length > 0) {
+    editor.replaceChildren();
+  }
+  sendButton.disabled = empty;
 }
 
-input.addEventListener('input', () => {
+editor.addEventListener('input', () => {
   const wasAtBottom = stick;
+  tidyEditor();
   autosize();
   if (wasAtBottom) scrollToBottom(false);
   const now = Date.now();
-  if (input.value.trim() !== '' && now - lastTypingSent > 2500) {
+  if (!editor.classList.contains('is-empty') && now - lastTypingSent > 2500) {
     lastTypingSent = now;
     api(`${BASE}/api/typing`, { method: 'POST' }).catch(() => {});
   }
@@ -1204,9 +1374,13 @@ async function preparePhoto(file) {
   return blob ? { file: blob, width: canvas.width, height: canvas.height } : null;
 }
 
-fileInput.addEventListener('change', async () => {
+fileInput.addEventListener('change', () => {
   const files = [...fileInput.files];
   fileInput.value = '';
+  sendPhotos(files);
+});
+
+async function sendPhotos(files) {
   for (const original of files) {
     const photo = await preparePhoto(original);
     if (!photo) {
@@ -1219,7 +1393,7 @@ fileInput.addEventListener('change', async () => {
     }
     queue({ body: '', ...photo, previewUrl: URL.createObjectURL(photo.file) });
   }
-});
+}
 
 list.addEventListener('click', (event) => {
   const retry = event.target.closest('[data-retry]');
@@ -1235,6 +1409,12 @@ list.addEventListener('click', (event) => {
     }
     return;
   }
+  const info = event.target.closest('.receipt[data-info]');
+  if (info) {
+    const item = messages.get(Number(info.dataset.info));
+    if (item) openInfo(item);
+    return;
+  }
   const toggleEdits = event.target.closest('[data-toggle-edits]');
   if (toggleEdits) {
     const id = Number(toggleEdits.dataset.toggleEdits);
@@ -1245,11 +1425,15 @@ list.addEventListener('click', (event) => {
     if (node && item) keepPlace(() => setEdited(node, { ...item, key: `m${id}` }));
     return;
   }
-  const tapbacks = event.target.closest('.tapbacks');
-  if (tapbacks) {
-    const node = tapbacks.closest('.msg');
+  const chip = event.target.closest('.chip');
+  if (chip) {
+    if (suppressClick) return;
+    const node = chip.closest('.msg');
     const item = node && itemFor(node);
-    if (item) openTapbacks(item);
+    if (item) {
+      haptic();
+      react(item.id, chip.dataset.emoji, !chip.classList.contains('mine'));
+    }
     return;
   }
   const quote = event.target.closest('.quote');
@@ -1278,7 +1462,7 @@ function setReply(id) {
   if (id !== null) {
     const message = messages.get(id);
     replyText.textContent = `${T.replyingTo(nameOf(message?.userId))}: ${excerpt(message)}`;
-    input.focus();
+    editor.focus();
   }
 }
 
@@ -1356,7 +1540,8 @@ function openMenu(node) {
       setReply(item.id);
     });
   }
-  if (own && item.body && age < EDIT_WINDOW_MS && (item.edits ?? []).length < MAX_EDITS) {
+  const editable = item.body && !(item.glyphs ?? []).length;
+  if (own && editable && age < EDIT_WINDOW_MS && (item.edits ?? []).length < MAX_EDITS) {
     add(T.edit, svg('M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4'), () => {
       closeMenu(true);
       startEdit(item.id);
@@ -1376,7 +1561,7 @@ function openMenu(node) {
   }
   if (item.body) {
     add(T.copy, svg('M9 9h10v11H9zM5 15V4h10'), () => {
-      navigator.clipboard?.writeText(item.body).catch(() => {});
+      navigator.clipboard?.writeText(item.body.replaceAll(GLYPH, '')).catch(() => {});
       closeMenu();
     });
   }
@@ -1414,26 +1599,40 @@ function openMenu(node) {
   }
   layer.append(menu);
 
-  // The Tapback bar, above the lifted message (below it if there's no room).
+  // The reaction bar, above the lifted message: iMessage's six, then a
+  // face for any emoji at all.
   let tapbar = null;
-  if (stored) {
-    const current = (item.reactions ?? []).find((r) => r.userId === me.id)?.kind ?? null;
+  if (stored && !item.unsent) {
+    const mine = new Set(
+      (item.reactions ?? []).filter((r) => r.userId === me.id).map((r) => r.emoji),
+    );
     tapbar = el('div', 'tapback-bar');
     tapbar.setAttribute('role', 'group');
     tapbar.setAttribute('aria-label', T.reactions);
-    for (const [kind, glyph] of TAPBACKS) {
-      const button = el('button', kind === current ? 'chosen' : '', glyph);
+    for (const emoji of QUICK) {
+      const chosen = mine.has(emoji);
+      const button = el('button', chosen ? 'chosen' : '', emoji);
       button.type = 'button';
-      button.setAttribute('aria-label', T.tapback[kind]);
-      button.setAttribute('aria-pressed', String(kind === current));
+      button.setAttribute('aria-pressed', String(chosen));
       button.addEventListener('click', (event) => {
         event.stopPropagation();
         haptic();
         closeMenu();
-        react(item.id, kind === current ? null : kind);
+        react(item.id, emoji, !chosen);
       });
       tapbar.append(button);
     }
+    const more = el('button', 'more');
+    more.type = 'button';
+    more.setAttribute('aria-label', T.addReaction);
+    more.innerHTML =
+      '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    more.addEventListener('click', (event) => {
+      event.stopPropagation();
+      closeMenu(true);
+      openEmojiPicker(item.id);
+    });
+    tapbar.append(more);
     layer.append(tapbar);
   }
 
@@ -1536,7 +1735,16 @@ list.addEventListener(
       replying: false,
       moved: false,
     };
-    if (node && event.target.closest('.bubble')) {
+    const chip = event.target.closest('.chip');
+    if (node && chip) {
+      press.timer = setTimeout(() => {
+        if (!press || press.moved) return;
+        suppressClick = true;
+        haptic();
+        const item = itemFor(node);
+        if (item) openReactions(item);
+      }, 420);
+    } else if (node && event.target.closest('.bubble')) {
       press.timer = setTimeout(() => {
         if (!press || press.moved) return;
         suppressClick = true;
@@ -1668,22 +1876,79 @@ async function change(id, request, before, failure) {
   }
 }
 
-function react(id, kind) {
+/** Adds (`on`) or takes back your reaction with `emoji`. */
+function react(id, emoji, on) {
   const before = messages.get(id);
-  if (!before) return;
-  const others = (before.reactions ?? []).filter((r) => r.userId !== me.id);
+  if (!before || !isEmoji(emoji)) return;
+  const reactions = before.reactions ?? [];
+  const had = reactions.some((r) => r.userId === me.id && r.emoji === emoji);
+  if (had === on) return;
+  if (on) remember(emoji);
   // Shown at once; the server's answer (and everyone else's stream) follows.
   applyUpdate({
     ...before,
     rev: before.rev + 1e-6,
-    reactions: kind ? [...others, { userId: me.id, kind }] : others,
+    reactions: on
+      ? [...reactions, { userId: me.id, emoji }]
+      : reactions.filter((r) => !(r.userId === me.id && r.emoji === emoji)),
   });
   change(
     id,
-    () => api(`${BASE}/api/messages/${id}/reaction`, { method: 'POST', json: { kind } }),
+    () => api(`${BASE}/api/messages/${id}/reaction`, { method: 'POST', json: { emoji, on } }),
     before,
     T.couldntEdit,
   );
+}
+
+/**
+ * Any emoji: the keyboard's own (type one into the field — the emoji key
+ * has them all), what this device used lately, and a grid of the usual
+ * ones by category.
+ */
+function openEmojiPicker(id) {
+  let close = () => {};
+  const pick = (emoji) => {
+    haptic();
+    close();
+    const mine = (messages.get(id)?.reactions ?? []).some(
+      (r) => r.userId === me.id && r.emoji === emoji,
+    );
+    react(id, emoji, !mine);
+  };
+  const grid = (parent, title, list) => {
+    if (list.length === 0) return;
+    const section = el('section', 'emoji-section');
+    section.append(el('h3', 'group-title', title));
+    const cells = el('div', 'emoji-grid');
+    for (const emoji of list) {
+      const button = el('button', '', emoji);
+      button.type = 'button';
+      button.addEventListener('click', () => pick(emoji));
+      cells.append(button);
+    }
+    section.append(cells);
+    parent.append(section);
+  };
+  close = openSheet({
+    title: T.addReaction,
+    closeLabel: T.done,
+    build: (body) => {
+      const field = el('input', 'emoji-field');
+      field.type = 'text';
+      field.placeholder = T.anyEmoji;
+      field.setAttribute('aria-label', T.anyEmoji);
+      field.autocomplete = 'off';
+      field.enterKeyHint = 'done';
+      field.addEventListener('input', () => {
+        const typed = [...new Intl.Segmenter().segment(field.value.trim())].map((g) => g.segment);
+        const last = typed.at(-1);
+        if (last && isEmoji(last)) pick(last);
+      });
+      body.append(field);
+      grid(body, T.recentEmoji, recent());
+      for (const [name, list] of CATEGORIES) grid(body, T.categories[name], list);
+    },
+  });
 }
 
 function unsend(id) {
@@ -1810,15 +2075,15 @@ function startEdit(id) {
   node.scrollIntoView({ block: 'nearest', behavior: reducedMotion.matches ? 'auto' : 'smooth' });
 }
 
-/** Who reacted with what: tapping a message's Tapbacks. */
-function openTapbacks(item) {
+/** Who reacted with what: holding a reaction chip. */
+function openReactions(item) {
   openSheet({
     title: T.reactions,
     closeLabel: T.done,
     build: (body) => {
       const { rows } = group(body);
       for (const reaction of item.reactions ?? []) {
-        row(rows, nameOf(reaction.userId), TAPBACK_GLYPH.get(reaction.kind) ?? '');
+        row(rows, nameOf(reaction.userId), reaction.emoji);
       }
     },
   });
@@ -1944,6 +2209,7 @@ navigator.serviceWorker?.addEventListener('message', (event) => {
 attach.hidden = false;
 composer.querySelector('input[name="clientId"]')?.remove();
 input.removeAttribute('required');
+input.removeAttribute('name');
 autosize();
 restoreOutbox();
 

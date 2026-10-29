@@ -37,12 +37,37 @@ export interface Message {
   readonly editedAt: number | null;
   /** Its earlier versions, oldest first: `body` as it read until `at`. */
   readonly edits: readonly { readonly body: string; readonly at: number }[];
-  readonly reactions: readonly { readonly userId: number; readonly kind: Reaction }[];
+  /** Reactions, oldest first: any emoji, several per person (as on Discord). */
+  readonly reactions: readonly { readonly userId: number; readonly emoji: string }[];
+  /** Genmoji and stickers set into the text: each GLYPH in `body` is the next one. */
+  readonly glyphs: readonly {
+    readonly id: string;
+    readonly width: number;
+    readonly height: number;
+  }[];
 }
 
-/** The six Tapbacks: ❤️ 👍 👎 😂 ‼️ ❓. */
-export const REACTIONS = ['love', 'like', 'dislike', 'laugh', 'emphasize', 'question'] as const;
-export type Reaction = (typeof REACTIONS)[number];
+/** Where a Genmoji or sticker sits in a message's text (U+FFFC, the object replacement character). */
+export const GLYPH = '\uFFFC';
+export const MAX_GLYPHS = 20;
+/** Different emoji one person may put on one message, and on a message in all. */
+export const MAX_REACTIONS_EACH = 20;
+export const MAX_REACTIONS_TOTAL = 40;
+
+const GRAPHEMES = new Intl.Segmenter('en', { granularity: 'grapheme' });
+
+/**
+ * One emoji, whatever it is: a pictograph with its skin tone, gender and
+ * ZWJ sequences, a flag, or a keycap — one grapheme, and nothing else.
+ */
+export function isEmoji(text: string): boolean {
+  if (text.length === 0 || text.length > 16) return false;
+  if ([...GRAPHEMES.segment(text)].length !== 1) return false;
+  return (
+    /^(?:\p{Extended_Pictographic}|\p{Regional_Indicator}{2}|[#*0-9]\uFE0F?\u20E3)/u.test(text) &&
+    /^[\p{Extended_Pictographic}\p{Emoji_Component}\p{Emoji_Modifier}]+$/u.test(text)
+  );
+}
 
 /** iMessage's limits: an edit within 15 minutes, at most 5 of them; Undo Send within 2. */
 export const EDIT_WINDOW_MS = 15 * 60 * 1000;
@@ -99,6 +124,7 @@ interface MessageRow {
   unsent_at: number | null;
   edits: string;
   reactions: string;
+  glyphs: string;
 }
 
 const sha256 = (text: string): string => createHash('sha256').update(text).digest('hex');
@@ -141,6 +167,7 @@ function toMessage(row: MessageRow): Message {
     editedAt: gone ? null : row.edited_at,
     edits: gone ? [] : (JSON.parse(row.edits) as Message['edits']),
     reactions: gone ? [] : (JSON.parse(row.reactions) as Message['reactions']),
+    glyphs: gone ? [] : (JSON.parse(row.glyphs) as Message['glyphs']),
   };
 }
 
@@ -152,9 +179,13 @@ const MESSAGE_COLUMNS = `m.id, m.user_id, m.client_id, m.body, m.image_id, i.wid
   m.edited_at, m.unsent_at,
   (SELECT json_group_array(json_object('body', e.body, 'at', e.replaced_at))
      FROM (SELECT body, replaced_at FROM message_edits WHERE message_id = m.id ORDER BY n) e) AS edits,
-  (SELECT json_group_array(json_object('userId', r.user_id, 'kind', r.kind))
+  (SELECT json_group_array(json_object('userId', r.user_id, 'emoji', r.kind))
      FROM (SELECT user_id, kind FROM reactions WHERE message_id = m.id ORDER BY created_at) r)
-     AS reactions`;
+     AS reactions,
+  (SELECT json_group_array(json_object('id', g.image_id, 'width', g.width, 'height', g.height))
+     FROM (SELECT mg.image_id, gi.width, gi.height FROM message_glyphs mg
+           JOIN images gi ON gi.id = mg.image_id WHERE mg.message_id = m.id ORDER BY mg.n) g)
+     AS glyphs`;
 const MESSAGE_FROM = 'messages m LEFT JOIN images i ON i.id = m.image_id';
 
 export function normalizeDisplayName(name: string): string {
@@ -496,6 +527,8 @@ export class FamilyStore {
     clientId: string;
     body: string;
     imageId?: string | null;
+    /** Genmoji and stickers, in the order of the GLYPHs in `body`: the sender's own uploads. */
+    glyphs?: readonly string[];
     replyTo?: number | null;
     now?: number;
   }): { message: Message; created: boolean } {
@@ -508,13 +541,25 @@ export class FamilyStore {
 
     const body = normalizeBody(input.body);
     const imageId = input.imageId ?? null;
+    const glyphs = input.glyphs ?? [];
     if (body.length === 0 && imageId === null) throw new FamilyError('That message is empty.');
-    if (imageId !== null) {
-      const image = this.db.prepare('SELECT user_id FROM images WHERE id = ?').get(imageId) as
+    if (glyphs.length > MAX_GLYPHS) throw new FamilyError('Too many stickers in one message.');
+    if (body.split(GLYPH).length - 1 !== glyphs.length) {
+      throw new FamilyError('That message’s stickers don’t match its text.');
+    }
+    // Only your own uploads, each used once: an image id seen in someone
+    // else's message can't be re-posted as yours.
+    if (new Set(glyphs).size !== glyphs.length) throw new FamilyError('Unknown image.');
+    for (const id of imageId === null ? glyphs : [imageId, ...glyphs]) {
+      const image = this.db.prepare('SELECT user_id FROM images WHERE id = ?').get(id) as
         { user_id: number } | undefined;
-      // Only your own uploads: an image id seen in someone else's message
-      // can't be re-posted as yours.
-      if (!image || image.user_id !== input.userId) throw new FamilyError('Unknown image.');
+      const used = this.db
+        .prepare(
+          `SELECT 1 FROM messages WHERE image_id = ?1
+           UNION ALL SELECT 1 FROM message_glyphs WHERE image_id = ?1`,
+        )
+        .get(id);
+      if (!image || image.user_id !== input.userId || used) throw new FamilyError('Unknown image.');
     }
     let replyTo = input.replyTo ?? null;
     if (replyTo !== null && !this.db.prepare('SELECT 1 FROM messages WHERE id = ?').get(replyTo)) {
@@ -539,7 +584,12 @@ export class FamilyStore {
           rev,
           rev,
         );
-      return Number(result.lastInsertRowid);
+      const id = Number(result.lastInsertRowid);
+      const glyph = this.db.prepare(
+        'INSERT INTO message_glyphs (message_id, n, image_id) VALUES (?, ?, ?)',
+      );
+      glyphs.forEach((imageId, n) => glyph.run(id, n, imageId));
+      return id;
     });
     return { message: this.requireMessage(id), created: true };
   }
@@ -599,18 +649,35 @@ export class FamilyStore {
     ).map(toMessage);
   }
 
-  #tombstone(id: number, now: number): void {
+  #tombstone(id: number, now: number): string[] {
     const rev = this.#nextRev();
     this.db
       .prepare(`UPDATE messages SET deleted_at = ?, body = '', rev = ? WHERE id = ?`)
       .run(now, rev, id);
-    this.#forget(id);
+    return this.#forget(id);
   }
 
-  /** Everything a message said, before it is unsent or deleted: earlier versions, Tapbacks. */
-  #forget(id: number): void {
+  /**
+   * Everything a message said, before it is unsent or deleted: earlier
+   * versions, reactions, its photo and stickers' rows. Returns the images'
+   * ids, whose files the caller removes.
+   */
+  #forget(id: number): string[] {
+    const images = (
+      this.db
+        .prepare(
+          `SELECT image_id AS id FROM messages WHERE id = ?1 AND image_id IS NOT NULL
+           UNION ALL SELECT image_id FROM message_glyphs WHERE message_id = ?1`,
+        )
+        .all(id) as { id: string }[]
+    ).map((row) => row.id);
     this.db.prepare('DELETE FROM message_edits WHERE message_id = ?').run(id);
     this.db.prepare('DELETE FROM reactions WHERE message_id = ?').run(id);
+    this.db.prepare('DELETE FROM message_glyphs WHERE message_id = ?').run(id);
+    this.db.prepare('UPDATE messages SET image_id = NULL WHERE id = ?').run(id);
+    const remove = this.db.prepare('DELETE FROM images WHERE id = ?');
+    for (const image of images) remove.run(image);
+    return images;
   }
 
   /** A change to a message: it takes the next rev, so a reconnect replays it. */
@@ -640,13 +707,16 @@ export class FamilyStore {
   ): { message: Message; changed: boolean } {
     const message = this.#ownLive(actor, id);
     if (message.body === '') throw new FamilyError('Only text can be edited.');
+    if (message.glyphs.length > 0) {
+      throw new FamilyError('A message with stickers or Genmoji can’t be edited.');
+    }
     if (now - message.createdAt > EDIT_WINDOW_MS) {
       throw new FamilyError('Messages can be edited for 15 minutes after sending.');
     }
     if (message.edits.length >= MAX_EDITS) {
       throw new FamilyError('A message can be edited 5 times.');
     }
-    const body = normalizeBody(text);
+    const body = normalizeBody(text.replaceAll(GLYPH, ''));
     if (body === '') throw new FamilyError('That message is empty.');
     if (body === message.body) return { message, changed: false };
     this.transaction(() => {
@@ -672,53 +742,58 @@ export class FamilyStore {
     actor: User,
     id: number,
     now: number = Date.now(),
-  ): { message: Message; imageId: string | null } {
+  ): { message: Message; imageIds: string[] } {
     const message = this.#ownLive(actor, id);
     if (now - message.createdAt > UNSEND_WINDOW_MS) {
       throw new FamilyError('Messages can be unsent for 2 minutes after sending.');
     }
-    const imageId = message.image?.id ?? null;
-    this.transaction(() => {
+    const imageIds = this.transaction(() => {
       this.db
-        .prepare(
-          `UPDATE messages SET unsent_at = ?, body = '', image_id = NULL, edited_at = NULL
-           WHERE id = ?`,
-        )
+        .prepare(`UPDATE messages SET unsent_at = ?, body = '', edited_at = NULL WHERE id = ?`)
         .run(now, id);
-      if (imageId !== null) this.db.prepare('DELETE FROM images WHERE id = ?').run(imageId);
-      this.#forget(id);
+      const removed = this.#forget(id);
       this.#touch(id);
+      return removed;
     });
-    return { message: this.requireMessage(id), imageId };
+    return { message: this.requireMessage(id), imageIds };
   }
 
   /**
-   * Sets `actor`'s Tapback on a message (replacing the one they had), or
-   * removes it (`kind` null). `changed` is false when nothing changed.
+   * Adds `actor`'s reaction with `emoji` to a message (`on`), or takes it
+   * back. Any emoji, several each, as on Discord. `changed` is false when
+   * it was already so.
    */
   react(
     actor: User,
     id: number,
-    kind: Reaction | null,
+    emoji: string,
+    on: boolean,
     now: number = Date.now(),
   ): { message: Message; changed: boolean } {
+    if (!isEmoji(emoji)) throw new FamilyError('That isn’t an emoji.');
     const message = this.getMessage(id);
     if (!message || message.deleted || message.unsent) throw new FamilyError('No such message.');
-    const current = message.reactions.find((r) => r.userId === actor.id)?.kind ?? null;
-    if (current === kind) return { message, changed: false };
+    const mine = message.reactions.filter((r) => r.userId === actor.id);
+    const has = mine.some((r) => r.emoji === emoji);
+    if (has === on) return { message, changed: false };
+    if (on) {
+      if (mine.length >= MAX_REACTIONS_EACH) throw new FamilyError('That’s plenty of reactions.');
+      const kinds = new Set(message.reactions.map((r) => r.emoji));
+      if (!kinds.has(emoji) && kinds.size >= MAX_REACTIONS_TOTAL) {
+        throw new FamilyError('That’s plenty of reactions.');
+      }
+    }
     this.transaction(() => {
-      if (kind === null) {
-        this.db
-          .prepare('DELETE FROM reactions WHERE message_id = ? AND user_id = ?')
-          .run(id, actor.id);
-      } else {
+      if (on) {
         this.db
           .prepare(
-            `INSERT INTO reactions (message_id, user_id, kind, created_at) VALUES (?, ?, ?, ?)
-             ON CONFLICT (message_id, user_id) DO UPDATE SET kind = excluded.kind,
-               created_at = excluded.created_at`,
+            'INSERT INTO reactions (message_id, user_id, kind, created_at) VALUES (?, ?, ?, ?)',
           )
-          .run(id, actor.id, kind, now);
+          .run(id, actor.id, emoji, now);
+      } else {
+        this.db
+          .prepare('DELETE FROM reactions WHERE message_id = ? AND user_id = ? AND kind = ?')
+          .run(id, actor.id, emoji);
       }
       this.#touch(id);
     });
@@ -734,19 +809,14 @@ export class FamilyStore {
     actor: User,
     id: number,
     now: number = Date.now(),
-  ): { message: Message; imageId: string | null } {
+  ): { message: Message; imageIds: string[] } {
     const message = this.getMessage(id);
     if (!message || message.deleted) throw new FamilyError('No such message.');
     if (message.userId !== actor.id && !actor.isAdmin) {
       throw new FamilyError('Only its author can delete that message.');
     }
-    const imageId = message.image?.id ?? null;
-    this.transaction(() => {
-      this.#tombstone(id, now);
-      this.db.prepare('UPDATE messages SET image_id = NULL WHERE id = ?').run(id);
-      if (imageId !== null) this.db.prepare('DELETE FROM images WHERE id = ?').run(imageId);
-    });
-    return { message: this.requireMessage(id), imageId };
+    const imageIds = this.transaction(() => this.#tombstone(id, now));
+    return { message: this.requireMessage(id), imageIds };
   }
 
   /**
@@ -860,7 +930,8 @@ export class FamilyStore {
         this.db
           .prepare(
             `SELECT id FROM images WHERE created_at < ?
-             AND NOT EXISTS (SELECT 1 FROM messages WHERE image_id = images.id)`,
+             AND NOT EXISTS (SELECT 1 FROM messages WHERE image_id = images.id)
+             AND NOT EXISTS (SELECT 1 FROM message_glyphs WHERE image_id = images.id)`,
           )
           .all(before) as { id: string }[]
       ).map((row) => row.id);

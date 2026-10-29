@@ -21,8 +21,8 @@ import { FAMILY } from './chats.ts';
 import type { ChatIdentity } from './chats.ts';
 import { renderAdmin, renderChat, renderLogin, renderPassword, renderSearch } from './pages.ts';
 import type { Assets } from './pages.ts';
-import { FamilyError, FamilyStore, REACTIONS, SESSION_DAYS } from './store.ts';
-import type { Lang, Message, Reaction, User } from './store.ts';
+import { FamilyError, FamilyStore, SESSION_DAYS } from './store.ts';
+import type { Lang, Message, User } from './store.ts';
 import { isPushEndpoint, isPushKeys, loadVapidKeys, sendPush } from './webpush.ts';
 import type { VapidKeys } from './webpush.ts';
 
@@ -76,6 +76,8 @@ const IMAGE_TYPES: readonly (readonly [string, (b: Buffer) => boolean])[] = [
 
 export const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MAX_JSON_BYTES = 32 * 1024;
+/** At or under this, an upload is a Genmoji or sticker's size, and counts against its own limit. */
+const SMALL_UPLOAD_BYTES = 512 * 1024;
 const PAGE_SIZE = 50;
 const REPLAY_LIMIT = 500;
 const SEARCH_LIMIT = 50;
@@ -267,6 +269,8 @@ export class FamilyChat {
   readonly #loginByName = new LoginLimiter();
   readonly #sends = new TokenBucket(30, 1);
   readonly #uploads = new TokenBucket(20, 1 / 30);
+  /** Genmoji and stickers: small, and several to a message. */
+  readonly #smallUploads = new TokenBucket(60, 1 / 2);
   readonly #typing = new TokenBucket(2, 0.5);
   readonly #pushTests = new TokenBucket(3, 1 / 60);
   readonly #notifier: Notifier;
@@ -666,17 +670,15 @@ export class FamilyChat {
       } else if (action === '/unsend' && method === 'POST') {
         const result = this.store.unsendMessage(me, id);
         message = result.message;
-        if (result.imageId !== null) {
-          await rm(join(this.#imagesDir, result.imageId), { force: true });
+        for (const image of result.imageIds) {
+          await rm(join(this.#imagesDir, image), { force: true });
         }
         this.hub.record('message-unsent', me.id, `#${String(id)}`);
       } else if (action === '/reaction' && method === 'POST') {
-        const kind = body['kind'];
-        if (kind !== null && !REACTIONS.includes(kind as Reaction)) {
-          throw new HttpError(400, 'Unknown reaction.');
-        }
-        ({ message, changed } = this.store.react(me, id, kind as Reaction | null));
-        if (changed && kind !== null) void this.#notifier.reacted(message, me, kind as Reaction);
+        const emoji = typeof body['emoji'] === 'string' ? body['emoji'] : '';
+        const on = body['on'] !== false;
+        ({ message, changed } = this.store.react(me, id, emoji, on));
+        if (changed && on) void this.#notifier.reacted(message, me, emoji);
       } else {
         throw new HttpError(405, 'Method not allowed.');
       }
@@ -687,8 +689,8 @@ export class FamilyChat {
 
     const deleteMatch = new RegExp(`^${this.#base}/api/messages/(\\d+)$`).exec(pathname);
     if (deleteMatch && method === 'DELETE') {
-      const { message, imageId } = this.store.deleteMessage(me, Number(deleteMatch[1]));
-      if (imageId !== null) await rm(join(this.#imagesDir, imageId), { force: true });
+      const { message, imageIds } = this.store.deleteMessage(me, Number(deleteMatch[1]));
+      for (const image of imageIds) await rm(join(this.#imagesDir, image), { force: true });
       this.hub.broadcast('delete', { id: message.id, rev: message.rev }, { id: message.rev });
       this.hub.record('message-deleted', me.id, `#${String(message.id)}`);
       sendJson(res, 200, { id: message.id, rev: message.rev });
@@ -813,6 +815,9 @@ export class FamilyChat {
     }
     const text = typeof body['body'] === 'string' ? body['body'] : '';
     const imageId = typeof body['imageId'] === 'string' ? body['imageId'] : null;
+    const glyphs = Array.isArray(body['glyphs'])
+      ? body['glyphs'].filter((id): id is string => typeof id === 'string')
+      : [];
     const replyTo = typeof body['replyTo'] === 'number' ? body['replyTo'] : null;
     // Only what the request says, and never who it's from: the author is `me`.
     const result = this.store.postMessage({
@@ -820,6 +825,7 @@ export class FamilyChat {
       clientId,
       body: text,
       imageId,
+      glyphs,
       replyTo,
     });
     if (result.created) {
@@ -832,7 +838,8 @@ export class FamilyChat {
   }
 
   async #upload(req: IncomingMessage, res: ServerResponse, url: URL, me: User): Promise<void> {
-    if (!this.#uploads.take(String(me.id))) {
+    const small = Number(req.headers['content-length'] ?? Infinity) <= SMALL_UPLOAD_BYTES;
+    if (!(small ? this.#smallUploads : this.#uploads).take(String(me.id))) {
       this.hub.record('upload-rate-limited', me.id);
       throw new HttpError(429, 'Too many photos at once. Wait a minute.');
     }

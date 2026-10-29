@@ -413,8 +413,8 @@ body.family-chat {
 
 /* The tail: two pseudo-elements under the text (isolation above), only on
    the last bubble of a run. */
-.msg.run-end .bubble:not(.jumbo, .photo)::before,
-.msg.run-end .bubble:not(.jumbo, .photo)::after {
+.msg.run-end .bubble:not(.jumbo, .photo, .sticker)::before,
+.msg.run-end .bubble:not(.jumbo, .photo, .sticker)::after {
   content: '';
   position: absolute;
   z-index: -1;
@@ -422,28 +422,28 @@ body.family-chat {
   height: 20px;
 }
 
-.msg-out.run-end .bubble:not(.jumbo, .photo)::before {
+.msg-out.run-end .bubble:not(.jumbo, .photo, .sticker)::before {
   right: -7px;
   width: 20px;
   background: var(--out-bubble);
   border-bottom-left-radius: 16px 14px;
 }
 
-.msg-out.run-end .bubble:not(.jumbo, .photo)::after {
+.msg-out.run-end .bubble:not(.jumbo, .photo, .sticker)::after {
   right: -26px;
   width: 26px;
   background: var(--bg);
   border-bottom-left-radius: 10px;
 }
 
-.msg-in.run-end .bubble:not(.jumbo, .photo)::before {
+.msg-in.run-end .bubble:not(.jumbo, .photo, .sticker)::before {
   left: -7px;
   width: 20px;
   background: var(--in-bubble);
   border-bottom-right-radius: 16px 14px;
 }
 
-.msg-in.run-end .bubble:not(.jumbo, .photo)::after {
+.msg-in.run-end .bubble:not(.jumbo, .photo, .sticker)::after {
   left: -26px;
   width: 26px;
   background: var(--bg);
@@ -509,15 +509,6 @@ body.family-chat {
   overflow: hidden;
 }
 
-/* Room for a Tapback on the reply, under its quote. */
-.msg.has-tapbacks > .quote {
-  margin-bottom: 18px;
-}
-
-.msg.has-tapbacks > .quote::after {
-  bottom: -24px;
-}
-
 .quote b {
   font-weight: 600;
 }
@@ -547,7 +538,12 @@ body.family-chat {
 }
 
 .receipt {
+  max-width: 100%;
   margin: 3px 4px 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
   overflow: hidden;
   color: var(--secondary);
   font-size: 11px;
@@ -634,6 +630,7 @@ body.family-chat {
 .msg-out > .bubble,
 .msg-out > .quote,
 .msg-out > .receipt,
+.msg-out > .reactions,
 .msg-out > .edited-label,
 .msg-out > .edit-history,
 .msg-out > .failed-note {
@@ -643,6 +640,7 @@ body.family-chat {
 /* Swiped right to reply: the message follows the finger. */
 .msg-in > .bubble,
 .msg-in > .quote,
+.msg-in > .reactions,
 .msg-in > .edited-label,
 .msg-in > .edit-history {
   transform: translateX(var(--pull, 0px));
@@ -825,57 +823,55 @@ body.family-chat {
   animation: fade 0.2s var(--ease) both;
 }
 
-/* Tapbacks: over the bubble's top corner — right for theirs, left for yours. */
-.msg.has-tapbacks {
-  padding-top: 14px;
+/* Reactions, as on Discord: a chip per emoji with its count, under the
+   message; yours tinted blue. */
+.reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: min(85%, 32rem);
+  margin: 4px 2px 0;
 }
 
-.tapbacks {
-  position: absolute;
-  z-index: 1;
-  top: -18px;
-  display: flex;
-  padding: 0;
-  border: 0;
-  background: none;
+.msg-out .reactions {
+  justify-content: flex-end;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  background: var(--fill);
+  color: var(--secondary);
+  font-size: 12px;
+  font-weight: 600;
   line-height: 1;
   cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  transition: transform 0.2s var(--spring);
 }
 
-.msg-in .tapbacks {
-  right: -16px;
-  flex-direction: row-reverse;
-}
-
-.msg-out .tapbacks {
-  left: -16px;
-}
-
-.tapback {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border: 2px solid var(--bg);
-  border-radius: 50%;
-  background: var(--in-bubble);
+.chip-emoji {
   font-size: 15px;
 }
 
-.tapback + .tapback {
-  margin-left: -12px;
+.chip.mine {
+  border-color: var(--out-bubble);
+  background: color-mix(in srgb, var(--out-bubble) 14%, var(--bg));
+  color: var(--out-bubble);
 }
 
-.msg-in .tapback + .tapback {
-  margin-left: 0;
-  margin-right: -12px;
+.chip:active {
+  transform: scale(0.92);
 }
 
-.tapback.mine {
-  background: var(--out-bubble);
-}
-
-.tapback.pop {
+.chip.pop {
   animation: tapback-pop 0.45s var(--spring) both;
 }
 
@@ -921,6 +917,77 @@ body.family-chat {
   background: var(--out-bubble);
 }
 
+.tapback-bar button.more {
+  color: var(--secondary);
+}
+
+/* Any emoji: the picker sheet. */
+.emoji-field {
+  width: 100%;
+  margin: 0 0 14px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--row-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 17px;
+}
+
+.emoji-section {
+  margin-bottom: 14px;
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 2px;
+}
+
+.emoji-grid button {
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.emoji-grid button:hover,
+.emoji-grid button:focus-visible {
+  background: var(--fill);
+  outline: none;
+}
+
+/* Genmoji and stickers: in the text at the size of a letter, or alone and
+   large without a bubble. */
+.glyph {
+  display: inline-block;
+  width: auto;
+  height: 1.3em;
+  margin: 0 1px;
+  vertical-align: -0.28em;
+}
+
+.bubble.sticker {
+  padding: 0;
+  background: none !important;
+  line-height: 0;
+}
+
+.bubble.sticker .glyph {
+  height: 120px;
+  max-width: 100%;
+  margin: 0;
+  vertical-align: top;
+}
+
+.bubble.sticker.few .glyph {
+  height: 84px;
+}
+
 .tapback-bar button:hover,
 .tapback-bar button:focus-visible {
   outline: none;
@@ -929,7 +996,7 @@ body.family-chat {
 
 @media (prefers-reduced-motion: reduce) {
   .msg.vanish > *,
-  .tapback.pop,
+  .chip.pop,
   .bubble.edited-in,
   .edit-field,
   .tapback-bar {
@@ -1109,6 +1176,40 @@ body.family-chat {
 .field textarea::placeholder {
   color: var(--secondary);
   opacity: 0.8;
+}
+
+/* The composer with JavaScript: a rich text box (chat.js), so Genmoji and
+   stickers can go into it. Grows with its text, to a scroll at 140px. */
+.editor {
+  flex: 1;
+  min-width: 0;
+  text-align: start;
+  min-height: 34px;
+  max-height: 140px;
+  margin: 0;
+  padding: 6px 0;
+  overflow-y: auto;
+  outline: none;
+  color: var(--text);
+  font-size: 17px;
+  line-height: 22px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.editor.is-empty::before {
+  content: attr(data-placeholder);
+  color: var(--secondary);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.editor img {
+  width: auto !important;
+  height: 1.3em !important;
+  vertical-align: -0.28em;
 }
 
 .send {
@@ -1304,10 +1405,18 @@ body.family-chat {
     padding: 6px 12px 7px;
   }
 
-  .field textarea {
+  .field textarea,
+  .editor {
     font-size: 15px;
     line-height: 20px;
+  }
+
+  .field textarea {
     height: 32px;
+  }
+
+  .editor {
+    min-height: 32px;
   }
 
   .field {
