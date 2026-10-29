@@ -910,3 +910,42 @@ test('a starter password: offered the chance to choose another once, never requi
   // Signed out, the page is the sign-in screen's.
   assert.equal((await call('/disc/password')).headers.get('location'), '/disc/');
 });
+
+test('search finds this chat’s messages only, never deleted ones, and works signed in only', async () => {
+  chat.store.postMessage({ userId: 1, clientId: 'search-00001', body: 'Frisbee golf at noon?' });
+  const gone = chat.store.postMessage({
+    userId: 1,
+    clientId: 'search-00002',
+    body: 'frisbee secret',
+  });
+  chat.store.deleteMessage(chat.store.requireUser(1), gone.message.id);
+  const discRandy = await call('/disc/login', {
+    form: { username: 'randy', password: 'disc password' },
+  });
+  const discCookie = (discRandy.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+  await call('/disc/api/messages', {
+    cookie: discCookie,
+    json: { clientId: 'disc-search-01', body: 'frisbee in Disc only' },
+  });
+
+  const html = await (await call('/family/search?q=FRISBEE', { cookie: randyCookie })).text();
+  assert.match(html, /<mark>Frisbee<\/mark> golf at noon\?/);
+  assert.ok(!html.includes('secret'), 'a deleted message was found');
+  assert.ok(!html.includes('in Disc only'), 'another chat’s message was found');
+  assert.match(html, /href="\/family\/#m\d+"/);
+
+  const disc = await (await call('/disc/search?q=frisbee', { cookie: discCookie })).text();
+  assert.match(disc, /<mark>frisbee<\/mark> in Disc only/);
+  assert.ok(!disc.includes('golf at noon'));
+  // A LIKE wildcard is searched for, not obeyed.
+  assert.match(
+    await (await call('/family/search?q=%25', { cookie: randyCookie })).text(),
+    /No messages found/,
+  );
+  // Signed out (or signed in to the other chat): the sign-in screen, no results.
+  assert.equal((await call('/disc/search?q=frisbee')).headers.get('location'), '/disc/');
+  assert.equal(
+    (await call('/disc/search?q=frisbee', { cookie: randyCookie })).headers.get('location'),
+    '/disc/',
+  );
+});

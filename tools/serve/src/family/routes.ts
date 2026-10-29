@@ -19,7 +19,7 @@ import { TokenBucket } from './limits.ts';
 import { Notifier } from './notify.ts';
 import { FAMILY } from './chats.ts';
 import type { ChatIdentity } from './chats.ts';
-import { renderAdmin, renderChat, renderLogin, renderPassword } from './pages.ts';
+import { renderAdmin, renderChat, renderLogin, renderPassword, renderSearch } from './pages.ts';
 import type { Assets } from './pages.ts';
 import { FamilyError, FamilyStore, SESSION_DAYS } from './store.ts';
 import type { Lang, Message, User } from './store.ts';
@@ -78,6 +78,7 @@ export const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MAX_JSON_BYTES = 32 * 1024;
 const PAGE_SIZE = 50;
 const REPLAY_LIMIT = 500;
+const SEARCH_LIMIT = 50;
 /** A photo uploaded but never sent is kept this long (a slow second request), then removed. */
 const ORPHAN_AFTER_MS = 24 * 60 * 60 * 1000;
 
@@ -490,6 +491,30 @@ export class FamilyChat {
           me,
           members: this.store.members(),
           recent: this.store.history(null, PAGE_SIZE).messages,
+        }),
+      );
+      return;
+    }
+
+    // Searching this chat (pages.ts renderSearch): this chat's database
+    // only, so only the conversation the searcher is signed in to.
+    if (pathname === `${this.#base}/search` && (method === 'GET' || method === 'HEAD')) {
+      if (!me) {
+        redirect(res, `${this.#base}/`);
+        return;
+      }
+      const query = (url.searchParams.get('q') ?? '').slice(0, 100).trim();
+      const found = this.store.search(query, SEARCH_LIMIT);
+      sendPage(
+        res,
+        200,
+        renderSearch({
+          assets: this.#assets,
+          me,
+          members: this.store.members(),
+          query,
+          results: found.messages,
+          hasMore: found.hasMore,
         }),
       );
       return;

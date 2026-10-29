@@ -1293,9 +1293,16 @@ async function start(attempt = 0) {
   try {
     await loadLatest();
     connect();
-    // Opened from a notification: <base>/#m<id>.
+    // Opened from a notification or a search result: <base>/#m<id>. An
+    // older message is fetched back to, a page at a time.
     const linked = /^#m(\d+)$/.exec(location.hash);
-    if (linked && reveal(Number(linked[1]))) history.replaceState(null, '', `${BASE}/`);
+    if (linked) {
+      const id = Number(linked[1]);
+      for (let pages = 0; !nodes.has(`m${id}`) && hasMore && pages < 40; pages += 1) {
+        await loadOlder();
+      }
+      if (reveal(id)) history.replaceState(null, '', `${BASE}/`);
+    }
     if (attempt === 0) registerWorker().then(() => syncSubscription(api).catch(() => {}));
   } catch {
     setConnected(false);

@@ -21,6 +21,7 @@ const STRINGS = {
     signOut: 'Sign out',
     admin: 'Members',
     password: 'Change Password',
+    search: 'Search',
     noScript: 'Without JavaScript, new messages appear when you reload the page.',
     empty: 'No messages yet. Say hello.',
     details: 'Details & Notifications',
@@ -32,6 +33,7 @@ const STRINGS = {
     signOut: '退出登录',
     admin: '成员',
     password: '修改密码',
+    search: '搜索',
     noScript: '未启用 JavaScript：刷新页面即可看到新消息。',
     empty: '还没有消息，打个招呼吧。',
     details: '详细信息与通知',
@@ -86,6 +88,88 @@ export function renderLogin(assets: Assets, error: string | null, username = '')
     <p class="auth-error" role="alert">${error === null ? '' : escapeHtml(error)}</p>
     <button class="auth-submit" type="submit">Sign In · 登录</button>
   </form>
+</main>
+</body>
+</html>
+`;
+}
+
+const SEARCH_STRINGS = {
+  en: {
+    title: 'Search',
+    placeholder: 'Search messages',
+    none: 'No messages found.',
+    more: 'Showing the most recent matches. Add a word to narrow it down.',
+  },
+  zh: {
+    title: '搜索',
+    placeholder: '搜索消息',
+    none: '没有找到消息。',
+    more: '仅显示最近的结果。可以多输入几个字缩小范围。',
+  },
+} as const;
+
+/** `text` with each occurrence of `query` marked, escaped; long texts cut around the first match. */
+function highlight(text: string, query: string): string {
+  const lower = text.toLowerCase();
+  const needle = query.toLowerCase();
+  const first = lower.indexOf(needle);
+  const start = first > 60 ? first - 40 : 0;
+  const shown = text.slice(start, start + 240);
+  const shownLower = lower.slice(start, start + 240);
+  let out = start > 0 ? '…' : '';
+  let at = 0;
+  for (let found = shownLower.indexOf(needle); found !== -1 && needle !== '';) {
+    out += `${escapeHtml(shown.slice(at, found))}<mark>${escapeHtml(shown.slice(found, found + needle.length))}</mark>`;
+    at = found + needle.length;
+    found = shownLower.indexOf(needle, at);
+  }
+  return `${out}${escapeHtml(shown.slice(at))}${start + 240 < text.length ? '…' : ''}`;
+}
+
+/**
+ * Searching this chat's messages: a plain GET form and a list of links, so
+ * it works without JavaScript. A result opens the conversation at that
+ * message (<base>/#m<id>, which chat.js scrolls back to).
+ */
+export function renderSearch(input: {
+  assets: Assets;
+  me: User;
+  members: readonly User[];
+  query: string;
+  results: readonly Message[];
+  hasMore: boolean;
+}): string {
+  const { assets, me, query, results } = input;
+  const t = SEARCH_STRINGS[me.lang];
+  const names = new Map(input.members.map((user) => [user.id, user.displayName]));
+  const list =
+    query === ''
+      ? ''
+      : results.length === 0
+        ? `<p class="dim search-none">${t.none}</p>`
+        : `<section class="group">
+${results
+  .map(
+    (
+      message,
+    ) => `  <a class="cell cell-stack search-result" href="${assets.base}/#m${String(message.id)}">
+    <span class="search-meta"><strong>${escapeHtml(names.get(message.userId) ?? '')}</strong><time class="dim" datetime="${new Date(message.createdAt).toISOString()}">${new Date(message.createdAt).toLocaleDateString(me.lang === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}</time></span>
+    <span class="search-text">${highlight(message.body, query)}</span>
+  </a>`,
+  )
+  .join('\n')}
+</section>${input.hasMore ? `<p class="dim search-none">${t.more}</p>` : ''}`;
+  return `${head(`${t.title} — ${assets.chat.name}`, assets, me.lang)}
+<body class="family-admin">
+<main class="admin">
+  <p><a class="back" href="${assets.base}/">‹ ${escapeHtml(assets.chat.name)}</a></p>
+  <h1>${t.title}</h1>
+  <form class="search-form" method="GET" action="${assets.base}/search" role="search">
+    <input type="search" name="q" value="${escapeHtml(query)}" placeholder="${t.placeholder}" aria-label="${t.placeholder}"
+      maxlength="100" enterkeyhint="search" autocomplete="off" ${query === '' ? 'autofocus' : ''}>
+  </form>
+  ${list}
 </main>
 </body>
 </html>
@@ -224,6 +308,7 @@ export function renderChat(input: {
       </summary>
       <div class="bar-menu-items">
         <button type="button" data-open-details hidden>${t.details}</button>
+        <a href="${assets.base}/search">${t.search}</a>
         <a href="${assets.base}/password">${t.password}</a>
         ${me.isAdmin ? `<a href="${assets.base}/admin">${t.admin}</a>` : ''}
         <form method="POST" action="${assets.base}/logout"><button type="submit">${t.signOut}</button></form>

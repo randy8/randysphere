@@ -504,6 +504,25 @@ export class FamilyStore {
     return { messages: rows.slice(0, limit).reverse().map(toMessage), hasMore };
   }
 
+  /**
+   * Messages whose text contains `query` (case-insensitive for Latin
+   * letters; Chinese has no case), newest first. Deleted messages are
+   * never found — their text is already gone. Only this chat's database is
+   * searched, so only the conversation the searcher is signed in to.
+   */
+  search(query: string, limit: number): { messages: Message[]; hasMore: boolean } {
+    const needle = query.normalize('NFC').trim();
+    if (needle === '') return { messages: [], hasMore: false };
+    const pattern = `%${needle.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+    const rows = this.db
+      .prepare(
+        `SELECT ${MESSAGE_COLUMNS} FROM ${MESSAGE_FROM}
+         WHERE m.deleted_at IS NULL AND m.body LIKE ? ESCAPE '\\' ORDER BY m.id DESC LIMIT ?`,
+      )
+      .all(pattern, limit + 1) as unknown as MessageRow[];
+    return { messages: rows.slice(0, limit).map(toMessage), hasMore: rows.length > limit };
+  }
+
   /** Every message inserted or deleted after `rev`, in rev order — what a reconnect missed. */
   changesSince(rev: number, limit: number): Message[] {
     return (

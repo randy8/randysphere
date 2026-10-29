@@ -132,6 +132,11 @@ Two options to `add`:
   every chat (`pnpm disc add randy --name=Randy --admin --same-password-as=family`).
   It's a copy: changing it in one chat later doesn't change the other.
 
+**Search** (⋯ menu → Search, `/<chat>/search?q=`) finds messages in the chat
+you're signed in to — its own database, so never another chat's — newest
+first, up to 50, deleted messages never. A plain form and links (works
+without JavaScript); a result opens the conversation scrolled to it.
+
 Deleting an account (Members page only, type the username to confirm) also
 deletes everything that person sent. Disable instead to keep the history.
 
@@ -271,4 +276,4 @@ server to Apple/Google, so nothing extra has to be reachable from China.
 
 ## Not built (yet)
 
-- Read receipts beyond your own "Delivered"; reactions; editing; search.
+- Read receipts beyond your own "Delivered"; reactions; editing.

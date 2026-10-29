@@ -246,3 +246,28 @@ browserTest(
   },
   PHONE,
 );
+
+browserTest(
+  'search: a result opens the conversation at that message, fetching back to an old one',
+  async ({ context, page: unused }) => {
+    await unused.close();
+    const randy = chat.store.findUserByUsername('randy')?.id ?? 0;
+    chat.store.postMessage({ userId: randy, clientId: 'search-old-1', body: 'the pelican picnic' });
+    // Enough newer messages that it isn't in the first page loaded.
+    for (let i = 0; i < 120; i += 1) {
+      chat.store.postMessage({
+        userId: randy,
+        clientId: `search-filler-${String(i)}`,
+        body: `filler ${String(i)}`,
+      });
+    }
+    const page = await signIn(context, 'mom', 'correct horse');
+    await page.goto(`${origin}/family/search?q=pelican`);
+    await page.click('.search-result');
+    const target = page.locator('[data-messages]').getByText('the pelican picnic');
+    await target.waitFor({ timeout: 10_000 });
+    await page.waitForFunction(() => location.hash === '');
+    assert.ok(await target.isVisible());
+  },
+  PHONE,
+);
