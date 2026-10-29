@@ -229,8 +229,19 @@ function redirect(
 
 const toLang = (value: unknown): Lang => (value === 'zh' ? 'zh' : 'en');
 
-function publicUser(user: User): { id: number; name: string; active: boolean } {
-  return { id: user.id, name: user.displayName, active: user.disabledAt === null };
+function publicUser(user: User): {
+  id: number;
+  name: string;
+  active: boolean;
+  lastReadRev: number;
+} {
+  // lastReadRev: how far they've read — the receipts under your messages.
+  return {
+    id: user.id,
+    name: user.displayName,
+    active: user.disabledAt === null,
+    lastReadRev: user.lastReadRev,
+  };
 }
 
 /**
@@ -609,6 +620,19 @@ export class FamilyChat {
       return;
     }
 
+    // Info on a message: who read it and when. Its author's to see, as in
+    // WhatsApp — everyone else sees only the line under the newest message.
+    const receiptsMatch = new RegExp(`^${this.#base}/api/messages/(\\d+)/receipts$`).exec(pathname);
+    if (receiptsMatch && method === 'GET') {
+      const id = Number(receiptsMatch[1]);
+      const message = this.store.getMessage(id);
+      if (!message || message.deleted || message.userId !== me.id) {
+        throw new HttpError(404, 'Not found.');
+      }
+      sendJson(res, 200, this.store.receipts(id));
+      return;
+    }
+
     const deleteMatch = new RegExp(`^${this.#base}/api/messages/(\\d+)$`).exec(pathname);
     if (deleteMatch && method === 'DELETE') {
       const { message, imageId } = this.store.deleteMessage(me, Number(deleteMatch[1]));
@@ -663,7 +687,9 @@ export class FamilyChat {
     if (pathname === `${this.#base}/api/read` && method === 'POST') {
       const body = await readJson(req);
       if (typeof body['rev'] === 'number' && Number.isInteger(body['rev'])) {
-        this.store.markRead(me.id, body['rev']);
+        const rev = this.store.markRead(me.id, body['rev']);
+        // A read receipt, live: every open page moves this person's mark.
+        if (rev !== null) this.hub.broadcast('read', { userId: me.id, rev });
       }
       res.writeHead(204, PRIVATE_HEADERS);
       res.end();

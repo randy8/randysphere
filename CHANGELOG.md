@@ -981,3 +981,13 @@ path and name from one small list (`tools/serve/src/family/chats.ts`), and
 the server mounts each. Family's 28 messages and everyone's read positions
 came through the schema change untouched. The iMessage-style title — the
 faces, then the name small with a ›, no line of member names — stayed.
+
+## 2026-10-29 — The chats get read receipts, search, and their own passwords
+
+Both chats now say who has read what. Under your newest message the
+iMessage line goes from "Delivered" to "Read by Mom" to "Read", live; a
+long-press on any of your messages opens WhatsApp's Info — who read it, and
+when. Search (in the ⋯ menu) finds messages in the chat you're signed in to
+and opens the conversation at the one you pick, fetching back as far as it
+has to. People given a starter password are offered the chance to choose
+their own on first sign-in, and anyone can change theirs from the menu.

@@ -169,6 +169,18 @@ const MIGRATIONS: readonly string[] = [
   -- choose their own, once, and may decline.
   ALTER TABLE users ADD COLUMN suggest_new_password INTEGER NOT NULL DEFAULT 0;
   `,
+  `
+  -- When each person read each message (read receipts: Info on a message).
+  -- Written as their read position passes it; messages read before this
+  -- existed have no row and show as read, without a time. Rows go with the
+  -- message or the account.
+  CREATE TABLE message_reads (
+    message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    read_at    INTEGER NOT NULL,
+    PRIMARY KEY (message_id, user_id)
+  ) WITHOUT ROWID;
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

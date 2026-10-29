@@ -271,3 +271,28 @@ browserTest(
   },
   PHONE,
 );
+
+browserTest(
+  'read receipts: Delivered turns into Read as the other person reads, and Info says who and when',
+  async ({ context, page: unused }) => {
+    await unused.close();
+    const randy = await signIn(context, 'randy', 'battery staple');
+    await send(randy, 'Are you up?');
+    const receipt = randy.locator('.receipt');
+    await receipt.filter({ hasText: 'Delivered' }).waitFor();
+    // Mom opens the chat, at the bottom: she has read it.
+    const other = await context.browser()?.newContext(PHONE);
+    assert.ok(other);
+    const mom = await signIn(other, 'mom', 'correct horse');
+    await mom.locator('[data-messages]').getByText('Are you up?').waitFor();
+    await receipt.filter({ hasText: /^Read$/ }).waitFor({ timeout: 10_000 });
+    // Long-press → Info: read by 妈妈, with a time.
+    await randy.locator('.msg-out .bubble', { hasText: 'Are you up?' }).click({ button: 'right' });
+    await randy.getByRole('menuitem', { name: 'Info' }).click();
+    const sheet = randy.getByRole('dialog', { name: 'Info' });
+    await sheet.getByText('Read By').waitFor();
+    await sheet.getByText('妈妈').waitFor();
+    assert.match(await sheet.locator('.cell .dim').first().innerText(), /\d/);
+    await other.close();
+  },
+);

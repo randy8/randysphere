@@ -132,6 +132,15 @@ Two options to `add`:
   every chat (`pnpm disc add randy --name=Randy --admin --same-password-as=family`).
   It's a copy: changing it in one chat later doesn't change the other.
 
+**Read receipts.** Under your newest message, as in iMessage: "Delivered",
+then "Read by Mom", "Read by Mom and Derrick", or "Read" once everyone has.
+It follows each person's read position (`users.last_read_rev`), which moves
+when they're at the bottom of the open conversation, and changes live (a
+`read` event). Long-press one of your own messages → **Info**, as in
+WhatsApp: who read it and when (`message_reads`, stamped as their position
+passes it), and who hasn't yet. Only the author can see a message's Info.
+Messages read before receipts existed show as read, without a time.
+
 **Search** (⋯ menu → Search, `/<chat>/search?q=`) finds messages in the chat
 you're signed in to — its own database, so never another chat's — newest
 first, up to 50, deleted messages never. A plain form and links (works
@@ -276,4 +285,4 @@ server to Apple/Google, so nothing extra has to be reachable from China.
 
 ## Not built (yet)
 
-- Read receipts beyond your own "Delivered"; reactions; editing.
+- Reactions; editing.

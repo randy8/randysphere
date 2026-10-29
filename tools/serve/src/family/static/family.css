@@ -509,9 +509,28 @@ body.family-chat {
 
 .receipt {
   margin: 3px 4px 0;
+  overflow: hidden;
   color: var(--secondary);
   font-size: 11px;
   line-height: 14px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.receipt.changed {
+  animation: receipt-in 0.3s var(--ease) both;
+}
+
+@keyframes receipt-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .receipt.changed {
+    animation: none;
+  }
 }
 
 .msg.pending .bubble {
@@ -734,9 +753,16 @@ body.family-chat {
 }
 
 .field textarea {
+  /* iOS draws its own text-field look (an inset shadow, extra inner padding)
+     unless told not to — on the home-screen app it covered the placeholder. */
+  -webkit-appearance: none;
+  appearance: none;
   flex: 1;
   min-width: 0;
   height: 34px;
+  min-height: 34px;
+  border-radius: 0;
+  box-shadow: none;
   max-height: 140px;
   margin: 0;
   padding: 6px 0;

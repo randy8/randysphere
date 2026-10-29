@@ -289,3 +289,24 @@ test('migration 4 undoes rooms: Family’s messages and read positions kept, not
     3,
   );
 });
+
+test('read receipts: reading stamps each message from someone else, once, with when', () => {
+  const sent = store.postMessage({ userId: randy.id, clientId: 'receipt-0001', body: 'read me' });
+  const own = store.postMessage({ userId: mom.id, clientId: 'receipt-0002', body: 'mine' });
+  assert.deepEqual(store.receipts(sent.message.id)?.read, []);
+  assert.ok(store.receipts(sent.message.id)?.unread.includes(mom.id));
+
+  assert.equal(store.markRead(mom.id, own.message.rev, 1000), own.message.rev);
+  assert.equal(store.markRead(mom.id, own.message.rev, 2000), null, 'not again');
+  const receipts = store.receipts(sent.message.id);
+  assert.deepEqual(
+    receipts?.read.find((r) => r.userId === mom.id),
+    { userId: mom.id, at: 1000 },
+  );
+  assert.ok(!receipts?.unread.includes(mom.id));
+  // Her own message isn't "read" by her.
+  const ownReads = store.db
+    .prepare('SELECT count(*) AS n FROM message_reads WHERE message_id = ? AND user_id = ?')
+    .get(own.message.id, mom.id) as { n: number };
+  assert.equal(ownReads.n, 0);
+});

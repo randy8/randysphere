@@ -565,10 +565,65 @@ export class FamilyStore {
     return { message: this.requireMessage(id), imageId };
   }
 
-  markRead(userId: number, rev: number): void {
-    this.db
-      .prepare('UPDATE users SET last_read_rev = MAX(last_read_rev, ?) WHERE id = ?')
-      .run(Math.min(rev, this.currentRev()), userId);
+  /**
+   * Moves `userId`'s read position up to `rev` (never back), stamping each
+   * message from someone else that it passes with the time it was read.
+   * Returns the new position if it moved, else null — a read receipt to
+   * tell everyone about.
+   */
+  markRead(userId: number, rev: number, now: number = Date.now()): number | null {
+    const target = Math.min(rev, this.currentRev());
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const row = this.db.prepare('SELECT last_read_rev FROM users WHERE id = ?').get(userId) as
+        { last_read_rev: number } | undefined;
+      if (!row || target <= row.last_read_rev) {
+        this.db.exec('COMMIT');
+        return null;
+      }
+      this.db
+        .prepare(
+          `INSERT OR IGNORE INTO message_reads (message_id, user_id, read_at)
+           SELECT id, ?, ? FROM messages
+           WHERE rev > ? AND rev <= ? AND user_id <> ? AND deleted_at IS NULL`,
+        )
+        .run(userId, now, row.last_read_rev, target, userId);
+      this.db.prepare('UPDATE users SET last_read_rev = ? WHERE id = ?').run(target, userId);
+      this.db.exec('COMMIT');
+      return target;
+    } catch (error) {
+      this.db.exec('ROLLBACK');
+      throw error;
+    }
+  }
+
+  /**
+   * Who has read message `id` and when (`at` null: read before receipts
+   * were kept), and who hasn't yet — every active member but its author.
+   */
+  receipts(id: number): {
+    read: { userId: number; at: number | null }[];
+    unread: number[];
+  } | null {
+    const message = this.getMessage(id);
+    if (!message || message.deleted) return null;
+    const times = new Map(
+      (
+        this.db
+          .prepare('SELECT user_id, read_at FROM message_reads WHERE message_id = ?')
+          .all(id) as unknown as { user_id: number; read_at: number }[]
+      ).map((r) => [r.user_id, r.read_at]),
+    );
+    const read: { userId: number; at: number | null }[] = [];
+    const unread: number[] = [];
+    for (const user of this.members()) {
+      if (user.id === message.userId || user.disabledAt !== null) continue;
+      if (user.lastReadRev >= message.rev || times.has(user.id)) {
+        read.push({ userId: user.id, at: times.get(user.id) ?? null });
+      } else unread.push(user.id);
+    }
+    read.sort((a, b) => (b.at ?? 0) - (a.at ?? 0));
+    return { read, unread };
   }
 
   // ---- images ------------------------------------------------------------

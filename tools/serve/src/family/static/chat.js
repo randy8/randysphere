@@ -18,6 +18,15 @@ const T = zh
       today: '今天',
       yesterday: '昨天',
       delivered: '已送达',
+      read: '已读',
+      readBy: (names) => `${names.join('、')} 已读`,
+      readByCount: (n) => `${n} 人已读`,
+      info: '信息',
+      readHeading: '已读',
+      notYet: '已送达，未读',
+      readEarlier: '已读',
+      nobodyYet: '还没有人读过。',
+      everyone: '所有人都已读。',
       notDelivered: '未送达 · 轻点重试',
       connecting: '正在连接…',
       offline: '等待网络…',
@@ -41,6 +50,15 @@ const T = zh
       today: 'Today',
       yesterday: 'Yesterday',
       delivered: 'Delivered',
+      read: 'Read',
+      readBy: (names) => `Read by ${names.length === 2 ? names.join(' and ') : names.join(', ')}`,
+      readByCount: (n) => `Read by ${n}`,
+      info: 'Info',
+      readHeading: 'Read By',
+      notYet: 'Delivered To',
+      readEarlier: 'Read',
+      nobodyYet: 'No one has read it yet.',
+      everyone: 'Everyone has read it.',
       notDelivered: 'Not Delivered · Tap to try again',
       connecting: 'Connecting…',
       offline: 'Waiting for network…',
@@ -141,6 +159,7 @@ const yearFormat = new Intl.DateTimeFormat(locale, {
   day: 'numeric',
 });
 const fullFormat = new Intl.DateTimeFormat(locale, { dateStyle: 'full', timeStyle: 'short' });
+const readFormat = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' });
 
 function startOfDay(at) {
   const day = new Date(at);
@@ -373,7 +392,44 @@ function setFootnote(node, item, isLast) {
     note.dataset.retry = item.clientId;
     node.append(note);
   } else if (isLast && item.userId === me.id && item.key.startsWith('m')) {
-    node.append(el('div', 'receipt', T.delivered));
+    const text = receiptText(item);
+    const receipt = el('div', 'receipt', text);
+    // "Delivered" turning into "Read by…" fades across; the line never moves.
+    if (lastReceipt.key === item.key && lastReceipt.text !== text) receipt.classList.add('changed');
+    lastReceipt = { key: item.key, text };
+    node.append(receipt);
+  }
+}
+
+let lastReceipt = { key: '', text: '' };
+
+/** The others in the conversation who have read `item`: their read mark has passed it. */
+function readersOf(item) {
+  return [...members.values()].filter(
+    (member) =>
+      member.id !== me.id &&
+      member.id !== item.userId &&
+      member.active &&
+      member.lastReadRev >= item.rev,
+  );
+}
+
+/** iMessage's line under your newest message: Delivered, then who has read it. */
+function receiptText(item) {
+  const others = [...members.values()].filter((member) => member.id !== me.id && member.active);
+  const readers = readersOf(item);
+  if (readers.length === 0) return T.delivered;
+  if (readers.length === others.length) return T.read;
+  if (readers.length > 3) return T.readByCount(readers.length);
+  return T.readBy(readers.map((member) => member.name));
+}
+
+/** Someone read further: only the receipt line changes, in place. */
+function refreshReceipt() {
+  const node = [...list.querySelectorAll('.msg:not(.typing)')].at(-1);
+  const item = node && itemFor(node);
+  if (item && item.userId === me.id && node.dataset.key.startsWith('m')) {
+    setFootnote(node, { ...item, key: node.dataset.key }, true);
   }
 }
 
@@ -634,6 +690,13 @@ function connect() {
     renderAndFollow({ smooth: true });
   });
   source.addEventListener('members', (event) => setMembers(JSON.parse(event.data).members));
+  source.addEventListener('read', (event) => {
+    const { userId, rev: readRev } = JSON.parse(event.data);
+    const member = members.get(userId);
+    if (!member || readRev <= (member.lastReadRev ?? 0)) return;
+    member.lastReadRev = readRev;
+    refreshReceipt();
+  });
   source.addEventListener('reset', () => {
     loadLatest().catch(() => {});
   });
@@ -834,6 +897,13 @@ input.addEventListener('keydown', (event) => {
 let minHeight = 0;
 function autosize() {
   if (minHeight === 0) minHeight = parseFloat(getComputedStyle(input).height) || 34;
+  // Empty: the stylesheet's own height, exactly — never a measurement, which
+  // iOS can make of the placeholder slightly short.
+  if (input.value === '') {
+    input.style.height = '';
+    sendButton.disabled = true;
+    return;
+  }
   const previous = input.style.height;
   input.style.transition = 'none';
   input.style.height = '0px';
@@ -1010,6 +1080,12 @@ function openMenu(node) {
     add(T.reply, svg('M10 8 4 13l6 5M4 13h10a6 6 0 0 1 6 6v1'), () => {
       closeMenu();
       setReply(item.id);
+    });
+  }
+  if (stored && item.userId === me.id) {
+    add(T.info, svg('M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 7.5v.5'), () => {
+      closeMenu();
+      openInfo(item);
     });
   }
   if (item.body) {
@@ -1228,6 +1304,46 @@ function openViewer(src) {
   document.addEventListener('keydown', onKey);
   document.body.append(viewer);
   viewer.focus();
+}
+
+// ---- info: who read a message ---------------------------------------------
+
+/** WhatsApp's Message Info, in the details sheet's dress: read by whom and when. */
+function openInfo(item) {
+  openSheet({
+    title: T.info,
+    closeLabel: T.done,
+    build: (body) => {
+      const loading = el('p', 'group-note', '…');
+      body.append(loading);
+      api(`${BASE}/api/messages/${item.id}/receipts`)
+        .then((response) => (response.ok ? response.json() : null))
+        .then((receipts) => {
+          loading.remove();
+          if (!receipts) return;
+          const name = (id) => members.get(id)?.name ?? '';
+          const read = group(
+            body,
+            T.readHeading,
+            receipts.read.length === 0 ? T.nobodyYet : undefined,
+          );
+          for (const reader of receipts.read) {
+            row(
+              read.rows,
+              name(reader.userId),
+              reader.at ? readFormat.format(reader.at) : T.readEarlier,
+            );
+          }
+          if (receipts.unread.length > 0) {
+            const waiting = group(body, T.notYet);
+            for (const id of receipts.unread) row(waiting.rows, name(id), '');
+          } else if (receipts.read.length > 0) {
+            read.section.append(el('p', 'group-note', T.everyone));
+          }
+        })
+        .catch(() => loading.remove());
+    },
+  });
 }
 
 // ---- details -------------------------------------------------------------

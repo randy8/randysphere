@@ -949,3 +949,42 @@ test('search finds this chat’s messages only, never deleted ones, and works si
     '/disc/',
   );
 });
+
+test('read receipts: a read is announced live, and Info is the author’s alone', async () => {
+  const open = await stream(randyCookie);
+  await open.next('hello');
+  const posted = (await (
+    await call('/family/api/messages', {
+      cookie: randyCookie,
+      json: { clientId: 'receipt-route-1', body: 'did you see this?' },
+    })
+  ).json()) as { message: { id: number; rev: number } };
+  await call('/family/api/read', { cookie: momCookie, json: { rev: posted.message.rev } });
+  const read = await open.next('read');
+  const mom = chat.store.findUserByUsername('mom');
+  assert.deepEqual(read.data, { userId: mom?.id, rev: posted.message.rev });
+  open.close();
+
+  const info = await call(`/family/api/messages/${String(posted.message.id)}/receipts`, {
+    cookie: randyCookie,
+  });
+  assert.equal(info.status, 200);
+  const receipts = (await info.json()) as { read: { userId: number; at: number | null }[] };
+  assert.ok(receipts.read.some((r) => r.userId === mom?.id && typeof r.at === 'number'));
+  // Not the author: as if there were nothing there.
+  assert.equal(
+    (
+      await call(`/family/api/messages/${String(posted.message.id)}/receipts`, {
+        cookie: momCookie,
+      })
+    ).status,
+    404,
+  );
+  // Members carry how far each has read, for the line under the newest message.
+  const history = (await (await call('/family/api/history', { cookie: randyCookie })).json()) as {
+    members: { id: number; lastReadRev: number }[];
+  };
+  assert.ok(
+    (history.members.find((m) => m.id === mom?.id)?.lastReadRev ?? 0) >= posted.message.rev,
+  );
+});
