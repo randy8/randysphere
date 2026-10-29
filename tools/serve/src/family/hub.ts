@@ -16,8 +16,18 @@ export interface Connection {
   /** The session token's hash is not kept; this re-checks the cookie's session on each heartbeat. */
   readonly stillAuthorized: () => boolean;
   lastRev: number;
+  /**
+   * Until when this tab counts as being looked at. The page renews it
+   * while it's visible (POST /family/api/presence) and gives it up when
+   * hidden; it lapses on its own, so a phone that went to sleep without
+   * saying so is soon notified again.
+   */
+  visibleUntil: number;
   res: ServerResponse;
 }
+
+/** How long one "I'm visible" from a page counts for; the page renews every 25 s. */
+export const PRESENCE_MS = 40_000;
 
 /**
  * Cloudflare drops a proxied response that has sent nothing for 100 s; a
@@ -53,11 +63,22 @@ export class Hub {
     if (this.events.length > 200) this.events.splice(0, this.events.length - 200);
   }
 
-  open(init: Omit<Connection, 'id' | 'openedAt'>): Connection {
-    const connection: Connection = { ...init, id: this.#nextId, openedAt: Date.now() };
+  open(init: Omit<Connection, 'id' | 'openedAt' | 'visibleUntil'>): Connection {
+    const connection: Connection = {
+      ...init,
+      id: this.#nextId,
+      openedAt: Date.now(),
+      // Opening the stream is the page being opened: visible, for now.
+      visibleUntil: Date.now() + PRESENCE_MS,
+    };
     this.#nextId += 1;
     this.#connections.set(connection.id, connection);
     connection.res.on('close', () => {
+      this.#connections.delete(connection.id);
+    });
+    // A write that races the socket closing surfaces as an 'error' event;
+    // unheard, that would be an uncaught exception — the whole server.
+    connection.res.on('error', () => {
       this.#connections.delete(connection.id);
     });
     return connection;
@@ -71,8 +92,20 @@ export class Hub {
     return this.connections().some((connection) => connection.userId === userId);
   }
 
+  get(id: number): Connection | undefined {
+    return this.#connections.get(id);
+  }
+
+  /** Someone with the conversation on screen right now doesn't need a notification for it. */
+  isViewing(userId: number, now: number = Date.now()): boolean {
+    return this.connections().some(
+      (connection) => connection.userId === userId && connection.visibleUntil > now,
+    );
+  }
+
   /** Writes one event to one stream; a stream that can't take it is closed. */
   send(connection: Connection, event: string, data: unknown, id?: number): void {
+    if (connection.res.writableEnded || connection.res.destroyed) return;
     const lines = `${id === undefined ? '' : `id: ${String(id)}\n`}event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
     try {
       connection.res.write(lines);
@@ -95,8 +128,14 @@ export class Hub {
     for (const connection of this.connections()) {
       if (connection.userId !== userId) continue;
       this.send(connection, 'signed-out', {});
-      connection.res.end();
+      this.#end(connection);
     }
+  }
+
+  /** Ends a stream and forgets it at once — not on 'close', which comes a tick later. */
+  #end(connection: Connection): void {
+    this.#connections.delete(connection.id);
+    connection.res.end();
   }
 
   heartbeat(): void {
@@ -104,7 +143,11 @@ export class Hub {
       if (!connection.stillAuthorized()) {
         this.record('stream-closed-unauthorized', connection.userId);
         this.send(connection, 'signed-out', {});
-        connection.res.end();
+        this.#end(connection);
+        continue;
+      }
+      if (connection.res.writableEnded) {
+        this.#connections.delete(connection.id);
         continue;
       }
       try {
@@ -118,6 +161,6 @@ export class Hub {
   /** For SIGTERM: ends every stream so the server can close; browsers reconnect to the new one. */
   shutdown(): void {
     clearInterval(this.#timer);
-    for (const connection of this.connections()) connection.res.end();
+    for (const connection of this.connections()) this.#end(connection);
   }
 }

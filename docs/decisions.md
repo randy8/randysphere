@@ -3505,3 +3505,59 @@ database is plaintext on disk, and docs/family.md says so.
 text is 4.0:1, under WCAG AA's 4.5:1 for normal text; kept as specified
 since it's the defining colour of the look, with text at 17px. `#0066D6`
 would reach 5.4:1 if that ever matters more.
+
+## 2026-10-28 — Family chat: notifications, sync epochs, and a hub crash
+
+**Decision.** Web Push for `/family/`, implemented in `webpush.ts` on
+`node:crypto` alone (RFC 8291 `aes128gcm`, RFC 8292 VAPID, ES256), verified
+byte-for-byte against RFC 8291's worked example. One subscription per
+device, keyed by endpoint and **tied to the sign-in** (`session_hash`,
+`ON DELETE CASCADE`), so every way a session ends also ends that device's
+notifications. Payload generic by default ("New message"); sender and text
+only with the device's own Preview switch. Suppressed for anyone whose
+page reports itself visible (a 40 s lease renewed every 25 s), never for
+the author. A service worker with no `fetch` handler. A database **epoch**
+in `meta`, renewed by restore: a page whose epoch differs, or whose
+last-seen rev is ahead of the server's, gets `reset`. Unsent photo uploads
+are deleted after 24 h. The page script is split into ES modules whose
+relative imports the server stamps with one shared version at startup,
+preloaded from the page.
+
+**Why.** The `web-push` package would be a dependency (and its own
+`http_ece`, `jws`, `asn1.js`) for ~120 lines Node already has the
+primitives for; the RFC's test vector makes a hand-written encoder
+checkable. Tying subscriptions to sessions makes revocation one rule
+instead of four code paths. Generic by default because lock screens are
+shared; the push payload itself is end-to-end encrypted to the browser
+either way. Server-side suppression rather than in the worker because
+Safari revokes permission from sites whose pushes show nothing — the
+worker must always show one. Without an epoch, a restored (older)
+database would leave open pages either waiting for revs the server
+already had or skipping new ones that reuse their numbers. One script
+version for all modules (not one hash each) because a module's URL then
+depends on nothing but the set of files — no dependency-ordered hashing —
+and the chat's scripts change together anyway.
+
+**Also fixed.** `Hub` kept an ended stream registered until its `close`
+event; a broadcast in between wrote after end, which Node reports as an
+`error` event — unhandled, an uncaught exception that takes the whole
+server down. `disconnectUser` (revoke, disable, password reset) opened
+exactly that window. Ended streams now leave the hub at once, writes to an
+ended stream are skipped, and every stream has an `error` listener. And
+the chat's font stack put Noto Sans CJK ahead of any Latin face, so on
+Android and Linux English set in it with full-width punctuation
+("browser’ s"); Latin faces now come first.
+
+**Rejected.** The `web-push` package (above). Subscriptions per user rather
+than per session (a revoked phone would keep being notified). Suppressing
+in the service worker (Safari). Caching anything in the worker for offline
+use: an offline copy of a private conversation on a phone is exactly what
+signing out should remove, and the outbox already covers sending while
+offline. A user-facing sheet per feature: one Details sheet holds members,
+notifications, and what later phases add.
+
+**Not verified on a device yet.** The encryption, VAPID header and the
+whole subscribe → send → decrypt path are tested against the RFC and a
+stand-in push service; Chromium headless can't receive real pushes. The
+first real test is a phone after deploying: Details → Notifications →
+Send a Test Notification.

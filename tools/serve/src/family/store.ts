@@ -539,6 +539,155 @@ export class FamilyStore {
     return row ?? null;
   }
 
+  /**
+   * Photos uploaded but never sent (the message's POST never came: the
+   * page was closed between the two requests, or its send failed for
+   * good), older than `before`. Their rows go here; the caller removes
+   * the files.
+   */
+  takeOrphanImages(before: number): string[] {
+    return this.transaction(() => {
+      const ids = (
+        this.db
+          .prepare(
+            `SELECT id FROM images WHERE created_at < ?
+             AND NOT EXISTS (SELECT 1 FROM messages WHERE image_id = images.id)`,
+          )
+          .all(before) as { id: string }[]
+      ).map((row) => row.id);
+      const remove = this.db.prepare('DELETE FROM images WHERE id = ?');
+      for (const id of ids) remove.run(id);
+      return ids;
+    });
+  }
+
+  // ---- sync --------------------------------------------------------------
+
+  /** Which database this is; a restore changes it (see db.ts, migration 2). */
+  epoch(): number {
+    return (
+      this.db.prepare("SELECT value FROM meta WHERE key = 'epoch'").get() as { value: number }
+    ).value;
+  }
+
+  renewEpoch(): number {
+    this.db
+      .prepare("UPDATE meta SET value = abs(random()) % 9007199254740991 WHERE key = 'epoch'")
+      .run();
+    return this.epoch();
+  }
+
+  /** Messages from others this person hasn't read yet: the app badge's number. */
+  unreadCount(userId: number): number {
+    return (
+      this.db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM messages m JOIN users u ON u.id = ?
+           WHERE m.rev > u.last_read_rev AND m.user_id != u.id AND m.deleted_at IS NULL`,
+        )
+        .get(userId) as { n: number }
+    ).n;
+  }
+
+  // ---- notifications -------------------------------------------------------
+
+  /** Stores (or moves to this sign-in) one device's push subscription. */
+  savePushSubscription(input: {
+    endpoint: string;
+    sessionToken: string;
+    userId: number;
+    p256dh: string;
+    auth: string;
+    preview: boolean;
+    now?: number;
+  }): void {
+    this.db
+      .prepare(
+        `INSERT INTO push_subscriptions
+           (endpoint, session_hash, user_id, p256dh, auth, preview, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (endpoint) DO UPDATE SET session_hash = excluded.session_hash,
+           user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth,
+           preview = excluded.preview, failures = 0`,
+      )
+      .run(
+        input.endpoint,
+        sha256(input.sessionToken),
+        input.userId,
+        input.p256dh,
+        input.auth,
+        input.preview ? 1 : 0,
+        input.now ?? Date.now(),
+      );
+  }
+
+  /** Removes a subscription — only one of the caller's own. */
+  deletePushSubscription(endpoint: string, userId: number): void {
+    this.db
+      .prepare('DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?')
+      .run(endpoint, userId);
+  }
+
+  /** This device's subscription (by its sign-in), if it has one. */
+  pushSubscriptionFor(
+    sessionToken: string | undefined,
+  ): { endpoint: string; preview: boolean } | null {
+    if (!sessionToken) return null;
+    const row = this.db
+      .prepare('SELECT endpoint, preview FROM push_subscriptions WHERE session_hash = ?')
+      .get(sha256(sessionToken)) as { endpoint: string; preview: number } | undefined;
+    return row ? { endpoint: row.endpoint, preview: row.preview === 1 } : null;
+  }
+
+  pushTargets(
+    userId: number,
+  ): { endpoint: string; p256dh: string; auth: string; preview: boolean }[] {
+    return (
+      this.db
+        .prepare(
+          `SELECT p.endpoint, p.p256dh, p.auth, p.preview FROM push_subscriptions p
+           JOIN users u ON u.id = p.user_id WHERE p.user_id = ? AND u.disabled_at IS NULL`,
+        )
+        .all(userId) as { endpoint: string; p256dh: string; auth: string; preview: number }[]
+    ).map((row) => ({ ...row, preview: row.preview === 1 }));
+  }
+
+  /**
+   * Records how a push went. A subscription the push service says is gone
+   * is deleted at once; one that keeps failing for other reasons goes
+   * after 20 in a row (weeks of a device that will never come back).
+   */
+  recordPush(
+    endpoint: string,
+    outcome: 'sent' | 'gone' | 'failed',
+    now: number = Date.now(),
+  ): void {
+    if (outcome === 'sent') {
+      this.db
+        .prepare(
+          'UPDATE push_subscriptions SET last_success_at = ?, failures = 0 WHERE endpoint = ?',
+        )
+        .run(now, endpoint);
+    } else if (outcome === 'gone') {
+      this.db.prepare('DELETE FROM push_subscriptions WHERE endpoint = ?').run(endpoint);
+    } else {
+      this.db
+        .prepare('UPDATE push_subscriptions SET failures = failures + 1 WHERE endpoint = ?')
+        .run(endpoint);
+      this.db
+        .prepare('DELETE FROM push_subscriptions WHERE endpoint = ? AND failures >= 20')
+        .run(endpoint);
+    }
+  }
+
+  pushDeviceCount(userId: number): number {
+    return (
+      this.db
+        .prepare('SELECT COUNT(*) AS n FROM push_subscriptions WHERE user_id = ?')
+        .get(userId) as { n: number }
+    ).n;
+  }
+
   // ---- diagnostics -------------------------------------------------------
 
   stats(): { messages: number; deleted: number; images: number; imageBytes: number } {

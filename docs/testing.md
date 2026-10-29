@@ -32,6 +32,10 @@ Astro's preview. Options: name areas (`pnpm test:browser exhibition`),
 - **gallery**, **lightbox**, **exhibition**, **share** — the areas `risk.ts`
   selects, each built around a failure that has actually happened (see each
   file's header).
+- **family** — the chat at `/family/`. Unlike every other area it starts its
+  own chat server in-process, on a throwaway data directory with test
+  accounts: the harness's server has no accounts, and a deploy's candidate
+  server opens the real conversation, which no test may write to.
 
 Correctness is asserted as geometry and state — aspect ratios within 1%,
 no overlapping boxes, nothing outside its container, exactly one

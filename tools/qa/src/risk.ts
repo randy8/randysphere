@@ -11,7 +11,15 @@
  */
 
 export type Risk = 'low' | 'medium' | 'high';
-export const AREAS = ['gallery', 'lightbox', 'exhibition', 'share', 'pictures', 'dishes'] as const;
+export const AREAS = [
+  'gallery',
+  'lightbox',
+  'exhibition',
+  'share',
+  'pictures',
+  'dishes',
+  'family',
+] as const;
 export type Area = (typeof AREAS)[number];
 
 interface Rule {
@@ -29,6 +37,15 @@ export const RULES: readonly Rule[] = [
     risk: 'low',
     areas: [],
     why: 'documentation',
+  },
+  {
+    // Mounted before every other route but answers only for /family; its
+    // own tests run its own server (family.browser.ts), and the smoke
+    // suite checks the boundary strangers see.
+    match: /^tools\/serve\/src\/family\//,
+    risk: 'medium',
+    areas: ['family'],
+    why: 'the family chat: accounts, live messages, notifications',
   },
   {
     match: /^tools\/serve\//,

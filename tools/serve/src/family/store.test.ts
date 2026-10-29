@@ -233,3 +233,20 @@ test('deleting an account removes its sign-ins and its messages', async () => {
   assert.ok(!store.members().some((user) => user.id === temp.id));
   assert.equal(store.getMessage(messageIds[0] ?? 0)?.deleted, true);
 });
+
+test('a database knows its epoch; renewing it (a restore) changes it, nothing else', () => {
+  const epoch = store.epoch();
+  const rev = store.currentRev();
+  assert.ok(Number.isSafeInteger(epoch) && epoch >= 0);
+  assert.notEqual(store.renewEpoch(), epoch);
+  assert.equal(store.currentRev(), rev);
+});
+
+test('unread counts others’ live messages after the last read rev', () => {
+  const before = store.unreadCount(dad.id);
+  const a = store.postMessage({ userId: mom.id, clientId: 'unread-0001', body: 'one' }).message;
+  store.postMessage({ userId: dad.id, clientId: 'unread-0002', body: 'mine' });
+  assert.equal(store.unreadCount(dad.id), before + 1);
+  store.markRead(dad.id, a.rev);
+  assert.equal(store.unreadCount(dad.id), 0);
+});

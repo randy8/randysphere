@@ -14,12 +14,15 @@ import { fileURLToPath } from 'node:url';
 
 import { LoginLimiter, clientAddress } from '../login-limiter.ts';
 import { openDatabase } from './db.ts';
-import { Hub } from './hub.ts';
+import { Hub, PRESENCE_MS } from './hub.ts';
 import { TokenBucket } from './limits.ts';
+import { Notifier } from './notify.ts';
 import { GROUP_NAME, renderAdmin, renderChat, renderLogin } from './pages.ts';
 import type { Assets } from './pages.ts';
 import { FamilyError, FamilyStore, SESSION_DAYS } from './store.ts';
 import type { Lang, Message, User } from './store.ts';
+import { isPushEndpoint, isPushKeys, loadVapidKeys, sendPush } from './webpush.ts';
+import type { VapidKeys } from './webpush.ts';
 
 const COOKIE = 'family_session';
 const STATIC_DIR = fileURLToPath(new URL('./static/', import.meta.url));
@@ -37,6 +40,7 @@ const CSP = [
   "connect-src 'self'",
   "font-src 'self'",
   "manifest-src 'self'",
+  "worker-src 'self'",
   "form-action 'self'",
   "base-uri 'none'",
   "frame-ancestors 'none'",
@@ -73,10 +77,19 @@ export const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MAX_JSON_BYTES = 32 * 1024;
 const PAGE_SIZE = 50;
 const REPLAY_LIMIT = 500;
+/** A photo uploaded but never sent is kept this long (a slow second request), then removed. */
+const ORPHAN_AFTER_MS = 24 * 60 * 60 * 1000;
 
 export interface FamilyConfig {
-  /** private/family — chat.db and images/. Never read by the site build. */
+  /** private/family — chat.db, images/ and vapid.json. Never read by the site build. */
   readonly dataDir: string;
+  /**
+   * Who push services should contact about this server's notifications
+   * (VAPID's `sub`, RFC 8292): the site's address.
+   */
+  readonly pushSubject?: string;
+  /** Tests only: stands in for the push services. */
+  readonly pushFetch?: typeof fetch;
 }
 
 class HttpError extends Error {
@@ -225,6 +238,10 @@ export class FamilyChat {
   readonly #sends = new TokenBucket(30, 1);
   readonly #uploads = new TokenBucket(20, 1 / 30);
   readonly #typing = new TokenBucket(2, 0.5);
+  readonly #pushTests = new TokenBucket(3, 1 / 60);
+  readonly #notifier: Notifier;
+  readonly #push: { keys: VapidKeys; subject: string; fetch?: typeof fetch };
+  readonly #cleanup: NodeJS.Timeout;
 
   constructor(config: FamilyConfig) {
     this.#config = config;
@@ -234,20 +251,63 @@ export class FamilyChat {
     chmodSync(config.dataDir, 0o700);
     this.store = new FamilyStore(openDatabase(join(config.dataDir, 'chat.db')));
     this.store.pruneExpiredSessions();
-    for (const name of readdirSync(STATIC_DIR)) {
-      const body = readFileSync(join(STATIC_DIR, name));
+    const names = readdirSync(STATIC_DIR).sort();
+    const bodies = new Map(names.map((name) => [name, readFileSync(join(STATIC_DIR, name))]));
+    // The page's scripts are ES modules importing each other by relative
+    // path, with no build step. All of them share one version — a hash of
+    // every script — stamped onto each import here, so a deploy that
+    // changes any module gives every URL a new version (and each stays
+    // immutable in the browser's cache meanwhile).
+    const scripts = names.filter((name) => name.endsWith('.js') && name !== 'sw.js');
+    const scriptVersion = createHash('sha256')
+      .update(Buffer.concat(scripts.map((name) => bodies.get(name) ?? Buffer.alloc(0))))
+      .digest('hex')
+      .slice(0, 12);
+    for (const [name, raw] of bodies) {
+      const isScript = scripts.includes(name);
+      const body = isScript
+        ? Buffer.from(
+            raw
+              .toString('utf8')
+              .replace(
+                /(\bfrom\s*|\bimport\s*\(\s*)(['"])\.\/([\w-]+\.js)\2/g,
+                `$1$2./$3?v=${scriptVersion}$2`,
+              ),
+          )
+        : raw;
       this.#static.set(name, {
         body,
-        hash: createHash('sha256').update(body).digest('hex').slice(0, 12),
+        hash: isScript
+          ? scriptVersion
+          : createHash('sha256').update(body).digest('hex').slice(0, 12),
       });
     }
     this.#assets = {
       url: (name) => `/family/static/${name}?v=${this.#static.get(name)?.hash ?? '0'}`,
+      modules: scripts.filter((name) => name !== 'chat.js'),
     };
+    this.#push = {
+      keys: loadVapidKeys(join(config.dataDir, 'vapid.json')),
+      subject: config.pushSubject ?? 'https://randyliang.net/family/',
+      ...(config.pushFetch ? { fetch: config.pushFetch } : {}),
+    };
+    this.#notifier = new Notifier({ store: this.store, hub: this.hub, ...this.#push });
+    void this.removeOrphans();
+    this.#cleanup = setInterval(() => void this.removeOrphans(), 60 * 60 * 1000);
+    this.#cleanup.unref();
   }
 
   shutdown(): void {
+    clearInterval(this.#cleanup);
     this.hub.shutdown();
+  }
+
+  /** Deletes photos that were uploaded and never sent (see ORPHAN_AFTER_MS). */
+  async removeOrphans(now: number = Date.now()): Promise<number> {
+    const ids = this.store.takeOrphanImages(now - ORPHAN_AFTER_MS);
+    for (const id of ids) await rm(join(this.#imagesDir, id), { force: true });
+    if (ids.length > 0) this.hub.record('orphan-photos-removed', null, String(ids.length));
+    return ids.length;
   }
 
   #session(req: IncomingMessage, res: ServerResponse | null): User | null {
@@ -320,6 +380,23 @@ export class FamilyChat {
       return;
     }
 
+    // The service worker: notifications only (static/sw.js has no fetch
+    // handler, so nothing private is ever cached by it). Served from
+    // /family/ itself, which is what scopes it to /family/; never cached,
+    // so a deploy's new version is found on the next visit.
+    if (pathname === '/family/sw.js' && (method === 'GET' || method === 'HEAD')) {
+      const file = this.#static.get('sw.js');
+      if (!file) throw new HttpError(404, 'Not found.');
+      res.writeHead(200, {
+        'content-type': 'text/javascript; charset=utf-8',
+        'cache-control': 'no-cache',
+        'content-security-policy': "default-src 'none'",
+        'x-robots-tag': 'noindex',
+      });
+      res.end(method === 'HEAD' ? undefined : file.body);
+      return;
+    }
+
     if (pathname === '/family/manifest.webmanifest' && method === 'GET') {
       res.writeHead(200, {
         'content-type': 'application/manifest+json',
@@ -328,14 +405,26 @@ export class FamilyChat {
       });
       res.end(
         JSON.stringify({
+          id: '/family/',
           name: GROUP_NAME,
           short_name: GROUP_NAME,
+          description: 'The family’s conversation · 家人的聊天',
           start_url: '/family/',
           scope: '/family/',
           display: 'standalone',
           background_color: '#fbfaf8',
           theme_color: '#fbfaf8',
-          icons: [{ src: this.#assets.url('icon-180.png'), sizes: '180x180', type: 'image/png' }],
+          icons: [
+            { src: this.#assets.url('icon-180.png'), sizes: '180x180', type: 'image/png' },
+            { src: this.#assets.url('icon-192.png'), sizes: '192x192', type: 'image/png' },
+            { src: this.#assets.url('icon-512.png'), sizes: '512x512', type: 'image/png' },
+            {
+              src: this.#assets.url('icon-maskable-512.png'),
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
+          ],
         }),
       );
       return;
@@ -408,6 +497,7 @@ export class FamilyChat {
       sendJson(res, 200, {
         ...page,
         rev: this.store.currentRev(),
+        epoch: this.store.epoch(),
         members: this.store.members().map(publicUser),
         lastReadRev: me.lastReadRev,
       });
@@ -458,6 +548,11 @@ export class FamilyChat {
         createReadStream(join(this.#imagesDir, id))
           .on('error', () => res.destroy())
           .pipe(res);
+      return;
+    }
+
+    if (pathname.startsWith('/family/api/push') || pathname === '/family/api/presence') {
+      await this.#pushRoute(req, res, pathname, method, me);
       return;
     }
 
@@ -552,6 +647,7 @@ export class FamilyChat {
     });
     if (result.created) {
       this.hub.broadcast('message', result.message, { id: result.message.rev });
+      void this.#notifier.messagePosted(result.message);
     } else {
       this.hub.record('duplicate-send-absorbed', me.id, `#${String(result.message.id)}`);
     }
@@ -612,13 +708,25 @@ export class FamilyChat {
       lastRev: Number.isFinite(after) ? after : 0,
       res,
     });
+    const rev = this.store.currentRev();
+    const epoch = this.store.epoch();
     this.hub.send(connection, 'hello', {
-      rev: this.store.currentRev(),
+      rev,
+      epoch,
+      stream: connection.id,
       members: this.store.members().map(publicUser),
     });
+    // A page that last saw another database (a restore since), or revs
+    // this one hasn't reached, can't be brought up to date by replay: it
+    // starts over. So does one too far behind for replay to be cheaper.
+    const claimed = Number(url.searchParams.get('epoch') ?? epoch);
+    const foreign = claimed !== epoch || (Number.isFinite(after) && after > rev);
     // Everything since what this client last saw, before anything new: the
     // store is synchronous, so nothing can be broadcast in between.
-    if (Number.isFinite(after) && after > 0) {
+    if (foreign) {
+      this.hub.send(connection, 'reset', {});
+      this.hub.record('reset-after-restore', me.id);
+    } else if (Number.isFinite(after) && after > 0) {
       const missed = this.store.changesSince(after, REPLAY_LIMIT + 1);
       if (missed.length > REPLAY_LIMIT) {
         this.hub.send(connection, 'reset', {});
@@ -636,6 +744,101 @@ export class FamilyChat {
     res.on('close', () => {
       this.hub.record('stream-closed', me.id);
     });
+  }
+
+  /** Notification subscriptions for this device, and its "I'm looking" signal. */
+  async #pushRoute(
+    req: IncomingMessage,
+    res: ServerResponse,
+    pathname: string,
+    method: string,
+    me: User,
+  ): Promise<void> {
+    const token = readCookie(req.headers.cookie) ?? '';
+
+    if (pathname === '/family/api/push' && method === 'GET') {
+      const mine = this.store.pushSubscriptionFor(token);
+      sendJson(res, 200, {
+        publicKey: this.#notifier.publicKey,
+        subscribed: mine !== null,
+        endpoint: mine?.endpoint ?? null,
+        preview: mine?.preview ?? false,
+      });
+      return;
+    }
+
+    if (pathname === '/family/api/push' && method === 'POST') {
+      const body = await readJson(req);
+      const endpoint = typeof body['endpoint'] === 'string' ? body['endpoint'] : '';
+      const keys = (body['keys'] ?? {}) as Record<string, unknown>;
+      const p256dh = typeof keys['p256dh'] === 'string' ? keys['p256dh'] : '';
+      const auth = typeof keys['auth'] === 'string' ? keys['auth'] : '';
+      if (!isPushEndpoint(endpoint) || !isPushKeys(p256dh, auth)) {
+        this.hub.record('push-subscription-refused', me.id);
+        throw new HttpError(400, 'That isn’t a push subscription this server can use.');
+      }
+      this.store.savePushSubscription({
+        endpoint,
+        sessionToken: token,
+        userId: me.id,
+        p256dh,
+        auth,
+        preview: body['preview'] === true,
+      });
+      this.hub.record('push-subscribed', me.id, new URL(endpoint).hostname);
+      sendJson(res, 200, { subscribed: true });
+      return;
+    }
+
+    if (pathname === '/family/api/push/remove' && method === 'POST') {
+      const body = await readJson(req);
+      if (typeof body['endpoint'] === 'string') {
+        this.store.deletePushSubscription(body['endpoint'], me.id);
+      }
+      this.hub.record('push-unsubscribed', me.id);
+      sendJson(res, 200, { subscribed: false });
+      return;
+    }
+
+    // "Send a test": proves the whole path to this one device.
+    if (pathname === '/family/api/push/test' && method === 'POST') {
+      const mine = this.store.pushSubscriptionFor(token);
+      const target = mine
+        ? this.store.pushTargets(me.id).find((t) => t.endpoint === mine.endpoint)
+        : undefined;
+      if (!target) throw new HttpError(404, 'Notifications aren’t on for this device.');
+      if (!this.#pushTests.take(String(me.id))) throw new HttpError(429, 'Wait a minute.');
+      const zh = me.lang === 'zh';
+      const { outcome, status } = await sendPush(
+        target,
+        {
+          title: zh ? '家人' : 'Family',
+          body: zh ? '通知已开启。' : 'Notifications are on.',
+          tag: 'family-test',
+          messageId: 0,
+          badge: this.store.unreadCount(me.id),
+        },
+        this.#push,
+      );
+      this.store.recordPush(target.endpoint, outcome);
+      this.hub.record('push-test', me.id, `${outcome} ${String(status)}`);
+      sendJson(res, outcome === 'sent' ? 200 : 502, { outcome });
+      return;
+    }
+
+    if (pathname === '/family/api/presence' && method === 'POST') {
+      const body = await readJson(req);
+      const connection = this.hub.get(Number(body['stream']));
+      // Only one's own stream: nobody can silence someone else's notifications.
+      if (connection?.userId === me.id) {
+        connection.visibleUntil = body['visible'] === true ? Date.now() + PRESENCE_MS : 0;
+      }
+      res.writeHead(204, PRIVATE_HEADERS);
+      res.end();
+      return;
+    }
+
+    throw new HttpError(404, 'Not found.');
   }
 
   async #admin(

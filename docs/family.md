@@ -10,14 +10,15 @@ Code: `tools/serve/src/family/`. Data: `private/family/` (git-ignored):
 
 ## How it works
 
-| Part      | Choice                                                                                                                                                                                                                                                              |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Server    | Part of `tools/serve` (the existing production server), mounted at `/family/` before anything else is routed. No separate app.                                                                                                                                      |
-| Storage   | Node's built-in SQLite (`node:sqlite`), WAL, `synchronous = FULL`: a message is on disk before its sender is told "Delivered". Migrations are `user_version`-numbered in `db.ts`, append-only.                                                                      |
-| Live      | Server-Sent Events (`/family/api/events`). Every insert and deletion gets the next `rev`; a reconnecting browser sends the last rev it saw and gets exactly what it missed. 20 s heartbeats keep Cloudflare (100 s idle limit) and phone networks from dropping it. |
-| Sending   | Each message carries a client-generated id, unique per author: a retry after a lost response returns the original instead of a duplicate. Unsent text survives a reload (localStorage outbox) and is retried with backoff until it goes through.                    |
-| Accounts  | Username + password, hashed with Argon2id (`node:crypto`, 64 MiB, 3 passes). Sessions are random tokens, stored only as SHA-256 hashes, so they can be revoked; the cookie is `HttpOnly; Secure; SameSite=Lax`, 400 days, renewed as it's used.                     |
-| Interface | Server-rendered page + one script (`static/chat.js`), no framework. Works without JavaScript too: the latest 50 messages and a form that posts.                                                                                                                     |
+| Part      | Choice                                                                                                                                                                                                                                                                                                                          |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Server    | Part of `tools/serve` (the existing production server), mounted at `/family/` before anything else is routed. No separate app.                                                                                                                                                                                                  |
+| Storage   | Node's built-in SQLite (`node:sqlite`), WAL, `synchronous = FULL`: a message is on disk before its sender is told "Delivered". Migrations are `user_version`-numbered in `db.ts`, append-only.                                                                                                                                  |
+| Live      | Server-Sent Events (`/family/api/events`). Every insert and deletion gets the next `rev`; a reconnecting browser sends the last rev it saw and gets exactly what it missed. 20 s heartbeats keep Cloudflare (100 s idle limit) and phone networks from dropping it.                                                             |
+| Sending   | Each message carries a client-generated id, unique per author: a retry after a lost response returns the original instead of a duplicate. Unsent text survives a reload (localStorage outbox) and is retried with backoff until it goes through.                                                                                |
+| Accounts  | Username + password, hashed with Argon2id (`node:crypto`, 64 MiB, 3 passes). Sessions are random tokens, stored only as SHA-256 hashes, so they can be revoked; the cookie is `HttpOnly; Secure; SameSite=Lax`, 400 days, renewed as it's used.                                                                                 |
+| Interface | Server-rendered page + plain ES modules (`static/chat.js` and the modules it imports), no framework, no build step: at startup the server stamps every relative import with one shared version and the page preloads them, so they arrive together. Works without JavaScript too: the latest 50 messages and a form that posts. |
+| Notify    | Web Push (RFC 8291 encryption, RFC 8292 VAPID) in `webpush.ts`, `node:crypto` only. A service worker (`static/sw.js`) shows notifications and does nothing else — no `fetch` handler, so nothing private is ever cached.                                                                                                        |
 
 The reasoning, and what was rejected, is in `docs/decisions.md`
 (2026-10-28, "Family chat").
@@ -47,6 +48,43 @@ in person or by phone, not in WeChat.
    own icon. A home-screen app keeps its own sign-in, separate from Safari's,
    so sign in once more there. After that, nobody is asked again for over a
    year as long as they open it now and then.
+
+### Notifications
+
+Each device turns them on for itself: **tap the conversation's title →
+Notifications → Turn On Notifications**. Permission is asked only then,
+never on opening the page.
+
+- **iPhone / iPad (iOS 16.4+):** only from the Home Screen app. In Safari
+  the Details sheet says so; add Family to the Home Screen (above), open it
+  from there, then turn notifications on.
+- **Android (Chrome):** works in the browser or installed (Chrome offers
+  "Install app" / "Add to Home screen"). Needs Google Play services — see
+  China, below.
+- **Mac / Windows / Linux:** Chrome, Edge, Firefox and Safari all work in
+  an ordinary tab.
+
+**Send a Test Notification** (same sheet) proves the whole path to that
+one device.
+
+What a notification says is per device. By default only **“New message”**
+— nothing about who or what, since lock screens are seen by others. **Show
+Name and Message** adds the sender and first line. Either way the content
+is encrypted for that browser alone; Apple, Google or Mozilla carry it but
+can't read it.
+
+Nobody is notified for their own messages, or while they have the
+conversation on screen (the page tells the server it's visible every 25 s;
+the claim lapses after 40 s, so a phone that slept without saying so is
+notified again). The app icon's badge is the unread count, cleared once
+read on any device.
+
+A device's subscription belongs to its sign-in: signing out, **Sign out
+everywhere**, a new password or a disabled account stop its notifications
+too. Subscriptions the push service reports gone (404/410) are deleted at
+once; one failing for other reasons is deleted after 20 failures in a row.
+The server's key is `private/family/vapid.json`, made on first start and
+copied by backups — replacing it would silently unsubscribe every device.
 
 ## Accounts
 
@@ -78,7 +116,7 @@ pnpm family backup /mnt/somewhere/     # or anywhere
 ```
 
 Safe while the server runs (`VACUUM INTO`, a consistent snapshot) and copies
-the photos. **It is a local copy on the same disk** — it protects against a
+the photos and the notification key. **It is a local copy on the same disk** — it protects against a
 mistake, not against the disk. Until the NAS exists (see the backups note),
 copy `private/family-backups/` somewhere else by hand now and then.
 
@@ -92,7 +130,23 @@ sudo systemctl start photography-serve
 
 Restore refuses while the server is running, checks the backup's integrity
 first, and moves the current chat aside (`private/family-replaced-<time>/`)
-rather than deleting it.
+rather than deleting it. It also gives the database a new **epoch**: a
+browser still holding revs from before the restore starts over from the
+restored conversation instead of waiting for (or skipping) revs that
+belong to the old one.
+
+**Off this machine.** Backups are deliberately deferred until the NAS
+exists. When it does: run `pnpm family backup` from a daily timer into a
+dated directory, sync `private/family-backups/` to the NAS (rsync or
+restic), keep 14 dailies and 12 monthlies, and once a month restore the
+newest into a scratch directory and open it
+(`sqlite3 <dir>/chat.db 'PRAGMA integrity_check'`, then count messages)
+— a backup never restored is a hope, not a backup. A backup's `chat.db`
+and `images/` are only consistent with each other as one directory: copy
+it whole.
+
+Photos uploaded but never sent (the page closed between uploading and
+sending) are deleted after a day, hourly.
 
 ## Diagnostics
 
@@ -124,6 +178,10 @@ content is never logged anywhere.
   removes their location metadata.
 - Every response is `private, no-store` and `noindex`. Plain HTTP is
   redirected to HTTPS before anything else is read (`arrivedOverHttp`).
+- Notifications are only ever posted to Apple's, Google's, Mozilla's and
+  Microsoft's push services (`isPushEndpoint`): a crafted "subscription"
+  can't make this server send requests anywhere else, its own loopback
+  services included. A page can mark only its own stream as visible.
 
 **What it is not:** end-to-end encrypted. Traffic is HTTPS to Cloudflare and
 encrypted again through the tunnel to this machine, but Cloudflare terminates
@@ -173,9 +231,13 @@ If it turns out unreliable: the usual fix is a small VPS with good China
 routing (Hong Kong or Japan, "CN2 GIA") as a reverse proxy in front of this
 server, not a different chat design.
 
+**Notifications from China.** iPhones in mainland China receive web push
+normally (Apple's push service works there). Android phones sold in China
+usually have no Google Play services, so Chrome's push has nowhere to
+deliver: the sheet's **Turn On** fails with a clear message, and the chat
+still works, just without notifications. Notifications are sent from this
+server to Apple/Google, so nothing extra has to be reachable from China.
+
 ## Not built (yet)
 
-- Push notifications. iOS supports web push for home-screen apps, but it
-  needs a notification permission flow and a key pair; worth doing only if
-  people miss messages.
 - Read receipts beyond your own "Delivered"; reactions; editing; search.

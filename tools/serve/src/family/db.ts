@@ -84,6 +84,30 @@ const MIGRATIONS: readonly string[] = [
   );
   INSERT INTO meta (key, value) VALUES ('rev', 0);
   `,
+  `
+  -- One row per device that asked for notifications. Tied to the sign-in
+  -- it was made under: signing out, a revoke or a new password deletes the
+  -- session, and the cascade stops that device's notifications with it.
+  CREATE TABLE push_subscriptions (
+    endpoint        TEXT PRIMARY KEY,
+    session_hash    TEXT NOT NULL REFERENCES sessions(token_hash) ON DELETE CASCADE,
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    p256dh          TEXT NOT NULL,
+    auth            TEXT NOT NULL,
+    preview         INTEGER NOT NULL DEFAULT 0,
+    created_at      INTEGER NOT NULL,
+    last_success_at INTEGER,
+    failures        INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX push_subscriptions_user ON push_subscriptions(user_id);
+
+  -- Which database this is. A restore gives it a new epoch, so a browser
+  -- that saw revs from the replaced database starts over instead of
+  -- waiting for revs that will never come (or skipping ones that will).
+  INSERT INTO meta (key, value) VALUES ('epoch', abs(random()) % 9007199254740991);
+
+  CREATE INDEX images_created ON images(created_at);
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

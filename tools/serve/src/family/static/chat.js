@@ -2,6 +2,9 @@
 // build step. The server rendered the latest messages and a working form;
 // this replaces them with the live conversation.
 
+import { notificationSettings, registerWorker, syncSubscription } from './notifications.js';
+import { group, openSheet, row } from './sheet.js';
+
 const boot = JSON.parse(document.getElementById('family-boot')?.textContent ?? '{}');
 const me = boot.me;
 const zh = me.lang === 'zh';
@@ -26,6 +29,10 @@ const T = zh
       you: '我',
       badPhoto: '无法读取这张照片。',
       tooBig: '这张照片太大了。',
+      details: '详细信息',
+      done: '完成',
+      members: '成员',
+      openDetails: '聊天详细信息',
     }
   : {
       today: 'Today',
@@ -45,6 +52,10 @@ const T = zh
       you: 'You',
       badPhoto: 'Couldn’t read that photo.',
       tooBig: 'That photo is too large.',
+      details: 'Details',
+      done: 'Done',
+      members: 'Members',
+      openDetails: 'Conversation details',
     };
 
 const $ = (selector) => document.querySelector(selector);
@@ -80,6 +91,11 @@ const nodes = new Map();
 const members = new Map();
 const typers = new Map();
 let rev = 0;
+/** Which database the revs came from (a restore changes it; routes.ts). */
+let epoch = null;
+/** This tab's event stream, by the server's id for it: what presence pings name. */
+let streamId = 0;
+let presenceTimer = 0;
 let hasMore = false;
 let loadingOlder = false;
 let replyTo = null;
@@ -524,6 +540,7 @@ async function loadLatest() {
   messages.clear();
   for (const message of page.messages) messages.set(message.id, message);
   rev = page.rev;
+  epoch = page.epoch;
   hasMore = page.hasMore;
   render();
   scrollToBottom(false);
@@ -564,15 +581,20 @@ new IntersectionObserver(
 
 function connect() {
   source?.close();
-  source = new EventSource(`/family/api/events?after=${rev}`);
+  source = new EventSource(
+    `/family/api/events?after=${rev}${epoch === null ? '' : `&epoch=${epoch}`}`,
+  );
   const advance = (event) => {
     const id = Number(event.lastEventId);
     if (Number.isFinite(id) && id > rev) rev = id;
   };
   source.addEventListener('open', () => setConnected(true));
   source.addEventListener('hello', (event) => {
+    const hello = JSON.parse(event.data);
     setConnected(true);
-    setMembers(JSON.parse(event.data).members);
+    setMembers(hello.members);
+    streamId = hello.stream;
+    sendPresence();
     flushOutbox();
   });
   source.addEventListener('message', (event) => {
@@ -638,7 +660,26 @@ function markRead() {
     readTimer = 0;
     lastReadRev = rev;
     api('/family/api/read', { method: 'POST', json: { rev } }).catch(() => {});
+    // Read here is read everywhere: the badge a notification set goes too.
+    navigator.clearAppBadge?.().catch(() => {});
   }, 1500);
+}
+
+/**
+ * Tells the server whether this tab is on screen, so someone reading the
+ * conversation isn't also sent a notification for each message in it.
+ * Renewed while visible; the server lets it lapse (hub.ts, PRESENCE_MS).
+ */
+function sendPresence() {
+  clearTimeout(presenceTimer);
+  if (!streamId) return;
+  const visible = !document.hidden;
+  api('/family/api/presence', {
+    method: 'POST',
+    json: { stream: streamId, visible },
+    keepalive: true,
+  }).catch(() => {});
+  if (visible) presenceTimer = setTimeout(sendPresence, 25_000);
 }
 
 function updateTitle() {
@@ -651,6 +692,7 @@ function updateTitle() {
 }
 
 document.addEventListener('visibilitychange', () => {
+  sendPresence();
   if (document.hidden) return;
   markRead();
   // A phone that slept may have dropped the stream without telling it.
@@ -662,6 +704,12 @@ window.addEventListener('online', () => {
   flushOutbox();
 });
 window.addEventListener('offline', showSubtitle);
+// Restored from the back-forward cache: the page is as it was, its stream isn't.
+window.addEventListener('pageshow', (event) => {
+  if (!event.persisted) return;
+  connect();
+  flushOutbox();
+});
 
 // ---- sending ------------------------------------------------------------
 
@@ -1178,6 +1226,57 @@ function openViewer(src) {
   viewer.focus();
 }
 
+// ---- details -------------------------------------------------------------
+
+function openDetails() {
+  document.querySelector('.bar-menu')?.removeAttribute('open');
+  openSheet({
+    title: T.details,
+    closeLabel: T.done,
+    build: (body) => {
+      const { rows } = group(body, T.members);
+      for (const [id, member] of members) {
+        if (!member.active) continue;
+        row(rows, id === me.id ? `${member.name} (${T.you})` : member.name);
+      }
+      notificationSettings(body, { api, lang: me.lang });
+    },
+  });
+}
+
+const barTitle = $('.bar-title');
+barTitle.setAttribute('role', 'button');
+barTitle.tabIndex = 0;
+barTitle.setAttribute('aria-label', T.openDetails);
+barTitle.addEventListener('click', openDetails);
+barTitle.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    openDetails();
+  }
+});
+const detailsItem = $('[data-open-details]');
+if (detailsItem) {
+  detailsItem.hidden = false;
+  detailsItem.addEventListener('click', openDetails);
+}
+
+/** Brings one message into view and marks it briefly, if it's loaded. */
+function reveal(id) {
+  const target = nodes.get(`m${id}`);
+  if (!target) return false;
+  target.scrollIntoView({ block: 'center', behavior: reducedMotion.matches ? 'auto' : 'smooth' });
+  target.classList.remove('flash');
+  void target.offsetWidth;
+  target.classList.add('flash');
+  return true;
+}
+
+// A notification tapped while the chat is already open (sw.js).
+navigator.serviceWorker?.addEventListener('message', (event) => {
+  if (event.data?.type === 'open-message' && event.data.id > 0) reveal(event.data.id);
+});
+
 // ---- start ---------------------------------------------------------------
 
 attach.hidden = false;
@@ -1190,6 +1289,10 @@ async function start(attempt = 0) {
   try {
     await loadLatest();
     connect();
+    // Opened from a notification: /family/#m<id>.
+    const linked = /^#m(\d+)$/.exec(location.hash);
+    if (linked && reveal(Number(linked[1]))) history.replaceState(null, '', '/family/');
+    if (attempt === 0) registerWorker().then(() => syncSubscription(api).catch(() => {}));
   } catch {
     setConnected(false);
     setTimeout(() => start(attempt + 1), Math.min(30_000, 1000 * 2 ** attempt));

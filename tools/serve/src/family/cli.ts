@@ -128,6 +128,10 @@ function backup(store: FamilyStore, target: string): void {
   store.db.exec(`VACUUM INTO '${file.replace(/'/g, "''")}'`);
   const images = join(DATA, 'images');
   if (existsSync(images)) cpSync(images, join(target, 'images'), { recursive: true });
+  // The notification key: without it, every device's subscription would
+  // stop working after a restore.
+  const vapid = join(DATA, 'vapid.json');
+  if (existsSync(vapid)) cpSync(vapid, join(target, 'vapid.json'));
   const stats = store.stats();
   writeFileSync(
     join(target, 'backup.json'),
@@ -163,8 +167,16 @@ async function restore(source: string): Promise<void> {
   cpSync(file, join(DATA, 'chat.db'));
   const images = join(source, 'images');
   if (existsSync(images)) cpSync(images, join(DATA, 'images'), { recursive: true });
-  // Opening runs any migrations the backup is behind on.
-  openDatabase(join(DATA, 'chat.db')).close();
+  for (const kept of ['vapid.json']) {
+    // From the backup if it has one, else the one being replaced.
+    const from = existsSync(join(source, kept)) ? join(source, kept) : join(aside, kept);
+    if (existsSync(from)) cpSync(from, join(DATA, kept));
+  }
+  // Opening runs any migrations the backup is behind on. A new epoch tells
+  // every open page that its revs belong to the replaced database.
+  const restored = new FamilyStore(openDatabase(join(DATA, 'chat.db')));
+  restored.renewEpoch();
+  restored.db.close();
   rmSync(join(DATA, 'chat.db-shm'), { force: true });
   console.log(`Restored from ${source}. The previous chat is kept at ${aside}.`);
   console.log('Start the server again:  sudo systemctl start photography-serve');

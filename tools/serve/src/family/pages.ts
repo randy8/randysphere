@@ -5,6 +5,8 @@ import type { Lang, Message, SessionInfo, User } from './store.ts';
 export interface Assets {
   /** `/family/static/<name>?v=<hash>` for each static file. */
   readonly url: (name: string) => string;
+  /** The modules chat.js imports, preloaded so they arrive with it rather than after it. */
+  readonly modules: readonly string[];
 }
 
 /** The conversation's name, in the header and the home-screen title. */
@@ -19,6 +21,7 @@ const STRINGS = {
     admin: 'Members',
     noScript: 'Without JavaScript, new messages appear when you reload the page.',
     empty: 'No messages yet. Say hello.',
+    details: 'Details & Notifications',
   },
   zh: {
     placeholder: '信息',
@@ -28,6 +31,7 @@ const STRINGS = {
     admin: '成员',
     noScript: '未启用 JavaScript：刷新页面即可看到新消息。',
     empty: '还没有消息，打个招呼吧。',
+    details: '详细信息与通知',
   },
 } as const;
 
@@ -151,6 +155,7 @@ export function renderChat(input: {
         <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
       </summary>
       <div class="bar-menu-items">
+        <button type="button" data-open-details hidden>${t.details}</button>
         ${me.isAdmin ? `<a href="/family/admin">${t.admin}</a>` : ''}
         <form method="POST" action="/family/logout"><button type="submit">${t.signOut}</button></form>
       </div>
@@ -190,6 +195,7 @@ ${recent.length === 0 ? `<li class="empty" data-static>${t.empty}</li>` : recent
 </div>
 <div class="menu-layer" data-menu-layer hidden></div>
 <script type="application/json" id="family-boot">${boot}</script>
+${assets.modules.map((name) => `<link rel="modulepreload" href="${assets.url(name)}">`).join('\n')}
 <script type="module" src="${assets.url('chat.js')}"></script>
 </body>
 </html>

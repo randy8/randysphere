@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync } from 'node:fs';
+import { createDecipheriv, createECDH, hkdfSync, randomBytes } from 'node:crypto';
+import { existsSync, mkdtempSync } from 'node:fs';
 import { createServer, request } from 'node:http';
 import type { IncomingMessage, Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -16,6 +17,55 @@ let host: string;
 let momCookie: string;
 let randyCookie: string;
 let dadCookie: string;
+let dataDir: string;
+
+/** What the stand-in push service received, and what it answers per endpoint. */
+const pushed: { endpoint: string; body: Buffer; headers: Record<string, string> }[] = [];
+const pushAnswers = new Map<string, number>();
+const pushFetch: typeof fetch = async (url, init) => {
+  const endpoint = typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
+  pushed.push({
+    endpoint,
+    body: Buffer.from(init?.body as Uint8Array),
+    headers: init?.headers as Record<string, string>,
+  });
+  return Promise.resolve(new Response(null, { status: pushAnswers.get(endpoint) ?? 201 }));
+};
+
+/** A browser's side of a push subscription: its keys, and decryption (RFC 8291). */
+function device(name: string): {
+  subscription: { endpoint: string; keys: { p256dh: string; auth: string } };
+  read: (body: Buffer) => Record<string, unknown>;
+} {
+  const ecdh = createECDH('prime256v1');
+  ecdh.generateKeys();
+  const auth = randomBytes(16);
+  const subscription = {
+    endpoint: `https://web.push.apple.com/${name}`,
+    keys: { p256dh: ecdh.getPublicKey().toString('base64url'), auth: auth.toString('base64url') },
+  };
+  const read = (body: Buffer): Record<string, unknown> => {
+    const salt = body.subarray(0, 16);
+    const asPublic = body.subarray(21, 21 + body.readUInt8(20));
+    const secret = ecdh.computeSecret(asPublic);
+    const info = Buffer.concat([Buffer.from('WebPush: info\0'), ecdh.getPublicKey(), asPublic]);
+    const ikm = Buffer.from(hkdfSync('sha256', secret, auth, info, 32));
+    const derive = (label: string, length: number): Buffer =>
+      Buffer.from(
+        hkdfSync('sha256', ikm, salt, Buffer.from(`Content-Encoding: ${label}\0`), length),
+      );
+    const sealed = body.subarray(21 + asPublic.length);
+    const decipher = createDecipheriv('aes-128-gcm', derive('aes128gcm', 16), derive('nonce', 12));
+    decipher.setAuthTag(sealed.subarray(-16));
+    const plain = Buffer.concat([decipher.update(sealed.subarray(0, -16)), decipher.final()]);
+    assert.equal(plain.at(-1), 0x02);
+    return JSON.parse(plain.subarray(0, -1).toString('utf8')) as Record<string, unknown>;
+  };
+  return { subscription, read };
+}
+
+/** Lets the notifier's fire-and-forget sends finish. */
+const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 50));
 
 async function call(
   path: string,
@@ -123,7 +173,8 @@ function stream(
 }
 
 before(async () => {
-  chat = new FamilyChat({ dataDir: mkdtempSync(join(tmpdir(), 'family-routes-')) });
+  dataDir = mkdtempSync(join(tmpdir(), 'family-routes-'));
+  chat = new FamilyChat({ dataDir, pushFetch });
   await Promise.all([
     chat.store.createUser({
       username: 'mom',
@@ -477,4 +528,266 @@ test('plain HTTP through the tunnel is sent to HTTPS before anything else happen
     headers: { 'x-forwarded-proto': 'https' },
   });
   assert.equal(https.status, 200);
+});
+
+test('notifications: a device subscribes; everyone but the author is told, generically by default', async () => {
+  const phone = device('dad-phone');
+  // Only a real push service's address, with real keys.
+  for (const bad of [
+    { ...phone.subscription, endpoint: 'https://127.0.0.1/family/' },
+    { ...phone.subscription, endpoint: 'http://web.push.apple.com/x' },
+    { ...phone.subscription, keys: { p256dh: 'AAAA', auth: 'BBBB' } },
+  ]) {
+    assert.equal((await call('/family/api/push', { cookie: dadCookie, json: bad })).status, 400);
+  }
+  assert.equal(
+    (await call('/family/api/push', { cookie: dadCookie, json: phone.subscription })).status,
+    200,
+  );
+  const state = (await (await call('/family/api/push', { cookie: dadCookie })).json()) as {
+    subscribed: boolean;
+    publicKey: string;
+    preview: boolean;
+  };
+  assert.equal(state.subscribed, true);
+  assert.equal(state.preview, false);
+  assert.match(state.publicKey, /^[\w-]{87}$/);
+  // Mom's own device (another session) isn't subscribed: not her business.
+  assert.equal(
+    (
+      (await (await call('/family/api/push', { cookie: momCookie })).json()) as {
+        subscribed: boolean;
+      }
+    ).subscribed,
+    false,
+  );
+
+  pushed.length = 0;
+  await call('/family/api/messages', {
+    cookie: momCookie,
+    json: { clientId: 'push-0000001', body: '晚饭好了' },
+  });
+  await settle();
+  const toDad = pushed.filter((p) => p.endpoint === phone.subscription.endpoint);
+  assert.equal(toDad.length, 1);
+  assert.equal(toDad[0]?.headers['content-encoding'], 'aes128gcm');
+  assert.equal(toDad[0]?.headers['topic'], 'family');
+  const payload = phone.read(toDad[0]?.body ?? Buffer.alloc(0));
+  assert.equal(payload['body'], 'New message');
+  assert.equal(payload['title'], 'Family');
+  assert.ok(!JSON.stringify(payload).includes('晚饭'), 'no message text without Preview');
+  assert.ok(Number(payload['badge']) >= 1);
+
+  // Preview on: the sender's name and the text, still encrypted end to end.
+  await call('/family/api/push', {
+    cookie: dadCookie,
+    json: { ...phone.subscription, preview: true },
+  });
+  pushed.length = 0;
+  await call('/family/api/messages', {
+    cookie: momCookie,
+    json: { clientId: 'push-0000002', body: '快回来吃饭' },
+  });
+  await settle();
+  const preview = phone.read(
+    pushed.find((p) => p.endpoint === phone.subscription.endpoint)?.body ?? Buffer.alloc(0),
+  );
+  assert.equal(preview['title'], '妈妈');
+  assert.equal(preview['body'], '快回来吃饭');
+  assert.ok(
+    !toDad[0]?.body.includes(Buffer.from('快回来')),
+    'the push service sees ciphertext only',
+  );
+
+  // The author's own devices are never notified of their own message.
+  pushed.length = 0;
+  await call('/family/api/messages', {
+    cookie: dadCookie,
+    json: { clientId: 'push-0000003', body: 'coming' },
+  });
+  await settle();
+  assert.equal(pushed.filter((p) => p.endpoint === phone.subscription.endpoint).length, 0);
+});
+
+test('notifications: not while the conversation is on screen; again once it is put away', async () => {
+  const phone = device('randy-phone');
+  await call('/family/api/push', { cookie: randyCookie, json: phone.subscription });
+  const open = await stream(randyCookie);
+  const hello = (await open.next('hello')).data as { stream: number };
+  const toRandy = (): number =>
+    pushed.filter((p) => p.endpoint === phone.subscription.endpoint).length;
+
+  pushed.length = 0;
+  await call('/family/api/messages', {
+    cookie: momCookie,
+    json: { clientId: 'seen-0000001', body: 'a' },
+  });
+  await settle();
+  assert.equal(toRandy(), 0, 'reading it already');
+
+  // Someone else can't claim his stream is hidden (or visible).
+  await call('/family/api/presence', {
+    cookie: dadCookie,
+    json: { stream: hello.stream, visible: false },
+  });
+  await call('/family/api/messages', {
+    cookie: momCookie,
+    json: { clientId: 'seen-0000002', body: 'b' },
+  });
+  await settle();
+  assert.equal(toRandy(), 0);
+
+  await call('/family/api/presence', {
+    cookie: randyCookie,
+    json: { stream: hello.stream, visible: false },
+  });
+  await call('/family/api/messages', {
+    cookie: momCookie,
+    json: { clientId: 'seen-0000003', body: 'c' },
+  });
+  await settle();
+  assert.equal(toRandy(), 1, 'tab hidden: notified');
+  open.close();
+});
+
+test('notifications: an expired subscription is forgotten; signing out stops that device', async () => {
+  const old = device('dad-old-tablet');
+  await call('/family/api/push', { cookie: dadCookie, json: old.subscription });
+  pushAnswers.set(old.subscription.endpoint, 410);
+  await call('/family/api/messages', {
+    cookie: momCookie,
+    json: { clientId: 'gone-0000001', body: 'x' },
+  });
+  await settle();
+  const rows = chat.store.db
+    .prepare('SELECT endpoint FROM push_subscriptions WHERE endpoint = ?')
+    .all(old.subscription.endpoint);
+  assert.equal(rows.length, 0);
+
+  // A sign-in of its own, subscribed, then signed out: the subscription goes with it.
+  const laptop = await signIn('mom', 'correct horse');
+  const mac = device('mom-mac');
+  await call('/family/api/push', { cookie: laptop, json: mac.subscription });
+  assert.equal(chat.store.pushDeviceCount(chat.store.findUserByUsername('mom')?.id ?? 0), 1);
+  await call('/family/logout', { cookie: laptop, form: {} });
+  assert.equal(chat.store.pushDeviceCount(chat.store.findUserByUsername('mom')?.id ?? 0), 0);
+});
+
+test('notifications: a test reaches only this device, and is rate limited', async () => {
+  const phone = device('dad-test');
+  const own = await signIn('dad', 'another password');
+  assert.equal((await call('/family/api/push/test', { cookie: own, form: {} })).status, 404);
+  await call('/family/api/push', { cookie: own, json: phone.subscription });
+  pushed.length = 0;
+  assert.equal((await call('/family/api/push/test', { cookie: own, json: {} })).status, 200);
+  assert.deepEqual(
+    pushed.map((p) => p.endpoint),
+    [phone.subscription.endpoint],
+  );
+  assert.equal(phone.read(pushed[0]?.body ?? Buffer.alloc(0))['body'], 'Notifications are on.');
+  await call('/family/api/push/test', { cookie: own, json: {} });
+  await call('/family/api/push/test', { cookie: own, json: {} });
+  assert.equal((await call('/family/api/push/test', { cookie: own, json: {} })).status, 429);
+});
+
+test('a page from a replaced database, or ahead of this one, starts over instead of replaying', async () => {
+  const history = (await (await call('/family/api/history', { cookie: dadCookie })).json()) as {
+    rev: number;
+    epoch: number;
+  };
+  const same = await stream(
+    dadCookie,
+    {},
+    `?after=${String(history.rev)}&epoch=${String(history.epoch)}`,
+  );
+  const hello = (await same.next('hello')).data as { epoch: number; stream: number };
+  assert.equal(hello.epoch, history.epoch);
+  assert.ok(hello.stream > 0);
+  await settle();
+  assert.ok(!same.events.some((e) => e.event === 'reset'));
+  same.close();
+
+  const restored = await stream(dadCookie, {}, `?after=${String(history.rev)}&epoch=12345`);
+  await restored.next('reset');
+  restored.close();
+  const ahead = await stream(dadCookie, { 'last-event-id': String(history.rev + 1000) });
+  await ahead.next('reset');
+  ahead.close();
+});
+
+test('the service worker and manifest: served at the chat’s scope, never cached stale', async () => {
+  const worker = await call('/family/sw.js');
+  assert.equal(worker.status, 200);
+  assert.equal(worker.headers.get('cache-control'), 'no-cache');
+  assert.match(worker.headers.get('content-type') ?? '', /javascript/);
+  const source = await worker.text();
+  assert.match(source, /addEventListener\('push'/);
+  assert.ok(!/addEventListener\('fetch'/.test(source), 'it caches nothing');
+  const manifest = (await (await call('/family/manifest.webmanifest')).json()) as {
+    scope: string;
+    icons: { sizes: string; purpose?: string }[];
+  };
+  assert.equal(manifest.scope, '/family/');
+  assert.ok(manifest.icons.some((icon) => icon.sizes === '512x512' && icon.purpose === 'maskable'));
+  for (const icon of manifest.icons) {
+    assert.equal((await call((icon as unknown as { src: string }).src)).status, 200);
+  }
+});
+
+test('the page’s modules import each other at one shared version, and are preloaded', async () => {
+  const page = await (await call('/family/', { cookie: momCookie })).text();
+  const main = /src="(\/family\/static\/chat\.js\?v=([0-9a-f]+))"/.exec(page);
+  assert.ok(main);
+  const version = main[2] ?? '';
+  assert.match(
+    page,
+    new RegExp(`rel="modulepreload" href="/family/static/sheet\\.js\\?v=${version}"`),
+  );
+  const script = await (await call(main[1] ?? '')).text();
+  assert.match(script, new RegExp(`from '\\./sheet\\.js\\?v=${version}'`));
+  assert.ok(!/from '\.\/[\w-]+\.js'/.test(script), 'no unversioned import left');
+});
+
+test('a photo uploaded but never sent is removed after a day', async () => {
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    'base64',
+  );
+  const upload = (await (
+    await call('/family/api/images?w=1&h=1', {
+      cookie: momCookie,
+      body: png,
+      headers: { 'content-type': 'image/png' },
+    })
+  ).json()) as { imageId: string };
+  const sentUpload = (await (
+    await call('/family/api/images?w=1&h=1', {
+      cookie: momCookie,
+      body: png,
+      headers: { 'content-type': 'image/png' },
+    })
+  ).json()) as { imageId: string };
+  await call('/family/api/messages', {
+    cookie: momCookie,
+    json: { clientId: 'orphan-00001', body: '', imageId: sentUpload.imageId },
+  });
+  assert.equal(await chat.removeOrphans(Date.now()), 0, 'not yet: the message may still be coming');
+  assert.ok((await chat.removeOrphans(Date.now() + 25 * 3600 * 1000)) >= 1);
+  assert.equal((await call(`/family/images/${upload.imageId}`, { cookie: momCookie })).status, 404);
+  assert.ok(!existsSync(join(dataDir, 'images', upload.imageId)));
+  assert.equal(
+    (await call(`/family/images/${sentUpload.imageId}`, { cookie: momCookie })).status,
+    200,
+  );
+});
+
+test('a broadcast racing a stream that was just ended is dropped, not a crash', async () => {
+  const open = await stream(dadCookie);
+  await open.next('hello');
+  for (const connection of chat.hub.connections()) connection.res.end();
+  // Before 'close' arrives: the old code wrote after end, an unhandled 'error'.
+  chat.hub.broadcast('typing', { userId: 1 });
+  chat.hub.heartbeat();
+  await settle();
+  open.close();
 });
