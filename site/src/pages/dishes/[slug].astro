@@ -167,6 +167,19 @@ const both = (line: VeganLine, render: (text: string) => string): string =>
         )
       }
 
+      {
+        recipe.brands.length > 0 && (
+          <section class="recipe-doc-section">
+            <h2>Brand suggestions</h2>
+            <ul class="recipe-doc-notes">
+              {recipe.brands.map((brand) => (
+                <li set:html={renderQuiet(brand)} />
+              ))}
+            </ul>
+          </section>
+        )
+      }
+
     </article>
   </div>
 

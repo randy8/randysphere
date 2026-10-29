@@ -27,6 +27,8 @@ export interface Recipe {
   readonly optionalIngredients: readonly string[];
   readonly instructions: readonly string[];
   readonly notes: readonly string[];
+  /** Products the author uses, kept out of the ingredient lines: "Wheat noodles: A-Sha". */
+  readonly brands: readonly string[];
   readonly version: string;
   readonly created: string;
   readonly updated: string;
@@ -63,6 +65,7 @@ interface RecipeFile {
   readonly optionalIngredients?: readonly string[];
   readonly instructions?: readonly string[];
   readonly notes?: readonly string[];
+  readonly brands?: readonly string[];
   readonly version?: string;
   readonly created?: string;
   readonly updated?: string;
@@ -85,6 +88,7 @@ function readRecipe(slug: string): Recipe {
     optionalIngredients: data.optionalIngredients ?? [],
     instructions: data.instructions ?? [],
     notes: data.notes ?? [],
+    brands: data.brands ?? [],
     version: data.version ?? '',
     created: data.created ?? '',
     updated: data.updated ?? '',
