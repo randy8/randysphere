@@ -6,7 +6,7 @@ import { before, test } from 'node:test';
 
 import { DatabaseSync } from 'node:sqlite';
 
-import { migrate, openDatabase } from './db.ts';
+import { migrate, openDatabase, SCHEMA_VERSION } from './db.ts';
 import { FamilyError, FamilyStore, SESSION_DAYS } from './store.ts';
 import type { User } from './store.ts';
 
@@ -253,75 +253,39 @@ test('unread counts others’ live messages after the last read rev', () => {
   assert.equal(store.unreadCount(dad.id), 0);
 });
 
-test('migration 3: every existing message, and how far each person had read, moves into Family', () => {
+test('migration 4 undoes rooms: Family’s messages and read positions kept, nothing else dropped', () => {
   const db = new DatabaseSync(':memory:');
-  db.exec('PRAGMA foreign_keys = ON');
-  migrate(db, 2);
+  migrate(db, 3);
   db.exec(`INSERT INTO users (id, username, display_name, password_hash, created_at, last_read_rev)
-           VALUES (1, 'mom', 'Mom', '!', 0, 2), (2, 'dad', 'Dad', '!', 0, 0)`);
+           VALUES (1, 'mom', 'Mom', 'x', 0, 2)`);
   db.exec(`INSERT INTO messages (user_id, client_id, body, created_at, rev)
-           VALUES (1, 'a-000001', 'one', 1, 1), (2, 'b-000001', 'two', 2, 2), (2, 'b-000002', 'three', 3, 3)`);
-  db.exec("UPDATE meta SET value = 3 WHERE key = 'rev'");
+           VALUES (1, 'a', 'hello', 0, 1), (1, 'b', 'again', 0, 2), (1, 'c', 'third', 0, 3)`);
+  // Read further in Family since the rooms release than users.last_read_rev says.
+  db.exec('INSERT INTO room_reads (user_id, room_id, last_read_rev) VALUES (1, 1, 3)');
   migrate(db);
-  const old = new FamilyStore(db);
-  assert.deepEqual(
-    old.rooms().map((room) => room.slug),
-    ['family', 'disc'],
+  assert.equal(
+    (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version,
+    SCHEMA_VERSION,
   );
-  assert.deepEqual(
-    old.history(null, 10).messages.map((m) => [m.body, m.roomId]),
-    [
-      ['one', 1],
-      ['two', 1],
-      ['three', 1],
-    ],
+  assert.equal(new FamilyStore(db).history(null, 10).messages.length, 3);
+  assert.equal(
+    (db.prepare('SELECT last_read_rev FROM users WHERE id = 1').get() as { last_read_rev: number })
+      .last_read_rev,
+    3,
   );
-  assert.equal(old.history(null, 10, 2).messages.length, 0);
-  assert.equal(old.unreadCount(1), 1, 'mom had read up to rev 2; "three" is still new');
-  assert.equal(old.unreadCount(2), 1, 'dad: only mom’s message counts');
-  // A message naming no room still lands in Family: the previous server, mid-deploy.
-  db.exec(`INSERT INTO messages (user_id, client_id, body, created_at, rev)
-           VALUES (1, 'a-000002', 'four', 4, 4)`);
-  assert.equal(old.getMessage(4)?.roomId, 1);
-  assert.throws(() =>
-    db.exec(`INSERT INTO messages (room_id, user_id, client_id, body, created_at, rev)
-             VALUES (99, 1, 'a-000003', 'x', 5, 5)`),
-  );
-});
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE name LIKE 'room%'").all();
+  assert.deepEqual(tables, []);
 
-test('rooms keep their own history, replies and unread counts', () => {
-  const disc = store.roomBySlug('disc');
-  assert.ok(disc);
-  const inFamily = store.postMessage({ userId: mom.id, clientId: 'rm-fam-001', body: 'family' });
-  const inDisc = store.postMessage({
-    userId: mom.id,
-    roomId: disc.id,
-    clientId: 'rm-disc-001',
-    body: 'disc',
-    // Quoting a message from another room: dropped, not carried across.
-    replyTo: inFamily.message.id,
-  });
-  assert.equal(inDisc.message.replyTo, null);
-  assert.ok(!store.history(null, 1000).messages.some((m) => m.id === inDisc.message.id));
-  assert.deepEqual(
-    store.history(null, 1000, disc.id).messages.map((m) => m.body),
-    ['disc'],
+  // A message ever sent in another room stops the migration instead of vanishing.
+  const kept = new DatabaseSync(':memory:');
+  migrate(kept, 3);
+  kept.exec(`INSERT INTO users (id, username, display_name, password_hash, created_at)
+             VALUES (1, 'mom', 'Mom', 'x', 0)`);
+  kept.exec(`INSERT INTO messages (user_id, client_id, body, created_at, rev, room_id)
+             VALUES (1, 'a', 'in Disc', 0, 1, 2)`);
+  assert.throws(() => migrate(kept), /CHECK constraint failed/);
+  assert.equal(
+    (kept.prepare('PRAGMA user_version').get() as { user_version: number }).user_version,
+    3,
   );
-  const unread = store.unreadByRoom(dad.id);
-  store.markRead(dad.id, store.currentRev(), disc.id);
-  assert.equal(store.unreadByRoom(dad.id).get(disc.id), undefined);
-  assert.equal(store.unreadByRoom(dad.id).get(1), unread.get(1));
-  assert.equal(store.roomSummaries(dad.id).find((r) => r.id === disc.id)?.last?.body, 'disc');
-  assert.throws(
-    () => store.postMessage({ userId: mom.id, roomId: 404, clientId: 'rm-none-01', body: 'x' }),
-    FamilyError,
-  );
-  const added = store.createRoom({ slug: 'cousins', name: 'Cousins' });
-  assert.deepEqual(
-    store.rooms().map((room) => room.slug),
-    ['family', 'disc', 'cousins'],
-  );
-  assert.throws(() => store.createRoom({ slug: 'cousins', name: 'Again' }), FamilyError);
-  assert.throws(() => store.createRoom({ slug: 'Bad Slug', name: 'x' }), FamilyError);
-  assert.equal(store.getRoom(added.id)?.name, 'Cousins');
 });

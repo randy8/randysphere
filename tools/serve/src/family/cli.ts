@@ -1,5 +1,6 @@
 // pnpm family <command> — the chat's accounts and backups, from a terminal
-// on the server. The Members page (/family/admin) does the same account
+// on the server; pnpm disc <command> the same for Disc (--chat=disc), whose
+// accounts are its own. The Members page (/<chat>/admin) does the same account
 // work from a phone; this is how the first account (yours) gets made, and
 // how backups are taken and restored. See docs/family.md.
 
@@ -7,6 +8,7 @@ import { cpSync, existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from
 import { dirname, join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
+import { CHATS } from './chats.ts';
 import { openDatabase, SCHEMA_VERSION } from './db.ts';
 import { FamilyError, FamilyStore } from './store.ts';
 
@@ -22,10 +24,15 @@ function repositoryRoot(): string {
 }
 
 const ROOT = repositoryRoot();
-const DATA = join(ROOT, 'private', 'family');
-const BACKUPS = join(ROOT, 'private', 'family-backups');
+const CHAT_ARG = '--chat=';
+const slug = process.argv.find((arg) => arg.startsWith(CHAT_ARG))?.slice(CHAT_ARG.length);
+const found = CHATS.find((chat) => chat.slug === (slug ?? 'family'));
+if (!found) throw new Error(`No chat named “${slug ?? ''}”.`);
+const CHAT = found;
+const DATA = join(ROOT, 'private', CHAT.slug);
+const BACKUPS = join(ROOT, 'private', `${CHAT.slug}-backups`);
 
-const USAGE = `pnpm family <command>
+const USAGE = `pnpm ${CHAT.slug} <command>
 
   list                                   everyone, and when they were last seen
   add <username> --name=<display name>   a new account; asks for its password
@@ -34,10 +41,8 @@ const USAGE = `pnpm family <command>
   rename <username> <display name>
   disable <username> | enable <username>
   revoke <username>                      sign them out on every device
-  rooms                                  the conversations, and how many messages each holds
-  add-room <slug> --name=<name>          a new conversation for everyone (/family/?room=<slug>)
   backup [<directory>]                   a consistent copy, safe while the server runs
-                                         (default: private/family-backups/<time>/)
+                                         (default: private/${CHAT.slug}-backups/<time>/)
   restore <directory>                    replace the chat with a backup; stop the server first`;
 
 function option(args: string[], name: string): string | undefined {
@@ -107,7 +112,8 @@ function userOrFail(
   username: string | undefined,
 ): ReturnType<FamilyStore['requireUser']> {
   const user = username ? store.findUserByUsername(username) : null;
-  if (!user) throw new FamilyError(`No account named “${username ?? ''}”. Try: pnpm family list`);
+  if (!user)
+    throw new FamilyError(`No account named “${username ?? ''}”. Try: pnpm ${CHAT.slug} list`);
   return user;
 }
 
@@ -162,7 +168,7 @@ async function restore(source: string): Promise<void> {
   const aside = join(
     ROOT,
     'private',
-    `family-replaced-${new Date().toISOString().replace(/[:.]/g, '-')}`,
+    `${CHAT.slug}-replaced-${new Date().toISOString().replace(/[:.]/g, '-')}`,
   );
   if (existsSync(DATA)) renameSync(DATA, aside);
   mkdirSync(DATA, { recursive: true });
@@ -185,7 +191,7 @@ async function restore(source: string): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const [command, ...args] = process.argv.slice(2);
+  const [command, ...args] = process.argv.slice(2).filter((arg) => !arg.startsWith(CHAT_ARG));
   if (command === 'restore') {
     const [directory] = positional(args);
     if (!directory) throw new FamilyError(USAGE);
@@ -201,7 +207,7 @@ async function main(): Promise<void> {
       const users = store.members();
       if (users.length === 0)
         console.log(
-          'No accounts yet. Start with: pnpm family add <you> --name=<your name> --admin',
+          `No accounts yet. Start with: pnpm ${CHAT.slug} add <you> --name=<your name> --admin`,
         );
       for (const user of users) {
         const flags = [
@@ -228,7 +234,7 @@ async function main(): Promise<void> {
         isAdmin: args.includes('--admin'),
       });
       console.log(
-        `Added ${user.displayName} (${user.username}). They sign in at https://randyliang.net/family/`,
+        `Added ${user.displayName} (${user.username}). They sign in at https://randyliang.net/${CHAT.slug}/`,
       );
       return;
     }
@@ -259,25 +265,6 @@ async function main(): Promise<void> {
       const user = userOrFail(store, first);
       store.revokeSessions(user.id);
       console.log(`${user.displayName} is signed out everywhere (open pages notice within 20 s).`);
-      return;
-    }
-    case 'rooms': {
-      const counts = store.db
-        .prepare(
-          'SELECT room_id, COUNT(*) AS n FROM messages WHERE deleted_at IS NULL GROUP BY room_id',
-        )
-        .all() as { room_id: number; n: number }[];
-      for (const room of store.rooms()) {
-        const n = counts.find((row) => row.room_id === room.id)?.n ?? 0;
-        console.log(`${room.slug.padEnd(16)} ${room.name.padEnd(14)} ${String(n)} message(s)`);
-      }
-      return;
-    }
-    case 'add-room': {
-      const name = option(args, 'name');
-      if (!first || !name) throw new FamilyError(USAGE);
-      const room = store.createRoom({ slug: first, name });
-      console.log(`Added ${room.name}. Open pages list it with its first message, or on reload.`);
       return;
     }
     case 'backup': {

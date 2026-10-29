@@ -1,17 +1,17 @@
 import { escapeHtml } from '../pages.ts';
+import type { ChatIdentity } from './chats.ts';
 import type { Connection, HubEvent } from './hub.ts';
-import { DEFAULT_ROOM_ID } from './store.ts';
-import type { Lang, Message, Room, SessionInfo, User } from './store.ts';
+import type { Lang, Message, SessionInfo, User } from './store.ts';
 
 export interface Assets {
-  /** `/family/static/<name>?v=<hash>` for each static file. */
+  /** `/family` or `/disc`: the chat's path, which every link and form on its pages starts with. */
+  readonly base: string;
+  readonly chat: ChatIdentity;
+  /** `<base>/static/<name>?v=<hash>` for each static file. */
   readonly url: (name: string) => string;
   /** The modules chat.js imports, preloaded so they arrive with it rather than after it. */
   readonly modules: readonly string[];
 }
-
-/** The app's name: the sign-in screen, the home-screen title, notifications. */
-export const GROUP_NAME = 'Family';
 
 const STRINGS = {
   en: {
@@ -23,9 +23,6 @@ const STRINGS = {
     noScript: 'Without JavaScript, new messages appear when you reload the page.',
     empty: 'No messages yet. Say hello.',
     details: 'Details & Notifications',
-    rooms: 'Messages',
-    back: 'Messages',
-    photo: 'Photo',
   },
   zh: {
     placeholder: '信息',
@@ -36,9 +33,6 @@ const STRINGS = {
     noScript: '未启用 JavaScript：刷新页面即可看到新消息。',
     empty: '还没有消息，打个招呼吧。',
     details: '详细信息与通知',
-    rooms: '信息',
-    back: '信息',
-    photo: '照片',
   },
 } as const;
 
@@ -55,10 +49,10 @@ function head(title: string, assets: Assets, lang: string): string {
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="${GROUP_NAME}">
+<meta name="apple-mobile-web-app-title" content="${escapeHtml(assets.chat.name)}">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="format-detection" content="telephone=no">
-<link rel="manifest" href="/family/manifest.webmanifest">
+<link rel="manifest" href="${assets.base}/manifest.webmanifest">
 <link rel="apple-touch-icon" href="${assets.url('icon-180.png')}">
 <link rel="icon" type="image/png" href="${assets.url('icon-180.png')}">
 <link rel="stylesheet" href="${assets.url('family.css')}">
@@ -68,12 +62,12 @@ function head(title: string, assets: Assets, lang: string): string {
 
 /** The sign-in screen. Bilingual, because it can't know yet who is signing in. */
 export function renderLogin(assets: Assets, error: string | null, username = ''): string {
-  return `${head(GROUP_NAME, assets, 'en')}
+  return `${head(assets.chat.name, assets, 'en')}
 <body class="family-auth">
 <main class="auth">
   <img class="auth-icon" src="${assets.url('icon-180.png')}" alt="" width="72" height="72">
-  <h1 class="auth-title">${GROUP_NAME}</h1>
-  <form class="auth-form" method="POST" action="/family/login">
+  <h1 class="auth-title">${escapeHtml(assets.chat.name)}</h1>
+  <form class="auth-form" method="POST" action="${assets.base}/login">
     <div class="auth-fields">
       <label class="auth-field">
         <span class="visually-hidden">Username · 用户名</span>
@@ -102,11 +96,16 @@ function formatTime(at: number): string {
   return new Date(at).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 }
 
-function renderStaticMessage(message: Message, users: ReadonlyMap<number, User>, me: User): string {
+function renderStaticMessage(
+  base: string,
+  message: Message,
+  users: ReadonlyMap<number, User>,
+  me: User,
+): string {
   const mine = message.userId === me.id;
   const author = users.get(message.userId)?.displayName ?? '';
   const image = message.image
-    ? `<img class="bubble-image" src="/family/images/${message.image.id}" width="${String(message.image.width)}" height="${String(message.image.height)}" alt="" loading="lazy">`
+    ? `<img class="bubble-image" src="${base}/images/${message.image.id}" width="${String(message.image.width)}" height="${String(message.image.height)}" alt="" loading="lazy">`
     : '';
   const text =
     message.body === '' ? '' : `<span class="bubble-text">${escapeHtml(message.body)}</span>`;
@@ -117,53 +116,26 @@ function renderStaticMessage(message: Message, users: ReadonlyMap<number, User>,
 </li>`;
 }
 
-export type RoomSummary = Room & { readonly unread: number; readonly last: Message | null };
-
-/** A room's page: Family is /family/ itself, as it was before there were rooms. */
-export const roomHref = (room: Room): string =>
-  room.id === DEFAULT_ROOM_ID ? '/family/' : `/family/?room=${encodeURIComponent(room.slug)}`;
-
-/** One row of the conversation list. chat.js builds the same row (roomRow) when it redraws. */
-function renderRoomRow(room: RoomSummary, current: Room, t: (typeof STRINGS)[Lang]): string {
-  const last = room.last;
-  const preview = last === null ? '' : last.body !== '' ? last.body : last.image ? t.photo : '';
-  return `<li><a class="room" href="${roomHref(room)}" data-room="${String(room.id)}"${room.id === current.id ? ' aria-current="page"' : ''}>
-    <span class="room-avatar" aria-hidden="true">${escapeHtml([...room.name][0] ?? '')}</span>
-    <span class="room-main">
-      <span class="room-top"><span class="room-name">${escapeHtml(room.name)}</span>${last === null ? '' : `<time class="room-time" datetime="${new Date(last.createdAt).toISOString()}">${formatTime(last.createdAt).slice(0, 10)}</time>`}</span>
-      <span class="room-preview">${escapeHtml(preview.replace(/\s+/g, ' ').slice(0, 120))}</span>
-    </span>
-    ${room.unread > 0 ? `<span class="room-unread">${String(room.unread)}</span>` : ''}
-  </a></li>`;
-}
-
 /**
- * The conversation, beside the list of rooms (a sidebar on a wide screen;
- * on a phone, one or the other — `view`). The newest messages are in the
- * HTML and the composer is a real form, so it works with JavaScript off
- * (the site's promise); chat.js then replaces the list with a live one and
- * switches rooms without reloading.
+ * The conversation. The newest messages are in the HTML and the composer
+ * is a real form, so it works with JavaScript off (the site's promise);
+ * chat.js then replaces the list with a live one.
  */
 export function renderChat(input: {
   assets: Assets;
   me: User;
   members: readonly User[];
-  rooms: readonly RoomSummary[];
-  room: Room;
-  view: 'room' | 'list';
   recent: readonly Message[];
   notice?: string | null;
 }): string {
-  const { assets, me, members, recent, room, rooms } = input;
+  const { assets, me, members, recent } = input;
   const t = STRINGS[me.lang];
   const users = new Map(members.map((user) => [user.id, user]));
   const boot = JSON.stringify({
+    base: assets.base,
     me: { id: me.id, name: me.displayName, lang: me.lang, isAdmin: me.isAdmin },
-    room: room.id,
-    rooms,
   }).replace(/</g, '\\u003c');
   const others = members.filter((user) => user.id !== me.id && user.disabledAt === null);
-  const elsewhere = rooms.reduce((n, r) => n + (r.id === room.id ? 0 : r.unread), 0);
   const avatars = others
     .slice(0, 3)
     .map(
@@ -172,28 +144,16 @@ export function renderChat(input: {
     )
     .join('');
 
-  const chevronLeft = `<svg viewBox="0 0 12 20" width="12" height="20" aria-hidden="true"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-
-  return `${head(room.name, assets, me.lang)}
+  return `${head(assets.chat.name, assets, me.lang)}
 <body class="family-chat">
-<div class="shell" data-shell data-view="${input.view}">
-<nav class="rooms" aria-label="${t.rooms}" data-rooms>
-  <header class="rooms-bar">
-    <a class="bar-side bar-home" href="/exposures/" aria-label="randyliang.net">${chevronLeft}</a>
-    <h2 class="rooms-title">${t.rooms}</h2>
-  </header>
-  <ul class="room-list" data-room-list>
-${rooms.map((r) => renderRoomRow(r, room, t)).join('\n')}
-  </ul>
-</nav>
 <div class="app" data-app>
   <header class="bar">
-    <a class="bar-side bar-back" href="/family/?rooms${room.id === DEFAULT_ROOM_ID ? '' : `&room=${encodeURIComponent(room.slug)}`}" aria-label="${t.back}" data-back>
-      ${chevronLeft}<span class="bar-back-count" data-back-count${elsewhere > 0 ? '' : ' hidden'}>${String(elsewhere)}</span>
+    <a class="bar-side bar-home" href="/exposures/" aria-label="randyliang.net">
+      <svg viewBox="0 0 12 20" width="12" height="20" aria-hidden="true"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </a>
     <div class="bar-title">
       <div class="avatars">${avatars}</div>
-      <h1><span data-room-name>${escapeHtml(room.name)}</span><svg class="bar-title-chevron" viewBox="0 0 8 14" width="6" height="10" aria-hidden="true"><path d="m1.5 1.5 5 5.5-5 5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></h1>
+      <h1><span>${escapeHtml(assets.chat.name)}</span><svg class="bar-title-chevron" viewBox="0 0 6 10" width="6" height="10" aria-hidden="true"><path d="m1 1 4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></h1>
       <p class="bar-subtitle" data-subtitle hidden></p>
     </div>
     <details class="bar-side bar-menu">
@@ -202,20 +162,20 @@ ${rooms.map((r) => renderRoomRow(r, room, t)).join('\n')}
       </summary>
       <div class="bar-menu-items">
         <button type="button" data-open-details hidden>${t.details}</button>
-        ${me.isAdmin ? `<a href="/family/admin">${t.admin}</a>` : ''}
-        <form method="POST" action="/family/logout"><button type="submit">${t.signOut}</button></form>
+        ${me.isAdmin ? `<a href="${assets.base}/admin">${t.admin}</a>` : ''}
+        <form method="POST" action="${assets.base}/logout"><button type="submit">${t.signOut}</button></form>
       </div>
     </details>
   </header>
   <main class="scroller" data-scroller tabindex="-1">
     <div class="history-sentinel" data-sentinel aria-hidden="true"></div>
     <ol class="messages" data-messages aria-live="polite" aria-relevant="additions">
-${recent.length === 0 ? `<li class="empty" data-static>${t.empty}</li>` : recent.map((message) => renderStaticMessage(message, users, me)).join('\n')}
+${recent.length === 0 ? `<li class="empty" data-static>${t.empty}</li>` : recent.map((message) => renderStaticMessage(assets.base, message, users, me)).join('\n')}
     </ol>
     <noscript><p class="noscript">${t.noScript}</p></noscript>
   </main>
   <button class="jump" type="button" data-jump hidden></button>
-  <form class="composer" method="POST" action="/family/send" data-composer>
+  <form class="composer" method="POST" action="${assets.base}/send" data-composer>
     <div class="reply-bar" data-reply-bar hidden>
       <span class="reply-bar-text" data-reply-text></span>
       <button type="button" class="reply-cancel" data-reply-cancel aria-label="Cancel reply">
@@ -231,7 +191,6 @@ ${recent.length === 0 ? `<li class="empty" data-static>${t.empty}</li>` : recent
       <div class="field">
         <textarea name="body" rows="1" placeholder="${t.placeholder}" aria-label="${t.placeholder}" data-input
           autocomplete="off" maxlength="4000" required></textarea>
-        <input type="hidden" name="roomId" value="${String(room.id)}" data-room-field>
         <input type="hidden" name="clientId" value="nojs-${String(Date.now())}-${String(Math.random()).slice(2, 10)}">
         <button class="send" type="submit" data-send aria-label="${t.send}">
           <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 20V5M5.5 11.5 12 5l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -239,7 +198,6 @@ ${recent.length === 0 ? `<li class="empty" data-static>${t.empty}</li>` : recent
       </div>
     </div>
   </form>
-</div>
 </div>
 <div class="menu-layer" data-menu-layer hidden></div>
 <script type="application/json" id="family-boot">${boot}</script>
@@ -325,31 +283,31 @@ export function renderAdmin(input: {
   <div class="cell"><span>Username</span><span class="dim">${escapeHtml(user.username)}${user.isAdmin ? ' · admin' : ''}</span></div>
   <div class="cell"><span>Last seen</span><span class="dim">${ago(user.lastSeenAt, now)}</span></div>
   ${devices || streams ? `<div class="cell cell-block"><ul class="diag">${streams}${devices}</ul></div>` : ''}
-  <form class="cell" method="POST" action="/family/admin/rename">
+  <form class="cell" method="POST" action="${assets.base}/admin/rename">
     <input type="hidden" name="id" value="${id}">
     <input name="displayName" value="${escapeHtml(user.displayName)}" aria-label="Display name" maxlength="40" required>
     ${langSelect(user.lang)}
     <button type="submit">Save</button>
   </form>
-  <form class="cell" method="POST" action="/family/admin/password">
+  <form class="cell" method="POST" action="${assets.base}/admin/password">
     <input type="hidden" name="id" value="${id}">
     <input name="password" type="text" placeholder="New password" aria-label="New password" autocomplete="off" minlength="8" required>
     <button type="submit">Reset password</button>
   </form>
   <div class="cell cell-actions">
-    <form method="POST" action="/family/admin/revoke"><input type="hidden" name="id" value="${id}"><button type="submit">Sign out everywhere</button></form>
+    <form method="POST" action="${assets.base}/admin/revoke"><input type="hidden" name="id" value="${id}"><button type="submit">Sign out everywhere</button></form>
     ${
       self
         ? ''
         : user.disabledAt === null
-          ? `<form method="POST" action="/family/admin/disable"><input type="hidden" name="id" value="${id}"><button type="submit">Disable</button></form>`
-          : `<form method="POST" action="/family/admin/enable"><input type="hidden" name="id" value="${id}"><button type="submit">Enable</button></form>`
+          ? `<form method="POST" action="${assets.base}/admin/disable"><input type="hidden" name="id" value="${id}"><button type="submit">Disable</button></form>`
+          : `<form method="POST" action="${assets.base}/admin/enable"><input type="hidden" name="id" value="${id}"><button type="submit">Enable</button></form>`
     }
   </div>
   ${
     self
       ? ''
-      : `<form class="cell cell-danger" method="POST" action="/family/admin/delete">
+      : `<form class="cell cell-danger" method="POST" action="${assets.base}/admin/delete">
     <input type="hidden" name="id" value="${id}">
     <input name="confirm" placeholder="Type ${escapeHtml(user.username)} to delete" aria-label="Type the username to confirm deletion" autocomplete="off" autocapitalize="none">
     <button type="submit">Delete account and messages</button>
@@ -368,15 +326,15 @@ export function renderAdmin(input: {
     )
     .join('');
 
-  return `${head(`${GROUP_NAME} — Members`, assets, 'en')}
+  return `${head(`${escapeHtml(assets.chat.name)} — Members`, assets, 'en')}
 <body class="family-admin">
 <main class="admin">
-  <p><a class="back" href="/family/">‹ ${GROUP_NAME}</a></p>
+  <p><a class="back" href="${assets.base}/">‹ ${escapeHtml(assets.chat.name)}</a></p>
   <h1>Members</h1>
   ${input.notice === null ? '' : `<p class="notice" role="status">${escapeHtml(input.notice)}</p>`}
   <section class="group">
     <h2 class="group-title">Add someone</h2>
-    <form class="cell cell-stack" method="POST" action="/family/admin/create">
+    <form class="cell cell-stack" method="POST" action="${assets.base}/admin/create">
       <input name="displayName" placeholder="Display name (e.g. 妈妈)" aria-label="Display name" maxlength="40" required>
       <input name="username" placeholder="Username (letters and digits, e.g. mom)" aria-label="Username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
       <input name="password" type="text" placeholder="Password (8+ characters)" aria-label="Password" autocomplete="off" minlength="8" required>
@@ -394,7 +352,7 @@ ${rows}
     <div class="cell"><span>Server up</span><span class="dim">since ${ago(input.startedAt, now)}</span></div>
     <div class="cell cell-block"><ul class="diag">${events || '<li>Nothing recorded since the server started.</li>'}</ul></div>
   </section>
-  <p class="foot">Backups: <code>pnpm family backup</code> on the server (docs/family.md).</p>
+  <p class="foot">Backups: <code>pnpm ${assets.chat.slug} backup</code> on the server (docs/family.md).</p>
 </main>
 </body>
 </html>

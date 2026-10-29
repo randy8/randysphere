@@ -22,10 +22,12 @@ import { join } from 'node:path';
 import { after, before } from 'node:test';
 import type { BrowserContext, Page } from 'playwright-core';
 
+import { DISC } from '../../../serve/src/family/chats.ts';
 import { FamilyChat } from '../../../serve/src/family/routes.ts';
 import { browserTest, PHONE } from './harness.ts';
 
 let chat: FamilyChat;
+let disc: FamilyChat;
 let server: Server;
 let origin = '';
 
@@ -49,13 +51,27 @@ before(async () => {
       isAdmin: true,
     }),
   ]);
+  disc = new FamilyChat({
+    chat: DISC,
+    dataDir: mkdtempSync(join(tmpdir(), 'disc-browser-')),
+    pushFetch: () => Promise.resolve(new Response(null, { status: 201 })),
+  });
+  await disc.store.createUser({
+    username: 'randy',
+    displayName: 'Randy',
+    password: 'disc password',
+    isAdmin: true,
+  });
   server = createServer((req, res) => {
-    void chat.handle(req, res, new URL(req.url ?? '/', 'http://localhost')).then((handled) => {
-      if (!handled) {
-        res.writeHead(404);
-        res.end();
-      }
-    });
+    const url = new URL(req.url ?? '/', 'http://localhost');
+    void (async () => (await chat.handle(req, res, url)) || disc.handle(req, res, url))().then(
+      (handled) => {
+        if (!handled) {
+          res.writeHead(404);
+          res.end();
+        }
+      },
+    );
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   origin = `http://127.0.0.1:${String((server.address() as AddressInfo).port)}`;
@@ -63,17 +79,23 @@ before(async () => {
 
 after(async () => {
   chat.shutdown();
+  disc.shutdown();
   server.closeAllConnections();
   await new Promise((resolve) => server.close(resolve));
 });
 
 /** Signs in through the form, as a person would, and waits for the live conversation. */
-async function signIn(context: BrowserContext, username: string, password: string): Promise<Page> {
+async function signIn(
+  context: BrowserContext,
+  username: string,
+  password: string,
+  path = '/family/',
+): Promise<Page> {
   // The harness stubs images from hosts other than the site under test;
   // this server is that site here.
   await context.unrouteAll();
   const page = await context.newPage();
-  await page.goto(`${origin}/family/`);
+  await page.goto(`${origin}${path}`);
   await page.fill('input[name="username"]', username);
   await page.fill('input[name="password"]', password);
   await page.click('button[type="submit"]');
@@ -102,7 +124,7 @@ browserTest(
     const randy = await signIn(other, 'randy', 'battery staple');
 
     await send(randy, 'Dinner at 7?');
-    await mom.locator('[data-messages]').getByText('Dinner at 7?').waitFor();
+    await mom.getByText('Dinner at 7?').waitFor();
     await randy.locator('.receipt').waitFor();
     assert.equal((await bubbles(mom)).filter((text) => text === 'Dinner at 7?').length, 1);
     assert.equal((await bubbles(randy)).filter((text) => text === 'Dinner at 7?').length, 1);
@@ -125,10 +147,7 @@ browserTest(
       body: 'while you were away',
     });
     chat.hub.broadcast('message', message, { id: message.rev });
-    await mom
-      .locator('[data-messages]')
-      .getByText('while you were away')
-      .waitFor({ timeout: 10_000 });
+    await mom.getByText('while you were away').waitFor({ timeout: 10_000 });
     await mom.waitForTimeout(500);
     assert.equal((await bubbles(mom)).filter((text) => text === 'while you were away').length, 1);
   },
@@ -207,65 +226,23 @@ browserTest(
 );
 
 browserTest(
-  'rooms: switching is instant, each room keeps its own messages, and others count what you missed',
+  'Disc is its own chat at /disc/: its title, its messages, nothing leading to Family',
   async ({ context, page: unused }) => {
     await unused.close();
-    const randy = await signIn(context, 'randy', 'battery staple');
-    // Wide: the list is a sidebar beside the conversation.
-    await randy.locator('.rooms .room[data-room="2"]').waitFor();
-    const title = (): Promise<string> => randy.locator('[data-room-name]').innerText();
-    assert.equal(await title(), 'Family');
-    const loaded = await randy.evaluate(() => performance.getEntriesByType('navigation').length);
-
-    const mom = chat.store.findUserByUsername('mom')?.id ?? 0;
-    const { message } = chat.store.postMessage({
-      userId: mom,
-      roomId: 2,
-      clientId: 'browser-disc-1',
-      body: '飞盘？',
-    });
-    chat.hub.broadcast('message', message, { id: message.rev, room: 2 });
-    const badge = randy.locator('.room[data-room="2"] .room-unread');
-    await badge.waitFor();
-    assert.equal(await badge.innerText(), '1');
-    assert.ok(!(await bubbles(randy)).includes('飞盘？'), 'stays in Disc');
-
-    await randy.click('.room[data-room="2"]');
-    await randy.locator('[data-messages]').getByText('飞盘？').waitFor();
-    assert.equal(await title(), 'Disc');
-    assert.equal(new URL(randy.url()).search, '?room=disc');
-    await badge.waitFor({ state: 'detached' });
-    await send(randy, 'Saturday');
+    const randy = await signIn(context, 'randy', 'disc password', '/disc/');
+    assert.equal(await randy.locator('.bar h1').innerText(), 'Disc');
+    // As iMessage: under the name, no line of members while connected.
+    assert.ok(!(await randy.locator('[data-subtitle]').isVisible()));
+    await send(randy, 'Saturday at the course?');
     await randy.locator('.receipt').waitFor();
-    assert.equal(chat.store.history(null, 50, 2).messages.at(-1)?.body, 'Saturday');
-
-    await randy.goBack();
-    await randy.waitForFunction(
-      () => document.querySelector('[data-room-name]')?.textContent === 'Family',
+    assert.equal(disc.store.history(null, 50).messages.at(-1)?.body, 'Saturday at the course?');
+    assert.ok(!chat.store.history(null, 50).messages.some((m) => m.body.startsWith('Saturday')));
+    const links = await randy.$$eval('a[href], form[action]', (nodes) =>
+      nodes.map((node) => node.getAttribute('href') ?? node.getAttribute('action') ?? ''),
     );
-    assert.ok(!(await bubbles(randy)).includes('Saturday'));
-    assert.equal(
-      await randy.evaluate(() => performance.getEntriesByType('navigation').length),
-      loaded,
-      'no reload',
-    );
-  },
-);
-
-browserTest(
-  'rooms on a phone: the list is its own screen, Back shows it, a row opens the room',
-  async ({ context, page: unused }) => {
-    await unused.close();
-    const mom = await signIn(context, 'mom', 'correct horse');
-    const rooms = mom.locator('[data-rooms]');
-    assert.ok(!(await rooms.isVisible()));
-    await mom.click('[data-back]');
-    await rooms.waitFor({ state: 'visible' });
-    assert.ok(!(await mom.locator('[data-app]').isVisible()));
-    await mom.click('.room[data-room="2"]');
-    await mom.locator('[data-input]').waitFor({ state: 'visible' });
-    assert.equal(await mom.locator('[data-room-name]').innerText(), 'Disc');
-    assert.ok(!(await rooms.isVisible()));
+    assert.ok(!links.some((link) => link.startsWith('/family')), links.join(' '));
+    const scope = await randy.evaluate(async () => (await navigator.serviceWorker.ready).scope);
+    assert.equal(new URL(scope).pathname, '/disc/');
   },
   PHONE,
 );

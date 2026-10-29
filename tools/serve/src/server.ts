@@ -45,8 +45,8 @@ export interface ServeConfig {
   readonly infraServicesPath: string;
   /** Asks tailscaled who a tailnet address is (infra.ts); /infra is a 404 for anyone it can't vouch for. */
   readonly whois: WhoisLookup;
-  /** The family chat at /family/ (family/routes.ts), or null where there is none (a test). */
-  readonly family: FamilyChat | null;
+  /** The chats — the family's at /family/, Disc at /disc/ (family/routes.ts); none in a test. */
+  readonly chats: readonly FamilyChat[];
 }
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
@@ -339,9 +339,9 @@ async function route(
   const { pathname } = url;
   const method = req.method ?? 'GET';
 
-  // The family chat answers for all of /family itself, session first, and
-  // never falls through to static files (family/routes.ts).
-  if (config.family !== null && (await config.family.handle(req, res, url))) return;
+  // Each chat answers for all of its own path, session first, and never
+  // falls through to static files (family/routes.ts).
+  for (const chat of config.chats) if (await chat.handle(req, res, url)) return;
 
   // Readiness, for the deploy's candidate check and the watchdog: 200 when
   // this process can serve the site (health.ts), 503 with what's missing

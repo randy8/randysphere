@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 
 import { createPrivateSiteServer } from './server.ts';
 import { tailscaledWhois } from './infra.ts';
+import { CHATS } from './family/chats.ts';
 import { FamilyChat } from './family/routes.ts';
 
 function repositoryRoot(): string {
@@ -52,13 +53,18 @@ if (!password || !sessionSecret) {
   console.error(`${distDir} has no build yet. Run \`pnpm build\` first.`);
   process.exitCode = 1;
 } else {
-  // --preview gets an empty chat of its own: looking at a build must never
-  // read, or write to, the family's real conversation.
-  const family = new FamilyChat({
-    dataDir: preview
-      ? mkdtempSync(join(tmpdir(), 'family-preview-'))
-      : join(ROOT, 'private', 'family'),
-  });
+  // Each chat its own data directory, private/<slug>/. --preview gets empty
+  // chats of its own: looking at a build must never read, or write to, a
+  // real conversation.
+  const chats = CHATS.map(
+    (chat) =>
+      new FamilyChat({
+        chat,
+        dataDir: preview
+          ? mkdtempSync(join(tmpdir(), `${chat.slug}-preview-`))
+          : join(ROOT, 'private', chat.slug),
+      }),
+  );
   const server = createPrivateSiteServer({
     distDir,
     notesPath: join(ROOT, 'private', 'notes.yaml'),
@@ -73,7 +79,7 @@ if (!password || !sessionSecret) {
     statusDir: join(ROOT, 'status'),
     infraServicesPath: join(ROOT, 'infra', 'services.yaml'),
     whois: tailscaledWhois(),
-    family,
+    chats,
   });
   server.listen(port, () => {
     console.log(
@@ -88,7 +94,7 @@ if (!password || !sessionSecret) {
     console.log('SIGTERM: finishing in-flight requests');
     // Open chat streams never go idle by themselves; ending them lets the
     // close finish, and every browser reconnects to the next server.
-    family.shutdown();
+    for (const chat of chats) chat.shutdown();
     server.close(() => process.exit(0));
     server.closeIdleConnections();
     setTimeout(() => process.exit(0), 5000).unref();

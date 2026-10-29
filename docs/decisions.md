@@ -3599,3 +3599,33 @@ foreign key (a copy of every row, `AUTOINCREMENT` and the self-referencing
 room URLs (`/family/disc`), which would share a namespace with `admin`,
 `api`, `static` and the rest. Opening `/family/` on the list on phones:
 Mom opens the app to Family and should keep doing so.
+
+## 2026-10-29 — Disc is its own chat at /disc/, not a room in Family's
+
+**Decision:** Undo the rooms released this morning. Disc is a second,
+separate instance of the chat (`FamilyChat` with `chat: DISC`) at `/disc/`:
+its own data directory (`private/disc/`: database, photos, VAPID keys), its
+own accounts, its own `disc_session` cookie scoped to `/disc`, its own
+service worker and manifest. The chat's code takes its path and name from a
+`ChatIdentity` (`chats.ts`); the server mounts one instance per entry. The
+browser scripts get the path from the page (`boot.base`, the worker's
+scope); the outbox key in localStorage carries the chat's slug, since both
+chats share the origin and their user ids overlap. Migration 4 drops the
+rooms tables and column, carrying Family's read positions back to
+`users.last_read_rev`, and refuses (a CHECK in a temp table) if a message
+was ever sent outside Family — none had been.
+
+**Why:** What was wanted was no connection at all — "no way to get to
+Family" from Disc. Rooms shared accounts and sessions, so anyone in Disc
+was in Family; per-room membership could have fenced that, but it would
+still be one sign-in, one database and a selector that knows about both.
+Separate instances make the separation structural rather than a check
+that every route must remember: a Disc session's token is looked up in a
+different database and never even sent to `/family`.
+
+**Rejected:** Keeping rooms and adding a membership table (one access check
+per route as the only wall; a leaked link or a bug crosses it). Copying the
+chat's code into a second module (two places to fix every bug). Keeping
+migration 3's tables unused (every new Disc database would be born with a
+"Family" room in it). Rewriting migration 3 (append-only: production has
+run it).

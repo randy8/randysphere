@@ -64,13 +64,16 @@ function sameKey(buffer, base64url) {
   return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
+// This chat's path, /family or /disc: the page is always at <base>/.
+const BASE = `/${location.pathname.split('/')[1]}`;
+
 let registration = null;
 
 /** Registers the worker (notifications only; it caches nothing). Safe to call on every load. */
 export async function registerWorker() {
   if (!('serviceWorker' in navigator)) return null;
   try {
-    registration = await navigator.serviceWorker.register('/family/sw.js', { scope: '/family/' });
+    registration = await navigator.serviceWorker.register(`${BASE}/sw.js`, { scope: `${BASE}/` });
     return registration;
   } catch {
     return null;
@@ -92,7 +95,7 @@ export async function syncSubscription(api) {
   const reg = await ready();
   if (!reg) return;
   const [server, subscription] = await Promise.all([
-    api('/family/api/push').then((r) => (r.ok ? r.json() : null)),
+    api(`${BASE}/api/push`).then((r) => (r.ok ? r.json() : null)),
     reg.pushManager.getSubscription(),
   ]);
   if (!server || !subscription) return;
@@ -102,7 +105,7 @@ export async function syncSubscription(api) {
     return;
   }
   if (!server.subscribed || server.endpoint !== subscription.endpoint) {
-    await api('/family/api/push', {
+    await api(`${BASE}/api/push`, {
       method: 'POST',
       json: { ...subscription.toJSON(), preview: server.preview },
     });
@@ -116,7 +119,7 @@ async function subscribe(api, publicKey, preview) {
     userVisibleOnly: true,
     applicationServerKey: keyBytes(publicKey),
   });
-  const response = await api('/family/api/push', {
+  const response = await api(`${BASE}/api/push`, {
     method: 'POST',
     json: { ...subscription.toJSON(), preview },
   });
@@ -141,7 +144,7 @@ export function notificationSettings(parent, { api, lang }) {
     }
     let server = null;
     try {
-      server = await (await api('/family/api/push')).json();
+      server = await (await api(`${BASE}/api/push`)).json();
     } catch {
       server = null;
     }
@@ -176,7 +179,7 @@ export function notificationSettings(parent, { api, lang }) {
     const { rows } = group(holder, t.heading, message ?? t.previewNote);
     toggle(rows, t.preview, server.preview, async (checked, input) => {
       input.disabled = true;
-      await api('/family/api/push', {
+      await api(`${BASE}/api/push`, {
         method: 'POST',
         json: { ...subscription.toJSON(), preview: checked },
       }).catch(() => {});
@@ -184,7 +187,7 @@ export function notificationSettings(parent, { api, lang }) {
     });
     action(rows, t.test, async (button) => {
       button.disabled = true;
-      const response = await api('/family/api/push/test', { method: 'POST' }).catch(() => null);
+      const response = await api(`${BASE}/api/push/test`, { method: 'POST' }).catch(() => null);
       await draw(response?.ok ? t.testSent : t.testFailed);
     });
     action(
@@ -192,7 +195,7 @@ export function notificationSettings(parent, { api, lang }) {
       t.turnOff,
       async (button) => {
         button.disabled = true;
-        await api('/family/api/push/remove', {
+        await api(`${BASE}/api/push/remove`, {
           method: 'POST',
           json: { endpoint: subscription.endpoint },
         }).catch(() => {});

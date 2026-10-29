@@ -17,14 +17,15 @@ import { openDatabase } from './db.ts';
 import { Hub, PRESENCE_MS } from './hub.ts';
 import { TokenBucket } from './limits.ts';
 import { Notifier } from './notify.ts';
-import { GROUP_NAME, renderAdmin, renderChat, renderLogin, roomHref } from './pages.ts';
+import { FAMILY } from './chats.ts';
+import type { ChatIdentity } from './chats.ts';
+import { renderAdmin, renderChat, renderLogin } from './pages.ts';
 import type { Assets } from './pages.ts';
-import { DEFAULT_ROOM_ID, FamilyError, FamilyStore, SESSION_DAYS } from './store.ts';
-import type { Lang, Message, Room, User } from './store.ts';
+import { FamilyError, FamilyStore, SESSION_DAYS } from './store.ts';
+import type { Lang, Message, User } from './store.ts';
 import { isPushEndpoint, isPushKeys, loadVapidKeys, sendPush } from './webpush.ts';
 import type { VapidKeys } from './webpush.ts';
 
-const COOKIE = 'family_session';
 const STATIC_DIR = fileURLToPath(new URL('./static/', import.meta.url));
 
 /**
@@ -81,8 +82,10 @@ const REPLAY_LIMIT = 500;
 const ORPHAN_AFTER_MS = 24 * 60 * 60 * 1000;
 
 export interface FamilyConfig {
-  /** private/family — chat.db, images/ and vapid.json. Never read by the site build. */
+  /** private/<slug> — chat.db, images/ and vapid.json. Never read by the site build. */
   readonly dataDir: string;
+  /** Which chat this is: its address, its sign-in cookie, its name. The family's unless said. */
+  readonly chat?: ChatIdentity;
   /**
    * Who push services should contact about this server's notifications
    * (VAPID's `sub`, RFC 8292): the site's address.
@@ -100,19 +103,28 @@ class HttpError extends Error {
   }
 }
 
-function readCookie(header: string | undefined): string | undefined {
+/**
+ * Each chat's sign-in is its own cookie, sent only to its own path: a
+ * session for one chat is never presented to another, and its token would
+ * mean nothing there anyway (another database).
+ */
+const cookieName = (chat: ChatIdentity): string => `${chat.slug}_session`;
+
+function readCookie(chat: ChatIdentity, header: string | undefined): string | undefined {
+  const name = cookieName(chat);
   for (const part of (header ?? '').split(';')) {
     const at = part.indexOf('=');
-    if (at !== -1 && part.slice(0, at).trim() === COOKIE) return part.slice(at + 1).trim();
+    if (at !== -1 && part.slice(0, at).trim() === name) return part.slice(at + 1).trim();
   }
   return undefined;
 }
 
-function sessionCookie(token: string): string {
-  return `${COOKIE}=${token}; Path=/family; Max-Age=${String(SESSION_DAYS * 86400)}; HttpOnly; Secure; SameSite=Lax`;
+function sessionCookie(chat: ChatIdentity, token: string): string {
+  return `${cookieName(chat)}=${token}; Path=/${chat.slug}; Max-Age=${String(SESSION_DAYS * 86400)}; HttpOnly; Secure; SameSite=Lax`;
 }
 
-const CLEAR_COOKIE = `${COOKIE}=; Path=/family; Max-Age=0; HttpOnly; Secure; SameSite=Lax`;
+const clearCookie = (chat: ChatIdentity): string =>
+  `${cookieName(chat)}=; Path=/${chat.slug}; Max-Age=0; HttpOnly; Secure; SameSite=Lax`;
 
 async function readBody(req: IncomingMessage, max: number): Promise<Buffer> {
   const declared = Number(req.headers['content-length'] ?? 0);
@@ -221,7 +233,10 @@ function publicUser(user: User): { id: number; name: string; active: boolean } {
 }
 
 /**
- * The family chat, mounted at /family/ by server.ts. Owns its database,
+ * One chat — the family's at /family/, or Disc at /disc/ — mounted by
+ * server.ts. Each instance is a separate world: its own database and
+ * accounts, its own cookie, its own path; nothing links one to another.
+ * Owns its database,
  * its live connections, and its rate limits. Every route below resolves
  * the session first; there is no path to a message, a photo, or the event
  * stream that doesn't.
@@ -230,6 +245,9 @@ export class FamilyChat {
   readonly store: FamilyStore;
   readonly hub = new Hub();
   readonly #config: FamilyConfig;
+  readonly #chat: ChatIdentity;
+  /** `/family` or `/disc`: every path this chat answers starts with it. */
+  readonly #base: string;
   readonly #imagesDir: string;
   readonly #static = new Map<string, { body: Buffer; hash: string }>();
   readonly #assets: Assets;
@@ -245,6 +263,8 @@ export class FamilyChat {
 
   constructor(config: FamilyConfig) {
     this.#config = config;
+    this.#chat = config.chat ?? FAMILY;
+    this.#base = `/${this.#chat.slug}`;
     this.#imagesDir = join(config.dataDir, 'images');
     // Owner-only: other accounts on this machine can't read the conversation.
     mkdirSync(config.dataDir, { recursive: true, mode: 0o700 });
@@ -283,15 +303,22 @@ export class FamilyChat {
       });
     }
     this.#assets = {
-      url: (name) => `/family/static/${name}?v=${this.#static.get(name)?.hash ?? '0'}`,
+      url: (name) => `${this.#base}/static/${name}?v=${this.#static.get(name)?.hash ?? '0'}`,
       modules: scripts.filter((name) => name !== 'chat.js'),
+      base: this.#base,
+      chat: this.#chat,
     };
     this.#push = {
       keys: loadVapidKeys(join(config.dataDir, 'vapid.json')),
-      subject: config.pushSubject ?? 'https://randyliang.net/family/',
+      subject: config.pushSubject ?? `https://randyliang.net${this.#base}/`,
       ...(config.pushFetch ? { fetch: config.pushFetch } : {}),
     };
-    this.#notifier = new Notifier({ store: this.store, hub: this.hub, ...this.#push });
+    this.#notifier = new Notifier({
+      store: this.store,
+      hub: this.hub,
+      chat: this.#chat,
+      ...this.#push,
+    });
     void this.removeOrphans();
     this.#cleanup = setInterval(() => void this.removeOrphans(), 60 * 60 * 1000);
     this.#cleanup.unref();
@@ -311,19 +338,20 @@ export class FamilyChat {
   }
 
   #session(req: IncomingMessage, res: ServerResponse | null): User | null {
-    const token = readCookie(req.headers.cookie);
+    const token = readCookie(this.#chat, req.headers.cookie);
     const session = this.store.resolveSession(token);
     if (!session) return null;
     // A session in use re-sends its cookie now and then, so the browser's
     // copy expires no sooner than the server's.
-    if (session.refreshed && token && res) res.setHeader('set-cookie', sessionCookie(token));
+    if (session.refreshed && token && res)
+      res.setHeader('set-cookie', sessionCookie(this.#chat, token));
     return session.user;
   }
 
-  /** Handles a /family request; false if `pathname` isn't one. */
+  /** Handles a request under this chat's path; false if `pathname` isn't one. */
   async handle(req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> {
     const { pathname } = url;
-    if (pathname !== '/family' && !pathname.startsWith('/family/')) return false;
+    if (pathname !== this.#base && !pathname.startsWith(`${this.#base}/`)) return false;
     const method = req.method ?? 'GET';
     // Never over plain HTTP: a password typed there would cross the
     // internet unencrypted, and the Secure cookie wouldn't stick anyway.
@@ -331,7 +359,7 @@ export class FamilyChat {
     // loopback, as clientAddress() believes CF-Connecting-IP.
     if (arrivedOverHttp(req)) {
       res.writeHead(308, {
-        location: `https://${String(req.headers.host)}${req.url ?? '/family/'}`,
+        location: `https://${String(req.headers.host)}${req.url ?? `${this.#base}/`}`,
       });
       res.end();
       return true;
@@ -350,7 +378,10 @@ export class FamilyChat {
         sendJson(res, 400, { error: error.message });
       } else {
         // The stack only: a request body (a message) is never logged.
-        console.error('family:', error instanceof Error ? error.stack : 'unknown error');
+        console.error(
+          `${this.#chat.slug}:`,
+          error instanceof Error ? error.stack : 'unknown error',
+        );
         sendJson(res, 500, { error: 'Something went wrong.' });
       }
     }
@@ -360,15 +391,15 @@ export class FamilyChat {
   async #route(req: IncomingMessage, res: ServerResponse, url: URL, method: string): Promise<void> {
     const { pathname } = url;
 
-    if (pathname === '/family') {
-      redirect(res, '/family/');
+    if (pathname === this.#base) {
+      redirect(res, `${this.#base}/`);
       return;
     }
 
     // Stylesheet, script, icon: the same for everyone and nothing private
     // in them, so served without a session (the sign-in page needs them).
-    if (pathname.startsWith('/family/static/') && (method === 'GET' || method === 'HEAD')) {
-      const file = this.#static.get(pathname.slice('/family/static/'.length));
+    if (pathname.startsWith(`${this.#base}/static/`) && (method === 'GET' || method === 'HEAD')) {
+      const file = this.#static.get(pathname.slice(`${this.#base}/static/`.length));
       if (!file) throw new HttpError(404, 'Not found.');
       const current = url.searchParams.get('v') === file.hash;
       res.writeHead(200, {
@@ -382,9 +413,9 @@ export class FamilyChat {
 
     // The service worker: notifications only (static/sw.js has no fetch
     // handler, so nothing private is ever cached by it). Served from
-    // /family/ itself, which is what scopes it to /family/; never cached,
+    // the chat's own path, which is what scopes it there; never cached,
     // so a deploy's new version is found on the next visit.
-    if (pathname === '/family/sw.js' && (method === 'GET' || method === 'HEAD')) {
+    if (pathname === `${this.#base}/sw.js` && (method === 'GET' || method === 'HEAD')) {
       const file = this.#static.get('sw.js');
       if (!file) throw new HttpError(404, 'Not found.');
       res.writeHead(200, {
@@ -397,7 +428,7 @@ export class FamilyChat {
       return;
     }
 
-    if (pathname === '/family/manifest.webmanifest' && method === 'GET') {
+    if (pathname === `${this.#base}/manifest.webmanifest` && method === 'GET') {
       res.writeHead(200, {
         'content-type': 'application/manifest+json',
         'cache-control': 'no-cache',
@@ -405,12 +436,12 @@ export class FamilyChat {
       });
       res.end(
         JSON.stringify({
-          id: '/family/',
-          name: GROUP_NAME,
-          short_name: GROUP_NAME,
-          description: 'The family’s conversation · 家人的聊天',
-          start_url: '/family/',
-          scope: '/family/',
+          id: `${this.#base}/`,
+          name: this.#chat.name,
+          short_name: this.#chat.name,
+          description: this.#chat.description,
+          start_url: `${this.#base}/`,
+          scope: `${this.#base}/`,
           display: 'standalone',
           background_color: '#fbfaf8',
           theme_color: '#fbfaf8',
@@ -430,32 +461,25 @@ export class FamilyChat {
       return;
     }
 
-    if (pathname === '/family/login' && method === 'POST') {
+    if (pathname === `${this.#base}/login` && method === 'POST') {
       await this.#login(req, res);
       return;
     }
 
-    if (pathname === '/family/logout' && method === 'POST') {
-      const token = readCookie(req.headers.cookie);
+    if (pathname === `${this.#base}/logout` && method === 'POST') {
+      const token = readCookie(this.#chat, req.headers.cookie);
       const user = this.#session(req, null);
       this.store.deleteSession(token);
       if (user) this.hub.record('signed-out', user.id);
-      redirect(res, '/family/', { 'set-cookie': CLEAR_COOKIE });
+      redirect(res, `${this.#base}/`, { 'set-cookie': clearCookie(this.#chat) });
       return;
     }
 
     const me = this.#session(req, res);
 
-    if (pathname === '/family/' && (method === 'GET' || method === 'HEAD')) {
+    if (pathname === `${this.#base}/` && (method === 'GET' || method === 'HEAD')) {
       if (!me) {
         sendPage(res, 200, renderLogin(this.#assets, null));
-        return;
-      }
-      const slug = url.searchParams.get('room');
-      const room =
-        slug === null ? this.store.getRoom(DEFAULT_ROOM_ID) : this.store.roomBySlug(slug);
-      if (!room) {
-        redirect(res, '/family/');
         return;
       }
       sendPage(
@@ -465,18 +489,14 @@ export class FamilyChat {
           assets: this.#assets,
           me,
           members: this.store.members(),
-          rooms: this.store.roomSummaries(me.id),
-          room,
-          // ?rooms: the conversation list, on a phone without JavaScript.
-          view: url.searchParams.has('rooms') ? 'list' : 'room',
-          recent: this.store.history(null, PAGE_SIZE, room.id).messages,
+          recent: this.store.history(null, PAGE_SIZE).messages,
         }),
       );
       return;
     }
 
     // The admin pages don't admit to existing for anyone else.
-    if (pathname === '/family/admin' || pathname.startsWith('/family/admin/')) {
+    if (pathname === `${this.#base}/admin` || pathname.startsWith(`${this.#base}/admin/`)) {
       if (!me?.isAdmin) throw new HttpError(404, 'Not found.');
       await this.#admin(req, res, url, method, me);
       return;
@@ -484,78 +504,65 @@ export class FamilyChat {
 
     if (!me) {
       // A page navigation gets the sign-in screen; a script gets a 401 it can act on.
-      if (method === 'POST' && pathname === '/family/send') {
-        redirect(res, '/family/');
+      if (method === 'POST' && pathname === `${this.#base}/send`) {
+        redirect(res, `${this.#base}/`);
         return;
       }
       throw new HttpError(401, 'Not signed in.');
     }
 
     // The no-JavaScript composer: a plain form post, then back to the page.
-    if (pathname === '/family/send' && method === 'POST') {
+    if (pathname === `${this.#base}/send` && method === 'POST') {
       const form = await readForm(req);
-      const room = this.#room(form.get('roomId'));
       this.#post(me, {
         clientId: form.get('clientId') ?? '',
         body: form.get('body') ?? '',
-        roomId: room.id,
       });
-      redirect(res, roomHref(room));
+      redirect(res, `${this.#base}/`);
       return;
     }
 
-    if (pathname === '/family/api/history' && method === 'GET') {
-      const room = this.#room(url.searchParams.get('room'));
+    if (pathname === `${this.#base}/api/history` && method === 'GET') {
       const before = Number.parseInt(url.searchParams.get('before') ?? '', 10);
-      const page = this.store.history(Number.isFinite(before) ? before : null, PAGE_SIZE, room.id);
+      const page = this.store.history(Number.isFinite(before) ? before : null, PAGE_SIZE);
       sendJson(res, 200, {
         ...page,
-        room: room.id,
         rev: this.store.currentRev(),
         epoch: this.store.epoch(),
         members: this.store.members().map(publicUser),
-        lastReadRev: this.store.lastReadRev(me.id, room.id),
+        lastReadRev: me.lastReadRev,
       });
       return;
     }
 
-    if (pathname === '/family/api/rooms' && method === 'GET') {
-      sendJson(res, 200, { rooms: this.store.roomSummaries(me.id) });
-      return;
-    }
-
-    if (pathname === '/family/api/events' && method === 'GET') {
+    if (pathname === `${this.#base}/api/events` && method === 'GET') {
       this.#events(req, res, url, me);
       return;
     }
 
-    if (pathname === '/family/api/messages' && method === 'POST') {
+    if (pathname === `${this.#base}/api/messages` && method === 'POST') {
       const body = await readJson(req);
       const result = this.#post(me, body);
       sendJson(res, result.created ? 201 : 200, { message: result.message });
       return;
     }
 
-    const deleteMatch = /^\/family\/api\/messages\/(\d+)$/.exec(pathname);
+    const deleteMatch = new RegExp(`^${this.#base}/api/messages/(\\d+)$`).exec(pathname);
     if (deleteMatch && method === 'DELETE') {
       const { message, imageId } = this.store.deleteMessage(me, Number(deleteMatch[1]));
       if (imageId !== null) await rm(join(this.#imagesDir, imageId), { force: true });
-      this.hub.broadcast(
-        'delete',
-        { id: message.id, rev: message.rev, roomId: message.roomId },
-        { id: message.rev, room: message.roomId },
-      );
+      this.hub.broadcast('delete', { id: message.id, rev: message.rev }, { id: message.rev });
       this.hub.record('message-deleted', me.id, `#${String(message.id)}`);
       sendJson(res, 200, { id: message.id, rev: message.rev });
       return;
     }
 
-    if (pathname === '/family/api/images' && method === 'POST') {
+    if (pathname === `${this.#base}/api/images` && method === 'POST') {
       await this.#upload(req, res, url, me);
       return;
     }
 
-    const imageMatch = /^\/family\/images\/([0-9a-f]{32})$/.exec(pathname);
+    const imageMatch = new RegExp(`^${this.#base}/images/([0-9a-f]{32})$`).exec(pathname);
     if (imageMatch && (method === 'GET' || method === 'HEAD')) {
       const id = imageMatch[1] ?? '';
       const image = this.store.getImage(id);
@@ -575,32 +582,26 @@ export class FamilyChat {
       return;
     }
 
-    if (pathname.startsWith('/family/api/push') || pathname === '/family/api/presence') {
+    if (
+      pathname.startsWith(`${this.#base}/api/push`) ||
+      pathname === `${this.#base}/api/presence`
+    ) {
       await this.#pushRoute(req, res, pathname, method, me);
       return;
     }
 
-    if (pathname === '/family/api/typing' && method === 'POST') {
-      // A page from before rooms posts no body: it means Family.
-      const body = req.headers['content-type']?.startsWith('application/json')
-        ? await readJson(req)
-        : {};
-      const room = this.#room(body['roomId']);
+    if (pathname === `${this.#base}/api/typing` && method === 'POST') {
       if (this.#typing.take(String(me.id)))
-        this.hub.broadcast(
-          'typing',
-          { userId: me.id, roomId: room.id },
-          { except: me.id, room: room.id },
-        );
+        this.hub.broadcast('typing', { userId: me.id }, { except: me.id });
       res.writeHead(204, PRIVATE_HEADERS);
       res.end();
       return;
     }
 
-    if (pathname === '/family/api/read' && method === 'POST') {
+    if (pathname === `${this.#base}/api/read` && method === 'POST') {
       const body = await readJson(req);
       if (typeof body['rev'] === 'number' && Number.isInteger(body['rev'])) {
-        this.store.markRead(me.id, body['rev'], this.#room(body['roomId']).id);
+        this.store.markRead(me.id, body['rev']);
       }
       res.writeHead(204, PRIVATE_HEADERS);
       res.end();
@@ -655,20 +656,7 @@ export class FamilyChat {
     this.#loginByName.recordSuccess(nameKey);
     const token = this.store.createSession(user.id, String(req.headers['user-agent'] ?? ''));
     this.hub.record('signed-in', user.id, String(req.headers['cf-ipcountry'] ?? ''));
-    redirect(res, '/family/', { 'set-cookie': sessionCookie(token) });
-  }
-
-  /** The room a request names (an id), Family when it names none; a 404 for one that doesn't exist. */
-  #room(value: unknown): Room {
-    if (value === undefined || value === null || value === '') {
-      const room = this.store.getRoom(DEFAULT_ROOM_ID);
-      if (room) return room;
-    } else {
-      const id = typeof value === 'number' ? value : Number(value);
-      const room = Number.isInteger(id) ? this.store.getRoom(id) : null;
-      if (room) return room;
-    }
-    throw new HttpError(404, 'No such room.');
+    redirect(res, `${this.#base}/`, { 'set-cookie': sessionCookie(this.#chat, token) });
   }
 
   #post(me: User, body: Record<string, unknown>): { message: Message; created: boolean } {
@@ -683,21 +671,16 @@ export class FamilyChat {
     const text = typeof body['body'] === 'string' ? body['body'] : '';
     const imageId = typeof body['imageId'] === 'string' ? body['imageId'] : null;
     const replyTo = typeof body['replyTo'] === 'number' ? body['replyTo'] : null;
-    const room = this.#room(body['roomId']);
     // Only what the request says, and never who it's from: the author is `me`.
     const result = this.store.postMessage({
       userId: me.id,
-      roomId: room.id,
       clientId,
       body: text,
       imageId,
       replyTo,
     });
     if (result.created) {
-      this.hub.broadcast('message', result.message, {
-        id: result.message.rev,
-        room: result.message.roomId,
-      });
+      this.hub.broadcast('message', result.message, { id: result.message.rev });
       void this.#notifier.messagePosted(result.message);
     } else {
       this.hub.record('duplicate-send-absorbed', me.id, `#${String(result.message.id)}`);
@@ -734,7 +717,7 @@ export class FamilyChat {
   }
 
   #events(req: IncomingMessage, res: ServerResponse, url: URL, me: User): void {
-    const token = readCookie(req.headers.cookie);
+    const token = readCookie(this.#chat, req.headers.cookie);
     const lastEventId = req.headers['last-event-id'];
     const after = Number.parseInt(
       typeof lastEventId === 'string' ? lastEventId : (url.searchParams.get('after') ?? '0'),
@@ -751,14 +734,8 @@ export class FamilyChat {
     // A short retry: the browser comes back in 2 s after a drop.
     res.write('retry: 2000\n\n');
 
-    // A page with a room list asks for every room (`rooms=all`); one from
-    // before rooms asks for nothing and gets Family alone (hub.ts).
-    const onlyRoom = url.searchParams.get('rooms') === 'all' ? null : DEFAULT_ROOM_ID;
-    const viewing = this.store.getRoom(Number(url.searchParams.get('room') ?? DEFAULT_ROOM_ID));
     const connection = this.hub.open({
       userId: me.id,
-      onlyRoom,
-      viewingRoom: onlyRoom ?? viewing?.id ?? DEFAULT_ROOM_ID,
       country: String(req.headers['cf-ipcountry'] ?? ''),
       userAgent: String(req.headers['user-agent'] ?? ''),
       stillAuthorized: () => this.store.resolveSession(token) !== null,
@@ -772,7 +749,6 @@ export class FamilyChat {
       epoch,
       stream: connection.id,
       members: this.store.members().map(publicUser),
-      ...(onlyRoom === null ? { rooms: this.store.roomSummaries(me.id) } : {}),
     });
     // A page that last saw another database (a restore since), or revs
     // this one hasn't reached, can't be brought up to date by replay: it
@@ -785,18 +761,13 @@ export class FamilyChat {
       this.hub.send(connection, 'reset', {});
       this.hub.record('reset-after-restore', me.id);
     } else if (Number.isFinite(after) && after > 0) {
-      const missed = this.store.changesSince(after, REPLAY_LIMIT + 1, onlyRoom);
+      const missed = this.store.changesSince(after, REPLAY_LIMIT + 1);
       if (missed.length > REPLAY_LIMIT) {
         this.hub.send(connection, 'reset', {});
       } else {
         for (const message of missed) {
           if (message.deleted)
-            this.hub.send(
-              connection,
-              'delete',
-              { id: message.id, rev: message.rev, roomId: message.roomId },
-              message.rev,
-            );
+            this.hub.send(connection, 'delete', { id: message.id, rev: message.rev }, message.rev);
           else this.hub.send(connection, 'message', message, message.rev);
         }
         if (missed.length > 0)
@@ -817,9 +788,9 @@ export class FamilyChat {
     method: string,
     me: User,
   ): Promise<void> {
-    const token = readCookie(req.headers.cookie) ?? '';
+    const token = readCookie(this.#chat, req.headers.cookie) ?? '';
 
-    if (pathname === '/family/api/push' && method === 'GET') {
+    if (pathname === `${this.#base}/api/push` && method === 'GET') {
       const mine = this.store.pushSubscriptionFor(token);
       sendJson(res, 200, {
         publicKey: this.#notifier.publicKey,
@@ -830,7 +801,7 @@ export class FamilyChat {
       return;
     }
 
-    if (pathname === '/family/api/push' && method === 'POST') {
+    if (pathname === `${this.#base}/api/push` && method === 'POST') {
       const body = await readJson(req);
       const endpoint = typeof body['endpoint'] === 'string' ? body['endpoint'] : '';
       const keys = (body['keys'] ?? {}) as Record<string, unknown>;
@@ -853,7 +824,7 @@ export class FamilyChat {
       return;
     }
 
-    if (pathname === '/family/api/push/remove' && method === 'POST') {
+    if (pathname === `${this.#base}/api/push/remove` && method === 'POST') {
       const body = await readJson(req);
       if (typeof body['endpoint'] === 'string') {
         this.store.deletePushSubscription(body['endpoint'], me.id);
@@ -864,7 +835,7 @@ export class FamilyChat {
     }
 
     // "Send a test": proves the whole path to this one device.
-    if (pathname === '/family/api/push/test' && method === 'POST') {
+    if (pathname === `${this.#base}/api/push/test` && method === 'POST') {
       const mine = this.store.pushSubscriptionFor(token);
       const target = mine
         ? this.store.pushTargets(me.id).find((t) => t.endpoint === mine.endpoint)
@@ -875,11 +846,10 @@ export class FamilyChat {
       const { outcome, status } = await sendPush(
         target,
         {
-          title: zh ? '家人' : 'Family',
+          title: zh ? this.#chat.zhName : this.#chat.name,
           body: zh ? '通知已开启。' : 'Notifications are on.',
-          tag: 'family-test',
+          tag: `${this.#chat.slug}-test`,
           messageId: 0,
-          room: '',
           badge: this.store.unreadCount(me.id),
         },
         this.#push,
@@ -890,16 +860,12 @@ export class FamilyChat {
       return;
     }
 
-    if (pathname === '/family/api/presence' && method === 'POST') {
+    if (pathname === `${this.#base}/api/presence` && method === 'POST') {
       const body = await readJson(req);
       const connection = this.hub.get(Number(body['stream']));
       // Only one's own stream: nobody can silence someone else's notifications.
       if (connection?.userId === me.id) {
         connection.visibleUntil = body['visible'] === true ? Date.now() + PRESENCE_MS : 0;
-        // Which room is on screen; a page from before rooms names none.
-        if (body['roomId'] !== undefined && connection.onlyRoom === null) {
-          connection.viewingRoom = this.#room(body['roomId']).id;
-        }
       }
       res.writeHead(204, PRIVATE_HEADERS);
       res.end();
@@ -917,7 +883,7 @@ export class FamilyChat {
     me: User,
   ): Promise<void> {
     const { pathname } = url;
-    if (pathname === '/family/admin' && method === 'GET') {
+    if (pathname === `${this.#base}/admin` && method === 'GET') {
       const users = this.store.listUsers();
       let dbBytes = 0;
       for (const suffix of ['', '-wal']) {
@@ -948,7 +914,7 @@ export class FamilyChat {
 
     const form = await readForm(req);
     const back = (notice: string): void => {
-      redirect(res, `/family/admin?notice=${encodeURIComponent(notice)}`);
+      redirect(res, `${this.#base}/admin?notice=${encodeURIComponent(notice)}`);
     };
     const target = (): User => {
       const user = this.store.getUser(Number(form.get('id')));
@@ -961,7 +927,7 @@ export class FamilyChat {
 
     try {
       switch (pathname) {
-        case '/family/admin/create': {
+        case `${this.#base}/admin/create`: {
           const user = await this.store.createUser({
             username: form.get('username') ?? '',
             displayName: form.get('displayName') ?? '',
@@ -973,14 +939,14 @@ export class FamilyChat {
           back(`Added ${user.displayName}. They sign in as “${user.username}”.`);
           return;
         }
-        case '/family/admin/rename': {
+        case `${this.#base}/admin/rename`: {
           const user = this.store.rename(target().id, form.get('displayName') ?? '');
           this.store.setLang(user.id, toLang(form.get('lang')));
           refreshMembers();
           back(`Saved ${user.displayName}.`);
           return;
         }
-        case '/family/admin/password': {
+        case `${this.#base}/admin/password`: {
           const user = target();
           await this.store.setPassword(user.id, form.get('password') ?? '');
           this.hub.disconnectUser(user.id);
@@ -988,7 +954,7 @@ export class FamilyChat {
           back(`New password set for ${user.displayName}; their devices are signed out.`);
           return;
         }
-        case '/family/admin/revoke': {
+        case `${this.#base}/admin/revoke`: {
           const user = target();
           this.store.revokeSessions(user.id);
           this.hub.disconnectUser(user.id);
@@ -996,8 +962,8 @@ export class FamilyChat {
           back(`${user.displayName} is signed out everywhere.`);
           return;
         }
-        case '/family/admin/disable':
-        case '/family/admin/enable': {
+        case `${this.#base}/admin/disable`:
+        case `${this.#base}/admin/enable`: {
           const user = target();
           if (user.id === me.id) throw new FamilyError('You can’t disable yourself.');
           const disable = pathname.endsWith('/disable');
@@ -1008,7 +974,7 @@ export class FamilyChat {
           back(`${user.displayName} is ${disable ? 'disabled' : 'enabled again'}.`);
           return;
         }
-        case '/family/admin/delete': {
+        case `${this.#base}/admin/delete`: {
           const user = target();
           if (user.id === me.id) throw new FamilyError('You can’t delete yourself.');
           if ((form.get('confirm') ?? '').trim().toLowerCase() !== user.username.toLowerCase()) {
@@ -1019,11 +985,7 @@ export class FamilyChat {
           for (const id of imageIds) await rm(join(this.#imagesDir, id), { force: true });
           for (const id of messageIds) {
             const message = this.store.requireMessage(id);
-            this.hub.broadcast(
-              'delete',
-              { id, rev: message.rev, roomId: message.roomId },
-              { id: message.rev, room: message.roomId },
-            );
+            this.hub.broadcast('delete', { id, rev: message.rev }, { id: message.rev });
           }
           refreshMembers();
           this.hub.record('member-deleted', null, user.displayName);

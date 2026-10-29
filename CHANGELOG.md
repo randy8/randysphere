@@ -967,3 +967,17 @@ Underneath, a message gains a room and a person's read position becomes
 per room, but the machinery is the same one stream, one counter and one
 replay rule, so a dropped connection still catches up on everything at
 once. Another room is one command (`pnpm family add-room`).
+
+## 2026-10-29 — Disc, a second chat that knows nothing of the first
+
+The rooms from this morning were the wrong shape: Disc's people shouldn't
+be in Family's conversation at all. So rooms are gone, and Disc is the same
+chat code run a second time, at `/disc/`, with its own database, accounts,
+sign-in, notifications and home-screen app. Nothing in it leads to
+`/family/`, and a sign-in for one opens nothing in the other.
+
+The chat's code no longer assumes it lives at `/family/`: it takes its
+path and name from one small list (`tools/serve/src/family/chats.ts`), and
+the server mounts each. Family's 28 messages and everyone's read positions
+came through the schema change untouched. The iMessage-style title — the
+faces, then the name small with a ›, no line of member names — stayed.

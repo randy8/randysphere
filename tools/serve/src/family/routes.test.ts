@@ -8,9 +8,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 
+import { DISC } from './chats.ts';
 import { FamilyChat } from './routes.ts';
 
 let chat: FamilyChat;
+/** The other chat, on the same server: it must share nothing with the family's. */
+let disc: FamilyChat;
 let server: Server;
 let base: string;
 let host: string;
@@ -175,6 +178,11 @@ function stream(
 before(async () => {
   dataDir = mkdtempSync(join(tmpdir(), 'family-routes-'));
   chat = new FamilyChat({ dataDir, pushFetch });
+  disc = new FamilyChat({
+    chat: DISC,
+    dataDir: mkdtempSync(join(tmpdir(), 'disc-routes-')),
+    pushFetch,
+  });
   await Promise.all([
     chat.store.createUser({
       username: 'mom',
@@ -191,8 +199,10 @@ before(async () => {
     chat.store.createUser({ username: 'dad', displayName: 'Dad', password: 'another password' }),
   ]);
   server = createServer((req, res) => {
+    const url = new URL(req.url ?? '/', 'http://localhost');
     chat
-      .handle(req, res, new URL(req.url ?? '/', 'http://localhost'))
+      .handle(req, res, url)
+      .then(async (handled) => handled || disc.handle(req, res, url))
       .then((handled) => {
         if (!handled) {
           res.writeHead(404);
@@ -213,6 +223,7 @@ before(async () => {
 
 after(async () => {
   chat.shutdown();
+  disc.shutdown();
   server.closeAllConnections();
   await new Promise((resolve) => server.close(resolve));
 });
@@ -246,7 +257,6 @@ test('every private endpoint refuses a visitor with no session, or a forged one'
     ['GET', `/family/images/${imageId}`],
     ['POST', '/family/api/typing'],
     ['POST', '/family/api/read'],
-    ['GET', '/family/api/rooms'],
   ];
   for (const cookie of [undefined, 'family_session=forged-token-value']) {
     for (const [method, path] of paths) {
@@ -793,124 +803,61 @@ test('a broadcast racing a stream that was just ended is dropped, not a crash', 
   open.close();
 });
 
-test('rooms: a message lands in its own room, live to room-aware pages and never to an old one', async () => {
-  const disc = chat.store.roomBySlug('disc');
-  assert.ok(disc);
-  const aware = await stream(dadCookie, {}, '?rooms=all');
-  const awareHello = (await aware.next('hello')).data as { rooms: { slug: string }[] };
-  assert.deepEqual(
-    awareHello.rooms.map((room) => room.slug),
-    ['family', 'disc'],
+test('Disc is a chat of its own at /disc/: its own accounts and cookie, and no way to Family', async () => {
+  await disc.store.createUser({
+    username: 'randy',
+    displayName: 'Randy',
+    password: 'disc password',
+  });
+  // The family's sign-in means nothing here, under either cookie name.
+  const familyToken = randyCookie.split('=')[1] ?? '';
+  for (const cookie of [randyCookie, `disc_session=${familyToken}`]) {
+    assert.equal((await call('/disc/api/history', { cookie })).status, 401);
+    assert.match(await (await call('/disc/', { cookie })).text(), /action="\/disc\/login"/);
+  }
+  // Disc's accounts are its own: the family password doesn't open it.
+  const refused = await call('/disc/login', {
+    form: { username: 'randy', password: 'battery staple' },
+  });
+  assert.ok(!(refused.headers.get('set-cookie') ?? '').includes('disc_session=ey'));
+  const response = await call('/disc/login', {
+    form: { username: 'randy', password: 'disc password' },
+  });
+  assert.equal(response.status, 303);
+  assert.equal(response.headers.get('location'), '/disc/');
+  const setCookie = response.headers.get('set-cookie') ?? '';
+  assert.match(setCookie, /^disc_session=[\w-]+; Path=\/disc; /);
+  const discCookie = setCookie.split(';')[0] ?? '';
+  // …and its sign-in, in turn, opens nothing of the family's.
+  const discToken = discCookie.split('=')[1] ?? '';
+  assert.equal(
+    (await call('/family/api/history', { cookie: `family_session=${discToken}` })).status,
+    401,
   );
-  // A page from before rooms (a home-screen app left open over the deploy).
-  const old = await stream(dadCookie);
-  await old.next('hello');
 
-  const sent = await call('/family/api/messages', {
-    cookie: momCookie,
-    json: { clientId: 'room-disc-001', body: 'tee time?', roomId: disc.id },
+  // A message there stays there.
+  const sent = await call('/disc/api/messages', {
+    cookie: discCookie,
+    json: { clientId: 'disc-00000001', body: 'Saturday at the course?' },
   });
   assert.equal(sent.status, 201);
-  const live = (await aware.next('message')).data as { roomId: number; body: string };
-  assert.equal(live.roomId, disc.id);
-  assert.equal(live.body, 'tee time?');
-
-  // No room named: Family, as before; the old page sees that one only.
-  await call('/family/api/messages', {
-    cookie: momCookie,
-    json: { clientId: 'room-fam-0001', body: 'dinner' },
-  });
-  const legacy = (await old.next('message')).data as { body: string; roomId: number };
-  assert.equal(legacy.body, 'dinner');
-  assert.equal(legacy.roomId, 1);
-  assert.ok(!old.events.some((e) => (e.data as { body?: string }).body === 'tee time?'));
-
-  const discPage = (await (
-    await call(`/family/api/history?room=${String(disc.id)}`, { cookie: dadCookie })
-  ).json()) as { messages: { body: string }[] };
-  assert.deepEqual(
-    discPage.messages.map((m) => m.body),
-    ['tee time?'],
-  );
-  const familyPage = (await (await call('/family/api/history', { cookie: dadCookie })).json()) as {
+  const familyHistory = (await (
+    await call('/family/api/history', { cookie: randyCookie })
+  ).json()) as {
     messages: { body: string }[];
   };
-  assert.ok(!familyPage.messages.some((m) => m.body === 'tee time?'));
+  assert.ok(!familyHistory.messages.some((m) => m.body === 'Saturday at the course?'));
 
-  // Unread is per room, and reading one leaves the other.
-  const before = (await (await call('/family/api/rooms', { cookie: dadCookie })).json()) as {
-    rooms: { id: number; unread: number }[];
-  };
-  assert.ok((before.rooms.find((r) => r.id === disc.id)?.unread ?? 0) >= 1);
-  await call('/family/api/read', {
-    cookie: dadCookie,
-    json: { roomId: disc.id, rev: chat.store.currentRev() },
-  });
-  const after = (await (await call('/family/api/rooms', { cookie: dadCookie })).json()) as {
-    rooms: { id: number; unread: number }[];
-  };
-  assert.equal(after.rooms.find((r) => r.id === disc.id)?.unread, 0);
-  assert.ok((after.rooms.find((r) => r.id === 1)?.unread ?? 0) >= 1);
-
-  assert.equal(
-    (
-      await call('/family/api/messages', {
-        cookie: momCookie,
-        json: { clientId: 'room-none-001', body: 'x', roomId: 999 },
-      })
-    ).status,
-    404,
-  );
-  aware.close();
-  old.close();
-});
-
-test('rooms: each has its own page, and the no-JavaScript form posts into the room it is on', async () => {
-  const page = await (await call('/family/?room=disc', { cookie: momCookie })).text();
-  assert.match(page, /<span data-room-name>Disc<\/span>/);
-  assert.match(page, /name="roomId" value="2"/);
-  assert.match(page, /data-view="room"/);
-  assert.match(
-    await (await call('/family/?rooms', { cookie: momCookie })).text(),
-    /data-view="list"/,
-  );
-  assert.equal((await call('/family/?room=nope', { cookie: momCookie })).status, 303);
-
-  const posted = await call('/family/send', {
-    cookie: momCookie,
-    form: { body: 'from a form', clientId: 'nojs-room-0001', roomId: '2' },
-  });
-  assert.equal(posted.status, 303);
-  assert.equal(posted.headers.get('location'), '/family/?room=disc');
-  assert.ok(chat.store.history(null, 50, 2).messages.some((m) => m.body === 'from a form'));
-});
-
-test('rooms: someone looking at Family is still notified about Disc', async () => {
-  const phone = device('randy-rooms-phone');
-  await call('/family/api/push', { cookie: randyCookie, json: phone.subscription });
-  const open = await stream(randyCookie, {}, '?rooms=all&room=1');
-  const hello = (await open.next('hello')).data as { stream: number };
-  await call('/family/api/presence', {
-    cookie: randyCookie,
-    json: { stream: hello.stream, visible: true, roomId: 1 },
-  });
-  const toRandy = (): typeof pushed =>
-    pushed.filter((p) => p.endpoint === phone.subscription.endpoint);
-
-  pushed.length = 0;
-  await call('/family/api/messages', {
-    cookie: momCookie,
-    json: { clientId: 'room-push-0001', body: 'family' },
-  });
-  await call('/family/api/messages', {
-    cookie: momCookie,
-    json: { clientId: 'room-push-0002', body: 'disc', roomId: 2 },
-  });
-  await settle();
-  assert.equal(toRandy().length, 1, 'Family on screen: only Disc notifies');
-  const payload = phone.read(toRandy()[0]?.body ?? Buffer.alloc(0));
-  assert.equal(payload['title'], 'Disc');
-  assert.equal(payload['room'], 'disc');
-  assert.equal(toRandy()[0]?.headers['topic'], 'family-disc');
-  open.close();
+  // The page names Disc, and nothing on it leads to /family.
+  const html = await (await call('/disc/', { cookie: discCookie })).text();
+  assert.match(html, /<title>Disc<\/title>/);
+  assert.match(html, /Saturday at the course\?/);
+  assert.doesNotMatch(html, /["'`]\/family\b/, 'the Disc page links to Family');
+  assert.match(html, /"base":"\/disc"/);
+  const manifest = (await (await call('/disc/manifest.webmanifest')).json()) as Record<
+    string,
+    string
+  >;
+  assert.equal(manifest['name'], 'Disc');
+  assert.equal(manifest['scope'], '/disc/');
 });

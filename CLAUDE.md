@@ -27,7 +27,9 @@ shared `src/lib/`:
 
 Not a collection: the **family chat** at `/family/` (`tools/serve/src/family/`,
 `docs/family.md`) — accounts, SQLite in `private/family/`, live over SSE,
-served by `tools/serve` alone; the Astro build knows nothing of it.
+served by `tools/serve` alone; the Astro build knows nothing of it. The same
+code runs **Disc** at `/disc/` (`private/disc/`, `pnpm disc`), a separate
+chat with its own accounts that never links to Family (`family/chats.ts`).
 
 Adding a collection: one entry in `collections.ts`, its own `src/pages/<slug>/`,
 and (if needed) its own `src/<slug>/`. `Base.astro` stays collection-agnostic,
@@ -170,9 +172,10 @@ pnpm verify              # pnpm check + the trial build —
    currently 2) with no migration — old manifests are rejected, re-ingest.
 9. `pnpm run edit` binds `127.0.0.1` only — it writes with no authentication.
 10. Nothing under `site/src/` reads `private/`. Only `tools/serve` does, and
-    only after `verifySessionToken` (`/private`) or a family session
-    (`/family/`, `FamilyStore.resolveSession`) — every chat route, photo and
-    stream resolves the session first.
+    only after `verifySessionToken` (`/private`) or a chat session
+    (`/family/`, `/disc/`, `FamilyStore.resolveSession`) — every chat route,
+    photo and stream resolves the session first, against that chat's own
+    database.
 11. No new dependency without a `docs/dependencies.md` entry.
 12. `/infra` (tools/serve/src/infra.ts) is served only to the owner's own
     tailnet devices: the connection must arrive on this machine's Tailscale

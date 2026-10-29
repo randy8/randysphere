@@ -14,8 +14,7 @@ let current = null;
 export function openSheet({ title, closeLabel, build, onClose, wide = false }) {
   current?.(true);
   const opener = document.activeElement;
-  // The conversation and, beside it, the room list.
-  const behind = document.querySelectorAll('[data-app], [data-rooms]');
+  const app = document.querySelector('[data-app]');
 
   const scrim = document.createElement('div');
   scrim.className = 'sheet-scrim';
@@ -47,7 +46,7 @@ export function openSheet({ title, closeLabel, build, onClose, wide = false }) {
     closed = true;
     if (current === close) current = null;
     document.removeEventListener('keydown', onKey, true);
-    for (const node of behind) node.removeAttribute('inert');
+    app?.removeAttribute('inert');
     const finish = () => {
       scrim.remove();
       sheet.remove();
@@ -92,7 +91,7 @@ export function openSheet({ title, closeLabel, build, onClose, wide = false }) {
 
   build(body, close);
   document.body.append(scrim, sheet);
-  for (const node of behind) node.setAttribute('inert', '');
+  app?.setAttribute('inert', '');
   current = close;
   sheet.focus({ preventScroll: true });
   return close;

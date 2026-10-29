@@ -145,6 +145,24 @@ const MIGRATIONS: readonly string[] = [
   INSERT INTO room_reads (user_id, room_id, last_read_rev)
     SELECT id, 1, last_read_rev FROM users;
   `,
+  `
+  -- Rooms undone: Disc became a chat of its own at /disc/, with its own
+  -- database and accounts (docs/decisions.md, 2026-10-29), so this one is
+  -- a single conversation again. Refuses (the CHECK fails, the migration
+  -- rolls back) if any message was ever sent outside Family, rather than
+  -- dropping it.
+  CREATE TEMP TABLE outside_family (n INTEGER CHECK (n = 0));
+  INSERT INTO outside_family SELECT count(*) FROM messages WHERE room_id <> 1;
+  DROP TABLE outside_family;
+
+  UPDATE users SET last_read_rev = max(last_read_rev, coalesce(
+    (SELECT last_read_rev FROM room_reads WHERE user_id = users.id AND room_id = 1), 0));
+  DROP TABLE room_reads;
+  DROP TRIGGER messages_room_exists;
+  DROP INDEX messages_room;
+  ALTER TABLE messages DROP COLUMN room_id;
+  DROP TABLE rooms;
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

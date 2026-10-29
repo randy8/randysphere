@@ -24,6 +24,7 @@
     "doctor": "node tools/pipeline/src/cli.ts doctor",
     "edit": "node tools/pipeline/src/cli.ts edit",
     "family": "node tools/serve/src/family/cli.ts",
+    "disc": "node tools/serve/src/family/cli.ts --chat=disc",
     "serve": "node tools/serve/src/cli.ts",
     "deploy": "bash deploy/deploy.sh",
     "rollback": "bash deploy/rollback.sh",
