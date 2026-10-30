@@ -63,6 +63,14 @@ const T = zh
       anyEmoji: '输入任意表情',
       recentEmoji: '最近使用',
       sticker: '贴纸',
+      kinds: {
+        track: '歌曲',
+        album: '专辑',
+        playlist: '歌单',
+        artist: '艺人',
+        episode: '单集',
+        show: '播客',
+      },
       categories: {
         smileys: '表情',
         people: '人物',
@@ -122,6 +130,14 @@ const T = zh
       anyEmoji: 'Type any emoji',
       recentEmoji: 'Recently Used',
       sticker: 'Sticker',
+      kinds: {
+        track: 'Song',
+        album: 'Album',
+        playlist: 'Playlist',
+        artist: 'Artist',
+        episode: 'Episode',
+        show: 'Podcast',
+      },
       categories: {
         smileys: 'Smileys',
         people: 'People',
@@ -283,8 +299,13 @@ function separatorLabel(at) {
 const URL_PATTERN = /\b(?:https?:\/\/|www\.)[^\s<>"'，。！？；：、（）「」『』【】《》]+/gi;
 const TRAILING = /[.,;:!?)\]}'"]+$/;
 
-/** Text with its links made clickable — built as nodes, never as HTML. */
-function linkify(text) {
+/**
+ * Text with its links made clickable — built as nodes, never as HTML. A
+ * stored message's `links` (store.ts) give each its href and words without
+ * tracking parameters; the text itself is never changed.
+ */
+function linkify(text, links = []) {
+  const known = new Map(links.map((link) => [link.raw, link]));
   const fragment = document.createDocumentFragment();
   let last = 0;
   for (const match of text.matchAll(URL_PATTERN)) {
@@ -299,8 +320,9 @@ function linkify(text) {
     }
     if (href.protocol !== 'https:' && href.protocol !== 'http:') continue;
     fragment.append(text.slice(last, match.index));
-    const a = el('a', '', raw);
-    a.href = href.href;
+    const link = known.get(raw);
+    const a = el('a', '', link?.text ?? raw);
+    a.href = link?.url ?? href.href;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
     fragment.append(a);
@@ -346,11 +368,73 @@ function glyphImage(glyph, large) {
   return img;
 }
 
+/** The Spotify mark (pages.ts SPOTIFY_LOGO): drawn here, nothing loaded from Spotify. */
+const SPOTIFY_LOGO =
+  '<svg class="link-logo" viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#1ed760"/><g fill="none" stroke="#000" stroke-linecap="round"><path d="M6.2 9.2c3.8-1.2 8.3-.8 11.6 1.2" stroke-width="2"/><path d="M6.9 12.6c3.1-.9 6.7-.6 9.4 1" stroke-width="1.7"/><path d="M7.5 15.8c2.5-.7 5.2-.5 7.3.8" stroke-width="1.4"/></g></svg>';
+const PROVIDER_NAMES = { spotify: 'Spotify' };
+
+/** A message's link previews, each once, in order. */
+function cardsOf(item) {
+  const seen = new Set();
+  return (item.links ?? [])
+    .map((link) => link.preview)
+    .filter((preview) => preview && !seen.has(preview.url) && seen.add(preview.url));
+}
+
+/** Nothing but links with cards: the cards stand in for the text, as in iMessage. */
+function onlyCards(item) {
+  if (item.glyphs?.length) return false;
+  let rest = item.body;
+  for (const link of item.links ?? []) if (link.preview) rest = rest.replace(link.raw, '');
+  return cardsOf(item).length > 0 && rest.trim() === '';
+}
+
+/**
+ * A link's card (pages.ts cardHtml draws the same without JavaScript):
+ * artwork, title, who it's by, where it's from — the whole card one link.
+ * Every word is set as text; the artwork is this server's copy.
+ */
+function linkCard(preview) {
+  const card = el('a', 'bubble link-card');
+  card.href = preview.url;
+  card.target = '_blank';
+  card.rel = 'noopener noreferrer';
+  card.dataset.provider = preview.provider;
+  const logo = preview.provider === 'spotify' ? SPOTIFY_LOGO : '';
+  if (preview.image) {
+    const art = el('img', 'link-art');
+    art.src = `${BASE}/previews/${preview.image.id}`;
+    art.alt = '';
+    art.width = preview.image.width;
+    art.height = preview.image.height;
+    art.decoding = 'async';
+    art.loading = 'lazy';
+    card.append(art);
+  } else {
+    const art = el('span', 'link-art link-art-empty');
+    art.innerHTML = logo;
+    card.append(art);
+  }
+  const text = el('span', 'link-text');
+  text.append(el('span', 'link-title', preview.title));
+  if (preview.subtitle) text.append(el('span', 'link-subtitle', preview.subtitle));
+  const source = el('span', 'link-source');
+  source.innerHTML = logo;
+  source.append(
+    [PROVIDER_NAMES[preview.provider] ?? preview.provider, T.kinds[preview.kind]]
+      .filter(Boolean)
+      .join(' · '),
+  );
+  text.append(source);
+  card.append(text);
+  return card;
+}
+
 /**
  * A message's text, with its Genmoji and stickers in their places. Only
  * stickers (no words): large, without a bubble, as iMessage shows them.
  */
-function textBubble(body, glyphs = []) {
+function textBubble(body, glyphs = [], links = []) {
   const bubble = el('div', 'bubble');
   if (glyphs.length > 0) {
     const parts = body.split(GLYPH);
@@ -358,7 +442,7 @@ function textBubble(body, glyphs = []) {
     if (alone) bubble.classList.add('sticker', glyphs.length === 1 ? 'one' : 'few');
     parts.forEach((part, n) => {
       if (n > 0 && glyphs[n - 1]) bubble.append(glyphImage(glyphs[n - 1], alone));
-      if (!alone) bubble.append(linkify(part));
+      if (!alone) bubble.append(linkify(part, links));
     });
     return bubble;
   }
@@ -366,7 +450,7 @@ function textBubble(body, glyphs = []) {
     bubble.classList.add('jumbo');
     bubble.textContent = body.trim();
   } else {
-    bubble.append(linkify(body));
+    bubble.append(linkify(body, links));
   }
   return bubble;
 }
@@ -411,7 +495,7 @@ function setEdited(li, item) {
   label.type = 'button';
   label.dataset.toggleEdits = String(item.id);
   label.setAttribute('aria-expanded', String(open));
-  const current = li.querySelector('.bubble:not(.photo):not(.past)');
+  const current = li.querySelector('.bubble:not(.photo):not(.past):not(.link-card)');
   current?.after(label);
   if (open && current) {
     const history = el('div', 'edit-history');
@@ -471,7 +555,13 @@ function messageNode(item) {
     li.append(bubble);
   }
 
-  if (item.body) li.append(textBubble(item.body, item.glyphs));
+  if (item.body) {
+    const bubble = textBubble(item.body, item.glyphs, item.links);
+    // Kept (Edit works on it), but not shown while cards say it all.
+    if (onlyCards(item)) bubble.classList.add('links-only');
+    li.append(bubble);
+  }
+  for (const preview of cardsOf(item)) li.append(linkCard(preview));
   setEdited(li, item);
   setReactions(li, item);
 
@@ -860,11 +950,16 @@ function applyUpdate(message) {
     return;
   }
   if (message.unsent) return;
+  // A card arrived (or an edit changed the links): drawn afresh.
+  if (JSON.stringify(message.links ?? []) !== JSON.stringify(old.links ?? [])) {
+    rebuild(message.id);
+    return;
+  }
   const item = { ...message, key };
   keepPlace(() => {
     if (message.body !== old.body) {
-      const current = node.querySelector('.bubble:not(.photo):not(.past)');
-      const fresh = textBubble(message.body);
+      const current = node.querySelector('.bubble:not(.photo):not(.past):not(.link-card)');
+      const fresh = textBubble(message.body, message.glyphs, message.links);
       if (current) current.replaceWith(fresh);
       if (!reducedMotion.matches) fresh.classList.add('edited-in');
     }
@@ -1396,6 +1491,11 @@ async function sendPhotos(files) {
 }
 
 list.addEventListener('click', (event) => {
+  // A long press opened the menu: lifting the finger mustn't also follow a link.
+  if (suppressClick && event.target.closest('a')) {
+    event.preventDefault();
+    return;
+  }
   const retry = event.target.closest('[data-retry]');
   if (retry) {
     const p = pending.get(retry.dataset.retry);
@@ -1487,7 +1587,8 @@ function openMenu(node) {
   menuFor = node;
   menuOpenedAt = Date.now();
   const stored = node.dataset.key.startsWith('m');
-  const bubbles = [...node.querySelectorAll('.bubble')];
+  // Those on screen: a text hidden behind its link cards isn't.
+  const bubbles = [...node.querySelectorAll('.bubble')].filter((b) => b.getClientRects().length);
   if (bubbles.length === 0) return;
   const rect = bubbles[0].getBoundingClientRect();
   const lastRect = bubbles[bubbles.length - 1].getBoundingClientRect();
@@ -1995,7 +2096,7 @@ function rebuild(id) {
 function startEdit(id) {
   const item = messages.get(id);
   const node = nodes.get(`m${id}`);
-  const bubble = node?.querySelector('.bubble:not(.photo):not(.past)');
+  const bubble = node?.querySelector('.bubble:not(.photo):not(.past):not(.link-card)');
   if (!item || !bubble || editing) return;
   const form = el('form', 'edit-field');
   const field = el('textarea');

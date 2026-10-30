@@ -2,7 +2,7 @@ import { escapeHtml } from '../pages.ts';
 import type { ChatIdentity } from './chats.ts';
 import type { Connection, HubEvent } from './hub.ts';
 import { GLYPH } from './store.ts';
-import type { Lang, Message, SessionInfo, User } from './store.ts';
+import type { Lang, LinkPreview, Message, SessionInfo, User } from './store.ts';
 
 export interface Assets {
   /** `/family` or `/disc`: the chat's path, which every link and form on its pages starts with. */
@@ -27,6 +27,14 @@ const STRINGS = {
     empty: 'No messages yet. Say hello.',
     details: 'Details & Notifications',
     edited: 'Edited',
+    kinds: {
+      track: 'Song',
+      album: 'Album',
+      playlist: 'Playlist',
+      artist: 'Artist',
+      episode: 'Episode',
+      show: 'Podcast',
+    } as Record<string, string>,
     unsent: (name: string) => `${name} unsent a message.`,
     youUnsent: 'You unsent a message.',
   },
@@ -42,6 +50,14 @@ const STRINGS = {
     empty: '还没有消息，打个招呼吧。',
     details: '详细信息与通知',
     edited: '已编辑',
+    kinds: {
+      track: '歌曲',
+      album: '专辑',
+      playlist: '歌单',
+      artist: '艺人',
+      episode: '单集',
+      show: '播客',
+    } as Record<string, string>,
     unsent: (name: string) => `${name}撤回了一条信息。`,
     youUnsent: '你撤回了一条信息。',
   },
@@ -249,6 +265,61 @@ function formatTime(at: number): string {
   return new Date(at).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 }
 
+/** `text` escaped, with each of its links a link (href and words from the message's `links`). */
+function linkedHtml(text: string, links: Message['links']): string {
+  let out = '';
+  let at = 0;
+  for (const link of links) {
+    const found = text.indexOf(link.raw, at);
+    if (found === -1) continue;
+    out += `${escapeHtml(text.slice(at, found))}<a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(link.text)}</a>`;
+    at = found + link.raw.length;
+  }
+  return out + escapeHtml(text.slice(at));
+}
+
+/** The previews to show as cards: each once, in order. */
+function cardsOf(message: Message): LinkPreview[] {
+  const seen = new Set<string>();
+  const cards: LinkPreview[] = [];
+  for (const link of message.links) {
+    if (link.preview && !seen.has(link.preview.url)) {
+      seen.add(link.preview.url);
+      cards.push(link.preview);
+    }
+  }
+  return cards;
+}
+
+/** Nothing but links with cards: the cards stand in for the text, as in iMessage. */
+function onlyCards(message: Message): boolean {
+  if (message.glyphs.length > 0) return false;
+  let rest = message.body;
+  for (const link of message.links) if (link.preview) rest = rest.replace(link.raw, '');
+  return cardsOf(message).length > 0 && rest.trim() === '';
+}
+
+/** The Spotify mark, drawn here (nothing is loaded from Spotify). */
+const SPOTIFY_LOGO =
+  '<svg class="link-logo" viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#1ed760"/><g fill="none" stroke="#000" stroke-linecap="round"><path d="M6.2 9.2c3.8-1.2 8.3-.8 11.6 1.2" stroke-width="2"/><path d="M6.9 12.6c3.1-.9 6.7-.6 9.4 1" stroke-width="1.7"/><path d="M7.5 15.8c2.5-.7 5.2-.5 7.3.8" stroke-width="1.4"/></g></svg>';
+
+const PROVIDER_NAMES: Readonly<Record<string, string>> = { spotify: 'Spotify' };
+
+/**
+ * A link's card (static/chat.js linkCard draws the same): artwork, title,
+ * who it's by, and where it's from, the whole card one link to it.
+ */
+function cardHtml(base: string, preview: LinkPreview, lang: Lang): string {
+  const kind = STRINGS[lang].kinds[preview.kind] ?? '';
+  const source = [PROVIDER_NAMES[preview.provider] ?? preview.provider, kind]
+    .filter(Boolean)
+    .join(' · ');
+  const art = preview.image
+    ? `<img class="link-art" src="${base}/previews/${preview.image.id}" alt="" width="${String(preview.image.width)}" height="${String(preview.image.height)}" loading="lazy">`
+    : `<span class="link-art link-art-empty">${preview.provider === 'spotify' ? SPOTIFY_LOGO : ''}</span>`;
+  return `<a class="bubble link-card" data-provider="${escapeHtml(preview.provider)}" href="${escapeHtml(preview.url)}" target="_blank" rel="noopener noreferrer">${art}<span class="link-text"><span class="link-title">${escapeHtml(preview.title)}</span>${preview.subtitle ? `<span class="link-subtitle">${escapeHtml(preview.subtitle)}</span>` : ''}<span class="link-source">${preview.provider === 'spotify' ? SPOTIFY_LOGO : ''}${escapeHtml(source)}</span></span></a>`;
+}
+
 function renderStaticMessage(
   base: string,
   message: Message,
@@ -268,17 +339,20 @@ function renderStaticMessage(
   const parts = message.body.split(GLYPH);
   const sticker = message.glyphs.length > 0 && parts.every((part) => part.trim() === '');
   const text =
-    message.body === ''
+    message.body === '' || onlyCards(message)
       ? ''
       : `<span class="bubble-text">${parts
           .map((part, n) => {
             const glyph = message.glyphs[n - 1];
-            return `${glyph ? `<img class="glyph" src="${base}/images/${glyph.id}" alt="" width="${String(glyph.width)}" height="${String(glyph.height)}">` : ''}${escapeHtml(part)}`;
+            return `${glyph ? `<img class="glyph" src="${base}/images/${glyph.id}" alt="" width="${String(glyph.width)}" height="${String(glyph.height)}">` : ''}${linkedHtml(part, message.links)}`;
           })
           .join('')}</span>`;
+  const cards = cardsOf(message)
+    .map((preview) => `\n  ${cardHtml(base, preview, me.lang)}`)
+    .join('');
   return `<li class="msg ${mine ? 'msg-out' : 'msg-in'}" data-static>
   ${mine ? '' : `<span class="msg-author">${escapeHtml(author)}</span>`}
-  <div class="bubble${sticker ? ' sticker' : ''}">${image}${text}</div>${message.editedAt === null ? '' : `\n  <span class="edited-label">${t.edited}</span>`}
+  ${image || text ? `<div class="bubble${sticker ? ' sticker' : ''}">${image}${text}</div>` : ''}${cards}${message.editedAt === null ? '' : `\n  <span class="edited-label">${t.edited}</span>`}
   <time class="msg-static-time" datetime="${new Date(message.createdAt).toISOString()}">${formatTime(message.createdAt)}</time>
 </li>`;
 }

@@ -7,7 +7,7 @@ import {
   readFileSync,
   statSync,
 } from 'node:fs';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,10 +17,13 @@ import { openDatabase } from './db.ts';
 import { Hub, PRESENCE_MS } from './hub.ts';
 import { TokenBucket } from './limits.ts';
 import { Notifier } from './notify.ts';
+import type { Fetcher } from './outbound.ts';
+import { Previewer } from './previews.ts';
 import { FAMILY } from './chats.ts';
 import type { ChatIdentity } from './chats.ts';
 import { renderAdmin, renderChat, renderLogin, renderPassword, renderSearch } from './pages.ts';
 import type { Assets } from './pages.ts';
+import { sniffImage } from './sniff.ts';
 import { FamilyError, FamilyStore, SESSION_DAYS } from './store.ts';
 import type { Lang, Message, User } from './store.ts';
 import { isPushEndpoint, isPushKeys, loadVapidKeys, sendPush } from './webpush.ts';
@@ -59,21 +62,6 @@ const STATIC_TYPES: Readonly<Record<string, string>> = {
   '.png': 'image/png',
 };
 
-const IMAGE_TYPES: readonly (readonly [string, (b: Buffer) => boolean])[] = [
-  ['image/jpeg', (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff],
-  [
-    'image/png',
-    (b) => b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
-  ],
-  ['image/gif', (b) => b.subarray(0, 4).toString('latin1') === 'GIF8'],
-  [
-    'image/webp',
-    (b) =>
-      b.subarray(0, 4).toString('latin1') === 'RIFF' &&
-      b.subarray(8, 12).toString('latin1') === 'WEBP',
-  ],
-];
-
 export const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MAX_JSON_BYTES = 32 * 1024;
 /** At or under this, an upload is a Genmoji or sticker's size, and counts against its own limit. */
@@ -96,6 +84,8 @@ export interface FamilyConfig {
   readonly pushSubject?: string;
   /** Tests only: stands in for the push services. */
   readonly pushFetch?: typeof fetch;
+  /** Tests only: stands in for the sites link previews are fetched from. */
+  readonly previewFetch?: Fetcher;
 }
 
 class HttpError extends Error {
@@ -263,6 +253,8 @@ export class FamilyChat {
   /** `/family` or `/disc`: every path this chat answers starts with it. */
   readonly #base: string;
   readonly #imagesDir: string;
+  readonly #previewsDir: string;
+  readonly previewer: Previewer;
   readonly #static = new Map<string, { body: Buffer; hash: string }>();
   readonly #assets: Assets;
   readonly #loginByAddress = new LoginLimiter();
@@ -282,6 +274,7 @@ export class FamilyChat {
     this.#chat = config.chat ?? FAMILY;
     this.#base = `/${this.#chat.slug}`;
     this.#imagesDir = join(config.dataDir, 'images');
+    this.#previewsDir = join(config.dataDir, 'previews');
     // Owner-only: other accounts on this machine can't read the conversation.
     mkdirSync(config.dataDir, { recursive: true, mode: 0o700 });
     chmodSync(config.dataDir, 0o700);
@@ -335,8 +328,26 @@ export class FamilyChat {
       chat: this.#chat,
       ...this.#push,
     });
+    // Link previews: fetched off the path of sending; a card reaches open
+    // pages as an update to each message that links there.
+    this.previewer = new Previewer({
+      store: this.store,
+      dir: this.#previewsDir,
+      ...(config.previewFetch ? { fetch: config.previewFetch } : {}),
+      onPreview: (messages) => {
+        for (const message of messages) this.hub.broadcast('update', message, { id: message.rev });
+      },
+      record: (kind, detail) => this.hub.record(kind, null, detail),
+    });
     void this.removeOrphans();
-    this.#cleanup = setInterval(() => void this.removeOrphans(), 60 * 60 * 1000);
+    this.previewer.sweep();
+    this.#cleanup = setInterval(
+      () => {
+        void this.removeOrphans();
+        this.previewer.sweep();
+      },
+      60 * 60 * 1000,
+    );
     this.#cleanup.unref();
   }
 
@@ -666,7 +677,10 @@ export class FamilyChat {
           id,
           typeof body['body'] === 'string' ? body['body'] : '',
         ));
-        if (changed) this.hub.record('message-edited', me.id, `#${String(id)}`);
+        if (changed) {
+          this.hub.record('message-edited', me.id, `#${String(id)}`);
+          this.previewer.wantFor(message);
+        }
       } else if (action === '/unsend' && method === 'POST') {
         const result = this.store.unsendMessage(me, id);
         message = result.message;
@@ -719,6 +733,26 @@ export class FamilyChat {
         createReadStream(join(this.#imagesDir, id))
           .on('error', () => res.destroy())
           .pipe(res);
+      return;
+    }
+
+    // A link preview's artwork: copied here when the preview was fetched,
+    // so the page never loads from Spotify (or anyone) itself.
+    const previewMatch = new RegExp(`^${this.#base}/previews/([0-9a-f]{32})$`).exec(pathname);
+    if (previewMatch && (method === 'GET' || method === 'HEAD')) {
+      const id = previewMatch[1] ?? '';
+      if (!this.store.isPreviewImage(id)) throw new HttpError(404, 'Not found.');
+      const bytes = await readFile(join(this.#previewsDir, id)).catch(() => null);
+      const mime = bytes ? sniffImage(bytes) : null;
+      if (!bytes || !mime) throw new HttpError(404, 'Not found.');
+      res.writeHead(200, {
+        'content-type': mime,
+        'cache-control': 'private, max-age=31536000, immutable',
+        'content-security-policy': "default-src 'none'; sandbox",
+        'x-content-type-options': 'nosniff',
+        'x-robots-tag': 'noindex, nofollow',
+      });
+      res.end(method === 'HEAD' ? undefined : bytes);
       return;
     }
 
@@ -831,6 +865,8 @@ export class FamilyChat {
     if (result.created) {
       this.hub.broadcast('message', result.message, { id: result.message.rev });
       void this.#notifier.messagePosted(result.message);
+      // After it's delivered, never before: a card follows as an update.
+      this.previewer.wantFor(result.message);
     } else {
       this.hub.record('duplicate-send-absorbed', me.id, `#${String(result.message.id)}`);
     }
@@ -845,7 +881,7 @@ export class FamilyChat {
     }
     const bytes = await readBody(req, MAX_IMAGE_BYTES);
     // The type comes from the bytes, never from what the request claims.
-    const mime = IMAGE_TYPES.find(([, test]) => test(bytes))?.[0];
+    const mime = sniffImage(bytes);
     if (!mime) {
       this.hub.record('upload-rejected', me.id, 'not an image');
       throw new HttpError(415, 'That file isn’t a photo this chat can show.');

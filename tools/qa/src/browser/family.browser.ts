@@ -13,7 +13,7 @@
  */
 
 import assert from 'node:assert/strict';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -23,6 +23,7 @@ import { after, before } from 'node:test';
 import type { BrowserContext, Page } from 'playwright-core';
 
 import { DISC } from '../../../serve/src/family/chats.ts';
+import type { Fetcher } from '../../../serve/src/family/outbound.ts';
 import { FamilyChat } from '../../../serve/src/family/routes.ts';
 import { browserTest, PHONE } from './harness.ts';
 
@@ -31,11 +32,40 @@ let disc: FamilyChat;
 let server: Server;
 let origin = '';
 
+/**
+ * Spotify, stood in for: no link preview fetches anything from the
+ * internet in a test. Artwork is one of the chat's own icons.
+ */
+const ARTWORK = readFileSync(
+  new URL('../../../serve/src/family/static/icon-192.png', import.meta.url),
+);
+const previewFetch: Fetcher = (url) =>
+  Promise.resolve({
+    status: 200,
+    contentType: '',
+    url,
+    body: url.includes('/oembed?')
+      ? Buffer.from(
+          JSON.stringify({
+            title: 'Never Gonna Give You Up',
+            thumbnail_url: 'https://i.scdn.co/image/test',
+            thumbnail_width: 192,
+            thumbnail_height: 192,
+          }),
+        )
+      : url.startsWith('https://i.scdn.co/')
+        ? ARTWORK
+        : Buffer.from(
+            '<meta property="og:description" content="Rick Astley · Whenever You Need Somebody · Song · 1987">',
+          ),
+  });
+
 before(async () => {
   chat = new FamilyChat({
     dataDir: mkdtempSync(join(tmpdir(), 'family-browser-')),
     // No notification ever leaves this machine from a test.
     pushFetch: () => Promise.resolve(new Response(null, { status: 201 })),
+    previewFetch,
   });
   await Promise.all([
     chat.store.createUser({
@@ -55,6 +85,7 @@ before(async () => {
     chat: DISC,
     dataDir: mkdtempSync(join(tmpdir(), 'disc-browser-')),
     pushFetch: () => Promise.resolve(new Response(null, { status: 201 })),
+    previewFetch,
   });
   await disc.store.createUser({
     username: 'randy',
@@ -389,6 +420,57 @@ browserTest(
     assert.ok(
       ((await inline.locator('img.glyph').boundingBox())?.height ?? 99) < 40,
       'inline: text size',
+    );
+    await other.close();
+  },
+);
+
+browserTest(
+  'a Spotify link becomes a card on both sides: artwork, title, artist, one link to Spotify',
+  async ({ context, page: unused }) => {
+    await unused.close();
+    const randy = await signIn(context, 'randy', 'battery staple');
+    const other = await context.browser()?.newContext(PHONE);
+    assert.ok(other);
+    const mom = await signIn(other, 'mom', 'correct horse');
+
+    await send(randy, 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT?si=0123abcd');
+    for (const page of [randy, mom]) {
+      const card = page.locator('[data-messages] .msg .link-card').last();
+      await card.waitFor();
+      assert.equal(
+        await card.getAttribute('href'),
+        'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT',
+      );
+      assert.equal(await card.getAttribute('target'), '_blank');
+      assert.equal(await card.locator('.link-title').textContent(), 'Never Gonna Give You Up');
+      assert.equal(await card.locator('.link-subtitle').textContent(), 'Rick Astley');
+      // The artwork arrives, from this server.
+      await card.locator('img.link-art').evaluate((img: HTMLImageElement) => img.decode());
+      assert.ok(
+        await card
+          .locator('img.link-art')
+          .evaluate((img: HTMLImageElement) => img.naturalWidth > 0),
+      );
+      // Only the link: the card stands in for it, as in iMessage.
+      assert.equal(
+        await page.locator('.msg:has(.link-card) .bubble.links-only').last().isVisible(),
+        false,
+      );
+    }
+    assert.equal(
+      await mom.locator('.link-card .link-source').last().textContent(),
+      'Spotify · 歌曲',
+    );
+
+    // With words around it, the words stay, the link cleaned of its share id.
+    await send(mom, '这首 https://open.spotify.com/album/6N9PS4QXF1D0OWPk0Sxtb4?si=zz 好听');
+    const words = randy.locator('.msg-in .bubble:not(.link-card)', { hasText: '这首' });
+    await words.waitFor();
+    await randy.locator('.msg-in .link-card').last().waitFor();
+    assert.equal(
+      await words.locator('a').getAttribute('href'),
+      'https://open.spotify.com/album/6N9PS4QXF1D0OWPk0Sxtb4',
     );
     await other.close();
   },

@@ -254,6 +254,41 @@ const MIGRATIONS: readonly string[] = [
   ) WITHOUT ROWID;
   CREATE INDEX message_glyphs_image ON message_glyphs(image_id);
   `,
+  `
+  -- Link previews (links.ts, previews.ts): what a provider said about a
+  -- link, fetched once by the server and kept, shared by every message
+  -- that links there. url is the provider's canonical address (no share
+  -- ids). 'failed' rows are tried again later. image_id is the artwork,
+  -- a copy in previews/ (never hot-linked: the page loads nothing from
+  -- another origin).
+  CREATE TABLE link_previews (
+    url          TEXT PRIMARY KEY,
+    provider     TEXT NOT NULL,
+    kind         TEXT NOT NULL,
+    status       TEXT NOT NULL CHECK (status IN ('ok', 'failed')),
+    title        TEXT NOT NULL DEFAULT '',
+    subtitle     TEXT NOT NULL DEFAULT '',
+    image_id     TEXT,
+    image_width  INTEGER,
+    image_height INTEGER,
+    fetched_at   INTEGER NOT NULL
+  ) WITHOUT ROWID;
+
+  -- Which previewable links each message has, in order: derived from its
+  -- body (which is never changed), rewritten on an edit, gone with it.
+  CREATE TABLE message_links (
+    message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    n          INTEGER NOT NULL,
+    url        TEXT NOT NULL,
+    PRIMARY KEY (message_id, n)
+  ) WITHOUT ROWID;
+  CREATE INDEX message_links_url ON message_links(url);
+
+  -- Messages up to this id have been looked through for links (store.ts
+  -- indexLinks): those sent before previews existed, and any the previous
+  -- server stored during a deploy's overlap.
+  INSERT INTO meta (key, value) VALUES ('links_indexed', 0);
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

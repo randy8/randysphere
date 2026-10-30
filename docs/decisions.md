@@ -3750,3 +3750,48 @@ Tapping it opens Info.
 platforms render it; the PNG beside it renders everywhere). Bundling a
 full emoji database for the picker (the keyboard already has every emoji;
 the field takes them).
+
+## 2026-10-30 — Chats: link previews, starting with Spotify
+
+**Decision.** Spotify links in Family and Disc get compact cards (artwork,
+title, artist, “Spotify · Song”), the whole card a link to the item; the
+full Spotify player is not embedded. Every link in a message is also shown
+without tracking parameters and shortened past 40 characters. The server
+resolves previews, never the browser: Spotify's public oEmbed endpoint for
+title and artwork (no sign-in, no API key), plus the item's page's
+`og:description` for the artist, which oEmbed doesn't give. A preview is
+one row per canonical link in `link_previews`, shared by every message that
+links there; `message_links` indexes which messages have which links
+(derived from the body, rewritten on edit, gone on delete/unsend). Fetching
+happens after delivery, two at a time; when a card arrives, every message
+linking there takes a new rev and goes out as an `update`, so open pages
+redraw it and a reconnect replays it, with `sent_rev` (receipts, unread)
+untouched. Old messages are indexed at startup and the hourly sweep
+(`meta.links_indexed`), which also catches messages the previous server
+wrote during a deploy's overlap. Migration 11.
+
+**Why.** Server-side because the page has a strict first-party CSP and
+Family's main reader is in mainland China, where Spotify's hosts are
+blocked: so the artwork is copied to `private/<chat>/previews/` and served
+from here, behind the session, like photos. A cache table rather than
+columns on messages: one fetch per song however often it's shared, and
+the message body stays exactly what was sent. Outbound requests go
+through one fenced function (`outbound.ts`) because the URL is chosen by
+whoever sent the message and this machine has services on loopback and
+the tailnet; the address check sits in the socket's own DNS lookup so the
+address checked is the address connected to. Node's `https.request`
+rather than `fetch`, because only it takes a custom lookup without adding
+undici as a dependency.
+
+**Rejected.** Fetching previews from the browser (CSP, China, and every
+viewer would ask Spotify separately). Hot-linking Spotify's artwork
+(blocked in China; a third-party request from every page view). Embedding
+Spotify's iframe player (heavy, third-party script, blocked in China, and
+the request was for a compact card). Spotify's Web API (needs app
+credentials for what oEmbed and the page already say). Rewriting the
+stored message without tracking parameters (the original is kept;
+cleaning is display only). Generic Open Graph cards for every link, for
+now: the design takes them as one more provider, but each would mean
+fetching arbitrary sites; Spotify is the one asked for. `spotify.link`
+short links and `spotify:` URIs aren't recognised yet (the first needs a
+redirect to an allowed host; easy to add when one turns up in the chat).

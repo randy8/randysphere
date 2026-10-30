@@ -137,8 +137,11 @@ function backup(store: FamilyStore, target: string): void {
   if (existsSync(file)) throw new FamilyError(`${file} already exists.`);
   // VACUUM INTO: a consistent snapshot even with the server writing.
   store.db.exec(`VACUUM INTO '${file.replace(/'/g, "''")}'`);
-  const images = join(DATA, 'images');
-  if (existsSync(images)) cpSync(images, join(target, 'images'), { recursive: true });
+  // Photos, and link previews' artwork (which the database's previews point to).
+  for (const dir of ['images', 'previews']) {
+    if (existsSync(join(DATA, dir)))
+      cpSync(join(DATA, dir), join(target, dir), { recursive: true });
+  }
   // The notification key: without it, every device's subscription would
   // stop working after a restore.
   const vapid = join(DATA, 'vapid.json');
@@ -176,8 +179,10 @@ async function restore(source: string): Promise<void> {
   if (existsSync(DATA)) renameSync(DATA, aside);
   mkdirSync(DATA, { recursive: true });
   cpSync(file, join(DATA, 'chat.db'));
-  const images = join(source, 'images');
-  if (existsSync(images)) cpSync(images, join(DATA, 'images'), { recursive: true });
+  for (const dir of ['images', 'previews']) {
+    if (existsSync(join(source, dir)))
+      cpSync(join(source, dir), join(DATA, dir), { recursive: true });
+  }
   for (const kept of ['vapid.json']) {
     // From the backup if it has one, else the one being replaced.
     const from = existsSync(join(source, kept)) ? join(source, kept) : join(aside, kept);

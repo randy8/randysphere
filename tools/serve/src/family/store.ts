@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 
+import { findLinks, previewable, previewableLinks } from './links.ts';
 import { dummyHash, hashPassword, MIN_PASSWORD_LENGTH, verifyPassword } from './passwords.ts';
 
 export type Lang = 'en' | 'zh';
@@ -45,7 +46,41 @@ export interface Message {
     readonly width: number;
     readonly height: number;
   }[];
+  /**
+   * The links in its text, in order: `raw` as written (the body keeps it
+   * so), `url` its href — absolute, without tracking parameters — `text`
+   * how it's shown, and its preview once one has been fetched.
+   */
+  readonly links: readonly {
+    readonly raw: string;
+    readonly url: string;
+    readonly text: string;
+    readonly preview: LinkPreview | null;
+  }[];
 }
+
+/** What a provider said about a link (links.ts, previews.ts): a card's contents. */
+export interface LinkPreview {
+  /** The provider's canonical address: where the card goes. */
+  readonly url: string;
+  readonly provider: string;
+  /** What it is, in the provider's terms: track, album, playlist, artist… */
+  readonly kind: string;
+  readonly title: string;
+  readonly subtitle: string;
+  /** Artwork, served from this server's previews/ (`/<chat>/previews/<id>`). */
+  readonly image: { readonly id: string; readonly width: number; readonly height: number } | null;
+}
+
+/** A preview to store: fetched (`ok`) or not to be had for now (`failed`, tried again later). */
+export type PreviewResult =
+  | { readonly status: 'ok'; readonly preview: LinkPreview }
+  | {
+      readonly status: 'failed';
+      readonly url: string;
+      readonly provider: string;
+      readonly kind: string;
+    };
 
 /** Where a Genmoji or sticker sits in a message's text (U+FFFC, the object replacement character). */
 export const GLYPH = '\uFFFC';
@@ -125,6 +160,40 @@ interface MessageRow {
   edits: string;
   reactions: string;
   glyphs: string;
+  previews: string;
+}
+
+interface PreviewRow {
+  url: string;
+  provider: string;
+  kind: string;
+  title: string;
+  subtitle: string;
+  image: string | null;
+  width: number | null;
+  height: number | null;
+}
+
+function toPreview(row: PreviewRow): LinkPreview {
+  return {
+    url: row.url,
+    provider: row.provider,
+    kind: row.kind,
+    title: row.title,
+    subtitle: row.subtitle,
+    image:
+      row.image === null ? null : { id: row.image, width: row.width ?? 0, height: row.height ?? 0 },
+  };
+}
+
+/** Each link in `body`, with the preview stored for it (from `previews`, its message's). */
+function linksOf(body: string, previews: readonly PreviewRow[]): Message['links'] {
+  const byUrl = new Map(previews.map((row) => [row.url, toPreview(row)]));
+  return findLinks(body).map((link) => {
+    const key = previewable(link.url)?.url;
+    const preview = key ? (byUrl.get(key) ?? null) : null;
+    return { raw: link.raw, url: link.url, text: link.text, preview };
+  });
 }
 
 const sha256 = (text: string): string => createHash('sha256').update(text).digest('hex');
@@ -168,6 +237,7 @@ function toMessage(row: MessageRow): Message {
     edits: gone ? [] : (JSON.parse(row.edits) as Message['edits']),
     reactions: gone ? [] : (JSON.parse(row.reactions) as Message['reactions']),
     glyphs: gone ? [] : (JSON.parse(row.glyphs) as Message['glyphs']),
+    links: gone ? [] : linksOf(row.body, JSON.parse(row.previews) as PreviewRow[]),
   };
 }
 
@@ -185,7 +255,12 @@ const MESSAGE_COLUMNS = `m.id, m.user_id, m.client_id, m.body, m.image_id, i.wid
   (SELECT json_group_array(json_object('id', g.image_id, 'width', g.width, 'height', g.height))
      FROM (SELECT mg.image_id, gi.width, gi.height FROM message_glyphs mg
            JOIN images gi ON gi.id = mg.image_id WHERE mg.message_id = m.id ORDER BY mg.n) g)
-     AS glyphs`;
+     AS glyphs,
+  (SELECT json_group_array(json_object('url', p.url, 'provider', p.provider, 'kind', p.kind,
+            'title', p.title, 'subtitle', p.subtitle, 'image', p.image_id,
+            'width', p.image_width, 'height', p.image_height))
+     FROM message_links ml JOIN link_previews p ON p.url = ml.url AND p.status = 'ok'
+     WHERE ml.message_id = m.id) AS previews`;
 const MESSAGE_FROM = 'messages m LEFT JOIN images i ON i.id = m.image_id';
 
 export function normalizeDisplayName(name: string): string {
@@ -589,6 +664,7 @@ export class FamilyStore {
         'INSERT INTO message_glyphs (message_id, n, image_id) VALUES (?, ?, ?)',
       );
       glyphs.forEach((imageId, n) => glyph.run(id, n, imageId));
+      this.#setLinks(id, body);
       return id;
     });
     return { message: this.requireMessage(id), created: true };
@@ -674,6 +750,7 @@ export class FamilyStore {
     this.db.prepare('DELETE FROM message_edits WHERE message_id = ?').run(id);
     this.db.prepare('DELETE FROM reactions WHERE message_id = ?').run(id);
     this.db.prepare('DELETE FROM message_glyphs WHERE message_id = ?').run(id);
+    this.db.prepare('DELETE FROM message_links WHERE message_id = ?').run(id);
     this.db.prepare('UPDATE messages SET image_id = NULL WHERE id = ?').run(id);
     const remove = this.db.prepare('DELETE FROM images WHERE id = ?');
     for (const image of images) remove.run(image);
@@ -726,6 +803,7 @@ export class FamilyStore {
       this.db
         .prepare('UPDATE messages SET body = ?, edited_at = ? WHERE id = ?')
         .run(body, now, id);
+      this.#setLinks(id, body);
       this.#touch(id);
     });
     return { message: this.requireMessage(id), changed: true };
@@ -881,6 +959,154 @@ export class FamilyStore {
     }
     read.sort((a, b) => (b.at ?? 0) - (a.at ?? 0));
     return { read, unread };
+  }
+
+  // ---- link previews -----------------------------------------------------
+
+  /** Records which previewable links `body` has, for message `id` (replacing what it had). */
+  #setLinks(id: number, body: string): void {
+    this.db.prepare('DELETE FROM message_links WHERE message_id = ?').run(id);
+    const insert = this.db.prepare(
+      'INSERT INTO message_links (message_id, n, url) VALUES (?, ?, ?)',
+    );
+    previewableLinks(body).forEach((item, n) => insert.run(id, n, item.url));
+  }
+
+  /**
+   * Looks for links in messages not yet looked through — those sent before
+   * previews existed, or stored by the previous server during a deploy —
+   * up to `limit` of them. Returns how many it looked at (0: all done).
+   */
+  indexLinks(limit = 500): number {
+    return this.transaction(() => {
+      const after = (
+        this.db.prepare("SELECT value FROM meta WHERE key = 'links_indexed'").get() as {
+          value: number;
+        }
+      ).value;
+      const rows = this.db
+        .prepare(
+          `SELECT id, body, deleted_at, unsent_at FROM messages WHERE id > ? ORDER BY id LIMIT ?`,
+        )
+        .all(after, limit) as {
+        id: number;
+        body: string;
+        deleted_at: number | null;
+        unsent_at: number | null;
+      }[];
+      for (const row of rows) {
+        if (row.deleted_at === null && row.unsent_at === null) this.#setLinks(row.id, row.body);
+      }
+      const last = rows.at(-1);
+      if (last) {
+        this.db.prepare("UPDATE meta SET value = ? WHERE key = 'links_indexed'").run(last.id);
+      }
+      return rows.length;
+    });
+  }
+
+  /**
+   * Links some live message has that have no preview yet, or whose last
+   * try failed before `retryBefore`, with what a provider makes of them.
+   */
+  previewsWanted(retryBefore: number): string[] {
+    return (
+      this.db
+        .prepare(
+          `SELECT DISTINCT ml.url FROM message_links ml
+           LEFT JOIN link_previews p ON p.url = ml.url
+           WHERE p.url IS NULL OR (p.status = 'failed' AND p.fetched_at < ?)`,
+        )
+        .all(retryBefore) as { url: string }[]
+    ).map((row) => row.url);
+  }
+
+  /** The stored preview for `url`, fetched or failed, or null if it has never been tried. */
+  previewStatus(url: string): { status: 'ok' | 'failed'; fetchedAt: number } | null {
+    const row = this.db
+      .prepare('SELECT status, fetched_at FROM link_previews WHERE url = ?')
+      .get(url) as { status: 'ok' | 'failed'; fetched_at: number } | undefined;
+    return row ? { status: row.status, fetchedAt: row.fetched_at } : null;
+  }
+
+  /** Whether `id` is some preview's artwork (the previews/ file to serve). */
+  isPreviewImage(id: string): boolean {
+    if (!/^[0-9a-f]{32}$/.test(id)) return false;
+    return this.db.prepare('SELECT 1 FROM link_previews WHERE image_id = ?').get(id) !== undefined;
+  }
+
+  /**
+   * Stores what a provider said about a link, and moves every live
+   * message linking to it to a new rev — so open pages get an 'update'
+   * with the card, and a reconnect replays it. Returns those messages, and
+   * the artwork it replaced (whose file the caller removes).
+   */
+  savePreview(
+    result: PreviewResult,
+    now: number = Date.now(),
+  ): { messages: Message[]; replacedImage: string | null } {
+    const ok = result.status === 'ok' ? result.preview : null;
+    const url = ok?.url ?? (result.status === 'failed' ? result.url : '');
+    const saved = this.transaction(() => {
+      const previous = this.db
+        .prepare('SELECT status, image_id FROM link_previews WHERE url = ?')
+        .get(url) as { status: string; image_id: string | null } | undefined;
+      // A failed retry never replaces a preview that worked.
+      if (!ok && previous?.status === 'ok') return { ids: [] as number[], replaced: null };
+      this.db
+        .prepare(
+          `INSERT INTO link_previews (url, provider, kind, status, title, subtitle, image_id,
+                                      image_width, image_height, fetched_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT (url) DO UPDATE SET provider = excluded.provider, kind = excluded.kind,
+             status = excluded.status, title = excluded.title, subtitle = excluded.subtitle,
+             image_id = excluded.image_id, image_width = excluded.image_width,
+             image_height = excluded.image_height, fetched_at = excluded.fetched_at`,
+        )
+        .run(
+          url,
+          ok?.provider ?? (result.status === 'failed' ? result.provider : ''),
+          ok?.kind ?? (result.status === 'failed' ? result.kind : ''),
+          result.status,
+          ok?.title ?? '',
+          ok?.subtitle ?? '',
+          ok?.image?.id ?? null,
+          ok?.image?.width ?? null,
+          ok?.image?.height ?? null,
+          now,
+        );
+      const replaced =
+        previous?.image_id && previous.image_id !== (ok?.image?.id ?? null)
+          ? previous.image_id
+          : null;
+      // Only a card appearing changes what a message shows.
+      if (!ok) return { ids: [], replaced };
+      const ids = (
+        this.db
+          .prepare(
+            `SELECT DISTINCT m.id FROM message_links ml JOIN messages m ON m.id = ml.message_id
+             WHERE ml.url = ? AND m.deleted_at IS NULL AND m.unsent_at IS NULL ORDER BY m.id`,
+          )
+          .all(url) as { id: number }[]
+      ).map((row) => row.id);
+      for (const id of ids) this.#touch(id);
+      return { ids, replaced };
+    });
+    return {
+      messages: saved.ids.map((id) => this.requireMessage(id)),
+      replacedImage: saved.replaced,
+    };
+  }
+
+  /** Every artwork file a preview refers to: anything else in previews/ is left over, and removed. */
+  previewImageIds(): Set<string> {
+    return new Set(
+      (
+        this.db.prepare('SELECT image_id FROM link_previews WHERE image_id IS NOT NULL').all() as {
+          image_id: string;
+        }[]
+      ).map((row) => row.image_id),
+    );
   }
 
   // ---- images ------------------------------------------------------------

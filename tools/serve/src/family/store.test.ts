@@ -504,7 +504,7 @@ test('migration 7 keeps every message, with the rev it was sent at', () => {
   db.exec(`INSERT INTO messages (user_id, client_id, body, created_at, rev)
            VALUES (1, 'c2', 'overlap', 0, 8)`);
   assert.equal(old.history(null, 10).messages[1]?.sentRev, 8);
-  assert.equal(SCHEMA_VERSION, 10);
+  assert.equal(SCHEMA_VERSION, 11);
 });
 
 test('the hot queries use indexes, never a scan of every message', () => {
@@ -535,4 +535,12 @@ test('the hot queries use indexes, never a scan of every message', () => {
     3,
   );
   assert.doesNotMatch(stamp, /SCAN messages/);
+  // A preview arriving finds the messages linking to it by its index.
+  const linking = plan(
+    `SELECT DISTINCT m.id FROM message_links ml JOIN messages m ON m.id = ml.message_id
+     WHERE ml.url = ? AND m.deleted_at IS NULL AND m.unsent_at IS NULL ORDER BY m.id`,
+    'https://open.spotify.com/track/x',
+  );
+  assert.match(linking, /message_links_url/);
+  assert.doesNotMatch(linking, /SCAN m\b/);
 });

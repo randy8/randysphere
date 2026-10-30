@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 
 import { DISC } from './chats.ts';
+import type { Fetcher, OutboundResponse } from './outbound.ts';
 import { FamilyChat } from './routes.ts';
 
 let chat: FamilyChat;
@@ -34,6 +35,21 @@ const pushFetch: typeof fetch = async (url, init) => {
   });
   return Promise.resolve(new Response(null, { status: pushAnswers.get(endpoint) ?? 201 }));
 };
+
+/** The sites link previews come from, stood in for: each test says what they answer. */
+let previewAnswer: Fetcher = () => Promise.reject(new Error('no network in tests'));
+const previewFetch: Fetcher = (url, options) => previewAnswer(url, options);
+const answer = (
+  status: number,
+  body: string | Buffer,
+  contentType = 'text/html',
+): OutboundResponse => ({
+  status,
+  contentType,
+  body: Buffer.isBuffer(body) ? body : Buffer.from(body),
+  url: '',
+});
+const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x46, 0]);
 
 /** A browser's side of a push subscription: its keys, and decryption (RFC 8291). */
 function device(name: string): {
@@ -177,7 +193,7 @@ function stream(
 
 before(async () => {
   dataDir = mkdtempSync(join(tmpdir(), 'family-routes-'));
-  chat = new FamilyChat({ dataDir, pushFetch });
+  chat = new FamilyChat({ dataDir, pushFetch, previewFetch });
   disc = new FamilyChat({
     chat: DISC,
     dataDir: mkdtempSync(join(tmpdir(), 'disc-routes-')),
@@ -1044,4 +1060,131 @@ test('edit, undo send and tapbacks: own messages only, live to every open page',
   assert.ok(!history.includes('at 6') && !history.includes('see you at 5'));
   const page = await (await call('/family/', { cookie: momCookie })).text();
   assert.match(page, /Dad撤回了一条信息/);
+});
+
+test('link previews: a Spotify link gets a card after delivery, never before; its artwork is private', async () => {
+  const asked: string[] = [];
+  let release = (): void => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  // Released by the test below; this only keeps a failure from stalling the rest.
+  setTimeout(() => release(), 5000).unref();
+  previewAnswer = async (url, options) => {
+    asked.push(url);
+    // Every request is fenced to Spotify's own hosts.
+    assert.equal(options.allowHost('open.spotify.com') || options.allowHost('i.scdn.co'), true);
+    assert.equal(options.allowHost('localhost'), false);
+    await held;
+    if (url.startsWith('https://open.spotify.com/oembed?')) {
+      return answer(
+        200,
+        JSON.stringify({
+          title: 'Never Gonna Give You Up\u202e',
+          thumbnail_url: 'https://i.scdn.co/image/abc',
+          thumbnail_width: 300,
+          thumbnail_height: 300,
+        }),
+        'application/json',
+      );
+    }
+    if (url === 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT') {
+      return answer(
+        200,
+        '<html><head><meta property="og:description" content="Rick Astley &amp; Co · Whenever You Need Somebody · Song · 1987"></head>',
+      );
+    }
+    if (url === 'https://i.scdn.co/image/abc') return answer(200, JPEG, 'image/jpeg');
+    return answer(404, '');
+  };
+
+  const dad = await stream(dadCookie);
+  await dad.next('hello');
+  const body =
+    'listen <script>https://open.spotify.com/intl-de/track/4cOdK2wGLETKBW3PvgPWqT?si=abc123 and www.example.com/a?utm_source=x&id=2';
+  const response = await call('/family/api/messages', {
+    cookie: momCookie,
+    json: { clientId: 'links-00001', body },
+  });
+  assert.equal(response.status, 201);
+  const { message } = (await response.json()) as {
+    message: {
+      id: number;
+      body: string;
+      links: { raw: string; url: string; text: string; preview: unknown }[];
+    };
+  };
+  // Stored as written; shown without the share id and tracking.
+  assert.equal(message.body, body);
+  assert.deepEqual(
+    message.links.map((link) => [link.url, link.text, link.preview]),
+    [
+      [
+        'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT',
+        'open.spotify.com/track/4cOdK2wGLETKBW3P…',
+        null,
+      ],
+      ['https://www.example.com/a?id=2', 'www.example.com/a?id=2', null],
+    ],
+  );
+  assert.equal(((await dad.next('message')).data as { id: number }).id, message.id);
+
+  release();
+  const update = (await dad.next('update')).data as {
+    id: number;
+    links: {
+      preview: { title: string; subtitle: string; kind: string; image: { id: string } } | null;
+    }[];
+  };
+  assert.equal(update.id, message.id);
+  const preview = update.links[0]?.preview;
+  assert.ok(preview);
+  assert.equal(preview.title, 'Never Gonna Give You Up');
+  assert.equal(preview.subtitle, 'Rick Astley & Co');
+  assert.equal(preview.kind, 'track');
+  assert.equal(update.links[1]?.preview, null);
+  dad.close();
+
+  const art = await call(`/family/previews/${preview.image.id}`, { cookie: dadCookie });
+  assert.equal(art.status, 200);
+  assert.equal(art.headers.get('content-type'), 'image/jpeg');
+  assert.match(art.headers.get('cache-control') ?? '', /^private/);
+  assert.equal((await call(`/family/previews/${preview.image.id}`)).status, 401);
+  assert.equal((await call(`/disc/previews/${preview.image.id}`)).status, 401);
+
+  // Without JavaScript: the card, escaped, and the text's links cleaned.
+  const page = await (await call('/family/', { cookie: dadCookie })).text();
+  assert.match(
+    page,
+    /class="bubble link-card" data-provider="spotify" href="https:\/\/open.spotify.com\/track\/4cOdK2wGLETKBW3PvgPWqT"/,
+  );
+  assert.match(page, /&lt;script&gt;/);
+  assert.match(page, /href="https:\/\/www.example.com\/a\?id=2"/);
+  assert.doesNotMatch(page, /utm_source|si=abc123/);
+
+  // Sent again: already known, so nothing is fetched.
+  const before = asked.length;
+  await call('/family/api/messages', {
+    cookie: dadCookie,
+    json: {
+      clientId: 'links-00002',
+      body: 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT',
+    },
+  });
+  await chat.previewer.idle();
+  assert.equal(asked.length, before);
+});
+
+test('link previews: when Spotify has nothing, the link stays a plain link', async () => {
+  previewAnswer = () => Promise.resolve(answer(404, ''));
+  const response = await call('/family/api/messages', {
+    cookie: momCookie,
+    json: {
+      clientId: 'links-00003',
+      body: 'https://open.spotify.com/album/0000000000000000000000',
+    },
+  });
+  const { message } = (await response.json()) as { message: { id: number } };
+  await chat.previewer.idle();
+  const stored = chat.store.requireMessage(message.id);
+  assert.equal(stored.links[0]?.preview, null);
+  assert.equal(chat.store.previewStatus(stored.links[0]?.url ?? '')?.status, 'failed');
 });
