@@ -7,7 +7,7 @@ import { before, test } from 'node:test';
 import { DatabaseSync } from 'node:sqlite';
 
 import { migrate, openDatabase, SCHEMA_VERSION } from './db.ts';
-import { FamilyError, FamilyStore, isEmoji, SESSION_DAYS } from './store.ts';
+import { FamilyError, FamilyStore, findMentions, isEmoji, SESSION_DAYS } from './store.ts';
 import type { User } from './store.ts';
 
 const path = join(mkdtempSync(join(tmpdir(), 'family-store-')), 'chat.db');
@@ -504,7 +504,45 @@ test('migration 7 keeps every message, with the rev it was sent at', () => {
   db.exec(`INSERT INTO messages (user_id, client_id, body, created_at, rev)
            VALUES (1, 'c2', 'overlap', 0, 8)`);
   assert.equal(old.history(null, 10).messages[1]?.sentRev, 8);
-  assert.equal(SCHEMA_VERSION, 11);
+  assert.equal(SCHEMA_VERSION, 12);
+});
+
+test('mentions: @ and a display name or username, the longest that fits, not in a word', () => {
+  const people = [mom, randy, dad];
+  const at = (body: string): string[] =>
+    findMentions(body, people).map((m) => `${String(m.userId)}:${m.text}`);
+  assert.deepEqual(at('@Dad dinner'), [`${String(dad.id)}:@Dad`]);
+  assert.deepEqual(at('ok @dad, @RANDY!'), [
+    `${String(dad.id)}:@dad`,
+    `${String(randy.id)}:@RANDY`,
+  ]);
+  assert.deepEqual(at('@妈妈你好'), [`${String(mom.id)}:@妈妈`], 'Chinese runs on');
+  assert.deepEqual(at('@mom'), [`${String(mom.id)}:@mom`], 'the username too');
+  assert.deepEqual(at('@Daddy'), [], 'not the start of a longer word');
+  assert.deepEqual(at('write dad@dad.com'), [], 'not an email address');
+  assert.deepEqual(at('@Dad @Dad'), [`${String(dad.id)}:@Dad`], 'each once');
+  assert.deepEqual(at('@ nobody'), []);
+});
+
+test('mentions are kept with the message, follow its edits, and go with an unsend', () => {
+  const t0 = Date.now();
+  const { message } = store.postMessage({
+    userId: randy.id,
+    clientId: 'mention-0001',
+    body: '@Dad look',
+    now: t0,
+  });
+  assert.deepEqual(message.mentions, [{ userId: dad.id, text: '@Dad' }]);
+  const edited = store.editMessage(randy, message.id, '@妈妈 look', t0 + 1000).message;
+  assert.deepEqual(edited.mentions, [{ userId: mom.id, text: '@妈妈' }]);
+  const gone = store.unsendMessage(randy, message.id, t0 + 2000).message;
+  assert.deepEqual(gone.mentions, []);
+  assert.equal(
+    store.db
+      .prepare('SELECT COUNT(*) AS n FROM message_mentions WHERE message_id = ?')
+      .get(message.id)?.['n'],
+    0,
+  );
 });
 
 test('the hot queries use indexes, never a scan of every message', () => {

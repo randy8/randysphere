@@ -672,6 +672,7 @@ export class FamilyChat {
       let message: Message;
       let changed = true;
       if (action === '' && method === 'PATCH') {
+        const before = this.store.getMessage(id);
         ({ message, changed } = this.store.editMessage(
           me,
           id,
@@ -680,6 +681,7 @@ export class FamilyChat {
         if (changed) {
           this.hub.record('message-edited', me.id, `#${String(id)}`);
           this.previewer.wantFor(message);
+          if (before) void this.#notifier.mentionsEdited(message, before);
         }
       } else if (action === '/unsend' && method === 'POST') {
         const result = this.store.unsendMessage(me, id);

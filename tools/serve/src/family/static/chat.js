@@ -53,6 +53,7 @@ const T = zh
       hideEdits: '隐藏编辑记录',
       save: '保存',
       cancel: '取消',
+      mention: '提到',
       youUnsent: '你撤回了一条信息。',
       unsent: (name) => `${name}撤回了一条信息。`,
       unsentQuote: '已撤回的信息',
@@ -120,6 +121,7 @@ const T = zh
       hideEdits: 'Hide Edits',
       save: 'Save',
       cancel: 'Cancel',
+      mention: 'Mention',
       youUnsent: 'You unsent a message.',
       unsent: (name) => `${name} unsent a message.`,
       unsentQuote: 'Unsent message',
@@ -304,7 +306,7 @@ const TRAILING = /[.,;:!?)\]}'"]+$/;
  * stored message's `links` (store.ts) give each its href and words without
  * tracking parameters; the text itself is never changed.
  */
-function linkify(text, links = []) {
+function linkify(text, links = [], mentions = []) {
   const known = new Map(links.map((link) => [link.raw, link]));
   const fragment = document.createDocumentFragment();
   let last = 0;
@@ -319,7 +321,7 @@ function linkify(text, links = []) {
       continue;
     }
     if (href.protocol !== 'https:' && href.protocol !== 'http:') continue;
-    fragment.append(text.slice(last, match.index));
+    fragment.append(mentionify(text.slice(last, match.index), mentions));
     const link = known.get(raw);
     const a = el('a', '', link?.text ?? raw);
     a.href = link?.url ?? href.href;
@@ -327,6 +329,36 @@ function linkify(text, links = []) {
     a.rel = 'noopener noreferrer';
     fragment.append(a);
     last = match.index + raw.length;
+  }
+  fragment.append(mentionify(text.slice(last), mentions));
+  return fragment;
+}
+
+/** What may follow a name in a mention (store.ts endsName): not a letter or digit, unless Chinese. */
+const endsName = (next) =>
+  next === undefined || !/[\p{L}\p{N}_]/u.test(next) || /\p{Script=Han}/u.test(next);
+
+/**
+ * Text with the "@Name"s the server found in it (store.ts findMentions)
+ * set in bold — yours in colour, as iMessage marks them.
+ */
+function mentionify(text, mentions) {
+  const fragment = document.createDocumentFragment();
+  if (mentions.length === 0) {
+    fragment.append(text);
+    return fragment;
+  }
+  const longest = [...mentions].sort((a, b) => b.text.length - a.text.length);
+  let last = 0;
+  for (let at = text.indexOf('@'); at !== -1; at = text.indexOf('@', at + 1)) {
+    const mention = longest.find(
+      (m) => text.startsWith(m.text, at) && endsName(text[at + m.text.length]),
+    );
+    if (!mention) continue;
+    fragment.append(text.slice(last, at));
+    fragment.append(el('span', mention.userId === me.id ? 'mention me' : 'mention', mention.text));
+    last = at + mention.text.length;
+    at = last - 1;
   }
   fragment.append(text.slice(last));
   return fragment;
@@ -434,7 +466,7 @@ function linkCard(preview) {
  * A message's text, with its Genmoji and stickers in their places. Only
  * stickers (no words): large, without a bubble, as iMessage shows them.
  */
-function textBubble(body, glyphs = [], links = []) {
+function textBubble(body, glyphs = [], links = [], mentions = []) {
   const bubble = el('div', 'bubble');
   if (glyphs.length > 0) {
     const parts = body.split(GLYPH);
@@ -442,7 +474,7 @@ function textBubble(body, glyphs = [], links = []) {
     if (alone) bubble.classList.add('sticker', glyphs.length === 1 ? 'one' : 'few');
     parts.forEach((part, n) => {
       if (n > 0 && glyphs[n - 1]) bubble.append(glyphImage(glyphs[n - 1], alone));
-      if (!alone) bubble.append(linkify(part, links));
+      if (!alone) bubble.append(linkify(part, links, mentions));
     });
     return bubble;
   }
@@ -450,7 +482,7 @@ function textBubble(body, glyphs = [], links = []) {
     bubble.classList.add('jumbo');
     bubble.textContent = body.trim();
   } else {
-    bubble.append(linkify(body, links));
+    bubble.append(linkify(body, links, mentions));
   }
   return bubble;
 }
@@ -556,7 +588,7 @@ function messageNode(item) {
   }
 
   if (item.body) {
-    const bubble = textBubble(item.body, item.glyphs, item.links);
+    const bubble = textBubble(item.body, item.glyphs, item.links, item.mentions);
     // Kept (Edit works on it), but not shown while cards say it all.
     if (onlyCards(item)) bubble.classList.add('links-only');
     li.append(bubble);
@@ -907,6 +939,8 @@ function accept(message, { fromStream = false } = {}) {
       nodes.set(`m${message.id}`, node);
     }
     messages.set(message.id, message);
+    // Drawn before the server said whom it mentions: drawn again, marked.
+    if (message.mentions?.length) setTimeout(() => rebuild(message.id));
     return false;
   }
   messages.set(message.id, message);
@@ -959,7 +993,7 @@ function applyUpdate(message) {
   keepPlace(() => {
     if (message.body !== old.body) {
       const current = node.querySelector('.bubble:not(.photo):not(.past):not(.link-card)');
-      const fresh = textBubble(message.body, message.glyphs, message.links);
+      const fresh = textBubble(message.body, message.glyphs, message.links, message.mentions);
       if (current) current.replaceWith(fresh);
       if (!reducedMotion.matches) fresh.classList.add('edited-in');
     }
@@ -1362,6 +1396,7 @@ async function sendText() {
   const copies = images.map((img) => img.cloneNode());
   editor.replaceChildren();
   autosize();
+  updatePicker();
   if (copies.length === 0) {
     queue({ body: text });
     return;
@@ -1392,6 +1427,7 @@ sendButton.addEventListener('mousedown', (event) => event.preventDefault());
 editor.addEventListener('keydown', (event) => {
   // isComposing / 229: Enter is confirming a pinyin candidate, not sending.
   if (event.isComposing || event.keyCode === 229) return;
+  if (pickerKey(event)) return;
   if (event.key === 'Enter' && !event.shiftKey && finePointer) {
     event.preventDefault();
     sendText();
@@ -1445,6 +1481,123 @@ editor.addEventListener('input', () => {
     api(`${BASE}/api/typing`, { method: 'POST' }).catch(() => {});
   }
 });
+
+// ---- mentions ---------------------------------------------------------
+
+/**
+ * Typing "@" offers the others in the chat, filtered by what follows;
+ * picking one writes "@Name " in its place. Only text: the server finds
+ * mentions in what's sent (store.ts findMentions), so one typed out by
+ * hand, or without JavaScript, is a mention all the same.
+ */
+const picker = el('ul', 'mention-picker');
+picker.id = 'mention-picker';
+picker.setAttribute('role', 'listbox');
+picker.setAttribute('aria-label', T.mention);
+picker.hidden = true;
+composer.querySelector('.composer-row').before(picker);
+/** What's being completed: the text node, where its "@" is, and the choices. */
+let picking = null;
+
+/** The "@query" just before the caret, if the caret is at the end of one. */
+function mentionQuery() {
+  const selection = document.getSelection();
+  if (!selection?.isCollapsed || !selection.anchorNode) return null;
+  const node = selection.anchorNode;
+  if (node.nodeName !== '#text' || !editor.contains(node)) return null;
+  const before = node.data.slice(0, selection.anchorOffset);
+  const match = /(?:^|[\s(（“"'])@([^\s@]{0,24})$/u.exec(before);
+  if (!match) return null;
+  return {
+    node,
+    start: selection.anchorOffset - match[1].length - 1,
+    end: selection.anchorOffset,
+    query: match[1],
+  };
+}
+
+function updatePicker() {
+  const found = document.activeElement === editor ? mentionQuery() : null;
+  const query = found?.query.toLowerCase() ?? '';
+  const choices = found
+    ? [...members.values()]
+        .filter((m) => m.active && m.id !== me.id)
+        // "@d" finds Dad, and "@may" finds Aunt May.
+        .filter((m) =>
+          [m.name, ...m.name.split(' ').slice(1)].some((part) =>
+            part.toLowerCase().startsWith(query),
+          ),
+        )
+        .slice(0, 6)
+    : [];
+  if (choices.length === 0) {
+    picking = null;
+    picker.hidden = true;
+    editor.removeAttribute('aria-activedescendant');
+    return;
+  }
+  const keep = picking?.choices[picking.index]?.id;
+  const index = Math.max(
+    0,
+    choices.findIndex((m) => m.id === keep),
+  );
+  picking = { ...found, choices, index };
+  picker.replaceChildren(
+    ...choices.map((member, n) => {
+      const option = el('li', 'mention-option', member.name);
+      option.id = `mention-${member.id}`;
+      option.setAttribute('role', 'option');
+      option.setAttribute('aria-selected', String(n === index));
+      // Keep the keyboard up: tapping a name mustn't take focus from the field.
+      option.addEventListener('mousedown', (event) => event.preventDefault());
+      option.addEventListener('click', () => pick(n));
+      return option;
+    }),
+  );
+  picker.hidden = false;
+  editor.setAttribute('aria-activedescendant', `mention-${choices[index].id}`);
+}
+
+function pick(n) {
+  const member = picking?.choices[n];
+  if (!member) return;
+  const range = document.createRange();
+  range.setStart(picking.node, picking.start);
+  range.setEnd(picking.node, Math.min(picking.end, picking.node.length));
+  const selection = document.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+  // As if typed: one step of Undo, and the input event that follows.
+  document.execCommand('insertText', false, `@${member.name} `);
+  haptic();
+  updatePicker();
+}
+
+/** Arrows, Enter or Tab and Escape while names are offered. True if it was the picker's. */
+function pickerKey(event) {
+  if (!picking) return false;
+  const count = picking.choices.length;
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    picking.index = (picking.index + (event.key === 'ArrowDown' ? 1 : count - 1)) % count;
+    const chosen = picking.choices[picking.index].id;
+    for (const option of picker.children) {
+      option.setAttribute('aria-selected', String(option.id === `mention-${chosen}`));
+    }
+    editor.setAttribute('aria-activedescendant', `mention-${chosen}`);
+  } else if ((event.key === 'Enter' && !event.shiftKey) || event.key === 'Tab') {
+    pick(picking.index);
+  } else if (event.key === 'Escape') {
+    picking = null;
+    picker.hidden = true;
+  } else {
+    return false;
+  }
+  event.preventDefault();
+  return true;
+}
+
+document.addEventListener('selectionchange', updatePicker);
+editor.addEventListener('blur', updatePicker);
 
 /** A photo, made safe to send: re-encoded (which drops its location metadata) and at most 2048px. */
 async function preparePhoto(file) {

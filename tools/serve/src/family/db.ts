@@ -289,6 +289,18 @@ const MIGRATIONS: readonly string[] = [
   -- server stored during a deploy's overlap.
   INSERT INTO meta (key, value) VALUES ('links_indexed', 0);
   `,
+  `
+  -- Who a message mentions (store.ts findMentions): each "@Name" as
+  -- written and whose it is, in the order they first appear. Found in the
+  -- text when it's sent or edited; a later rename doesn't change them.
+  CREATE TABLE message_mentions (
+    message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    n          INTEGER NOT NULL,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    text       TEXT NOT NULL,
+    PRIMARY KEY (message_id, n)
+  ) WITHOUT ROWID;
+  `,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

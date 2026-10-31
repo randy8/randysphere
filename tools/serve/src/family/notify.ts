@@ -19,8 +19,22 @@ import type { VapidKeys } from './webpush.ts';
  */
 
 const TEXT = {
-  en: { generic: 'New message', photo: 'Photo', voice: 'Voice message', sticker: 'Sticker' },
-  zh: { generic: '新消息', photo: '照片', voice: '语音消息', sticker: '贴纸' },
+  en: {
+    generic: 'New message',
+    mentioned: 'You were mentioned',
+    mentionedBy: (name: string) => `${name} mentioned you`,
+    photo: 'Photo',
+    voice: 'Voice message',
+    sticker: 'Sticker',
+  },
+  zh: {
+    generic: '新消息',
+    mentioned: '有人提到了你',
+    mentionedBy: (name: string) => `${name} 提到了你`,
+    photo: '照片',
+    voice: '语音消息',
+    sticker: '贴纸',
+  },
 } as const;
 
 /** A message as one line: its text, its stickers left out; "Sticker" or "Photo" if that's all. */
@@ -48,6 +62,24 @@ export function reactionPayload(
     title: reactor.displayName,
     body: recipient.lang === 'zh' ? `对“${what}”回应了 ${emoji}` : `Reacted ${emoji} to “${what}”`,
   };
+}
+
+/**
+ * A message that mentions the recipient: said so, even on a lock screen
+ * (without who), and a notification of its own — never folded into
+ * "New message" or replaced by the next one.
+ */
+export function mentionPayload(
+  recipient: User,
+  message: Message,
+  author: User | null,
+  options: { preview: boolean; unread: number; chat?: ChatIdentity },
+): PushPayload {
+  const base = payloadFor(recipient, message, author, options);
+  const t = TEXT[recipient.lang];
+  const tag = `${(options.chat ?? FAMILY).slug}-${String(message.id)}`;
+  if (!options.preview || !author) return { ...base, body: t.mentioned, tag };
+  return { ...base, title: t.mentionedBy(author.displayName), tag };
 }
 
 export interface PushPayload {
@@ -122,9 +154,33 @@ export class Notifier {
    */
   async messagePosted(message: Message): Promise<void> {
     const author = this.#store.getUser(message.userId);
+    const mentioned = new Set(message.mentions.map((m) => m.userId));
     await this.#send(
       this.#store.members().filter((user) => user.id !== message.userId),
-      (recipient, options) => payloadFor(recipient, message, author, options),
+      (recipient, options) =>
+        (mentioned.has(recipient.id) ? mentionPayload : payloadFor)(
+          recipient,
+          message,
+          author,
+          options,
+        ),
+    );
+  }
+
+  /**
+   * An edit that mentions someone it didn't before tells them (and only
+   * them): everyone else was told about the message when it was sent.
+   */
+  async mentionsEdited(message: Message, before: Message): Promise<void> {
+    const had = new Set(before.mentions.map((m) => m.userId));
+    const added = new Set(
+      message.mentions.map((m) => m.userId).filter((id) => !had.has(id) && id !== message.userId),
+    );
+    if (added.size === 0) return;
+    const author = this.#store.getUser(message.userId);
+    await this.#send(
+      this.#store.members().filter((user) => added.has(user.id)),
+      (recipient, options) => mentionPayload(recipient, message, author, options),
     );
   }
 
@@ -164,7 +220,7 @@ export class Notifier {
             subject: this.#subject,
             // Generic notifications collapse while a phone is offline: ten
             // undelivered "New message"s arrive as one.
-            ...(target.preview ? {} : { topic: this.#chat.slug }),
+            ...(payload.tag === this.#chat.slug ? { topic: this.#chat.slug } : {}),
             ...(this.#fetch ? { fetch: this.#fetch } : {}),
           }).then(({ outcome, status }) => {
             this.#store.recordPush(target.endpoint, outcome);

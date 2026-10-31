@@ -636,6 +636,65 @@ test('notifications: a device subscribes; everyone but the author is told, gener
   assert.equal(pushed.filter((p) => p.endpoint === phone.subscription.endpoint).length, 0);
 });
 
+test('notifications: a mention says so, on its own; an edit tells only whom it adds', async () => {
+  const phone = device('dad-mentions');
+  await call('/family/api/push', { cookie: dadCookie, json: phone.subscription });
+  const toDad = (): Record<string, unknown>[] =>
+    pushed.filter((p) => p.endpoint === phone.subscription.endpoint).map((p) => phone.read(p.body));
+
+  pushed.length = 0;
+  await call('/family/api/messages', {
+    cookie: momCookie,
+    json: { clientId: 'mention-0000001', body: '@Dad 吃饭了' },
+  });
+  await settle();
+  const generic = pushed.find((p) => p.endpoint === phone.subscription.endpoint);
+  assert.equal(generic?.headers['topic'], undefined, 'never folded into "New message"');
+  const [first] = toDad();
+  assert.equal(first?.['body'], 'You were mentioned');
+  assert.ok(!JSON.stringify(first).includes('妈妈'), 'nor who, without Preview');
+  assert.notEqual(first?.['tag'], 'family');
+
+  await call('/family/api/push', {
+    cookie: dadCookie,
+    json: { ...phone.subscription, preview: true },
+  });
+  pushed.length = 0;
+  const sent = (await (
+    await call('/family/api/messages', {
+      cookie: momCookie,
+      json: { clientId: 'mention-0000002', body: '吃饭了' },
+    })
+  ).json()) as { message: { id: number } };
+  await settle();
+  assert.equal(toDad()[0]?.['title'], '妈妈', 'no mention: the ordinary notification');
+
+  pushed.length = 0;
+  await call(`/family/api/messages/${String(sent.message.id)}`, {
+    cookie: momCookie,
+    method: 'PATCH',
+    json: { body: '@dad 吃饭了' },
+  });
+  await settle();
+  assert.deepEqual(
+    toDad().map((p) => [p['title'], p['body']]),
+    [['妈妈 mentioned you', '@dad 吃饭了']],
+  );
+  // Edited again, still mentioning him: he's already been told.
+  pushed.length = 0;
+  await call(`/family/api/messages/${String(sent.message.id)}`, {
+    cookie: momCookie,
+    method: 'PATCH',
+    json: { body: '@dad 快来吃饭' },
+  });
+  await settle();
+  assert.equal(toDad().length, 0);
+  await call('/family/api/push/remove', {
+    cookie: dadCookie,
+    json: { endpoint: phone.subscription.endpoint },
+  });
+});
+
 test('notifications: not while the conversation is on screen; again once it is put away', async () => {
   const phone = device('randy-phone');
   await call('/family/api/push', { cookie: randyCookie, json: phone.subscription });

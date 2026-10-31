@@ -475,3 +475,37 @@ browserTest(
     await other.close();
   },
 );
+
+browserTest(
+  'typing @ offers the others by name; the mention is marked for whom it names',
+  async ({ context, page: unused }) => {
+    await unused.close();
+    const randy = await signIn(context, 'randy', 'battery staple');
+    const other = await context.browser()?.newContext(PHONE);
+    assert.ok(other);
+    const mom = await signIn(other, 'mom', 'correct horse');
+
+    await randy.click('.editor');
+    await randy.keyboard.type('Dinner @');
+    const picker = randy.getByRole('listbox', { name: 'Mention' });
+    await picker.getByRole('option', { name: '妈妈' }).waitFor();
+    // Never yourself.
+    assert.equal(await picker.getByRole('option', { name: 'Randy' }).count(), 0);
+    await picker.getByRole('option', { name: '妈妈' }).click();
+    assert.equal(await picker.isHidden(), true);
+    await randy.keyboard.type('ready');
+    assert.equal(await randy.locator('.editor').innerText(), 'Dinner @妈妈 ready');
+    await randy.click('[data-send]');
+
+    // Hers in colour, on her screen; bold on his, once the server has said whom.
+    await mom.locator('.msg-in .mention.me', { hasText: '@妈妈' }).waitFor();
+    await randy.locator('.msg-out .mention', { hasText: '@妈妈' }).waitFor();
+    const stored = chat.store.history(null, 50).messages.at(-1);
+    assert.deepEqual(
+      stored?.mentions.map((m) => m.text),
+      ['@妈妈'],
+    );
+    await other.close();
+  },
+  PHONE,
+);

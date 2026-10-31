@@ -57,6 +57,8 @@ export interface Message {
     readonly text: string;
     readonly preview: LinkPreview | null;
   }[];
+  /** Who it mentions, in order: `text` is the "@Name" as written, each once. */
+  readonly mentions: readonly { readonly userId: number; readonly text: string }[];
 }
 
 /** What a provider said about a link (links.ts, previews.ts): a card's contents. */
@@ -161,6 +163,7 @@ interface MessageRow {
   reactions: string;
   glyphs: string;
   previews: string;
+  mentions: string;
 }
 
 interface PreviewRow {
@@ -238,6 +241,7 @@ function toMessage(row: MessageRow): Message {
     reactions: gone ? [] : (JSON.parse(row.reactions) as Message['reactions']),
     glyphs: gone ? [] : (JSON.parse(row.glyphs) as Message['glyphs']),
     links: gone ? [] : linksOf(row.body, JSON.parse(row.previews) as PreviewRow[]),
+    mentions: gone ? [] : (JSON.parse(row.mentions) as Message['mentions']),
   };
 }
 
@@ -260,7 +264,10 @@ const MESSAGE_COLUMNS = `m.id, m.user_id, m.client_id, m.body, m.image_id, i.wid
             'title', p.title, 'subtitle', p.subtitle, 'image', p.image_id,
             'width', p.image_width, 'height', p.image_height))
      FROM message_links ml JOIN link_previews p ON p.url = ml.url AND p.status = 'ok'
-     WHERE ml.message_id = m.id) AS previews`;
+     WHERE ml.message_id = m.id) AS previews,
+  (SELECT json_group_array(json_object('userId', mm.user_id, 'text', mm.text))
+     FROM (SELECT user_id, text FROM message_mentions WHERE message_id = m.id ORDER BY n) mm)
+     AS mentions`;
 const MESSAGE_FROM = 'messages m LEFT JOIN images i ON i.id = m.image_id';
 
 export function normalizeDisplayName(name: string): string {
@@ -278,6 +285,46 @@ function normalizeBody(text: string): string {
   const body = text.normalize('NFC').replace(/\r\n?/g, '\n').trim();
   if ([...body].length > MAX_BODY_CHARS) throw new FamilyError('That message is too long.');
   return body;
+}
+
+/**
+ * What may follow a name for it to be a mention: not a letter or digit
+ * (so @Mom isn't found in @Momma), except Chinese, which runs on without
+ * spaces (@妈妈你好).
+ */
+function endsName(next: string | undefined): boolean {
+  return next === undefined || !/[\p{L}\p{N}_]/u.test(next) || /\p{Script=Han}/u.test(next);
+}
+
+/**
+ * The people `body` mentions: "@" and a display name or username,
+ * any capitalisation, the longest that fits. An "@" inside a word (an
+ * email address) isn't one. Each person and spelling once, in order.
+ */
+export function findMentions(
+  body: string,
+  people: readonly User[],
+): { userId: number; text: string }[] {
+  const names = people
+    .flatMap((user) => [user.displayName, user.username].map((name) => ({ user, name })))
+    .map(({ user, name }) => ({ userId: user.id, name: name.toLowerCase() }))
+    .filter(({ name }) => name !== '')
+    .sort((a, b) => b.name.length - a.name.length);
+  const found: { userId: number; text: string }[] = [];
+  for (let at = body.indexOf('@'); at !== -1; at = body.indexOf('@', at + 1)) {
+    if (at > 0 && /[\p{L}\p{N}_.]/u.test(body[at - 1] ?? '')) continue;
+    const rest = body.slice(at + 1);
+    const hit = names.find(
+      ({ name }) =>
+        rest.slice(0, name.length).toLowerCase() === name && endsName(rest[name.length]),
+    );
+    if (!hit) continue;
+    const text = body.slice(at, at + 1 + hit.name.length);
+    if (!found.some((m) => m.userId === hit.userId && m.text === text)) {
+      found.push({ userId: hit.userId, text });
+    }
+  }
+  return found;
 }
 
 function checkPassword(password: string): void {
@@ -665,6 +712,7 @@ export class FamilyStore {
       );
       glyphs.forEach((imageId, n) => glyph.run(id, n, imageId));
       this.#setLinks(id, body);
+      this.#setMentions(id, body);
       return id;
     });
     return { message: this.requireMessage(id), created: true };
@@ -751,6 +799,7 @@ export class FamilyStore {
     this.db.prepare('DELETE FROM reactions WHERE message_id = ?').run(id);
     this.db.prepare('DELETE FROM message_glyphs WHERE message_id = ?').run(id);
     this.db.prepare('DELETE FROM message_links WHERE message_id = ?').run(id);
+    this.db.prepare('DELETE FROM message_mentions WHERE message_id = ?').run(id);
     this.db.prepare('UPDATE messages SET image_id = NULL WHERE id = ?').run(id);
     const remove = this.db.prepare('DELETE FROM images WHERE id = ?');
     for (const image of images) remove.run(image);
@@ -804,6 +853,7 @@ export class FamilyStore {
         .prepare('UPDATE messages SET body = ?, edited_at = ? WHERE id = ?')
         .run(body, now, id);
       this.#setLinks(id, body);
+      this.#setMentions(id, body);
       this.#touch(id);
     });
     return { message: this.requireMessage(id), changed: true };
@@ -959,6 +1009,17 @@ export class FamilyStore {
     }
     read.sort((a, b) => (b.at ?? 0) - (a.at ?? 0));
     return { read, unread };
+  }
+
+  /** Records whom `body` mentions, for message `id` (replacing whom it did). */
+  #setMentions(id: number, body: string): void {
+    this.db.prepare('DELETE FROM message_mentions WHERE message_id = ?').run(id);
+    const insert = this.db.prepare(
+      'INSERT INTO message_mentions (message_id, n, user_id, text) VALUES (?, ?, ?, ?)',
+    );
+    findMentions(body.replaceAll(GLYPH, ' '), this.members()).forEach((mention, n) =>
+      insert.run(id, n, mention.userId, mention.text),
+    );
   }
 
   // ---- link previews -----------------------------------------------------

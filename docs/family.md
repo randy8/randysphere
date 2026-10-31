@@ -95,6 +95,13 @@ Name and Message** adds the sender and first line. Either way the content
 is encrypted for that browser alone; Apple, Google or Mozilla carry it but
 can't read it.
 
+**Mentions.** Type **@** in the composer and pick someone (or type their
+name or username out): they're marked in the message, and their
+notification says so — **“You were mentioned”**, or with Show Name and
+Message, **“Mom mentioned you”** and the line. It's a notification of its
+own, never folded into “New message”. An edit that adds someone tells
+just them.
+
 Nobody is notified for their own messages, or while they have the
 conversation on screen (the page tells the server it's visible every 25 s;
 the claim lapses after 40 s, so a phone that slept without saying so is

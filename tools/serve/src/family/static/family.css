@@ -411,6 +411,15 @@ body.family-chat {
   text-underline-offset: 2px;
 }
 
+/* A mention, as iMessage sets one: the name in bold; yours in colour. */
+.mention {
+  font-weight: 600;
+}
+
+.msg-in .mention.me {
+  color: var(--out-bubble);
+}
+
 /* The tail: two pseudo-elements under the text (isolation above), only on
    the last bubble of a run. */
 .msg.run-end .bubble:not(.jumbo, .photo, .sticker, .link-card)::before,
@@ -1382,6 +1391,37 @@ body.family-chat {
   background: none;
   color: var(--secondary);
   cursor: pointer;
+}
+
+/* Names offered while typing "@" (chat.js updatePicker), over the field. */
+.mention-picker {
+  max-width: 52rem;
+  margin: 0 auto 6px;
+  padding: 4px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--menu-bg);
+  box-shadow: 0 0 0 0.5px var(--separator);
+  list-style: none;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  animation: fade 0.14s var(--ease) both;
+}
+
+.mention-picker[hidden] {
+  display: none;
+}
+
+.mention-option {
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 16px;
+  line-height: 22px;
+  cursor: pointer;
+}
+
+.mention-option[aria-selected='true'] {
+  background: var(--fill);
 }
 
 /* ---- the long-press menu ---------------------------------------------- */

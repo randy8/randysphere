@@ -3795,3 +3795,34 @@ now: the design takes them as one more provider, but each would mean
 fetching arbitrary sites; Spotify is the one asked for. `spotify.link`
 short links and `spotify:` URIs aren't recognised yet (the first needs a
 redirect to an allowed host; easy to add when one turns up in the chat).
+
+## 2026-10-30 — Chats: @mentions
+
+Typing "@" in the composer offers the chat's other active members,
+filtered by what follows (start of the name or of any later word); tapping
+one, or Enter/Tab, writes "@Name " in its place. The server finds mentions
+in the text itself when a message is sent or edited (`findMentions` in
+store.ts): "@" not inside a word, then a display name or username, any
+capitalisation, the longest that fits, not followed by a letter or digit
+(Chinese excepted: "@妈妈你好"). They're kept in `message_mentions`
+(migration 12) as each person and the "@Name" as written; the page marks
+them bold, yours in colour. A mentioned person with notifications on gets
+a notification that says so — "You were mentioned" by default, "妈妈
+mentioned you" with Show Name & Message — under its own tag and without
+the collapsing `Topic`, so a later "New message" never replaces it. An
+edit that adds a mention notifies only the person added.
+
+**Why.** Mentions as plain text the server reads, not tokens the client
+inserts: the stored body stays exactly what was typed (Copy, Search,
+the no-JavaScript page and notifications all show "@Mom"), a mention typed
+by hand or without JavaScript counts the same, and the composer stays the
+plain rich-text box it is. Stored rather than recomputed on read, so a
+rename doesn't silently move or drop old mentions. Everyone is already
+notified of every message, so what a mention changes is what the
+notification says and that it stays.
+
+**Rejected.** Atomic mention "pills" in the composer with ids in the
+request (more client state, and a no-JS path that can't mention). A
+per-device "only mentions" notification setting, and @everyone: neither
+asked for; the first is the natural next step if the chat gets noisy.
+Highlighting mentions on the no-JavaScript page (it shows the text).
