@@ -101,6 +101,7 @@ before(async () => {
       `<meta name="description" content="Paris 2025">` +
       `<meta property="og:title" content="Paris 2025 — Exposures — Randy Liang">` +
       `<meta property="og:description" content="Paris 2025">` +
+      `<meta property="og:url" content="${SITE_ORIGIN}/exposures/paris-2025/">` +
       `<meta property="og:image" content="${SITE_ORIGIN}/p/coverphoto1234567/og-cover.jpg">` +
       `<meta property="og:image:width" content="1200">` +
       `<meta property="og:image:height" content="630">` +
@@ -396,6 +397,10 @@ test('a plain page URL with ?photo=<id> — the address bar while viewing that p
   // The page's own description is left alone — only /exposures/share/'s
   // has no better default to preserve.
   assert.match(body, /og:description" content="Paris 2025"/);
+  assert.match(
+    body,
+    new RegExp(`og:url" content="${SITE_ORIGIN}/exposures/paris-2025/\\?photo=${TAG_PHOTO_ID}"`),
+  );
 });
 
 test('?photo= takes precedence over ?s= when a share link is open on a specific photo', async () => {

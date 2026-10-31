@@ -244,6 +244,20 @@ function rewriteOgImage(html: string, config: ServeConfig, preview: PhotoPreview
     );
 }
 
+/**
+ * Points `og:url` at the photograph's own address. Base.astro sets it to
+ * the bare page, and a reader that trusts `og:url` over the URL it was
+ * given (Facebook re-scrapes it) would otherwise show the page's cover.
+ * The canonical link stays the page: the photograph isn't a separate page
+ * to index.
+ */
+function rewriteOgUrl(html: string, url: string): string {
+  return html.replace(
+    /<meta property="og:url" content="[^"]*">/,
+    `<meta property="og:url" content="${url.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}">`,
+  );
+}
+
 /** Replaces both description tags' content — only used for /exposures/share/'s own count-based text, which has no better page-specific default to preserve (unlike a tag/film-stock page's description, left untouched). */
 function rewriteDescription(html: string, description: string): string {
   return html
@@ -552,7 +566,12 @@ async function route(
       }
       if (photoId !== null) {
         const preview = await findPhotoPreview(config.generatedAlbumsDir, photoId);
-        if (preview !== null) html = rewriteOgImage(html, config, preview);
+        if (preview !== null) {
+          html = rewriteOgUrl(
+            rewriteOgImage(html, config, preview),
+            `${config.siteOrigin}${pathname}?photo=${encodeURIComponent(photoId)}`,
+          );
+        }
       } else if (sharedIds !== null) {
         const preview = await findSharePreview(
           config.generatedAlbumsDir,

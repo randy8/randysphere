@@ -31,7 +31,19 @@ export interface LightboxPhoto {
   readonly frame: number;
   readonly caption: string | null;
   readonly camera: string | null;
+  /**
+   * The image a link preview shows for this photograph — what
+   * tools/serve's share-preview.ts puts in `og:image` for `?photo=<id>`
+   * (same rule, kept in step by hand). lightbox.ts writes it into the
+   * page's own Open Graph tags while the photograph is open, because
+   * Safari's share sheet hands Messages the preview it reads from the
+   * page in front of it rather than fetching the URL afresh.
+   */
+  readonly preview: { readonly src: string; readonly width: number; readonly height: number };
 }
+
+/** Long edge a link preview is asked to show — share-preview.ts's PREVIEW_LONG_EDGE. */
+const PREVIEW_LONG_EDGE = 1200;
 
 /** The `sizes` every lightbox image uses: it fills the viewport. */
 export const LIGHTBOX_SIZES = '100vw';
@@ -66,7 +78,21 @@ export function lightboxPhoto(entry: ArchivePhoto, maxWidth?: number): LightboxP
     frame: entry.frame,
     caption: entry.caption,
     camera: formatCameraLine(entry) || null,
+    preview: previewOf(entry.photo, base),
   };
+}
+
+/**
+ * The smallest JPEG whose long edge reaches PREVIEW_LONG_EDGE, else the
+ * largest; the 1200×630 Open Graph crop only for a photo with no JPEG.
+ * Uncapped by a page's maxWidth: the preview is for the recipient.
+ */
+function previewOf(photo: ArchivePhoto['photo'], base: string): LightboxPhoto['preview'] {
+  const longEdge = (variant: Variant): number => Math.max(variant.width, variant.height);
+  const jpegs = [...variantsOf(photo, 'jpeg')].sort((a, b) => longEdge(a) - longEdge(b));
+  const image =
+    jpegs.find((variant) => longEdge(variant) >= PREVIEW_LONG_EDGE) ?? jpegs.at(-1) ?? photo.og;
+  return { src: assetUrl(base, image.key), width: image.width, height: image.height };
 }
 
 /**

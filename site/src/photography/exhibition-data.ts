@@ -16,13 +16,18 @@ import type { ExhibitionData } from './exhibition-model.ts';
  */
 export function exhibitionData(archive: Archive, photos: Archive['photos']): ExhibitionData {
   return {
-    photos: photos.map((entry) => ({
-      ...lightboxPhoto(entry),
-      tags: entry.tags,
-      places: citiesOf(archive, entry).map((city) => city.name),
-      date: entry.photo.camera?.takenAt?.slice(0, 10) ?? entry.roll.date,
-      weight: weightOf(entry.rating),
-    })),
+    photos: photos.map((entry) => {
+      // The gallery's URL is its whole state, never one photograph's, so
+      // the per-photo link preview would be dead weight in its payload.
+      const { preview: _preview, ...photo } = lightboxPhoto(entry);
+      return {
+        ...photo,
+        tags: entry.tags,
+        places: citiesOf(archive, entry).map((city) => city.name),
+        date: entry.photo.camera?.takenAt?.slice(0, 10) ?? entry.roll.date,
+        weight: weightOf(entry.rating),
+      };
+    }),
     titles: Object.fromEntries(
       allTags(archive).map((tag) => [tag, viewForTag(archive, tag).title]),
     ),

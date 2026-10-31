@@ -95,3 +95,17 @@ test('the JSON can never close its own <script> element', () => {
   const [parsed] = JSON.parse(json) as { caption: string }[];
   assert.equal(parsed?.caption, '</script><b>x</b>');
 });
+
+test('its link preview is the smallest JPEG reaching 1200px on the long edge, ignoring a page cap', () => {
+  const variants = [variant('jpeg', 640), variant('jpeg', 1280), variant('jpeg', 2560)];
+  assert.deepEqual(lightboxPhoto(entry(variants), 640).preview, {
+    src: '/p/0123456789abcdef/1280-aaaaaaaa.jpg',
+    width: 1280,
+    height: 853,
+  });
+});
+
+test('a photo without a JPEG previews as its Open Graph crop', () => {
+  const data = lightboxPhoto(entry([variant('avif', 1280)]));
+  assert.equal(data.preview.src, '/p/0123456789abcdef/1280-aaaaaaaa.avif');
+});

@@ -145,6 +145,62 @@ function fill(slot: HTMLElement, photo: LightboxPhoto): void {
   if (button !== null) applySaveButtonState(button, isSaved(photo.id));
 }
 
+/**
+ * Points the page's own Open Graph tags at one photograph while it is
+ * open, and back at the page's when it closes. A link-preview bot that
+ * fetches a `?photo=` URL gets this from tools/serve, but Safari's share
+ * sheet doesn't fetch anything: it hands Messages the preview it reads
+ * from the page in front of it, so without this a photograph opened from
+ * the grid was shared as the page's cover. `og:url` follows too, so a
+ * reader that trusts it over the address bar keeps the photograph.
+ */
+function openGraphSync(): (preview: LightboxPhoto['preview'] | null) => void {
+  const head = document.head;
+  const tag = (property: string): HTMLMetaElement | null =>
+    head.querySelector<HTMLMetaElement>(`meta[property="${property}"]`);
+  const image = tag('og:image');
+  if (image === null) return () => {};
+  const url = tag('og:url');
+  const original = {
+    image: image.content,
+    width: tag('og:image:width')?.content ?? null,
+    height: tag('og:image:height')?.content ?? null,
+    url: url?.content ?? null,
+  };
+  // Width/height sit right after og:image (Base.astro); a page without
+  // its own image has neither, so they're made here when first needed.
+  const dimension = (property: string, value: string | null): void => {
+    let meta = tag(property);
+    if (value === null) {
+      meta?.remove();
+      return;
+    }
+    if (meta === null) {
+      meta = document.createElement('meta');
+      meta.setAttribute('property', property);
+      (tag('og:image:width') ?? image).after(meta);
+    }
+    meta.content = value;
+  };
+  return (preview) => {
+    if (preview === null) {
+      image.content = original.image;
+      dimension('og:image:width', original.width);
+      dimension('og:image:height', original.height);
+      if (url !== null && original.url !== null) url.content = original.url;
+      return;
+    }
+    image.content = new URL(preview.src, location.origin).href;
+    dimension('og:image:width', preview.width.toString());
+    dimension('og:image:height', preview.height.toString());
+    if (url !== null) {
+      const here = new URL(location.href);
+      here.hash = '';
+      url.content = here.href;
+    }
+  };
+}
+
 function init(): void {
   const root = document.querySelector<HTMLElement>('[data-lightbox]');
   if (root === null) return;
@@ -170,6 +226,7 @@ function init(): void {
   // that photograph (and only it) as slots are reused.
   let hintFor: string | null = null;
   let lastFocused: HTMLElement | null = null;
+  const syncOpenGraph = openGraphSync();
 
   const syncHint = (slot: HTMLElement): void => {
     const hint = slot.querySelector<HTMLElement>('[data-save-hint]');
@@ -193,6 +250,7 @@ function init(): void {
     url.searchParams.set('photo', id);
     url.hash = `${PHOTO_HASH_PREFIX}${id}`;
     history.replaceState(null, '', url);
+    syncOpenGraph(byId.get(id)?.preview ?? null);
   };
 
   const clearHash = (): void => {
@@ -200,6 +258,7 @@ function init(): void {
     url.searchParams.delete('photo');
     url.hash = '';
     history.replaceState(null, '', url);
+    syncOpenGraph(null);
   };
 
   /**

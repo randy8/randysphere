@@ -3826,3 +3826,28 @@ request (more client state, and a no-JS path that can't mention). A
 per-device "only mentions" notification setting, and @everyone: neither
 asked for; the first is the natural next step if the chat gets noisy.
 Highlighting mentions on the no-JavaScript page (it shows the text).
+
+---
+
+## 2026-10-31 — An open photograph's link preview is written into the page itself
+
+**What happened.** Sharing a photograph from Safari to Messages showed the
+page's cover (or the default card), though `tools/serve` has rewritten
+`og:image` for `?photo=<id>` since 2026-10-24. Safari's share sheet doesn't
+fetch the URL: it hands Messages the preview it reads from the page on
+screen, and opening a photo in the lightbox only `replaceState`s the URL —
+the page's tags still named what was served.
+
+**Decision.** Each lightbox photo's data carries its preview image
+(`preview` in `lightbox-data.ts`, chosen by the same rule as
+`share-preview.ts`'s `previewOf`, duplicated rather than shared across
+workspaces), and `lightbox.ts` points `og:image`, its width/height and
+`og:url` at the open photograph, restoring the page's own on close. The
+server now also rewrites `og:url` for `?photo=`, since readers that trust
+it (Facebook re-scrapes it) would otherwise go back to the bare page.
+The Gallery's payload drops `preview`: its URL is never one photograph's.
+
+**Rejected.** Changing `<link rel="canonical">` as well — it would make
+every `?photo=` URL its own indexable page. (Chrome's share sheet shares the
+canonical URL, so it still sends the page, not the photo; revisit if that
+matters.)

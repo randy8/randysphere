@@ -8,7 +8,7 @@ import type { LightboxPhoto } from './lightbox-data.ts';
 import { resolveIds, sharedPrefixes } from './share-code.ts';
 import { filmStockName } from './film-stocks.ts';
 
-export interface ExhibitionPhoto extends LightboxPhoto {
+export interface ExhibitionPhoto extends Omit<LightboxPhoto, 'preview'> {
   readonly tags: readonly string[];
   /** City names (albums/cities.yaml) the photograph is tagged with. */
   readonly places: readonly string[];
