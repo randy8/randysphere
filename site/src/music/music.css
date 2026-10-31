@@ -291,6 +291,7 @@ html.tune-viewing {
   gap: 1.5rem;
 }
 .tune-viewer-back,
+.tune-viewer-browse,
 .tune-viewer-autoplay,
 .tune-viewer-external {
   appearance: none;
@@ -308,6 +309,8 @@ html.tune-viewing {
 }
 .tune-viewer-back:hover,
 .tune-viewer-back:focus-visible,
+.tune-viewer-browse:hover,
+.tune-viewer-browse:focus-visible,
 .tune-viewer-autoplay:hover,
 .tune-viewer-autoplay:focus-visible,
 .tune-viewer-external:hover,
@@ -451,6 +454,7 @@ html.tune-viewing {
   color: var(--room-ink);
 }
 .tune-viewer .tune-viewer-back:focus-visible,
+.tune-viewer .tune-viewer-browse:focus-visible,
 .tune-viewer .tune-viewer-autoplay:focus-visible,
 .tune-viewer .tune-viewer-external:focus-visible {
   outline: none;
@@ -501,6 +505,149 @@ html.tune-viewing {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Browse while it plays (tunes.ts): the room folds into a bar along the
+   bottom — the same elements, restyled, since moving the player's iframe
+   would reload it — and the rest of the site is shown in a frame above
+   it. The pause button and the bar's own end (open, stop) exist only here.
+   --------------------------------------------------------------------------- */
+
+.tune-viewer-pause,
+.tune-viewer-dock-end {
+  display: none;
+}
+
+.tune-viewer.is-docked {
+  --caption-height: 0;
+  inset: auto 0 0;
+  display: block;
+  padding: 0.5rem max(1rem, env(safe-area-inset-right)) max(0.5rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+  border-top: 1px solid var(--room-rule);
+  box-shadow: 0 -0.5rem 1.5rem rgb(0 0 0 / 0.18);
+}
+.tune-viewer.is-docked .tune-viewer-ambient,
+.tune-viewer.is-docked .tune-viewer-bar {
+  display: none;
+}
+.tune-viewer.is-docked .tune-viewer-stage {
+  display: block;
+  /* Not centred: in block layout too, justify-items would shrink the row to its content. */
+  place-items: normal;
+  container-type: normal;
+  padding: 0;
+}
+.tune-viewer.is-docked .tune-viewer-column {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: auto;
+  max-width: 72rem;
+  margin: 0 auto;
+}
+.tune-viewer.is-docked .tune-screen {
+  flex: none;
+  width: 8rem;
+}
+.tune-viewer.is-docked .tune-viewer-caption {
+  flex: 1;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+}
+.tune-viewer.is-docked .tune-viewer-meta {
+  flex: 1;
+}
+.tune-viewer.is-docked .tune-viewer-title {
+  overflow: hidden;
+  font-size: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tune-viewer.is-docked .tune-viewer-artist {
+  overflow: hidden;
+  margin-top: 0.125rem;
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tune-viewer.is-docked .tune-viewer-pause,
+.tune-viewer.is-docked .tune-viewer-dock-end {
+  display: flex;
+}
+.tune-viewer.is-docked .tune-viewer-pause {
+  display: grid;
+  border-left: 1px solid var(--room-rule);
+}
+.tune-viewer-pause svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  fill: currentColor;
+}
+.tune-viewer-pause svg[hidden] {
+  display: none;
+}
+.tune-viewer.is-docked .tune-viewer-pause[hidden] {
+  display: none;
+}
+.tune-viewer.is-docked .tune-viewer-dock-end .tune-viewer-step {
+  font-size: 1rem;
+}
+/* A phone: a smaller screen, and no step back (the room, one tap away, has it). */
+@media (max-width: 40rem) {
+  .tune-viewer.is-docked {
+    padding-inline: max(0.75rem, env(safe-area-inset-left));
+  }
+  .tune-viewer.is-docked .tune-screen {
+    width: 5rem;
+  }
+  .tune-viewer.is-docked .tune-viewer-column {
+    gap: 0.625rem;
+  }
+  .tune-viewer.is-docked .tune-viewer-caption {
+    gap: 0.25rem;
+  }
+  .tune-viewer.is-docked .tune-viewer-step {
+    width: 2.25rem;
+  }
+  .tune-viewer.is-docked .tune-viewer-step[data-tune-step='-1'] {
+    display: none;
+  }
+  .tune-viewer.is-docked .tune-viewer-pause {
+    border-left: 0;
+  }
+}
+
+/* The Tunes list, while the bar plays, leaves room for it at the end. */
+html.tune-docked body {
+  padding-bottom: var(--tune-dock-space, 0);
+}
+
+/* The site, above the bar. The Tunes list underneath is put away (its
+   scroll kept by tunes.ts) so only the frame scrolls. */
+.tune-site {
+  position: fixed;
+  /* A frame is a replaced element: top and bottom alone wouldn't stretch it. */
+  top: 0;
+  left: 0;
+  z-index: 50;
+  width: 100%;
+  height: calc(100% - var(--tune-dock-space, 0px));
+  border: 0;
+  background: var(--paper);
+}
+.tune-site[hidden] {
+  display: none;
+}
+html.tune-browsing {
+  overflow: hidden;
+}
+html.tune-browsing .wrap {
+  display: none;
 }
 
 /* ---------------------------------------------------------------------------

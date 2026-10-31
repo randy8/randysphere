@@ -18,6 +18,7 @@ export const AREAS = [
   'share',
   'pictures',
   'dishes',
+  'tunes',
   'family',
 ] as const;
 export type Area = (typeof AREAS)[number];
@@ -126,10 +127,16 @@ export const RULES: readonly Rule[] = [
     why: 'Dishes: recipes, scaling, Make It Vegan',
   },
   {
-    match: /^site\/src\/music\/|^site\/src\/pages\/(tunes|collections)\//,
+    match: /^site\/src\/music\/|^site\/src\/pages\/tunes\//,
+    risk: 'medium',
+    areas: ['tunes'],
+    why: 'Tunes: the player, and the site browsed in a frame while it plays',
+  },
+  {
+    match: /^site\/src\/pages\/collections\//,
     risk: 'low',
     areas: [],
-    why: 'one non-photo collection (the smoke suite loads its page)',
+    why: 'the collections page (the smoke suite loads it)',
   },
   {
     match: /^(albums|generated\/albums|recipes|music)\//,

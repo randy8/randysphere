@@ -9,6 +9,7 @@ import {
   canonicalPagePath,
   createPrivateSiteServer,
   legacyRedirect,
+  PUBLIC_FRAMING,
   SECURITY_HEADERS,
 } from './server.ts';
 
@@ -558,9 +559,25 @@ test('every response carries the security headers — pages, assets, errors and 
     '/no-such-page/',
   ]) {
     const res = await fetch(`${baseUrl}${path}`, { redirect: 'manual' });
-    for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    const expected = { ...SECURITY_HEADERS, ...(PUBLIC_PATHS.has(path) ? PUBLIC_FRAMING : {}) };
+    for (const [name, value] of Object.entries(expected)) {
       assert.equal(res.headers.get(name), value, `${name} on ${path}`);
     }
+  }
+});
+
+// The public static site, and only it, may be framed by the site itself (Tunes).
+const PUBLIC_PATHS = new Set(['/exposures/', '/no-such-page/']);
+
+test('only the public static site may be framed, and only by itself; /private and /system never', async () => {
+  for (const path of PUBLIC_PATHS) {
+    const res = await fetch(`${baseUrl}${path}`, { redirect: 'manual' });
+    assert.equal(res.headers.get('x-frame-options'), 'SAMEORIGIN', path);
+    assert.equal(res.headers.get('content-security-policy'), "frame-ancestors 'self'", path);
+  }
+  for (const path of ['/', '/private', '/private/photos/fence.txt', '/system']) {
+    const res = await fetch(`${baseUrl}${path}`, { redirect: 'manual' });
+    assert.equal(res.headers.get('x-frame-options'), 'DENY', path);
   }
 });
 

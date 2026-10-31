@@ -198,11 +198,15 @@ void test('security: headers on public and private responses; /private is gated 
     'strict-transport-security': 'max-age=31536000',
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'strict-origin-when-cross-origin',
-    'x-frame-options': 'DENY',
   };
-  for (const path of ['/exposures/', '/private']) {
+  // Public pages may be framed by the site itself (Tunes plays on above
+  // them); /private never, by anyone.
+  for (const [path, framing] of [
+    ['/exposures/', 'SAMEORIGIN'],
+    ['/private', 'DENY'],
+  ] as const) {
     const res = await fetch(`${BASE}${path}`);
-    for (const [name, value] of Object.entries(expected))
+    for (const [name, value] of Object.entries({ ...expected, 'x-frame-options': framing }))
       assert.equal(res.headers.get(name), value, `${name} on ${path}`);
   }
   const gate = await fetch(`${BASE}/private`);

@@ -123,8 +123,9 @@ const NO_STORE = { 'cache-control': 'private, no-store' };
 /**
  * Sent with every response. The site is HTTPS-only behind Cloudflare, so
  * HSTS is safe (one year; not includeSubDomains, which would bind hosts
- * this server doesn't own). No page is meant to be framed — the /private
- * login least of all. CSP is deliberately absent for now: the inline grid
+ * this server doesn't own). Nothing may be framed by another site, and
+ * nothing at all except the public static site (below, PUBLIC_FRAMING) —
+ * the /private login, the chats, /system and /infra least of all. CSP is deliberately absent for now: the inline grid
  * script and Cloudflare's injected beacon need a considered policy
  * (docs/decisions.md, 2026-10-26).
  */
@@ -134,6 +135,17 @@ export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   'referrer-policy': 'strict-origin-when-cross-origin',
   'x-frame-options': 'DENY',
   'content-security-policy': "frame-ancestors 'none'",
+};
+
+/**
+ * The public static site may be framed by itself, and only by itself: Tunes
+ * keeps its player playing while the visitor browses the rest of the site
+ * in a frame beside it (site/src/music/tunes.ts; docs/decisions.md,
+ * 2026-10-31). Set over SECURITY_HEADERS' DENY for that branch alone.
+ */
+export const PUBLIC_FRAMING: Readonly<Record<string, string>> = {
+  'x-frame-options': 'SAMEORIGIN',
+  'content-security-policy': "frame-ancestors 'self'",
 };
 
 /**
@@ -537,6 +549,7 @@ async function route(
   // Everything else: the public, prebuilt static site (`pnpm build` must
   // have run first — this process never runs Astro itself).
   if (method === 'GET' || method === 'HEAD') {
+    for (const [name, value] of Object.entries(PUBLIC_FRAMING)) res.setHeader(name, value);
     const relative =
       pathname === '/' || pathname.endsWith('/') ? `${pathname}index.html` : pathname;
     const relativeWithoutSlash = relative.slice(1);

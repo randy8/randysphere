@@ -3903,3 +3903,50 @@ an iOS Safari content blocker, so the note speaks to phones. Its base tier is fr
 exists; the note doesn't need it).
 
 **Rejected.** Naming both (two products for one sentence of help).
+
+## 2026-10-31 — Tunes keeps playing while the visitor browses: a bar, and the site in a frame
+
+**Decision.** The screening room gains **Browse while it plays**. The room
+folds into a bar along the bottom: the screen small, title and artist,
+←, pause/play, →, open (↑) and stop (✕). From there, any link to the site
+opens in a full-page iframe above the bar, so the Tunes document, and the
+song, never unload. The address bar and title follow the frame (on load,
+and a 1 s poll while it's shown, for hash and `replaceState` changes such
+as the lightbox's). Entering pushes one history entry. Back walks the
+frame's own pages, then pops that entry and shows the Tunes list again.
+Forward brings the frame back as it was. Off-site links in the frame open
+in a new tab. Pages that refuse framing (`/family`, `/disc`, `/private`,
+`/system`, `/infra`) and full-size `/p/` images are opened at the top
+level, which leaves Tunes and stops the music. A refresh loads the page
+alone, without music. It's a direct owner request: keep browsing with the
+music, and be able to pause it from anywhere.
+
+- **The bar is the same elements as the room, restyled** (`.is-docked`).
+  Moving the player's iframe in the DOM would reload it and restart the
+  song. The new Tunes browser test counts the player's load events to
+  prove it never reloads.
+- **Pause** is `pauseVideo`/`playVideo` over the postMessage channel the
+  radio already uses. Its state comes from the player's reports (1/3
+  playing, 2 paused). It's hidden for Spotify, which offers no such
+  channel.
+- **Framing headers.** tools/serve sent `X-Frame-Options: DENY` /
+  `frame-ancestors 'none'` everywhere. The public static branch now sends
+  `SAMEORIGIN` / `frame-ancestors 'self'` (`PUBLIC_FRAMING`). Only this
+  site may frame it. `/private`, the chats, `/system` and `/infra` keep
+  DENY. Both the server tests and the smoke suite assert the split.
+- **On phones** the bar drops ← (the room, one tap away, has it), so
+  everything fits at 390 px.
+- **Limits, stated rather than fixed:** an iPhone still stops YouTube
+  embeds when Safari goes to the background or the screen locks. That's
+  YouTube and iOS, out of this page's reach. Inside the frame, Safari's
+  toolbars don't collapse on scroll.
+
+**Rejected.** Astro's `ClientRouter` with a persisted player in
+`Base.astro`. It's what was first proposed, and it gives the same result.
+But every page would stop doing full loads, and the photo pages' scripts
+(the inlined grid layout, shuffle-on-load's navigation-type checks, the
+lightbox, reveal) all assume a fresh document. Every collection would have
+been reworked for one collection's feature, and `Base.astro` would have
+gained a second collection-specific exception. The frame keeps the whole
+change inside `site/src/music/` plus one server header. A pop-out player
+window: on phones it's just another tab.

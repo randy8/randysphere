@@ -8,11 +8,16 @@ test('documentation alone is low risk and runs no area tests (the smoke suite st
   assert.deepEqual(result.areas, []);
 });
 
-test('an isolated non-photo collection change stays low', () => {
-  assert.equal(
-    classify(['site/src/music/music.css', 'music/tracks.yaml', 'recipes/soup.yaml']).risk,
-    'low',
-  );
+test('content for a non-photo collection stays low', () => {
+  assert.equal(classify(['music/tracks.yaml', 'recipes/soup.yaml']).risk, 'low');
+});
+
+test('Tunes code runs the tunes area', () => {
+  for (const path of ['site/src/music/tunes.ts', 'site/src/pages/tunes/index.astro']) {
+    const result = classify([path]);
+    assert.equal(result.risk, 'medium', path);
+    assert.deepEqual(result.areas, ['tunes'], path);
+  }
 });
 
 test('Dishes code and the vegan library run the dishes area', () => {

@@ -154,6 +154,11 @@ const tracks = loadTracks();
         <span aria-hidden="true">←</span> Tunes
       </button>
       <div class="tune-viewer-bar-end">
+        {/* The room folds into a bar along the bottom and the song plays on
+            while the visitor goes anywhere on the site (tunes.ts). */}
+        <button type="button" class="tune-viewer-browse" data-tune-dock>
+          Browse while it plays <span aria-hidden="true">↓</span>
+        </button>
         {/* Autoplay: when a song ends, the next one starts — the list as a radio. */}
         <button type="button" class="tune-viewer-autoplay" data-tune-autoplay aria-pressed="false">
           Autoplay <span class="tune-viewer-autoplay-state" data-tune-autoplay-state>off</span>
@@ -192,8 +197,39 @@ const tracks = loadTracks();
             >
               <span aria-hidden="true">←</span>
             </button>
+            {/* Only in the bar: in the room, YouTube's own controls are right there. */}
+            <button
+              type="button"
+              class="tune-viewer-step tune-viewer-pause"
+              data-tune-pause
+              aria-label="Pause"
+            >
+              <svg viewBox="0 0 14 14" aria-hidden="true" data-tune-pause-icon>
+                <rect x="2.5" y="1.5" width="3" height="11" /><rect
+                  x="8.5"
+                  y="1.5"
+                  width="3"
+                  height="11"></rect>
+              </svg>
+              <svg viewBox="0 0 14 14" aria-hidden="true" data-tune-play-icon hidden>
+                <path d="M3 1.5 12.5 7 3 12.5z"></path>
+              </svg>
+            </button>
             <button type="button" class="tune-viewer-step" data-tune-step="1" aria-label="Next song">
               <span aria-hidden="true">→</span>
+            </button>
+          </div>
+          <div class="tune-viewer-steps tune-viewer-dock-end">
+            <button
+              type="button"
+              class="tune-viewer-step"
+              data-tune-expand
+              aria-label="Open the player"
+            >
+              <span aria-hidden="true">↑</span>
+            </button>
+            <button type="button" class="tune-viewer-step" data-tune-stop aria-label="Stop the music">
+              <span aria-hidden="true">✕</span>
             </button>
           </div>
         </div>

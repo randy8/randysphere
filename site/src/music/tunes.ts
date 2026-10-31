@@ -9,6 +9,13 @@
  * YouTube player says when a song has ended (its postMessage channel —
  * the same one the IFrame Player API wraps, without loading that script)
  * and the next one is loaded into the same player.
+ *
+ * Browse while it plays: the room folds into a bar along the bottom (the
+ * same elements, restyled — moving the player's iframe would reload it)
+ * and every page of the site the visitor then opens is shown in a frame
+ * above the bar, so this document, and the song, never unload. The address
+ * bar and title follow the frame; Back walks the frame's pages, then
+ * returns to Tunes. A refresh loads the page itself, without the music.
  */
 import { FALLBACK_AMBIENT, ambientPalette } from './palette.ts';
 
@@ -156,9 +163,36 @@ const external = viewer?.querySelector<HTMLAnchorElement>('[data-tune-external]'
 const autoplayButton = viewer?.querySelector<HTMLButtonElement>('[data-tune-autoplay]');
 const autoplayState = viewer?.querySelector<HTMLElement>('[data-tune-autoplay-state]');
 const playAll = document.querySelector<HTMLButtonElement>('[data-tune-play-all]');
+const pauseButton = viewer?.querySelector<HTMLButtonElement>('[data-tune-pause]');
+const pauseIcon = viewer?.querySelector<SVGElement>('[data-tune-pause-icon]');
+const playIcon = viewer?.querySelector<SVGElement>('[data-tune-play-icon]');
+const closeButton = viewer?.querySelector<HTMLButtonElement>('[data-tune-close]');
 
 const YOUTUBE_ORIGIN = 'https://www.youtube.com';
 const AUTOPLAY_KEY = 'tunes:autoplay';
+
+/**
+ * Pages that can't be shown in the frame: the chats, /private, /system and
+ * /infra refuse to be framed at all (tools/serve's SECURITY_HEADERS), and a
+ * full-size photograph is better opened on its own. Going to one leaves
+ * Tunes, and the music stops.
+ */
+const UNFRAMED = ['/family', '/disc', '/private', '/system', '/infra', '/p/'];
+function framable(url: URL): boolean {
+  return (
+    url.origin === window.location.origin &&
+    !UNFRAMED.some((prefix) => url.pathname === prefix || url.pathname.startsWith(`${prefix}/`))
+  );
+}
+const isTunes = (url: URL): boolean => url.pathname.startsWith('/tunes/');
+const plainClick = (event: MouseEvent): boolean =>
+  event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+/** The link a click landed on, from either document (so no instanceof). */
+function linkOf(event: MouseEvent): HTMLAnchorElement | null {
+  const target = event.target as Element | null;
+  const link = typeof target?.closest === 'function' ? target.closest('a[href]') : null;
+  return link as HTMLAnchorElement | null;
+}
 
 function storedAutoplay(): boolean {
   try {
@@ -180,8 +214,13 @@ if (
   external &&
   autoplayButton &&
   autoplayState &&
+  pauseButton &&
+  pauseIcon &&
+  playIcon &&
+  closeButton &&
   tunes.length > 0
 ) {
+  const root = document.documentElement;
   // Out of .wrap, so .wrap can go inert behind it without taking it along.
   document.body.append(viewer);
 
@@ -201,6 +240,17 @@ if (
   // them stops the radio instead of going round forever.
   let skipped = 0;
   let skippedFrom = -1;
+  // The room folded into the bar along the bottom, music still playing.
+  let docked = false;
+  // As the player last said; drives the bar's pause button.
+  let playing = false;
+  // The rest of the site, shown above the bar (created on first use), and
+  // whether it's on screen now rather than the Tunes list.
+  let site: HTMLIFrameElement | null = null;
+  let browsing = false;
+  let listScroll = 0;
+  let syncTimer = 0;
+  const tunesTitle = document.title;
 
   const renderAutoplay = (): void => {
     autoplayButton.setAttribute('aria-pressed', String(autoplay));
@@ -226,9 +276,19 @@ if (
     });
   };
 
+  const renderPause = (): void => {
+    // Only a YouTube player can be told to pause; a Spotify embed has its own button.
+    pauseButton.hidden = player === null;
+    pauseButton.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+    pauseIcon.toggleAttribute('hidden', !playing);
+    playIcon.toggleAttribute('hidden', playing);
+  };
+
   const removePlayer = (): void => {
     screen.querySelector('iframe')?.remove();
     player = null;
+    playing = false;
+    renderPause();
   };
 
   const command = (func: string, args: readonly unknown[] = []): void => {
@@ -277,6 +337,8 @@ if (
     );
     screen.append(iframe);
     player = tune.platform === 'youtube' ? { frame: iframe, ready: false } : null;
+    playing = true;
+    renderPause();
   };
 
   /** The next song into the player already playing, if there is one that can take it. */
@@ -342,6 +404,192 @@ if (
     void paletteFor(after?.videoId ?? null);
   };
 
+  // The bar's height, which the Tunes list and the site's frame leave free.
+  new ResizeObserver(() => {
+    if (docked) root.style.setProperty('--tune-dock-space', `${String(viewer.offsetHeight)}px`);
+  }).observe(viewer);
+
+  /** The room as a full-screen dialog, or as the bar along the bottom. */
+  const setDocked = (on: boolean): void => {
+    docked = on;
+    viewer.classList.toggle('is-docked', on);
+    if (on) {
+      viewer.setAttribute('role', 'region');
+      viewer.setAttribute('aria-label', 'Now playing');
+      viewer.removeAttribute('aria-modal');
+      viewer.removeAttribute('aria-labelledby');
+      root.style.setProperty('--tune-dock-space', `${String(viewer.offsetHeight)}px`);
+    } else {
+      viewer.setAttribute('role', 'dialog');
+      viewer.setAttribute('aria-modal', 'true');
+      viewer.setAttribute('aria-labelledby', 'tune-viewer-title');
+      viewer.removeAttribute('aria-label');
+      root.style.removeProperty('--tune-dock-space');
+    }
+    const modal = !on && !viewer.hidden;
+    page.inert = modal;
+    if (site) site.inert = modal;
+    root.classList.toggle('tune-viewing', modal);
+    root.classList.toggle('tune-docked', on);
+  };
+
+  const renderClose = (): void => {
+    // Over the site, there's no Tunes list to go back to: closing just stops.
+    closeButton.lastChild!.textContent = browsing ? ' Close' : ' Tunes';
+    closeButton.setAttribute(
+      'aria-label',
+      browsing ? 'Stop and close the player' : 'Back to Tunes',
+    );
+  };
+
+  const dock = (): void => {
+    if (viewer.hidden || docked) return;
+    const fold = (): void => {
+      setDocked(true);
+      if (!browsing) window.scrollTo(0, savedScroll);
+    };
+    if (animated()) document.startViewTransition(fold);
+    else fold();
+    (browsing ? site : opener)?.focus({ preventScroll: true });
+  };
+
+  const expand = (): void => {
+    if (!docked) return;
+    if (!browsing) savedScroll = window.scrollY;
+    const unfold = (): void => setDocked(false);
+    if (animated()) document.startViewTransition(unfold);
+    else unfold();
+    closeButton.focus({ preventScroll: true });
+  };
+
+  // ---- The site in a frame -------------------------------------------------
+
+  /** The address bar and title follow the page in the frame. */
+  const sync = (): void => {
+    if (!browsing || site === null) return;
+    try {
+      const where = site.contentWindow!.location;
+      const here = `${where.pathname}${where.search}${where.hash}`;
+      if (here !== `${location.pathname}${location.search}${location.hash}`) {
+        history.replaceState(history.state, '', here);
+      }
+      document.title = site.contentDocument?.title || tunesTitle;
+    } catch {
+      // Not readable (it can't be: only this site is framed); leave it be.
+    }
+  };
+
+  const showSite = (): void => {
+    if (site === null) return;
+    browsing = true;
+    listScroll = window.scrollY;
+    site.hidden = false;
+    root.classList.add('tune-browsing');
+    syncTimer = window.setInterval(sync, 1000);
+    renderClose();
+  };
+
+  const hideSite = (): void => {
+    if (site === null || !browsing) return;
+    browsing = false;
+    site.hidden = true;
+    root.classList.remove('tune-browsing');
+    window.clearInterval(syncTimer);
+    document.title = tunesTitle;
+    window.scrollTo(0, listScroll);
+    renderClose();
+  };
+
+  /** Clicks inside the framed page: off-site links open beside it, Tunes comes home. */
+  const onSiteClick = (event: MouseEvent): void => {
+    if (event.defaultPrevented || !plainClick(event)) return;
+    const link = linkOf(event);
+    if (link === null || link.target === '_blank' || link.hasAttribute('download')) return;
+    const url = new URL(link.href);
+    if (url.origin !== location.origin) {
+      event.preventDefault();
+      window.open(url.href, '_blank', 'noopener');
+    } else if (isTunes(url)) {
+      event.preventDefault();
+      history.pushState(null, '', url.pathname);
+      hideSite();
+    } else if (!framable(url)) {
+      // A page that won't be framed: go there, and the music stops.
+      event.preventDefault();
+      location.assign(url.href);
+    }
+  };
+
+  const onSiteLoad = (): void => {
+    if (site === null) return;
+    let frameDocument: Document;
+    let frameUrl: URL;
+    try {
+      frameDocument = site.contentDocument!;
+      frameUrl = new URL(site.contentWindow!.location.href);
+    } catch {
+      return;
+    }
+    frameDocument.addEventListener('click', onSiteClick);
+    if (!browsing) return;
+    if (isTunes(frameUrl)) {
+      // Tunes itself, reached some other way (a form, a redirect): this is it.
+      history.replaceState(null, '', frameUrl.pathname);
+      hideSite();
+      return;
+    }
+    sync();
+  };
+
+  const browse = (href: string): void => {
+    if (site === null) {
+      site = document.createElement('iframe');
+      site.className = 'tune-site';
+      site.name = 'tune-site';
+      site.title = 'The site, while the music plays';
+      site.allow = 'fullscreen; clipboard-write; web-share';
+      site.hidden = true;
+      site.addEventListener('load', onSiteLoad);
+      document.body.insertBefore(site, viewer);
+      site.src = href;
+    } else {
+      // In place of whatever the frame last showed: the entry pushed below
+      // is the one Back returns from.
+      site.contentWindow?.location.replace(href);
+    }
+    history.pushState({ tuneSite: true }, '', href);
+    showSite();
+    site.focus({ preventScroll: true });
+  };
+
+  // Back past the first framed page shows Tunes again; Forward, the frame.
+  window.addEventListener('popstate', (event) => {
+    const wanted = (event.state as { tuneSite?: unknown } | null)?.tuneSite === true;
+    if (wanted && !browsing && site !== null) {
+      showSite();
+      sync();
+    } else if (!wanted && browsing) {
+      hideSite();
+    }
+  });
+
+  // From the Tunes list while the bar plays: a link to anywhere on the site
+  // opens in the frame; off-site, beside it. Tunes' own links have already
+  // been handled (and prevented) by the time this hears the click.
+  document.addEventListener('click', (event) => {
+    if (!docked || event.defaultPrevented || !plainClick(event)) return;
+    const link = linkOf(event);
+    if (link === null || viewer.contains(link) || link.target === '_blank') return;
+    const url = new URL(link.href);
+    if (url.origin !== location.origin) {
+      event.preventDefault();
+      window.open(url.href, '_blank', 'noopener');
+    } else if (framable(url) && !isTunes(url)) {
+      event.preventDefault();
+      browse(url.href);
+    }
+  });
+
   const open = async (index: number): Promise<void> => {
     const tune = tunes[index];
     if (tune === undefined) return;
@@ -352,11 +600,11 @@ if (
       if (tune.still) tune.still.style.viewTransitionName = '';
       await show(index);
       viewer.hidden = false;
-      page.inert = true;
-      document.documentElement.classList.add('tune-viewing');
+      setDocked(false);
     };
 
-    if (animated() && tune.still) {
+    // From the bar, the screen is already on the page: no second one to grow from.
+    if (animated() && tune.still && !docked) {
       // The still is the shared element: it grows into the screen, whose
       // poster is the same picture, so nothing changes but its size.
       tune.still.style.viewTransitionName = 'tune-screen';
@@ -369,14 +617,16 @@ if (
 
   const close = (): void => {
     if (viewer.hidden) return;
-    const target = tunes[current]?.still ?? null;
+    // From the bar, the list stays where it's been scrolled; over the
+    // site, there's no still on screen to shrink back into.
+    if (docked) savedScroll = window.scrollY;
+    const target = browsing ? null : (tunes[current]?.still ?? null);
 
     const leave = (): void => {
       removePlayer();
       viewer.hidden = true;
-      page.inert = false;
-      document.documentElement.classList.remove('tune-viewing');
-      window.scrollTo(0, savedScroll);
+      setDocked(false);
+      if (!browsing) window.scrollTo(0, savedScroll);
       // Shrink back into the song now playing, if it's on screen where the
       // visitor left the grid; otherwise the room just fades away.
       if (target !== null) {
@@ -386,7 +636,7 @@ if (
         }
       }
       // Only once the page is no longer inert can it take focus back.
-      opener?.focus({ preventScroll: true });
+      (browsing ? site : opener)?.focus({ preventScroll: true });
       opener = null;
     };
 
@@ -454,6 +704,14 @@ if (
         : kind === 'infoDelivery' && typeof info === 'object' && info !== null
           ? (info as { playerState?: unknown }).playerState
           : undefined;
+    // 1 playing, 3 buffering; 2 paused, 0 ended. (-1 and 5, cued, say nothing new.)
+    if (state === 1 || state === 3 || state === 2 || state === 0) {
+      const now = state === 1 || state === 3;
+      if (now !== playing) {
+        playing = now;
+        renderPause();
+      }
+    }
     if (!autoplay || viewer.hidden) return;
     // 0 is "ended". An error (embedding refused, video gone) skips ahead.
     if (state === 0 && ended !== current) {
@@ -467,6 +725,17 @@ if (
 
   autoplayButton.addEventListener('click', () => setAutoplay(!autoplay));
 
+  viewer.querySelector('[data-tune-dock]')?.addEventListener('click', dock);
+  viewer.querySelector('[data-tune-expand]')?.addEventListener('click', expand);
+  viewer.querySelector('[data-tune-stop]')?.addEventListener('click', close);
+  pauseButton.addEventListener('click', () => {
+    command(playing ? 'pauseVideo' : 'playVideo');
+    // Shown at once; the player's own report follows and settles it.
+    playing = !playing;
+    renderPause();
+  });
+  renderPause();
+
   if (playAll) {
     playAll.hidden = false;
     playAll.addEventListener('click', () => {
@@ -477,7 +746,7 @@ if (
     });
   }
 
-  viewer.querySelector('[data-tune-close]')?.addEventListener('click', close);
+  closeButton.addEventListener('click', close);
   viewer.querySelectorAll<HTMLButtonElement>('[data-tune-step]').forEach((button) => {
     button.addEventListener('click', () => step(Number(button.dataset['tuneStep'])));
   });
@@ -485,7 +754,8 @@ if (
   // Keys reach this only while focus is outside the player: inside it,
   // YouTube's own shortcuts (arrows seek) keep working.
   document.addEventListener('keydown', (event) => {
-    if (viewer.hidden || event.defaultPrevented) return;
+    // In the bar, the keys belong to the page underneath.
+    if (viewer.hidden || docked || event.defaultPrevented) return;
     if (event.key === 'Escape') {
       event.preventDefault();
       close();
@@ -498,8 +768,7 @@ if (
   tunes.forEach((tune, index) => {
     tune.link.addEventListener('click', (event) => {
       // A modified click still means "open the link", in a new tab or window.
-      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
-        return;
+      if (!plainClick(event)) return;
       event.preventDefault();
       void open(index);
     });

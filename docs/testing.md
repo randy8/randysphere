@@ -32,6 +32,9 @@ Astro's preview. Options: name areas (`pnpm test:browser exhibition`),
 - **gallery**, **lightbox**, **exhibition**, **share** — the areas `risk.ts`
   selects, each built around a failure that has actually happened (see each
   file's header).
+- **tunes** — browse while it plays: the player folds into a bar, the site
+  opens in a frame above it, Back walks the frame and comes home, and the
+  player's iframe never reloads. YouTube is stubbed.
 - **family** — the chats at `/family/` and `/disc/`. Unlike every other area it starts its
   own chat servers in-process, on a throwaway data directory with test
   accounts: the harness's server has no accounts, and a deploy's candidate
