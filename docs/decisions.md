@@ -3851,3 +3851,44 @@ The Gallery's payload drops `preview`: its URL is never one photograph's.
 every `?photo=` URL its own indexable page. (Chrome's share sheet shares the
 canonical URL, so it still sends the page, not the photo; revisit if that
 matters.)
+
+---
+
+## 2026-10-31 — Tunes plays as a radio: Autoplay, Play all, an Adblock Plus note
+
+**Decision.** The screening room gains an **Autoplay** switch (top bar,
+`aria-pressed`, remembered in `localStorage` as `tunes:autoplay`, off by
+default), and the page header a **Play all** button (revealed by script)
+that turns Autoplay on and opens the first song in the order on screen,
+the shuffled one. With Autoplay on, a song's end moves to the next one,
+round the list. This reverses the 2026-10-25 room's "no autoplay of the next
+song". It's a direct owner request: the list should work as a playlist or radio.
+
+- **Hearing the end without the IFrame Player API.** YouTube embeds get
+  `enablejsapi=1&origin=<page>`. On load the page posts the player's
+  `listening` handshake, and the player then reports through
+  `postMessage` (`onStateChange`, `infoDelivery.playerState`; 0 = ended).
+  That's the channel the API script wraps. Only messages from
+  `https://www.youtube.com` and from the iframe now on screen are read.
+- **The next song goes into the same player** (`loadVideoById` over the
+  same channel), not a new iframe. A phone may refuse sound to a fresh
+  iframe that no tap started, and this one already has the tap. A
+  visitor's own step (arrows, ←/→) still builds a new iframe as before.
+- **Songs that can't play here are skipped** only when the radio reached
+  them (the oEmbed check or the player's `onError`). A song the visitor
+  picked still shows "This one plays only on YouTube". A whole list of
+  them stops instead of looping. A hidden tab steps without a View
+  Transition.
+- **Adblock Plus**, named under the lede with one line of instructions.
+  The songs play through YouTube, which runs ads between songs. It's the
+  owner's pick: it's free and covers every major browser.
+- "Motivation" (Carly Rae Jepsen) is added: the Topic art track
+  `H83ZZIf31WM`. The album playlists offer only the music video, and
+  YouTube Music's song search found it. Its frames are identical (the
+  2026-10-28 rule).
+
+**Rejected.** Loading the IFrame Player API (a third-party script on every
+visit, for two events). Autoplay on by default (the room has opened quietly
+on the one song chosen since 2026-10-25; the radio is something to ask for).
+Spotify end detection: there are no Spotify entries, and its embed
+offers nothing comparable without its own script.

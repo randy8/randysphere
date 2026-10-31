@@ -5,7 +5,10 @@
  * (a View Transition where the browser has them), lit by colours read from
  * that still (palette.ts). The viewer creates its iframe on open and on
  * every step between songs, and throws it away on close, which is also
- * what stops playback.
+ * what stops playback. With Autoplay on, the list plays as a radio: the
+ * YouTube player says when a song has ended (its postMessage channel —
+ * the same one the IFrame Player API wraps, without loading that script)
+ * and the next one is loaded into the same player.
  */
 import { FALLBACK_AMBIENT, ambientPalette } from './palette.ts';
 
@@ -150,6 +153,20 @@ const blockedLink = viewer?.querySelector<HTMLAnchorElement>('[data-tune-blocked
 const titleEl = viewer?.querySelector<HTMLElement>('[data-tune-title]');
 const artistEl = viewer?.querySelector<HTMLElement>('[data-tune-artist]');
 const external = viewer?.querySelector<HTMLAnchorElement>('[data-tune-external]');
+const autoplayButton = viewer?.querySelector<HTMLButtonElement>('[data-tune-autoplay]');
+const autoplayState = viewer?.querySelector<HTMLElement>('[data-tune-autoplay-state]');
+const playAll = document.querySelector<HTMLButtonElement>('[data-tune-play-all]');
+
+const YOUTUBE_ORIGIN = 'https://www.youtube.com';
+const AUTOPLAY_KEY = 'tunes:autoplay';
+
+function storedAutoplay(): boolean {
+  try {
+    return localStorage.getItem(AUTOPLAY_KEY) === 'on';
+  } catch {
+    return false;
+  }
+}
 
 if (
   viewer &&
@@ -161,6 +178,8 @@ if (
   titleEl &&
   artistEl &&
   external &&
+  autoplayButton &&
+  autoplayState &&
   tunes.length > 0
 ) {
   // Out of .wrap, so .wrap can go inert behind it without taking it along.
@@ -169,6 +188,34 @@ if (
   let current = -1;
   let opener: HTMLAnchorElement | null = null;
   let savedScroll = 0;
+  let autoplay = storedAutoplay();
+  // The YouTube player now on screen, once it has answered us: only then
+  // can the next song be loaded into it rather than into a new iframe —
+  // which matters on phones, where a new iframe started without a tap may
+  // not be allowed to make a sound.
+  let player: { readonly frame: HTMLIFrameElement; ready: boolean } | null = null;
+  // The song whose end has already moved us on: the player reports an
+  // ending more than once (a state change, then its periodic report).
+  let ended = -1;
+  // Songs skipped in a row because they can't play here; a whole list of
+  // them stops the radio instead of going round forever.
+  let skipped = 0;
+  let skippedFrom = -1;
+
+  const renderAutoplay = (): void => {
+    autoplayButton.setAttribute('aria-pressed', String(autoplay));
+    autoplayState.textContent = autoplay ? 'on' : 'off';
+  };
+  const setAutoplay = (on: boolean): void => {
+    autoplay = on;
+    renderAutoplay();
+    try {
+      localStorage.setItem(AUTOPLAY_KEY, on ? 'on' : 'off');
+    } catch {
+      // Storage off: the setting lasts this visit.
+    }
+  };
+  renderAutoplay();
 
   const animated = (): boolean =>
     typeof document.startViewTransition === 'function' && !reducedMotion.matches;
@@ -181,6 +228,14 @@ if (
 
   const removePlayer = (): void => {
     screen.querySelector('iframe')?.remove();
+    player = null;
+  };
+
+  const command = (func: string, args: readonly unknown[] = []): void => {
+    player?.frame.contentWindow?.postMessage(
+      JSON.stringify({ event: 'command', func, args, id: 1, channel: 'widget' }),
+      YOUTUBE_ORIGIN,
+    );
   };
 
   const startPlayer = (tune: Tune): void => {
@@ -193,6 +248,9 @@ if (
       src.searchParams.set('autoplay', '1');
       src.searchParams.set('rel', '0');
       src.searchParams.set('playsinline', '1');
+      // Lets this page hear the player's state (for Autoplay); nothing else.
+      src.searchParams.set('enablejsapi', '1');
+      src.searchParams.set('origin', window.location.origin);
     }
     const iframe = document.createElement('iframe');
     iframe.src = src.href;
@@ -203,15 +261,40 @@ if (
     iframe.referrerPolicy = 'strict-origin-when-cross-origin';
     // Faded in over the poster once YouTube's page has loaded, so the
     // still holds the screen instead of a black rectangle.
-    iframe.addEventListener('load', () => iframe.classList.add('is-loaded'), { once: true });
+    iframe.addEventListener(
+      'load',
+      () => {
+        iframe.classList.add('is-loaded');
+        if (tune.platform !== 'youtube') return;
+        // Ask the player to report to this page; it answers with
+        // messages handled below, which is what marks it ready.
+        iframe.contentWindow?.postMessage(
+          JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }),
+          YOUTUBE_ORIGIN,
+        );
+      },
+      { once: true },
+    );
     screen.append(iframe);
+    player = tune.platform === 'youtube' ? { frame: iframe, ready: false } : null;
+  };
+
+  /** The next song into the player already playing, if there is one that can take it. */
+  const continuePlayer = (tune: Tune): boolean => {
+    if (tune.platform !== 'youtube' || tune.videoId === null) return false;
+    if (player === null || !player.ready) return false;
+    command('loadVideoById', [tune.videoId]);
+    player.frame.title = tune.artist ? `${tune.title} — ${tune.artist}` : tune.title;
+    return true;
   };
 
   /** Fills the viewer for one song. Resolves once its poster and colours are in hand, or soon after. */
-  const show = async (index: number): Promise<void> => {
+  const show = async (index: number, continuing = false): Promise<void> => {
     const tune = tunes[index];
     if (tune === undefined) return;
     current = index;
+    ended = -1;
+    skippedFrom = -1;
 
     titleEl.textContent = tune.title;
     artistEl.textContent = tune.artist;
@@ -227,9 +310,18 @@ if (
     poster.src = tune.thumb?.currentSrc || tune.thumb?.src || '';
     poster.hidden = tune.thumb === null;
 
-    startPlayer(tune);
+    if (!continuing || !continuePlayer(tune)) startPlayer(tune);
     void isEmbeddable(tune).then((ok) => {
-      if (ok || current !== index) return;
+      if (current !== index) return;
+      if (ok) {
+        skipped = 0;
+        return;
+      }
+      // The radio moves past it; a song the visitor chose is explained.
+      if (autoplay && continuing && !viewer.hidden) {
+        skipOver(index);
+        return;
+      }
       removePlayer();
       blocked.hidden = false;
     });
@@ -308,20 +400,82 @@ if (
     }
   };
 
-  const step = (offset: number): void => {
+  const step = (offset: number, continuing = false): void => {
     const next = (current + offset + tunes.length) % tunes.length;
-    if (animated()) {
+    // A hidden tab (the radio playing behind another) gets no transition.
+    if (animated() && !document.hidden) {
       // Read by the ::view-transition rules in music.css, which hang off
       // <html>: the caption leaves the way the visitor is going.
       const root = document.documentElement;
       root.dataset['tuneStep'] = offset > 0 ? 'next' : 'previous';
       void document
-        .startViewTransition(() => show(next))
+        .startViewTransition(() => show(next, continuing))
         .finished.finally(() => delete root.dataset['tuneStep']);
     } else {
-      void show(next);
+      void show(next, continuing);
     }
   };
+
+  /** Autoplay past a song that can't play here, unless none of them can. */
+  const skipOver = (index: number): void => {
+    // The oEmbed check and the player's own error can both report it.
+    if (current !== index || skippedFrom === index) return;
+    skippedFrom = index;
+    skipped += 1;
+    if (skipped >= tunes.length) {
+      skipped = 0;
+      blocked.hidden = false;
+      return;
+    }
+    step(1, true);
+  };
+
+  // The YouTube player's reports. Only the player on screen is listened
+  // to; the payload is JSON from YouTube, read defensively.
+  window.addEventListener('message', (event) => {
+    if (player === null || event.source !== player.frame.contentWindow) return;
+    if (event.origin !== YOUTUBE_ORIGIN || typeof event.data !== 'string') return;
+    let message: unknown;
+    try {
+      message = JSON.parse(event.data);
+    } catch {
+      return;
+    }
+    if (typeof message !== 'object' || message === null) return;
+    const { event: kind, info } = message as { event?: unknown; info?: unknown };
+    if (!player.ready) {
+      player.ready = true;
+      command('addEventListener', ['onStateChange']);
+      command('addEventListener', ['onError']);
+    }
+    const state =
+      kind === 'onStateChange'
+        ? info
+        : kind === 'infoDelivery' && typeof info === 'object' && info !== null
+          ? (info as { playerState?: unknown }).playerState
+          : undefined;
+    if (!autoplay || viewer.hidden) return;
+    // 0 is "ended". An error (embedding refused, video gone) skips ahead.
+    if (state === 0 && ended !== current) {
+      ended = current;
+      skipped = 0;
+      step(1, true);
+    } else if (kind === 'onError') {
+      skipOver(current);
+    }
+  });
+
+  autoplayButton.addEventListener('click', () => setAutoplay(!autoplay));
+
+  if (playAll) {
+    playAll.hidden = false;
+    playAll.addEventListener('click', () => {
+      setAutoplay(true);
+      skipped = 0;
+      // From the top of the list as it's dealt on screen.
+      void open(0);
+    });
+  }
 
   viewer.querySelector('[data-tune-close]')?.addEventListener('click', close);
   viewer.querySelectorAll<HTMLButtonElement>('[data-tune-step]').forEach((button) => {

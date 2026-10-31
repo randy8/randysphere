@@ -12,6 +12,24 @@ const tracks = loadTracks();
     <header class="album-header">
       <h1>{config.title}</h1>
       {config.description && <p class="lede">{config.description}</p>}
+      {
+        tracks.length > 0 && (
+          <div class="tune-radio">
+            {/* Revealed by tunes.ts: it does nothing without JavaScript. */}
+            <button type="button" class="tune-radio-play" data-tune-play-all hidden>
+              <span aria-hidden="true">▶</span> Play all
+            </button>
+            <p class="tune-radio-note">
+              The songs play through YouTube, which may put ads between them. To skip those, add{' '}
+              <a href="https://adblockplus.org/" rel="noopener noreferrer">
+                Adblock Plus
+              </a>{' '}
+              (free) to your browser: open adblockplus.org there, choose “Get Adblock Plus”, then
+              reload this page.
+            </p>
+          </div>
+        )
+      }
     </header>
 
     {
@@ -134,8 +152,17 @@ const tracks = loadTracks();
       <button type="button" class="tune-viewer-back" data-tune-close aria-label="Back to Tunes">
         <span aria-hidden="true">←</span> Tunes
       </button>
-      <a class="tune-viewer-external" data-tune-external target="_blank" rel="noopener noreferrer"
-      ></a>
+      <div class="tune-viewer-bar-end">
+        {/* Autoplay: when a song ends, the next one starts — the list as a radio. */}
+        <button type="button" class="tune-viewer-autoplay" data-tune-autoplay aria-pressed="false">
+          Autoplay <span class="tune-viewer-autoplay-state" data-tune-autoplay-state>off</span>
+        </button>
+        <a
+          class="tune-viewer-external"
+          data-tune-external
+          target="_blank"
+          rel="noopener noreferrer"></a>
+      </div>
     </div>
     <div class="tune-viewer-stage">
       <div class="tune-viewer-column">

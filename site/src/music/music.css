@@ -41,6 +41,64 @@
   }
 }
 
+/* Under the lede: Play all, in the label register of the photo pages'
+   Shuffle, and a small note about ads. Quiet, so the stills lead. */
+.tune-radio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1.5rem;
+  margin-top: 1.25rem;
+}
+.tune-radio-play {
+  appearance: none;
+  flex: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  padding: 0 0 0.1875rem;
+  background: none;
+  font-family: var(--serif);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.tune-radio-play[hidden] {
+  display: none;
+}
+.tune-radio-play span {
+  font-size: 0.625rem;
+}
+.tune-radio-play:hover,
+.tune-radio-play:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
+  outline: none;
+}
+.tune-radio-note {
+  flex: 1 1 20rem;
+  max-width: var(--measure);
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.tune-radio-note a {
+  color: inherit;
+  text-underline-offset: 0.2em;
+  text-decoration-color: var(--rule);
+}
+.tune-radio-note a:hover,
+.tune-radio-note a:focus-visible {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+}
+
 .tune-link {
   display: block;
   color: inherit;
@@ -227,7 +285,13 @@ html.tune-viewing {
   gap: 1rem;
   padding-bottom: 0.75rem;
 }
+.tune-viewer-bar-end {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5rem;
+}
 .tune-viewer-back,
+.tune-viewer-autoplay,
 .tune-viewer-external {
   appearance: none;
   border: 0;
@@ -244,6 +308,8 @@ html.tune-viewing {
 }
 .tune-viewer-back:hover,
 .tune-viewer-back:focus-visible,
+.tune-viewer-autoplay:hover,
+.tune-viewer-autoplay:focus-visible,
 .tune-viewer-external:hover,
 .tune-viewer-external:focus-visible {
   color: var(--room-ink);
@@ -380,7 +446,12 @@ html.tune-viewing {
   outline-offset: 0.25rem;
 }
 /* The two text controls take an underline, as links do, not a box. */
+/* On, the state word is lit, as a pressed switch. */
+.tune-viewer-autoplay[aria-pressed='true'] .tune-viewer-autoplay-state {
+  color: var(--room-ink);
+}
 .tune-viewer .tune-viewer-back:focus-visible,
+.tune-viewer .tune-viewer-autoplay:focus-visible,
 .tune-viewer .tune-viewer-external:focus-visible {
   outline: none;
   text-decoration: underline;
@@ -413,6 +484,7 @@ html.tune-viewing {
     padding-bottom: 0.25rem;
   }
   .tune-viewer-back,
+  .tune-viewer-autoplay,
   .tune-viewer-external {
     padding-block: 0.25rem;
   }
