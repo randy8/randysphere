@@ -3892,3 +3892,14 @@ visit, for two events). Autoplay on by default (the room has opened quietly
 on the one song chosen since 2026-10-25; the radio is something to ask for).
 Spotify end detection: there are no Spotify entries, and its embed
 offers nothing comparable without its own script.
+
+## 2026-10-31 — Tunes' ad-blocker note names AdBlock Pro, not Adblock Plus
+
+**Decision.** The note under the Tunes lede now names **AdBlock Pro**
+(Crypto Inc., App Store id1018301773), with the iPhone/iPad steps: install,
+enable under Settings → Safari → Extensions, reload. Earlier today's entry
+named Adblock Plus; that was a mix-up — the owner's pick was AdBlock Pro,
+an iOS Safari content blocker, so the note speaks to phones. Its base tier is free (a paid tier
+exists; the note doesn't need it).
+
+**Rejected.** Naming both (two products for one sentence of help).
