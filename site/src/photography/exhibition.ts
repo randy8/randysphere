@@ -157,12 +157,12 @@ function start(root: HTMLElement, data: ExhibitionData): void {
     for (const animation of layer.motion.getAnimations()) animation.cancel();
     layer.root.style.opacity = '0';
     layer.motion.style.transform = '';
-    // A fresh element, inserted empty (so it fetches nothing until every
-    // attribute below is set): no earlier photograph to paint, or to decode.
-    const img = document.createElement('img');
-    img.decoding = 'async';
-    layer.img.replaceWith(img);
-    layer.img = img;
+    // A fresh element: no earlier photograph to paint, or to decode. The
+    // old one leaves before the <source>s change and the new one arrives
+    // after — inserted beside sources still listing the previous
+    // photograph, it would select that one (as lightbox.ts once did).
+    const parent = layer.img.parentElement;
+    layer.img.remove();
     for (const [el, value] of [
       [layer.avif, photo.avif],
       [layer.webp, photo.webp],
@@ -171,6 +171,10 @@ function start(root: HTMLElement, data: ExhibitionData): void {
       if (value === null) el.removeAttribute('srcset');
       else el.srcset = value;
     }
+    const img = document.createElement('img');
+    img.decoding = 'async';
+    parent?.append(img);
+    layer.img = img;
     size(layer);
     if (photo.jpeg === null) layer.img.removeAttribute('srcset');
     else layer.img.srcset = photo.jpeg;

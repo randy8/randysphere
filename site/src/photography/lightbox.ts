@@ -86,14 +86,14 @@ function fill(slot: HTMLElement, photo: LightboxPhoto): void {
   const picture = slot.querySelector('picture');
   picture?.setAttribute('data-orientation', photo.height > photo.width ? 'portrait' : 'landscape');
   const [avif, webp] = Array.from(slot.querySelectorAll('source'));
+  // The old <img> leaves before the <source>s change, and the new one
+  // arrives only after: an <img> inserted beside sources still listing the
+  // previous photograph selects it — usually already in the memory cache,
+  // so it painted at once (a grid neighbour, since slots hold neighbours)
+  // and stayed up until the right bytes arrived.
   const old = slot.querySelector('img');
-  // Inserted empty, so it fetches nothing until every attribute is set.
-  const img = old === null ? null : document.createElement('img');
-  if (old !== null && img !== null) {
-    img.loading = 'eager';
-    img.decoding = 'async';
-    old.replaceWith(img);
-  }
+  const parent = old?.parentElement ?? null;
+  old?.remove();
   for (const [source, value] of [
     [avif, photo.avif],
     [webp, photo.webp],
@@ -101,6 +101,12 @@ function fill(slot: HTMLElement, photo: LightboxPhoto): void {
     if (source === undefined) continue;
     if (value === null) source.removeAttribute('srcset');
     else source.srcset = value;
+  }
+  const img = parent === null ? null : document.createElement('img');
+  if (parent !== null && img !== null) {
+    img.loading = 'eager';
+    img.decoding = 'async';
+    parent.append(img);
   }
   if (img !== null) {
     if (photo.jpeg === null) {
