@@ -71,6 +71,29 @@
   margin: 0 0 1.5rem;
   font-size: 1.125rem;
 }
+.recipe-doc-source {
+  margin: -0.75rem 0 1.5rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+.recipe-doc-source a {
+  color: inherit;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 0.15em;
+}
+.recipe-doc-source a:hover,
+.recipe-doc-source a:focus-visible {
+  color: var(--accent);
+  text-decoration-color: currentColor;
+}
+.recipe-doc-tags {
+  margin: 3rem 0 0;
+  font-size: 0.71875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
 .recipe-doc-meta {
   display: flex;
   flex-wrap: wrap;

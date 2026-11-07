@@ -34,6 +34,20 @@ export interface Recipe {
   readonly updated: string;
   /** This recipe's own choices among the vegan options (vegan.ts), if it makes any. */
   readonly veganChoices: VeganChoices | null;
+  /** Lowercase subject words ("tofu", "air-fryer"); written by the Reel importer, optional by hand. */
+  readonly tags: readonly string[];
+  /** Where an imported recipe came from, credited on its page; null for the author's own. */
+  readonly source: RecipeSource | null;
+}
+
+/** The credit for a recipe adapted from someone else's post (tools/recipes writes it). */
+export interface RecipeSource {
+  readonly platform: string;
+  /** Always https — anything else in the file is ignored rather than linked. */
+  readonly url: string;
+  /** "@handle", or "" when unknown. */
+  readonly creator: string;
+  readonly creatorUrl: string;
 }
 
 function repositoryRoot(): string {
@@ -70,6 +84,28 @@ interface RecipeFile {
   readonly created?: string;
   readonly updated?: string;
   readonly vegan?: { readonly use?: Readonly<Record<string, string>> };
+  readonly tags?: readonly string[];
+  readonly source?: {
+    readonly platform?: string;
+    readonly url?: string;
+    readonly creator?: string;
+    readonly creatorUrl?: string;
+  };
+}
+
+const httpsOnly = (url: unknown): string =>
+  typeof url === 'string' && url.startsWith('https://') ? url : '';
+
+/** A source worth crediting needs at least a link; a missing or non-https one means no credit line. */
+export function readSource(source: RecipeFile['source']): RecipeSource | null {
+  const url = httpsOnly(source?.url);
+  if (url === '') return null;
+  return {
+    platform: typeof source?.platform === 'string' ? source.platform : '',
+    url,
+    creator: typeof source?.creator === 'string' ? source.creator : '',
+    creatorUrl: httpsOnly(source?.creatorUrl),
+  };
 }
 
 function readRecipe(slug: string): Recipe {
@@ -93,6 +129,8 @@ function readRecipe(slug: string): Recipe {
     created: data.created ?? '',
     updated: data.updated ?? '',
     veganChoices: data.vegan?.use ? { use: data.vegan.use } : null,
+    tags: (data.tags ?? []).filter((tag): tag is string => typeof tag === 'string'),
+    source: readSource(data.source),
   };
 }
 

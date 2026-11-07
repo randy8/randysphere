@@ -35,6 +35,27 @@ const both = (line: VeganLine, render: (text: string) => string): string =>
       <header class="album-header">
         <h1>{recipe.title}</h1>
         <p class="recipe-doc-description">{recipe.description}</p>
+        {
+          /* Imported recipes credit the post they came from (tools/recipes). */
+          recipe.source && (
+            <p class="recipe-doc-source">
+              Adapted from{' '}
+              <a href={recipe.source.url} rel="noopener noreferrer">
+                {recipe.source.platform ? `a post on ${recipe.source.platform}` : 'the original'}
+              </a>
+              {recipe.source.creator &&
+                (recipe.source.creatorUrl ? (
+                  <>
+                    {' '}
+                    by <a href={recipe.source.creatorUrl} rel="noopener noreferrer">{recipe.source.creator}</a>
+                  </>
+                ) : (
+                  <> by {recipe.source.creator}</>
+                ))}
+              .
+            </p>
+          )
+        }
         <p class="recipe-doc-meta">
           {recipe.prepTime && <span><strong>Prep</strong> {recipe.prepTime}</span>}
           {recipe.cookTime && <span><strong>Cook</strong> {recipe.cookTime}</span>}
@@ -180,6 +201,14 @@ const both = (line: VeganLine, render: (text: string) => string): string =>
         )
       }
 
+      {
+        recipe.tags.length > 0 && (
+          <p class="recipe-doc-tags">
+            <span class="visually-hidden">Tags: </span>
+            {recipe.tags.join(' · ')}
+          </p>
+        )
+      }
     </article>
   </div>
 
