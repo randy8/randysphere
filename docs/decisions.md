@@ -3950,3 +3950,77 @@ been reworked for one collection's feature, and `Base.astro` would have
 gained a second collection-specific exception. The frame keeps the whole
 change inside `site/src/music/` plus one server header. A pop-out player
 window: on phones it's just another tab.
+
+## 2026-11-07 — Dishes imports Instagram Reels: a local draft-and-review page, not an automatic scraper
+
+**Shape.** `pnpm recipes:import` (`tools/recipes/`) serves a phone-first
+page on 127.0.0.1:4510: paste a Reel link → caption → Claude drafts →
+review and edit → save `recipes/<slug>.yaml`. Publishing is the usual
+commit and `pnpm deploy`. The importer never touches git, the build or the
+live server. The file is an ordinary hand-editable recipe: amounts in
+`**bold**` so the scaler works, times and temperatures marked like the
+hand-written ones, and two new optional fields the site reads, `tags`
+(shown at the foot of the page) and `source` (a credit line, "Adapted
+from a post on Instagram by @handle", linked only if https). The vegan
+toggle, index filter and checklists apply to imported recipes unchanged,
+because they're computed from the recipe at build time.
+
+**Getting the caption — what was checked.** Logged-out Instagram pages
+fetched from this machine are a JavaScript shell with no caption and no
+Open Graph tags; link previewers get them only by identifying as crawlers.
+Meta's oEmbed went token-free on 2026-06-15 (1,000 requests/hour), but
+its terms prohibit "consuming, manipulating, extracting, or persisting"
+its content for anything but displaying an embed. So the owner chose:
+yt-dlp when it's on PATH (metadata only, never a dependency), else paste
+the caption or add up to four screenshots, which Claude reads directly.
+Every yt-dlp failure (not installed, login wall, deleted Reel) is a
+sentence and a fallback, never an error page.
+
+**Never fabricate.** The prompt forbids adding any ingredient, amount,
+step, time or serving count the source lacks, and says to flag gaps
+instead. `draft.ts` then checks the most common slip deterministically:
+an amount whose numbers the caption never mentions is flagged. This is
+skipped when screenshots were given, because their contents can't be
+checked as text. A line still flagged at save is published with an
+"Unconfirmed: …" note rather than silently trusted. A recipe with meat is
+drafted with a warning at the top (Dishes is a vegetarian menu), and the
+importer adds no substitutions of its own; `vegan.yaml` remains the one
+substitution library.
+
+**Duplicates.** A Reel is its shortcode. Every link form (/reel/, /reels/,
+/p/, /tv/, /<user>/reel/, `?igsh=`, m./www.) resolves to one canonical
+URL. The check runs at the link step and again at save, and the file is
+opened `wx`, so nothing is ever overwritten.
+
+**Security.** The page is loopback-only and unauthenticated like the photo
+editor, plus what a writer on 127.0.0.1 also needs. The Host header must
+name this server (DNS rebinding); writes must be `application/json` from
+its own Origin (cross-site forms). Bodies are size-capped. Screenshot
+types are sniffed from their bytes. There's a strict CSP, and the page
+puts untrusted text into the DOM only through `textContent` and `.value`.
+The API key stays in `.env`; the browser never sees it.
+
+**Model.** `claude-opus-5-5` at effort `medium` with structured outputs
+and server-side refusal fallback. One request per import costs roughly
+$0.03–0.06 at list price. `RECIPE_IMPORT_MODEL=claude-haiku-5-5` is about
+40× cheaper, if its drafts hold up.
+
+**Rejected.**
+
+- _An owner-only route on the live server_ (behind /infra's tailnet gate),
+  so a phone could import directly. The production server would gain write
+  access to `recipes/` and an API key. Recipes also still need a deploy to
+  publish, so a live route would only move the review step.
+- _Video transcription._ Claude doesn't take audio, so it would need yt-dlp
+  to download the video plus a local Whisper or a second paid speech API.
+  That's a lot for the minority of Reels whose recipe is only spoken;
+  screenshots of on-screen recipe cards cover the common case.
+- _Instagram's private web API_ and _crawler user agents_: brittle, and
+  circumvention.
+- _Structured ingredient fields (quantity/unit/item) in the YAML._ Every
+  recipe is prose with a bolded amount, and scale.ts already parses that.
+  The review form splits amount from ingredient, and the file stays the
+  shape a person writes.
+- _A tag filter or search on the Dishes index._ Ten recipes, and the
+  diet filter already exists (2026-10-26). Tags are recorded now so a
+  filter can come when the menu needs one.

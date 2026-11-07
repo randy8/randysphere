@@ -97,6 +97,21 @@ export default defineConfig([
   },
 
   {
+    // The recipe importer's page script — plain browser JavaScript served
+    // as-is by tools/recipes, same reasoning as the editor's.
+    files: ['tools/recipes/src/static/**/*.js'],
+    languageOptions: {
+      globals: {
+        document: 'readonly',
+        window: 'readonly',
+        navigator: 'readonly',
+        fetch: 'readonly',
+        createImageBitmap: 'readonly',
+      },
+    },
+  },
+
+  {
     // The family chat's page script, served as-is by tools/serve — plain
     // browser JavaScript, no bundler, same reasoning as the editor's.
     files: ['tools/serve/src/family/static/**/*.js'],

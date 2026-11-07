@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f6f1e6" />
+    <title>Import a Dish</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <main class="importer">
+      <header class="importer-head">
+        <p class="eyebrow">Dishes</p>
+        <h1>Import from a Reel</h1>
+        <p class="lede">Paste an Instagram link, check the draft, save it to the menu.</p>
+      </header>
+
+      <ol class="steps" aria-label="Progress">
+        <li data-step-marker="link" aria-current="step">Link</li>
+        <li data-step-marker="source">Caption</li>
+        <li data-step-marker="review">Review</li>
+        <li data-step-marker="saved">Saved</li>
+      </ol>
+
+      <p class="notice" data-status-note hidden></p>
+
+      <!-- 1. The link -->
+      <section data-step="link" aria-labelledby="link-heading">
+        <h2 id="link-heading" class="visually-hidden">Reel link</h2>
+        <form data-link-form novalidate>
+          <label class="field">
+            <span class="label">Instagram Reel link</span>
+            <span class="input-row">
+              <input
+                type="url"
+                name="url"
+                inputmode="url"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                placeholder="https://www.instagram.com/reel/…"
+                required
+                data-url
+              />
+              <button type="button" class="quiet" data-paste hidden>Paste</button>
+            </span>
+          </label>
+          <p class="error" role="alert" data-link-error hidden></p>
+          <button type="submit" class="primary" data-link-submit>Continue</button>
+        </form>
+      </section>
+
+      <!-- 2. The caption -->
+      <section data-step="source" aria-labelledby="source-heading" hidden>
+        <h2 id="source-heading" class="section-label">The Reel</h2>
+        <p class="source-link"><a data-reel-link target="_blank" rel="noopener noreferrer"></a></p>
+
+        <div class="progress" role="status" aria-live="polite" data-caption-progress hidden>
+          <span class="spinner" aria-hidden="true"></span>
+          <span data-caption-progress-text>Reading the caption…</span>
+        </div>
+        <p class="notice" data-caption-note hidden></p>
+
+        <form data-source-form novalidate>
+          <label class="field">
+            <span class="label"
+              >Caption
+              <span class="hint" data-caption-origin
+                >— copy it from the Reel and paste it here</span
+              ></span
+            >
+            <textarea
+              name="text"
+              rows="9"
+              data-caption
+              placeholder="Ingredients, steps, anything the creator wrote…"
+            ></textarea>
+          </label>
+
+          <div class="field">
+            <span class="label"
+              >Screenshots
+              <span class="hint"
+                >— optional: the caption, or a recipe card shown in the video</span
+              ></span
+            >
+            <ul class="shots" data-shots></ul>
+            <label class="file-button">
+              <input type="file" accept="image/*" multiple data-shot-input />
+              <span>Add screenshots</span>
+            </label>
+          </div>
+
+          <label class="field">
+            <span class="label"
+              >Creator <span class="hint">— their Instagram handle, for the credit</span></span
+            >
+            <span class="input-row at">
+              <span aria-hidden="true">@</span>
+              <input
+                type="text"
+                name="creator"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                pattern="[A-Za-z0-9._]{1,30}"
+                data-creator
+              />
+            </span>
+          </label>
+
+          <p class="error" role="alert" data-source-error hidden></p>
+          <div class="progress" role="status" aria-live="polite" data-draft-progress hidden>
+            <span class="spinner" aria-hidden="true"></span>
+            <span>Drafting the recipe — usually 10 to 40 seconds.</span>
+          </div>
+          <div class="actions">
+            <button type="submit" class="primary" data-draft-submit>Draft the recipe</button>
+            <button type="button" class="quiet" data-by-hand>Write it by hand</button>
+            <button type="button" class="quiet" data-restart>Start over</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- 3. Review -->
+      <section data-step="review" aria-labelledby="review-heading" hidden>
+        <h2 id="review-heading" class="section-label">Review</h2>
+        <p class="hint">
+          Nothing is saved until you press Save. Lines marked for checking aren’t in the source as
+          written — fix them, or mark them as fine.
+        </p>
+        <ul class="warnings" data-warnings hidden></ul>
+
+        <form data-review-form novalidate>
+          <label class="field">
+            <span class="label">Title</span>
+            <input type="text" name="title" required maxlength="120" class="title-input" />
+          </label>
+          <label class="field">
+            <span class="label">Description</span>
+            <textarea name="description" rows="2" maxlength="300"></textarea>
+          </label>
+          <div class="meta-grid">
+            <label class="field"
+              ><span class="label">Prep</span
+              ><input type="text" name="prepTime" maxlength="80" placeholder="15 min"
+            /></label>
+            <label class="field"
+              ><span class="label">Cook</span
+              ><input type="text" name="cookTime" maxlength="80" placeholder="20 min"
+            /></label>
+            <label class="field"
+              ><span class="label">Total</span><input type="text" name="totalTime" maxlength="80"
+            /></label>
+            <label class="field"
+              ><span class="label">Serves</span><input type="text" name="servings" maxlength="80"
+            /></label>
+          </div>
+
+          <fieldset class="list-field">
+            <legend class="section-label">Ingredients</legend>
+            <p class="hint">
+              Amount, then the ingredient. The amount is what the serving scaler multiplies.
+            </p>
+            <ol class="lines" data-lines="ingredients"></ol>
+            <button type="button" class="quiet add" data-add="ingredients">Add ingredient</button>
+          </fieldset>
+
+          <fieldset class="list-field">
+            <legend class="section-label">Optional</legend>
+            <ol class="lines" data-lines="optionalIngredients"></ol>
+            <button type="button" class="quiet add" data-add="optionalIngredients">
+              Add optional ingredient
+            </button>
+          </fieldset>
+
+          <fieldset class="list-field">
+            <legend class="section-label">Instructions</legend>
+            <ol class="lines steps-list" data-lines="instructions"></ol>
+            <button type="button" class="quiet add" data-add="instructions">Add step</button>
+          </fieldset>
+
+          <label class="field">
+            <span class="label">Notes <span class="hint">— one per line</span></span>
+            <textarea name="notes" rows="3"></textarea>
+          </label>
+          <label class="field">
+            <span class="label">Tags <span class="hint">— separated by commas</span></span>
+            <input type="text" name="tags" autocapitalize="off" />
+          </label>
+          <p class="credit" data-credit></p>
+
+          <p class="error" role="alert" data-review-error hidden></p>
+          <div class="actions sticky">
+            <button type="submit" class="primary" data-save>Save recipe</button>
+            <button type="button" class="quiet" data-back>Back to the caption</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- 4. Saved -->
+      <section data-step="saved" aria-labelledby="saved-heading" hidden>
+        <h2 id="saved-heading" class="saved-title" tabindex="-1">Saved</h2>
+        <p>Written to <code data-saved-path></code>.</p>
+        <p>
+          It appears at <a data-saved-dev target="_blank" rel="noopener"></a> while
+          <code>pnpm dev</code> runs, and on randyliang.net after you commit it and run
+          <code>pnpm deploy</code>.
+        </p>
+        <div class="actions">
+          <button type="button" class="primary" data-another>Import another</button>
+        </div>
+      </section>
+    </main>
+
+    <template id="ingredient-line">
+      <li class="line">
+        <div class="line-fields">
+          <input
+            type="text"
+            class="amount"
+            aria-label="Amount"
+            placeholder="Amount"
+            maxlength="80"
+          />
+          <input
+            type="text"
+            class="text"
+            aria-label="Ingredient"
+            placeholder="Ingredient"
+            maxlength="600"
+          />
+        </div>
+        <p class="flag" hidden>
+          <span class="flag-text"></span>
+          <button type="button" class="link" data-dismiss>Looks right</button>
+        </p>
+        <button type="button" class="remove" aria-label="Remove">×</button>
+      </li>
+    </template>
+    <template id="step-line">
+      <li class="line">
+        <div class="line-fields">
+          <textarea class="text" aria-label="Step" rows="2" maxlength="600"></textarea>
+        </div>
+        <p class="flag" hidden>
+          <span class="flag-text"></span>
+          <button type="button" class="link" data-dismiss>Looks right</button>
+        </p>
+        <button type="button" class="remove" aria-label="Remove">×</button>
+      </li>
+    </template>
+  </body>
+</html>

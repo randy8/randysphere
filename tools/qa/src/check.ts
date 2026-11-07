@@ -17,7 +17,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const CACHE = 'node_modules/.cache';
 
 /** Every package `tsc` checks; each keeps its own incremental build info. */
-const TYPED = ['tools/pipeline', 'tools/films', 'tools/serve', 'tools/qa', 'site'];
+const TYPED = ['tools/pipeline', 'tools/films', 'tools/recipes', 'tools/serve', 'tools/qa', 'site'];
 
 interface Step {
   readonly name: string;

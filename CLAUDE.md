@@ -140,6 +140,9 @@ pnpm doctor              # report drift, change nothing
 pnpm family <command>    # family chat accounts and backups (docs/family.md):
                          # list, add, passwd, revoke, backup, restore
 pnpm describe            # optional: draft alt text via Claude (ANTHROPIC_API_KEY)
+pnpm recipes:import      # local page, 127.0.0.1:4510: Instagram Reel → reviewed draft →
+                         # recipes/<slug>.yaml (ANTHROPIC_API_KEY; yt-dlp optional) —
+                         # tools/recipes/, no auth, same loopback rule as the editor
 pnpm films:posters       # TMDB details for films not looked up yet (TMDB_READ_ACCESS_TOKEN;
                          # skipped with a warning if unset): --only, --regenerate
 pnpm serve               # production server (needs PRIVATE_SITE_PASSWORD,
@@ -170,7 +173,8 @@ pnpm verify              # pnpm check + the trial build —
 7. The site works with JavaScript disabled.
 8. Manifest schema changes bump `SCHEMA_VERSION` (`tools/pipeline/src/manifest.ts`,
    currently 2) with no migration — old manifests are rejected, re-ingest.
-9. `pnpm run edit` binds `127.0.0.1` only — it writes with no authentication.
+9. `pnpm run edit` and `pnpm recipes:import` bind `127.0.0.1` only — they
+   write with no authentication.
 10. Nothing under `site/src/` reads `private/`. Only `tools/serve` does, and
     only after `verifySessionToken` (`/private`) or a chat session
     (`/family/`, `/disc/`, `FamilyStore.resolveSession`) — every chat route,

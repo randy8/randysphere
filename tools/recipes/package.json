@@ -1,0 +1,15 @@
+{
+  "name": "@photo/recipes",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Drafts a recipe for the Dishes collection from an Instagram Reel's caption or screenshots, for a person to review and save as recipes/<slug>.yaml. Knows nothing about Astro.",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.0.0",
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0"
+  }
+}

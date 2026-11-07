@@ -183,6 +183,45 @@ Type definitions for the standard library. Development only.
 
 ---
 
+## `tools/recipes`
+
+The Reel importer (`pnpm recipes:import`). Two runtime dependencies, both
+already in the repository for the same jobs elsewhere.
+
+### `@anthropic-ai/sdk` — `^1.0.0`
+
+Drafts a recipe from a Reel's caption or screenshots, one request per
+import. Same reasoning as the pipeline's entry above. A different major
+from the pipeline's `^0.70.0`, on purpose: the importer needs
+`output_config` structured outputs, which 0.70 predates, and moving
+`pnpm describe` to 1.x (a breaking major that also changes the API version
+it sends) is its own change, not a side effect of this one. 1.0.0 was the
+newest release at least two weeks old when added (2026-11-07). Two copies
+of one SDK is the cost; the lockfile keeps both exact.
+
+**Removal cost:** drafting stops; the importer's write-it-by-hand path,
+duplicate check and save still work.
+
+### `yaml` — `^2.8.0`
+
+Reads `recipes/*.yaml` for duplicate detection and writes the new file. Its
+document API sets each scalar's quote style, which is what makes a saved
+recipe match Prettier's formatting byte for byte (a test holds this).
+
+**Removal cost:** hand-writing YAML serialisation for one file shape.
+
+### `yt-dlp` — not a dependency
+
+An optional external program, run if it's on PATH, never installed or
+required by this repository. It reads a Reel's caption and creator
+(metadata only, `--skip-download`). Instagram offers no sanctioned way to
+do that: logged-out pages carry no caption, and Meta's oEmbed terms forbid
+extracting or persisting what it returns. yt-dlp is scraping, maintained by
+others, and fails whenever Instagram blocks it; every failure falls back to
+pasting the caption or adding screenshots.
+
+---
+
 ## Rejected
 
 Things that would be reasonable to add and were considered. Recorded so the
