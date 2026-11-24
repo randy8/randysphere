@@ -1,0 +1,179 @@
+# Captions and alt text.
+#
+# `pnpm ingest` maintains which files are listed here and nothing else.
+# The order, the fields, and every comment are yours; re-running ingest will
+# not touch them. A photo is identified by its content (`sourceId`) first,
+# so moving or renaming a file in originals/ — even into a different roll —
+# keeps its entry below, alt text, caption, and tags intact. Only a photo
+# actually deleted from originals/ loses its entry.
+photos:
+  - file: 000020820001.tif
+    sourceId: 9a8db685a801c77d
+    alt: ''
+    tags:
+      - '2082'
+  - file: 000020820002.tif
+    sourceId: 8b4d66400114d3b7
+    alt: ''
+    tags:
+      - '2082'
+  - file: 000020820003.tif
+    sourceId: 6afbe0a7be200a5e
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820004.tif
+    sourceId: 51f53d74c0ab91bb
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820005.tif
+    sourceId: 0398d1dae60833fa
+    alt: ''
+    tags:
+      - '2082'
+  - file: 000020820006.tif
+    sourceId: fa31820cd6f44715
+    alt: ''
+    tags:
+      - '2082'
+  - file: 000020820007.tif
+    sourceId: b6472f50a7fbe7fd
+    alt: ''
+    tags:
+      - '2082'
+  - file: 000020820008.tif
+    sourceId: 9a57bd9372d67b61
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820009.tif
+    sourceId: f7e9af1aa65434f1
+    alt: ''
+    tags:
+      - '2082'
+  - file: 000020820010.tif
+    sourceId: 6f469faf3bf3f75a
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820011.tif
+    sourceId: 3f42fcfaa9cc496b
+    alt: ''
+    tags:
+      - '2082'
+  - file: 000020820012.tif
+    sourceId: a5176701e5f5fa8b
+    alt: ''
+    tags:
+      - '2082'
+  - file: 000020820013.tif
+    sourceId: d3a3f6921c9375a6
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820014.tif
+    sourceId: aef779b9bc2a3df4
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820015.tif
+    sourceId: ccf6eb5090a199cb
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820016.tif
+    sourceId: 3f9c04fc9d7fb290
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820017.tif
+    sourceId: 3a6a99e3695bb9ea
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820018.tif
+    sourceId: 21be4ab7d5a0625f
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820019.tif
+    sourceId: 790149e2b54347b3
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820020.tif
+    sourceId: f484d7336f489d20
+    alt: ''
+    tags:
+      - '2082'
+  - file: 000020820021.tif
+    sourceId: b3f964ed8603d6f5
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820022.tif
+    sourceId: 3ca11dd7c924839b
+    alt: ''
+    tags:
+      - '2082'
+  - file: 000020820023.tif
+    sourceId: 127c2b6f1e749635
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820024.tif
+    sourceId: be02282e49a92557
+    alt: ''
+    tags:
+      - '2082'
+    rotate: 270
+    rating: 1
+  - file: 000020820025.tif
+    sourceId: d6c62b81dc382e9e
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820026.tif
+    sourceId: 4d9032bb696ddb3f
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820027.tif
+    sourceId: b0b544da24ecae1d
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820028.tif
+    sourceId: d9ea0a2baf351392
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1
+  - file: 000020820029.tif
+    sourceId: 6b98bb5a407cce5f
+    alt: ''
+    tags:
+      - '2082'
+  - file: 000020820030.tif
+    sourceId: c7a865530a6e60f1
+    alt: ''
+    tags:
+      - '2082'
+    rating: 1

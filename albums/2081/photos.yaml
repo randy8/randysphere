@@ -1,0 +1,208 @@
+# Captions and alt text.
+#
+# `pnpm ingest` maintains which files are listed here and nothing else.
+# The order, the fields, and every comment are yours; re-running ingest will
+# not touch them. A photo is identified by its content (`sourceId`) first,
+# so moving or renaming a file in originals/ — even into a different roll —
+# keeps its entry below, alt text, caption, and tags intact. Only a photo
+# actually deleted from originals/ loses its entry.
+photos:
+  - file: 000020810001.tif
+    sourceId: 8847204623ac009b
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810002.tif
+    sourceId: 6237435bf569815a
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810003.tif
+    sourceId: 08d62b0a98b070e2
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810004.tif
+    sourceId: 534a7f4c36660cf2
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810005.tif
+    sourceId: 399f142c0dcabd2a
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810006.tif
+    sourceId: f8a9734b9848ec91
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810007.tif
+    sourceId: c0fb1ec67876d23c
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810008.tif
+    sourceId: cfda048baea6cd4b
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810009.tif
+    sourceId: 25a869af8cc4fd6c
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810010.tif
+    sourceId: 834949c8c6e51ad2
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810011.tif
+    sourceId: 2a7cab4c93f37526
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810012.tif
+    sourceId: 01e56b4138d07574
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810013.tif
+    sourceId: e5cc9560ac48a6d2
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810014.tif
+    sourceId: 6759050ddf659f9b
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810015.tif
+    sourceId: de4bf2b35315f67f
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810016.tif
+    sourceId: 8642fba700f8bf98
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810017.tif
+    sourceId: 96c52938582a00f6
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810018.tif
+    sourceId: 48f1208a855e19c6
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810019.tif
+    sourceId: aff6d05dc8182039
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810020.tif
+    sourceId: c283f042388ffa58
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810021.tif
+    sourceId: 4bc32ca14549b363
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810022.tif
+    sourceId: 386caef2be2e9395
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810023.tif
+    sourceId: 6b1c75c84567991d
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810024.tif
+    sourceId: 4df6f9110a0da658
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810025.tif
+    sourceId: 3633e929f0a26c41
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810026.tif
+    sourceId: 08206aaaa38f74db
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810027.tif
+    sourceId: eae75bc32fb651bf
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810028.tif
+    sourceId: 297b52570a190a83
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810029.tif
+    sourceId: b2a535d970c8db9b
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810030.tif
+    sourceId: efa3c6e6f91913d4
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810031.tif
+    sourceId: 511f970fb1c9a16b
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810032.tif
+    sourceId: d906ea6a423c461c
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810033.tif
+    sourceId: 9bbf7daf99654f64
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810034.tif
+    sourceId: 7d4105ad8db68fc3
+    alt: ''
+    tags:
+      - '2081'
+  - file: 000020810035.tif
+    sourceId: c8a8532aa6ce8883
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
+  - file: 000020810036.tif
+    sourceId: 0129f0c4f8eee98c
+    alt: ''
+    tags:
+      - '2081'
+    rating: 1
