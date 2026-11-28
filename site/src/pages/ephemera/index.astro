@@ -13,14 +13,10 @@ const number = (index: number): string => String(index + 1).padStart(2, '0');
     drawer itself, so a short list still reads as a beginning.
   */
 }
-<Base title="Ephemera" description="Apps, games and ideas, kept off the masthead.">
+<Base title="Ephemera" description="Little things I've made, and a few I'm still thinking about.">
   <header class="album-header home-header ephemera-header">
-    <p class="eyebrow">Odds and ends</p>
     <h1>Ephemera</h1>
-    <p class="lede">
-      Small apps, games and half-finished ideas. Not quite collections, kept here so they're easy to
-      find. Come in and try one.
-    </p>
+    <p class="lede">Little things I've made, and a few I'm still thinking about.</p>
   </header>
 
   <ul class="ephemera">
@@ -43,7 +39,7 @@ const number = (index: number): string => String(index + 1).padStart(2, '0');
             )}
             <h2>{item.title}</h2>
             <p class="ephemera-description">{item.description}</p>
-            <p class="ephemera-action">{item.href ? 'Open' : 'An idea, not built yet'}</p>
+            <p class="ephemera-action">{item.href ? 'Open' : 'Still an idea'}</p>
           </>
         );
         return (
@@ -56,7 +52,7 @@ const number = (index: number): string => String(index + 1).padStart(2, '0');
     <li class="ephemera-card ephemera-drawer" aria-hidden="true">
       <div>
         <p class="ephemera-meta"><span>No. {number(ephemera.length)}</span></p>
-        <p class="ephemera-drawer-text">More in the drawer.</p>
+        <p class="ephemera-drawer-text">More soon.</p>
       </div>
     </li>
   </ul>

@@ -22,6 +22,6 @@ export const ephemera: readonly Ephemeron[] = [
     href: '/trivia/',
     glyph: 'board',
     description:
-      'A television-style quiz for a living room. The board goes on the TV, phones become buzzers, and one person hosts. Play alone, practise one clue at a time, or write your own games.',
+      'My take on a TV quiz night. The board goes on the TV and everyone buzzes in from their phone.',
   },
 ];

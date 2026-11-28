@@ -1434,9 +1434,6 @@ body.lightbox-open {
  * a hairline edge, a catalogue number. It lifts and tips slightly under
  * the pointer, and only then takes the accent.
  */
-.ephemera-header .eyebrow {
-  margin-bottom: 0.5rem;
-}
 .ephemera {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
