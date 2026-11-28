@@ -26,6 +26,7 @@
     "edit": "node tools/pipeline/src/cli.ts edit",
     "family": "node tools/serve/src/family/cli.ts",
     "disc": "node tools/serve/src/family/cli.ts --chat=disc",
+    "quiz": "node tools/serve/src/quiz/cli.ts",
     "serve": "node tools/serve/src/cli.ts",
     "deploy": "bash deploy/deploy.sh",
     "rollback": "bash deploy/rollback.sh",

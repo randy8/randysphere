@@ -3,10 +3,11 @@ import { existsSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
-import { createPrivateSiteServer } from './server.ts';
+import { createPrivateSiteServer, createQuizOnlyServer } from './server.ts';
 import { tailscaledWhois } from './infra.ts';
 import { CHATS } from './family/chats.ts';
 import { FamilyChat } from './family/routes.ts';
+import { Quiz } from './quiz/quiz.ts';
 
 function repositoryRoot(): string {
   let directory = process.cwd();
@@ -65,6 +66,15 @@ if (!password || !sessionSecret) {
           : join(ROOT, 'private', chat.slug),
       }),
   );
+  // The quiz: private/quiz (its catalog, rooms and results). --preview
+  // gets a throwaway one, like the chats. QUIZ_LAN_LISTEN=<address>:<port>
+  // adds a quiz-only listener for phones on the local network.
+  const lanListen = process.env['QUIZ_LAN_LISTEN'] ?? '';
+  const lan = /^(\d{1,3}(?:\.\d{1,3}){3}):(\d{2,5})$/.exec(lanListen);
+  const quiz = new Quiz({
+    dataDir: preview ? mkdtempSync(join(tmpdir(), 'quiz-preview-')) : join(ROOT, 'private', 'quiz'),
+    lanOrigin: lan ? `http://${lanListen}` : null,
+  });
   const server = createPrivateSiteServer({
     distDir,
     notesPath: join(ROOT, 'private', 'notes.yaml'),
@@ -80,7 +90,19 @@ if (!password || !sessionSecret) {
     infraServicesPath: join(ROOT, 'infra', 'services.yaml'),
     whois: tailscaledWhois(),
     chats,
+    quiz,
   });
+  let lanServer: ReturnType<typeof createQuizOnlyServer> | null = null;
+  if (lan && !preview) {
+    lanServer = createQuizOnlyServer(quiz);
+    lanServer.listen(Number(lan[2]), lan[1], () =>
+      console.log(`Quiz on the LAN at http://${lanListen}/quiz/`),
+    );
+  } else if (lanListen) {
+    console.error(
+      `QUIZ_LAN_LISTEN must be <IPv4 address>:<port>, got ${lanListen}; LAN listener off.`,
+    );
+  }
   server.listen(port, () => {
     console.log(
       `Serving ${distDir} (images from generated/derivatives) on http://0.0.0.0:${String(port)} — private area at /private`,
@@ -95,6 +117,10 @@ if (!password || !sessionSecret) {
     // Open chat streams never go idle by themselves; ending them lets the
     // close finish, and every browser reconnects to the next server.
     for (const chat of chats) chat.shutdown();
+    // Snapshots written and leases released, so the next process takes
+    // each game up (paused) when its devices reconnect.
+    quiz.shutdown();
+    lanServer?.close();
     server.close(() => process.exit(0));
     server.closeIdleConnections();
     setTimeout(() => process.exit(0), 5000).unref();

@@ -6,9 +6,11 @@
   "description": "Serves the built site (site/dist/) plus one password-gated route, /private, for a hand-written personal notebook that must never ship in the public static build. Knows nothing about Astro.",
   "license": "MIT",
   "dependencies": {
+    "ws": "^8.22.0",
     "yaml": "^2.8.0"
   },
   "devDependencies": {
-    "@types/node": "^24.3.0"
+    "@types/node": "^24.3.0",
+    "@types/ws": "^8.18.2"
   }
 }

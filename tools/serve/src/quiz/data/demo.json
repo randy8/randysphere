@@ -1,0 +1,988 @@
+{
+  "format": "quiz-games/1",
+  "source": {
+    "name": "Demonstration set",
+    "license": "MIT, part of this repository",
+    "notes": "Original clues; no broadcast material."
+  },
+  "games": [
+    {
+      "format": "quiz-game/1",
+      "title": "Demonstration Game One",
+      "credit": "Original clues written for this site's demonstration set",
+      "episode": {
+        "id": "demo-1"
+      },
+      "rounds": [
+        {
+          "kind": "board",
+          "values": [200, 400, 600, 800, 1000],
+          "wagers": 1,
+          "questionForm": "lenient",
+          "categories": [
+            {
+              "title": "SPACE PROBES",
+              "note": "",
+              "clues": [
+                {
+                  "text": "Launched in 1977, this NASA probe became the first human-made object to reach interstellar space, in 2012",
+                  "response": "Voyager 1",
+                  "accept": ["Voyager"],
+                  "notes": ""
+                },
+                {
+                  "text": "Sharing its name with a Greek and Roman god, this NASA program put the first humans on the Moon",
+                  "response": "Apollo",
+                  "accept": ["the Apollo program"],
+                  "notes": ""
+                },
+                {
+                  "text": "Launched in 1990, this space telescope is named for an astronomer who showed that the universe is expanding",
+                  "response": "the Hubble Space Telescope",
+                  "accept": ["Hubble"],
+                  "notes": ""
+                },
+                {
+                  "text": "Carried to Saturn by Cassini, this European probe landed on the moon Titan in 2005",
+                  "response": "Huygens",
+                  "accept": ["the Huygens probe"],
+                  "notes": ""
+                },
+                {
+                  "text": "In 2014 the Rosetta mission's lander, named for an island in the Nile, bounced to rest on a comet",
+                  "response": "Philae",
+                  "accept": [],
+                  "notes": "Pronounced FY-lee or FEE-lay"
+                }
+              ]
+            },
+            {
+              "title": "BODIES OF WATER",
+              "note": "",
+              "clues": [
+                {
+                  "text": "It's the largest and deepest of Earth's oceans",
+                  "response": "the Pacific Ocean",
+                  "accept": ["Pacific"],
+                  "notes": ""
+                },
+                {
+                  "text": "Bordered by Israel and Jordan, this salt lake's shore lies more than 400 meters below sea level",
+                  "response": "the Dead Sea",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Holding about a fifth of the world's unfrozen fresh surface water, this Siberian lake is the largest freshwater lake by volume",
+                  "response": "Lake Baikal",
+                  "accept": ["Baikal"],
+                  "notes": "Pronounced bye-KAHL"
+                },
+                {
+                  "text": "About 14 kilometers wide at its narrowest, this strait separates Spain from Morocco",
+                  "response": "the Strait of Gibraltar",
+                  "accept": ["Gibraltar"],
+                  "notes": ""
+                },
+                {
+                  "text": "The largest lake on Earth by surface area, it's called a sea despite being landlocked",
+                  "response": "the Caspian Sea",
+                  "accept": ["Caspian"],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "THE PERIODIC TABLE",
+              "note": "",
+              "clues": [
+                {
+                  "text": "It's element number 1",
+                  "response": "hydrogen",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Its symbol, Fe, comes from its Latin name, ferrum",
+                  "response": "iron",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "It's the only metal that's liquid at room temperature",
+                  "response": "mercury",
+                  "accept": ["quicksilver"],
+                  "notes": ""
+                },
+                {
+                  "text": "Named from the Greek word for the Sun, it was detected in sunlight before it was found on Earth",
+                  "response": "helium",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Discovered by Marie and Pierre Curie in 1898, this element was named for Marie's homeland",
+                  "response": "polonium",
+                  "accept": [],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "RHYME TIME",
+              "note": "Each response is a pair of rhyming words",
+              "clues": [
+                {
+                  "text": "A large primate's cloak",
+                  "response": "an ape cape",
+                  "accept": ["ape cape"],
+                  "notes": ""
+                },
+                {
+                  "text": "An overweight feline",
+                  "response": "a fat cat",
+                  "accept": ["fat cat"],
+                  "notes": ""
+                },
+                {
+                  "text": "A happier father",
+                  "response": "a glad dad",
+                  "accept": ["glad dad"],
+                  "notes": ""
+                },
+                {
+                  "text": "A rodent's dwelling",
+                  "response": "a mouse house",
+                  "accept": ["mouse house"],
+                  "notes": ""
+                },
+                {
+                  "text": "An elegant hairpiece for a swine",
+                  "response": "a pig wig",
+                  "accept": ["pig wig"],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "WORLD CAPITALS",
+              "note": "",
+              "clues": [
+                {
+                  "text": "Canada's capital, on a river of the same name",
+                  "response": "Ottawa",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Not Sydney, not Melbourne, but this purpose-built city is Australia's capital",
+                  "response": "Canberra",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Istanbul is larger, but this city has been the capital of Turkey since 1923",
+                  "response": "Ankara",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Kazakhstan's capital, it was called Nur-Sultan from 2019 to 2022",
+                  "response": "Astana",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "At about 3,600 meters, this seat of Bolivia's government is the highest capital in the world",
+                  "response": "La Paz",
+                  "accept": [],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "MUSICAL INSTRUMENTS",
+              "note": "",
+              "clues": [
+                {
+                  "text": "A standard one has 88 keys",
+                  "response": "the piano",
+                  "accept": ["piano", "pianoforte"],
+                  "notes": ""
+                },
+                {
+                  "text": "This brass instrument changes pitch with a slide instead of valves",
+                  "response": "the trombone",
+                  "accept": ["trombone"],
+                  "notes": ""
+                },
+                {
+                  "text": "Its full name, Italian for 'little violone', is violoncello",
+                  "response": "the cello",
+                  "accept": ["cello"],
+                  "notes": ""
+                },
+                {
+                  "text": "This wind instrument of Aboriginal Australia is traditionally made from a termite-hollowed eucalyptus trunk",
+                  "response": "the didgeridoo",
+                  "accept": ["didgeridoo", "yidaki"],
+                  "notes": ""
+                },
+                {
+                  "text": "Ravi Shankar did much to popularize this long-necked Indian lute in the West",
+                  "response": "the sitar",
+                  "accept": ["sitar"],
+                  "notes": ""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "board",
+          "values": [400, 800, 1200, 1600, 2000],
+          "wagers": 2,
+          "questionForm": "strict",
+          "categories": [
+            {
+              "title": "AMERICAN AUTHORS",
+              "note": "",
+              "clues": [
+                {
+                  "text": "Samuel Clemens wrote 'The Adventures of Tom Sawyer' under this pen name",
+                  "response": "Mark Twain",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "She won the Pulitzer Prize for 'To Kill a Mockingbird'",
+                  "response": "Harper Lee",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "His novel 'Moby-Dick' was published in 1851",
+                  "response": "Herman Melville",
+                  "accept": ["Melville"],
+                  "notes": ""
+                },
+                {
+                  "text": "'Beloved' won her the Pulitzer Prize for Fiction in 1988",
+                  "response": "Toni Morrison",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "This author of 'The Left Hand of Darkness' also wrote the Earthsea books",
+                  "response": "Ursula K. Le Guin",
+                  "accept": ["Ursula Le Guin", "Le Guin"],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "ANATOMY",
+              "note": "",
+              "clues": [
+                {
+                  "text": "By area and weight, it's the largest organ of the human body",
+                  "response": "the skin",
+                  "accept": ["skin"],
+                  "notes": ""
+                },
+                {
+                  "text": "It's the common name for the patella",
+                  "response": "the kneecap",
+                  "accept": ["kneecap"],
+                  "notes": ""
+                },
+                {
+                  "text": "The largest internal organ, it produces bile",
+                  "response": "the liver",
+                  "accept": ["liver"],
+                  "notes": ""
+                },
+                {
+                  "text": "The smallest bone in the human body, it's in the middle ear",
+                  "response": "the stapes",
+                  "accept": ["stirrup"],
+                  "notes": ""
+                },
+                {
+                  "text": "The horseshoe-shaped hyoid bone, not jointed to any other bone, is found in this part of the body",
+                  "response": "the neck",
+                  "accept": ["throat"],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "INVENTIONS & DISCOVERIES",
+              "note": "",
+              "clues": [
+                {
+                  "text": "In 1903 these brothers made the first powered, controlled airplane flights at Kitty Hawk",
+                  "response": "the Wright brothers",
+                  "accept": ["Wilbur and Orville Wright", "the Wrights"],
+                  "notes": ""
+                },
+                {
+                  "text": "Alexander Graham Bell received a patent for it in 1876",
+                  "response": "the telephone",
+                  "accept": ["telephone"],
+                  "notes": ""
+                },
+                {
+                  "text": "In 1928 Alexander Fleming noticed mold killing bacteria and discovered this antibiotic",
+                  "response": "penicillin",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Percy Spencer noticed a candy bar melting near a radar magnetron, which led to this kitchen appliance",
+                  "response": "the microwave oven",
+                  "accept": ["microwave"],
+                  "notes": ""
+                },
+                {
+                  "text": "Tim Berners-Lee proposed this information system in 1989 while working at CERN",
+                  "response": "the World Wide Web",
+                  "accept": ["the Web", "WWW"],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "WORDS FROM OTHER LANGUAGES",
+              "note": "Name the language each word came into English from",
+              "clues": [
+                {
+                  "text": "Kindergarten",
+                  "response": "German",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Ballet",
+                  "response": "French",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Tsunami",
+                  "response": "Japanese",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Shampoo",
+                  "response": "Hindi",
+                  "accept": ["Hindustani"],
+                  "notes": ""
+                },
+                {
+                  "text": "Robot",
+                  "response": "Czech",
+                  "accept": [],
+                  "notes": "From Karel Capek's 1920 play R.U.R."
+                }
+              ]
+            },
+            {
+              "title": "FAMOUS PAINTINGS",
+              "note": "",
+              "clues": [
+                {
+                  "text": "Leonardo da Vinci's portrait of Lisa Gherardini hangs in the Louvre under this name",
+                  "response": "the Mona Lisa",
+                  "accept": ["La Gioconda"],
+                  "notes": ""
+                },
+                {
+                  "text": "Vincent van Gogh painted this night sky from the asylum at Saint-Remy in 1889",
+                  "response": "The Starry Night",
+                  "accept": ["Starry Night"],
+                  "notes": ""
+                },
+                {
+                  "text": "Edvard Munch made several versions of this image of an anguished figure on a bridge",
+                  "response": "The Scream",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Picasso's 1937 mural is named for this Basque town, bombed that April",
+                  "response": "Guernica",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "This Dutch master painted 'Girl with a Pearl Earring'",
+                  "response": "Johannes Vermeer",
+                  "accept": ["Vermeer"],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "MATH TERMS",
+              "note": "",
+              "clues": [
+                {
+                  "text": "A polygon with eight sides",
+                  "response": "an octagon",
+                  "accept": ["octagon"],
+                  "notes": ""
+                },
+                {
+                  "text": "The longest side of a right triangle",
+                  "response": "the hypotenuse",
+                  "accept": ["hypotenuse"],
+                  "notes": ""
+                },
+                {
+                  "text": "The ratio of a circle's circumference to its diameter",
+                  "response": "pi",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "A whole number greater than 1 whose only divisors are 1 and itself",
+                  "response": "a prime number",
+                  "accept": ["prime"],
+                  "notes": ""
+                },
+                {
+                  "text": "The golden ratio, about 1.618, is often written with this Greek letter",
+                  "response": "phi",
+                  "accept": [],
+                  "notes": ""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "final",
+          "category": "WORLD LANDMARKS",
+          "note": "",
+          "clue": {
+            "text": "Built for the 1889 World's Fair, it was meant to stand for only 20 years",
+            "response": "the Eiffel Tower",
+            "accept": ["La Tour Eiffel"],
+            "notes": ""
+          }
+        }
+      ],
+      "tiebreakers": [
+        {
+          "category": "OCEANS",
+          "clue": {
+            "text": "It's the only ocean named for a country",
+            "response": "the Indian Ocean",
+            "accept": ["Indian"],
+            "notes": ""
+          }
+        },
+        {
+          "category": "U.S. PRESIDENTS",
+          "clue": {
+            "text": "He was the only U.S. president elected to more than two terms",
+            "response": "Franklin D. Roosevelt",
+            "accept": ["FDR", "Franklin Roosevelt"],
+            "notes": ""
+          }
+        }
+      ]
+    },
+    {
+      "format": "quiz-game/1",
+      "title": "Demonstration Game Two",
+      "credit": "Original clues written for this site's demonstration set",
+      "episode": {
+        "id": "demo-2"
+      },
+      "rounds": [
+        {
+          "kind": "board",
+          "values": [200, 400, 600, 800, 1000],
+          "wagers": 1,
+          "questionForm": "lenient",
+          "categories": [
+            {
+              "title": "FRUITS & VEGETABLES",
+              "note": "",
+              "clues": [
+                {
+                  "text": "Botanically a fruit, it's the main ingredient in ketchup",
+                  "response": "the tomato",
+                  "accept": ["tomato"],
+                  "notes": ""
+                },
+                {
+                  "text": "This orange root vegetable is a rich source of beta-carotene",
+                  "response": "the carrot",
+                  "accept": ["carrot"],
+                  "notes": ""
+                },
+                {
+                  "text": "It's the main ingredient in guacamole",
+                  "response": "the avocado",
+                  "accept": ["avocado"],
+                  "notes": ""
+                },
+                {
+                  "text": "In colonial America this spiky tropical fruit became a symbol of hospitality",
+                  "response": "the pineapple",
+                  "accept": ["pineapple"],
+                  "notes": ""
+                },
+                {
+                  "text": "Notorious for its smell, this Southeast Asian fruit is banned on Singapore's subway",
+                  "response": "the durian",
+                  "accept": ["durian"],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "DOG BREEDS",
+              "note": "",
+              "clues": [
+                {
+                  "text": "Sharing its name with a Mexican state, it's one of the smallest breeds",
+                  "response": "the Chihuahua",
+                  "accept": ["Chihuahua"],
+                  "notes": ""
+                },
+                {
+                  "text": "This spotted breed is the traditional firehouse dog",
+                  "response": "the Dalmatian",
+                  "accept": ["Dalmatian"],
+                  "notes": ""
+                },
+                {
+                  "text": "The dachshund's name is German for this animal's dog",
+                  "response": "badger",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Hachiko, famous for waiting at a Tokyo station for years, was this Japanese breed",
+                  "response": "the Akita",
+                  "accept": ["Akita", "Akita Inu"],
+                  "notes": ""
+                },
+                {
+                  "text": "Bred to herd sheep along the Anglo-Scottish border, it's often ranked the smartest breed",
+                  "response": "the Border Collie",
+                  "accept": ["Border Collie"],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "SPORTS",
+              "note": "",
+              "clues": [
+                {
+                  "text": "The number of players a soccer team has on the field",
+                  "response": "eleven",
+                  "accept": ["11"],
+                  "notes": ""
+                },
+                {
+                  "text": "The Tour de France is the most famous race in this sport",
+                  "response": "cycling",
+                  "accept": ["bicycle racing"],
+                  "notes": ""
+                },
+                {
+                  "text": "In tennis, it's the word for a score of zero",
+                  "response": "love",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "In golf, a score of two under par on a hole",
+                  "response": "an eagle",
+                  "accept": ["eagle"],
+                  "notes": ""
+                },
+                {
+                  "text": "Wrestlers in this Japanese sport compete in a ring called a dohyo",
+                  "response": "sumo",
+                  "accept": [],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "ANAGRAMS",
+              "note": "Each response is an anagram of the word or phrase in quotes",
+              "clues": [
+                {
+                  "text": "Rearrange 'earth' to get this organ",
+                  "response": "heart",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Rearrange 'listen' to get this word meaning quiet",
+                  "response": "silent",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Rearrange 'night' to get this word for an object",
+                  "response": "thing",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Rearrange 'dormitory' to get this two-word description of an untidy space",
+                  "response": "dirty room",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Rearrange 'the eyes' to get this three-word phrase saying what they do",
+                  "response": "they see",
+                  "accept": [],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "MYTHOLOGY",
+              "note": "",
+              "clues": [
+                {
+                  "text": "He was the king of the Greek gods",
+                  "response": "Zeus",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "This Norse god of thunder wields the hammer Mjolnir",
+                  "response": "Thor",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "This winged horse sprang from the neck of Medusa",
+                  "response": "Pegasus",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "In Egyptian myth, this jackal-headed god watched over embalming",
+                  "response": "Anubis",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Daughter of Demeter, she was carried off to the underworld by Hades",
+                  "response": "Persephone",
+                  "accept": ["Proserpina"],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "U.S. STATES",
+              "note": "",
+              "clues": [
+                {
+                  "text": "It's nicknamed the Aloha State",
+                  "response": "Hawaii",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "It's the largest state by area",
+                  "response": "Alaska",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "It's the only state whose name has one syllable",
+                  "response": "Maine",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Its capital is Montpelier",
+                  "response": "Vermont",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "The first state to ratify the Constitution, it's nicknamed the First State",
+                  "response": "Delaware",
+                  "accept": [],
+                  "notes": ""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "board",
+          "values": [400, 800, 1200, 1600, 2000],
+          "wagers": 2,
+          "questionForm": "strict",
+          "categories": [
+            {
+              "title": "COMPUTING",
+              "note": "",
+              "clues": [
+                {
+                  "text": "There are eight of these in a byte",
+                  "response": "bits",
+                  "accept": ["bit"],
+                  "notes": ""
+                },
+                {
+                  "text": "Linus Torvalds released the first version of this operating-system kernel in 1991",
+                  "response": "Linux",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "This English mathematician designed the Analytical Engine in the 1830s",
+                  "response": "Charles Babbage",
+                  "accept": ["Babbage"],
+                  "notes": ""
+                },
+                {
+                  "text": "Her 1843 notes on the Analytical Engine include what's often called the first computer program",
+                  "response": "Ada Lovelace",
+                  "accept": ["Lovelace", "Augusta Ada King"],
+                  "notes": ""
+                },
+                {
+                  "text": "His 1936 paper described an abstract machine that formalized the idea of computation",
+                  "response": "Alan Turing",
+                  "accept": ["Turing"],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "SHAKESPEARE",
+              "note": "",
+              "clues": [
+                {
+                  "text": "This Danish prince asks, 'To be, or not to be'",
+                  "response": "Hamlet",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "The witches' chant 'Double, double toil and trouble' comes from this play",
+                  "response": "Macbeth",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Iago deceives this Moor of Venice",
+                  "response": "Othello",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Many of Shakespeare's plays premiered at this London playhouse built in 1599",
+                  "response": "the Globe Theatre",
+                  "accept": ["the Globe"],
+                  "notes": ""
+                },
+                {
+                  "text": "In 'The Tempest', she is Prospero's daughter",
+                  "response": "Miranda",
+                  "accept": [],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "CHEMISTRY",
+              "note": "",
+              "clues": [
+                {
+                  "text": "NaCl is the formula for this kitchen staple",
+                  "response": "table salt",
+                  "accept": ["salt", "sodium chloride"],
+                  "notes": ""
+                },
+                {
+                  "text": "On the pH scale, it's the value of pure water at 25 degrees Celsius",
+                  "response": "7",
+                  "accept": ["seven"],
+                  "notes": ""
+                },
+                {
+                  "text": "This Russian chemist published his periodic table in 1869",
+                  "response": "Dmitri Mendeleev",
+                  "accept": ["Mendeleev"],
+                  "notes": ""
+                },
+                {
+                  "text": "This gas makes up about 78 percent of Earth's atmosphere",
+                  "response": "nitrogen",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "About 6.022 x 10^23, it's the number of particles in a mole",
+                  "response": "Avogadro's number",
+                  "accept": ["Avogadro's constant"],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "WORLD HISTORY",
+              "note": "",
+              "clues": [
+                {
+                  "text": "This barrier dividing a German city fell in November 1989",
+                  "response": "the Berlin Wall",
+                  "accept": ["Berlin Wall"],
+                  "notes": ""
+                },
+                {
+                  "text": "Magna Carta was sealed by this English king in 1215",
+                  "response": "King John",
+                  "accept": ["John"],
+                  "notes": ""
+                },
+                {
+                  "text": "This Mongol leader founded what became the largest contiguous land empire in history",
+                  "response": "Genghis Khan",
+                  "accept": ["Chinggis Khan", "Temujin"],
+                  "notes": ""
+                },
+                {
+                  "text": "The Rosetta Stone was found in 1799 during this general's campaign in Egypt",
+                  "response": "Napoleon Bonaparte",
+                  "accept": ["Napoleon"],
+                  "notes": ""
+                },
+                {
+                  "text": "Its capital, Tenochtitlan, stood on an island in Lake Texcoco",
+                  "response": "the Aztec Empire",
+                  "accept": ["the Aztecs", "the Mexica"],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "ASTRONOMY",
+              "note": "",
+              "clues": [
+                {
+                  "text": "It's called the Red Planet",
+                  "response": "Mars",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "It's the largest planet in our solar system",
+                  "response": "Jupiter",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "It's the name of the galaxy that contains our solar system",
+                  "response": "the Milky Way",
+                  "accept": ["Milky Way"],
+                  "notes": ""
+                },
+                {
+                  "text": "About 4.2 light-years away, it's the nearest known star to the Sun",
+                  "response": "Proxima Centauri",
+                  "accept": ["Proxima"],
+                  "notes": ""
+                },
+                {
+                  "text": "This dwarf planet is the largest object in the asteroid belt",
+                  "response": "Ceres",
+                  "accept": [],
+                  "notes": ""
+                }
+              ]
+            },
+            {
+              "title": "OPERA",
+              "note": "",
+              "clues": [
+                {
+                  "text": "He composed 'The Magic Flute' and 'Don Giovanni'",
+                  "response": "Wolfgang Amadeus Mozart",
+                  "accept": ["Mozart"],
+                  "notes": ""
+                },
+                {
+                  "text": "Bizet's opera named for a cigarette factory worker in Seville",
+                  "response": "Carmen",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Puccini's opera about struggling young artists in Paris's Latin Quarter",
+                  "response": "La Boheme",
+                  "accept": [],
+                  "notes": ""
+                },
+                {
+                  "text": "Wagner's cycle of four operas, it begins with 'Das Rheingold'",
+                  "response": "The Ring of the Nibelung",
+                  "accept": ["the Ring cycle", "Der Ring des Nibelungen"],
+                  "notes": ""
+                },
+                {
+                  "text": "Verdi's opera set in ancient Egypt premiered in Cairo in 1871",
+                  "response": "Aida",
+                  "accept": [],
+                  "notes": ""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "final",
+          "category": "ISLANDS",
+          "note": "",
+          "clue": {
+            "text": "The world's largest island that isn't a continent, it's an autonomous territory within the Kingdom of Denmark",
+            "response": "Greenland",
+            "accept": ["Kalaallit Nunaat"],
+            "notes": ""
+          }
+        }
+      ],
+      "tiebreakers": [
+        {
+          "category": "ELEMENTS",
+          "clue": {
+            "text": "By mass, it's the most abundant element in Earth's crust",
+            "response": "oxygen",
+            "accept": [],
+            "notes": ""
+          }
+        },
+        {
+          "category": "LANGUAGES",
+          "clue": {
+            "text": "By number of native speakers, it's the most spoken language in the world",
+            "response": "Mandarin Chinese",
+            "accept": ["Mandarin", "Chinese"],
+            "notes": ""
+          }
+        }
+      ]
+    }
+  ]
+}

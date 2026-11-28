@@ -148,6 +148,42 @@ export default defineConfig([
   },
 
   {
+    // The quiz's page scripts, served as-is by tools/serve — plain browser
+    // JavaScript, no bundler, same reasoning as the editor's.
+    files: ['tools/serve/src/quiz/static/**/*.js'],
+    languageOptions: {
+      globals: {
+        document: 'readonly',
+        window: 'readonly',
+        navigator: 'readonly',
+        location: 'readonly',
+        history: 'readonly',
+        fetch: 'readonly',
+        crypto: 'readonly',
+        localStorage: 'readonly',
+        performance: 'readonly',
+        requestAnimationFrame: 'readonly',
+        queueMicrotask: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        WebSocket: 'readonly',
+        Node: 'readonly',
+        CSS: 'readonly',
+        Blob: 'readonly',
+        URL: 'readonly',
+        FormData: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLTextAreaElement: 'readonly',
+        SpeechSynthesisUtterance: 'readonly',
+        speechSynthesis: 'readonly',
+        confirm: 'readonly',
+        prompt: 'readonly',
+      },
+    },
+  },
+
+  {
     // grid-layout.js is inlined into pages as text (GridLayout.astro), so
     // it's plain browser JavaScript with no bundler in between.
     files: ['site/src/**/*.js'],

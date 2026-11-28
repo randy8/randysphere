@@ -1,0 +1,20 @@
+{
+  "name": "Studio",
+  "description": "A darker evening set: violet board, warm values, a different vocabulary.",
+  "terms": {
+    "game": "Night Board",
+    "rounds": ["Opening Board", "Big Board", "Third Board", "Fourth Board"],
+    "final": "Last Call",
+    "wager": "Stake",
+    "wagerClue": "Jackpot",
+    "tiebreak": "Shootout",
+    "currency": "",
+    "roundEnd": "Board closed",
+    "winner": "Winner",
+    "noWinner": "No winner tonight",
+    "boardControl": "You pick",
+    "buzz": "Go"
+  },
+  "audio": {},
+  "narration": { "rate": 1.05 }
+}

@@ -59,6 +59,8 @@ Thumbs.db
 /private/disc/
 /private/disc-backups/
 /private/disc-replaced-*/
+# The quiz: its library, live rooms, results, your themes and media (docs/quiz.md).
+/private/quiz/
 
 # Cache of each original's SHA-256 by size+mtime, so an ingest with nothing
 # new skips reading every original (see tools/pipeline/src/source-hashes.ts).

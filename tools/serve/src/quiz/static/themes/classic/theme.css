@@ -1,0 +1,67 @@
+/*
+ * Classic: a traditional television quiz board. Every visual decision a
+ * theme can make is a variable here; quiz.css uses only these. A theme is
+ * a directory with theme.css and theme.json (words, audio files) — either
+ * in this repository's static/themes/ or, for files you may not
+ * redistribute, in private/quiz/themes/<name>/.
+ */
+
+@font-face {
+  font-family: 'Quiz Serif';
+  src: url('/quiz/static/fonts/newsreader-variable.woff2') format('woff2');
+  font-weight: 200 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Quiz Condensed';
+  src: url('/quiz/static/fonts/oswald-variable.woff2') format('woff2');
+  font-weight: 200 700;
+  font-display: swap;
+}
+
+:root {
+  --q-blue: #060ce9;
+  --q-blue-deep: #0309a6;
+  --q-blue-dark: #02066f;
+  --q-gold: #ffcc4a;
+  --q-gold-deep: #d69f20;
+  --q-white: #ffffff;
+  --q-black: #000000;
+  --q-red: #ff4b4b;
+  --q-green: #45d483;
+  --q-signal: #fffbe6;
+
+  --font-clue: 'Quiz Serif', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-clue-weight: 640;
+  --font-category: 'Quiz Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+  --font-category-weight: 600;
+  --font-value: 'Quiz Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+  --font-value-weight: 700;
+  --font-name: 'Segoe Print', 'Bradley Hand', 'Comic Neue', 'Chalkboard SE', cursive;
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --board-bg: var(--q-blue);
+  --board-gap: var(--q-black);
+  --board-gap-size: 10px;
+  --tile-bg: var(--q-blue);
+  --tile-played: var(--q-blue);
+  --value-color: var(--q-gold);
+  --category-color: var(--q-white);
+  --clue-color: var(--q-white);
+  --clue-shadow: 4px 4px 0 rgba(0, 0, 0, 0.85);
+  --text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.85);
+  --response-color: var(--q-gold);
+  --stage-bg: var(--q-black);
+  --podium-bg: #13183d;
+  --podium-face: var(--q-blue-deep);
+  --podium-name-bg: var(--q-blue-dark);
+  --score-color: var(--q-white);
+  --negative-color: var(--q-red);
+  --light-off: #2b2f52;
+  --light-on: var(--q-signal);
+  --signal-off: rgba(255, 255, 255, 0.06);
+  --signal-on: var(--q-signal);
+  --wager-bg: var(--q-blue);
+  --wager-color: var(--q-gold);
+  --card-bg: var(--q-blue);
+}

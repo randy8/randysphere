@@ -3,11 +3,13 @@ import { readFile, stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 import { extname, join } from 'node:path';
+import type { Duplex } from 'node:stream';
 
 import { clearSessionCookie, readSessionCookie, setSessionCookie } from './cookies.ts';
 import { loadNotes } from './notes.ts';
 import { checkHealth } from './health.ts';
 import type { FamilyChat } from './family/routes.ts';
+import type { Quiz } from './quiz/quiz.ts';
 import { readStatus, renderSystem } from './system.ts';
 import { loadServices, mayViewInfra, probe, renderInfra } from './infra.ts';
 import type { WhoisLookup } from './infra.ts';
@@ -47,6 +49,8 @@ export interface ServeConfig {
   readonly whois: WhoisLookup;
   /** The chats — the family's at /family/, Disc at /disc/ (family/routes.ts); none in a test. */
   readonly chats: readonly FamilyChat[];
+  /** The quiz at /quiz/ and its WebSocket at /quiz/ws (quiz/quiz.ts); none in most tests. */
+  readonly quiz?: Quiz | null;
 }
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
@@ -369,6 +373,9 @@ async function route(
   // falls through to static files (family/routes.ts).
   for (const chat of config.chats) if (await chat.handle(req, res, url)) return;
 
+  // The quiz likewise answers for all of /quiz itself (quiz/quiz.ts).
+  if (config.quiz && (await config.quiz.handle(req, res, url))) return;
+
   // Readiness, for the deploy's candidate check and the watchdog: 200 when
   // this process can serve the site (health.ts), 503 with what's missing
   // otherwise. Never cached — Cloudflare included.
@@ -638,8 +645,44 @@ function handleRequest(
 export function createPrivateSiteServer(config: ServeConfig): Server {
   // One per server, so failed logins are counted for this process alone.
   const limiter = new LoginLimiter();
-  return createServer((req, res) => {
+  const server = createServer((req, res) => {
     for (const [name, value] of Object.entries(SECURITY_HEADERS)) res.setHeader(name, value);
     handleRequest(config, limiter, req, res);
   });
+  // WebSocket upgrades: the quiz's /quiz/ws, and nothing else.
+  server.on('upgrade', (req: IncomingMessage, socket: Duplex, head: Buffer) => {
+    if (config.quiz?.upgrade(req, socket, head)) return;
+    socket.write('HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n');
+    socket.destroy();
+  });
+  return server;
+}
+
+/**
+ * The quiz alone, for a direct LAN listener (docs/quiz.md, "Playing on
+ * the LAN"): phones in the room reach this machine without the trip
+ * through Cloudflare. Everything that isn't /quiz is a 404 here, so
+ * turning it on exposes nothing else of the site to the local network.
+ */
+export function createQuizOnlyServer(quiz: Quiz): Server {
+  const server = createServer((req, res) => {
+    for (const [name, value] of Object.entries(SECURITY_HEADERS)) res.setHeader(name, value);
+    // Plain HTTP on the LAN: no HSTS.
+    res.removeHeader('strict-transport-security');
+    const url = new URL(req.url ?? '/', 'http://localhost');
+    quiz
+      .handle(req, res, url)
+      .then((handled) => {
+        if (!handled) sendText(res, 404, 'Not found');
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+        sendText(res, 500, 'Internal error');
+      });
+  });
+  server.on('upgrade', (req: IncomingMessage, socket: Duplex, head: Buffer) => {
+    if (quiz.upgrade(req, socket, head)) return;
+    socket.destroy();
+  });
+  return server;
 }

@@ -1,0 +1,20 @@
+{
+  "name": "Classic",
+  "description": "Deep blue board, gold values, condensed headings, serif clues.",
+  "terms": {
+    "game": "Quiz Night",
+    "rounds": ["First Round", "Second Round", "Third Round", "Fourth Round"],
+    "final": "Final Round",
+    "wager": "Wager",
+    "wagerClue": "Wager Clue",
+    "tiebreak": "Sudden Death",
+    "currency": "$",
+    "roundEnd": "End of the round",
+    "winner": "Champion",
+    "noWinner": "No champion today",
+    "boardControl": "Your board",
+    "buzz": "Buzz"
+  },
+  "audio": {},
+  "narration": { "rate": 1 }
+}
