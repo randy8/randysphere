@@ -76,7 +76,7 @@ class Client {
   private n = 0;
 
   constructor(h: Harness, code: string, token: string) {
-    this.ws = new WebSocket(`${h.base.replace('http', 'ws')}/quiz/ws`, {
+    this.ws = new WebSocket(`${h.base.replace('http', 'ws')}/trivia/ws`, {
       headers: { origin: h.base },
     });
     this.ws.on('open', () => this.ws.send(JSON.stringify({ type: 'hello', code, token })));
@@ -139,7 +139,7 @@ class Client {
 }
 
 async function hostedGame(h: Harness, settings: Record<string, unknown> = {}) {
-  const created = await post(h, '/quiz/api/rooms', {
+  const created = await post(h, '/trivia/api/rooms', {
     source: { type: 'episode', id: 1 },
     settings,
   });
@@ -149,12 +149,12 @@ async function hostedGame(h: Harness, settings: Record<string, unknown> = {}) {
   await host.until(() => host.view, 'host state');
   const players: Client[] = [];
   for (const name of ['Ada', 'Grace', 'Alan']) {
-    const joined = await post(h, `/quiz/api/rooms/${code}/join`, { name });
+    const joined = await post(h, `/trivia/api/rooms/${code}/join`, { name });
     assert.equal(joined.status, 201);
     players.push(new Client(h, code, String(joined.json['token'])));
   }
   for (const player of players) await player.until(() => player.view, 'player state');
-  const watch = await post(h, `/quiz/api/rooms/${code}/watch`);
+  const watch = await post(h, `/trivia/api/rooms/${code}/watch`);
   const display = new Client(h, code, String(watch.json['token']));
   await display.until(() => display.view, 'display state');
   return { code, host, players, display, hostToken: String(created.json['token']) };
@@ -186,7 +186,7 @@ test('a room code alone admits nobody; a token admits exactly its role', async (
   const stranger = new Client(h, code, 'x'.repeat(32));
   await stranger.until(() => stranger.closed, 'close');
   assert.equal(stranger.closed?.code, 4003);
-  const crossSite = new WebSocket(`${h.base.replace('http', 'ws')}/quiz/ws`, {
+  const crossSite = new WebSocket(`${h.base.replace('http', 'ws')}/trivia/ws`, {
     headers: { origin: 'https://evil.example' },
   });
   const refused = await new Promise<string>((resolve) => {
@@ -351,10 +351,10 @@ test('a resent message is applied once', async () => {
 
 test('disconnects: a player and the host reconnect into their own seats', async () => {
   const h = await start();
-  const created = await post(h, '/quiz/api/rooms', { source: { type: 'random' } });
+  const created = await post(h, '/trivia/api/rooms', { source: { type: 'random' } });
   const code = String(created.json['code']);
   const host = new Client(h, code, String(created.json['token']));
-  const joined = await post(h, `/quiz/api/rooms/${code}/join`, { name: 'Ada' });
+  const joined = await post(h, `/trivia/api/rooms/${code}/join`, { name: 'Ada' });
   const token = String(joined.json['token']);
   let player = new Client(h, code, token);
   await player.until(() => player.view);
@@ -397,7 +397,7 @@ test('a server restart: the game comes back paused, from its snapshot, and resum
   await host.must({ type: 'select', ...ordinaryCell(host) });
   await host.must({ type: 'open' });
   const open = await host.phase('open');
-  const playerToken = (await post(h, `/quiz/api/rooms/${code}/watch`)).json['token'];
+  const playerToken = (await post(h, `/trivia/api/rooms/${code}/watch`)).json['token'];
   assert.ok(playerToken);
   for (const client of [host, ...players]) client.close();
   await stop(h);
@@ -420,7 +420,7 @@ test('a server restart: the game comes back paused, from its snapshot, and resum
 test('one authority: a second process sharing the database refuses a room the first one holds', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'quiz-lease-'));
   const a = await start(dir);
-  const created = await post(a, '/quiz/api/rooms', { source: { type: 'random' } });
+  const created = await post(a, '/trivia/api/rooms', { source: { type: 'random' } });
   const b = await start(dir);
   const intruder = new Client(b, String(created.json['code']), String(created.json['token']));
   await intruder.until(() => intruder.closed, 'refusal');
@@ -494,17 +494,17 @@ test('a hardware device presses for a podium; the host sees diagnostics', async 
 
 test('rate limits and limits on players', async () => {
   const h = await start(undefined, { rooms: 2, joins: 50, boards: 1 });
-  assert.equal((await post(h, '/quiz/api/rooms', { source: { type: 'random' } })).status, 201);
-  const second = await post(h, '/quiz/api/rooms', { source: { type: 'random' } });
-  assert.equal((await post(h, '/quiz/api/rooms', { source: { type: 'random' } })).status, 429);
+  assert.equal((await post(h, '/trivia/api/rooms', { source: { type: 'random' } })).status, 201);
+  const second = await post(h, '/trivia/api/rooms', { source: { type: 'random' } });
+  assert.equal((await post(h, '/trivia/api/rooms', { source: { type: 'random' } })).status, 429);
   const code = String(second.json['code']);
   for (const name of ['A', 'B', 'C'])
-    assert.equal((await post(h, `/quiz/api/rooms/${code}/join`, { name })).status, 201);
-  const fourth = await post(h, `/quiz/api/rooms/${code}/join`, { name: 'D' });
+    assert.equal((await post(h, `/trivia/api/rooms/${code}/join`, { name })).status, 201);
+  const fourth = await post(h, `/trivia/api/rooms/${code}/join`, { name: 'D' });
   assert.equal(fourth.status, 409);
-  assert.equal((await post(h, '/quiz/api/boards')).status, 201);
-  assert.equal((await post(h, '/quiz/api/boards')).status, 429);
-  const form = await fetch(`${h.base}/quiz/api/rooms/${code}/join`, {
+  assert.equal((await post(h, '/trivia/api/boards')).status, 201);
+  assert.equal((await post(h, '/trivia/api/boards')).status, 429);
+  const form = await fetch(`${h.base}/trivia/api/rooms/${code}/join`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: 'a=b',
@@ -514,18 +514,18 @@ test('rate limits and limits on players', async () => {
 
 test('editor: a board belongs to its key; drafts save; an incomplete board cannot be hosted', async () => {
   const h = await start();
-  const created = await post(h, '/quiz/api/boards');
+  const created = await post(h, '/trivia/api/boards');
   const id = Number(created.json['id']);
   const key = String(created.json['key']);
-  const wrong = await fetch(`${h.base}/quiz/api/boards/${String(id)}`, {
+  const wrong = await fetch(`${h.base}/trivia/api/boards/${String(id)}`, {
     headers: { 'x-edit-key': 'nope' },
   });
   assert.equal(wrong.status, 404);
   const got = (await (
-    await fetch(`${h.base}/quiz/api/boards/${String(id)}`, { headers: { 'x-edit-key': key } })
+    await fetch(`${h.base}/trivia/api/boards/${String(id)}`, { headers: { 'x-edit-key': key } })
   ).json()) as { game: Record<string, unknown>; playable: string | null };
   assert.match(got.playable ?? '', /no clues/);
-  const notReady = await post(h, '/quiz/api/rooms', { source: { type: 'board', id, key } });
+  const notReady = await post(h, '/trivia/api/rooms', { source: { type: 'board', id, key } });
   assert.equal(notReady.status, 400);
   const game = got.game as {
     rounds: {
@@ -550,16 +550,16 @@ test('editor: a board belongs to its key; drafts save; an incomplete board canno
     }
   }
   game.tiebreakers = [];
-  const put = await fetch(`${h.base}/quiz/api/boards/${String(id)}`, {
+  const put = await fetch(`${h.base}/trivia/api/boards/${String(id)}`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json', 'x-edit-key': key },
     body: JSON.stringify(game),
   });
   assert.equal(((await put.json()) as { playable: string | null }).playable, null);
-  const hosted = await post(h, '/quiz/api/rooms', { source: { type: 'board', id, key } });
+  const hosted = await post(h, '/trivia/api/rooms', { source: { type: 'board', id, key } });
   assert.equal(hosted.status, 201);
   // Custom boards are never in the public library.
-  const library = (await (await fetch(`${h.base}/quiz/api/library`)).json()) as {
+  const library = (await (await fetch(`${h.base}/trivia/api/library`)).json()) as {
     episodes: { id: number }[];
   };
   assert.equal(
@@ -570,7 +570,7 @@ test('editor: a board belongs to its key; drafts save; an incomplete board canno
 
 test('single player: typed responses are judged, and the player may overrule', async () => {
   const h = await start();
-  const created = await post(h, '/quiz/api/solo', {
+  const created = await post(h, '/trivia/api/solo', {
     source: { type: 'episode', id: 1 },
     name: 'Solo',
   });
@@ -605,7 +605,23 @@ test('LAN listener: nothing but the quiz', async () => {
   const h = await start();
   assert.equal((await fetch(`${h.base}/exposures/`)).status, 404);
   assert.equal((await fetch(`${h.base}/private`)).status, 404);
-  const page = await fetch(`${h.base}/quiz/`);
+  const page = await fetch(`${h.base}/trivia/`);
   assert.equal(page.status, 200);
   assert.match(page.headers.get('content-security-policy') ?? '', /script-src 'self'/);
+});
+
+test('the old /quiz/ address redirects to /trivia/, method, path and query kept', async () => {
+  const h = await start();
+  const page = await fetch(`${h.base}/quiz/host/ABCD?x=1`, { redirect: 'manual' });
+  assert.equal(page.status, 308);
+  assert.equal(page.headers.get('location'), '/trivia/host/ABCD?x=1');
+  const bare = await fetch(`${h.base}/quiz`, { redirect: 'manual' });
+  assert.equal(bare.headers.get('location'), '/trivia');
+  const created = await fetch(`${h.base}/quiz/api/boards`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: '{}',
+  });
+  assert.equal(created.status, 201);
+  assert.equal((await fetch(`${h.base}/quizzes/`)).status, 404);
 });

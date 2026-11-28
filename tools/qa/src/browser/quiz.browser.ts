@@ -88,12 +88,12 @@ browserTest(
     const contexts: BrowserContext[] = [];
     try {
       // ---- Setup: the host chooses an episode and a short final.
-      await host.goto(`${origin}/quiz/host/`);
+      await host.goto(`${origin}/trivia/host/`);
       await host.getByText('Demonstration Game One').click();
       await host.locator('summary', { hasText: 'Rules' }).click();
       await host.fill('input[name=finalSeconds]', '20');
       await host.getByRole('button', { name: 'Create the game' }).click();
-      await host.waitForURL(/\/quiz\/host\/[A-Z]{4}$/);
+      await host.waitForURL(/\/trivia\/host\/[A-Z]{4}$/);
       const code = /host\/([A-Z]{4})/.exec(host.url())?.[1] ?? '';
       assert.equal(host.url().includes('#'), false, 'the credential leaves the address bar');
 
@@ -101,7 +101,7 @@ browserTest(
       const tvContext = await browser.newContext(TV);
       contexts.push(tvContext);
       const tv = await tvContext.newPage();
-      await tv.goto(`${origin}/quiz/display/${code}`);
+      await tv.goto(`${origin}/trivia/display/${code}`);
       await tv.locator('.display-start').click();
       await tv.locator('.lobby-code', { hasText: code }).waitFor();
 
@@ -111,10 +111,10 @@ browserTest(
         const phoneContext = await browser.newContext(PHONE);
         contexts.push(phoneContext);
         const phone = await phoneContext.newPage();
-        await phone.goto(`${origin}/quiz/join/${code}`);
+        await phone.goto(`${origin}/trivia/join/${code}`);
         await phone.fill('input[name=name]', name);
         await phone.getByRole('button', { name: 'Join' }).click();
-        await phone.waitForURL(`${origin}/quiz/play/${code}`);
+        await phone.waitForURL(`${origin}/trivia/play/${code}`);
         await phone
           .locator('.play-name', { hasText: name.toUpperCase() })
           .or(phone.locator('.play-name', { hasText: name }))
@@ -301,9 +301,9 @@ browserTest(
 );
 
 browserTest('the editor: write a game, see what is missing, host it', async ({ page }) => {
-  await page.goto(`${origin}/quiz/edit/`);
+  await page.goto(`${origin}/trivia/edit/`);
   await page.getByRole('button', { name: 'New game' }).click();
-  await page.waitForURL(/\/quiz\/edit\/\d+#/);
+  await page.waitForURL(/\/trivia\/edit\/\d+#/);
   await page.locator('.edit-ready.no').waitFor();
   await page.locator('.edit-title').fill('Kitchen Table');
   // One category with one clue, in a one-round game.

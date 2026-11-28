@@ -23,7 +23,7 @@ const code = page().code;
 const app = document.getElementById('app');
 const token = takeToken(code, 'player');
 
-if (!token) location.replace('/quiz/solo/');
+if (!token) location.replace('/trivia/solo/');
 else run();
 
 function run() {
@@ -160,7 +160,7 @@ function run() {
       );
     }
     if (p === 'game_over')
-      result.append(el('a', { href: '/quiz/solo/', class: 'button' }, 'Play again'));
+      result.append(el('a', { href: '/trivia/solo/', class: 'button' }, 'Play again'));
   }
 
   // Choosing a clue on the stage's board.

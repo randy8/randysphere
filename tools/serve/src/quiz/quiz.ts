@@ -1,7 +1,7 @@
 /**
- * /quiz — an original television-style quiz game: rooms, roles, the
+ * /trivia — an original television-style quiz game: rooms, roles, the
  * buzzer, the editor, the catalog. Mounted by tools/serve beside the chats
- * and answers only for its own path; its WebSocket endpoint is /quiz/ws.
+ * and answers only for its own path; its WebSocket endpoint is /trivia/ws.
  * Nothing here reads anything but private/quiz/ (its database, media and
  * themes) and its own static files.
  *
@@ -406,10 +406,12 @@ export class Quiz {
   // -------------------------------------------------------------------------
   // WebSocket
 
-  /** Takes over an HTTP upgrade for /quiz/ws; false for anything else. */
+  /** Takes over an HTTP upgrade for /trivia/ws; false for anything else. */
   upgrade(req: IncomingMessage, socket: Duplex, head: Buffer): boolean {
     const url = new URL(req.url ?? '/', 'http://localhost');
-    if (url.pathname !== '/quiz/ws') return false;
+    // /quiz/ws is the address before the move to /trivia/ (2026-11-28): a
+    // page loaded before then still reconnects.
+    if (url.pathname !== '/trivia/ws' && url.pathname !== '/quiz/ws') return false;
     // Same-origin only. Tokens travel in messages, not cookies, so this
     // isn't what keeps a room safe — it keeps other sites from using the
     // endpoint at all.
@@ -506,11 +508,11 @@ export class Quiz {
           code: room.code,
           mode: room.mode,
           theme: room.theme,
-          joinUrl: `${origin}/quiz/join/${room.code}`,
+          joinUrl: `${origin}/trivia/join/${room.code}`,
           lanJoinUrl: this.config.lanOrigin
-            ? `${this.config.lanOrigin}/quiz/join/${room.code}`
+            ? `${this.config.lanOrigin}/trivia/join/${room.code}`
             : null,
-          displayUrl: `${origin}/quiz/display/${room.code}`,
+          displayUrl: `${origin}/trivia/display/${room.code}`,
         });
         room.attach(connection);
         return;
@@ -518,7 +520,7 @@ export class Quiz {
       bound.room.handle(
         bound.connection,
         message,
-        (kind, token) => `${origin}/quiz/${kind}/${bound?.room.code ?? ''}#${token}`,
+        (kind, token) => `${origin}/trivia/${kind}/${bound?.room.code ?? ''}#${token}`,
       );
     });
     ws.on('close', () => {
@@ -533,7 +535,15 @@ export class Quiz {
 
   async handle(req: IncomingMessage, res: ServerResponse, url: URL): Promise<boolean> {
     const { pathname } = url;
-    if (pathname !== '/quiz' && !pathname.startsWith('/quiz/')) return false;
+    // The game lived at /quiz/ until 2026-11-28; its links (and any media
+    // address written into a game) keep working. 308 keeps the method and
+    // body; a browser carries the #token fragment across on its own.
+    if (pathname === '/quiz' || pathname.startsWith('/quiz/')) {
+      res.writeHead(308, { location: `/trivia${pathname.slice('/quiz'.length)}${url.search}` });
+      res.end();
+      return true;
+    }
+    if (pathname !== '/trivia' && !pathname.startsWith('/trivia/')) return false;
     try {
       await this.route(req, res, url);
     } catch (error) {
@@ -559,46 +569,46 @@ export class Quiz {
     const client = clientAddress(req);
     let match: RegExpMatchArray | null = null;
 
-    if (pathname === '/quiz') {
-      res.writeHead(301, { location: '/quiz/' });
+    if (pathname === '/trivia') {
+      res.writeHead(301, { location: '/trivia/' });
       res.end();
       return;
     }
-    if (get && pathname === '/quiz/') return this.page(res, 'home');
-    if (get && pathname === '/quiz/host/') return this.page(res, 'setup');
-    if (get && (match = pathname.match(/^\/quiz\/(host|play|display|solo)\/([A-Z]{4})$/))) {
+    if (get && pathname === '/trivia/') return this.page(res, 'home');
+    if (get && pathname === '/trivia/host/') return this.page(res, 'setup');
+    if (get && (match = pathname.match(/^\/trivia\/(host|play|display|solo)\/([A-Z]{4})$/))) {
       return this.page(res, match[1] as PageName, { code: match[2] ?? '' });
     }
     if (
       get &&
-      (pathname === '/quiz/join/' || (match = pathname.match(/^\/quiz\/join\/([A-Z]{4})$/)))
+      (pathname === '/trivia/join/' || (match = pathname.match(/^\/trivia\/join\/([A-Z]{4})$/)))
     ) {
       return this.page(res, 'join', { code: match?.[1] ?? '' });
     }
-    if (get && pathname === '/quiz/solo/') return this.page(res, 'solosetup');
-    if (get && pathname === '/quiz/practice/') return this.page(res, 'practice');
-    if (get && pathname === '/quiz/edit/') return this.page(res, 'boards');
-    if (get && (match = pathname.match(/^\/quiz\/edit\/(\d{1,9})$/)))
+    if (get && pathname === '/trivia/solo/') return this.page(res, 'solosetup');
+    if (get && pathname === '/trivia/practice/') return this.page(res, 'practice');
+    if (get && pathname === '/trivia/edit/') return this.page(res, 'boards');
+    if (get && (match = pathname.match(/^\/trivia\/edit\/(\d{1,9})$/)))
       return this.page(res, 'edit', { board: match[1] ?? '' });
 
-    if (get && pathname.startsWith('/quiz/static/'))
+    if (get && pathname.startsWith('/trivia/static/'))
       return this.file(
         req,
         res,
         STATIC_DIR,
-        pathname.slice('/quiz/static/'.length),
+        pathname.slice('/trivia/static/'.length),
         'public, max-age=300',
       );
     if (
       get &&
-      (match = pathname.match(/^\/quiz\/themes\/([a-z0-9-]{1,40})\/([A-Za-z0-9._-]{1,80})$/))
+      (match = pathname.match(/^\/trivia\/themes\/([a-z0-9-]{1,40})\/([A-Za-z0-9._-]{1,80})$/))
     ) {
       const [, theme = '', file = ''] = match;
       const own = join(STATIC_DIR, 'themes', theme);
       const dir = existsSync(join(own, file)) ? own : join(this.config.dataDir, 'themes', theme);
       return this.file(req, res, dir, file, 'public, max-age=300');
     }
-    if (get && (match = pathname.match(/^\/quiz\/media\/([A-Za-z0-9._-]{1,120})$/))) {
+    if (get && (match = pathname.match(/^\/trivia\/media\/([A-Za-z0-9._-]{1,120})$/))) {
       return this.file(
         req,
         res,
@@ -609,19 +619,19 @@ export class Quiz {
     }
 
     // ---- API
-    if (get && pathname === '/quiz/api/library') {
+    if (get && pathname === '/trivia/api/library') {
       return sendJson(res, 200, {
         episodes: listEpisodes(this.db, { listed: true }),
         themes: this.themes(),
         lan: this.config.lanOrigin ?? null,
       });
     }
-    if (get && pathname === '/quiz/api/health') {
+    if (get && pathname === '/trivia/api/health') {
       let connections = 0;
       for (const room of this.rooms.values()) connections += room.connections.size;
       return sendJson(res, 200, { ok: true, rooms: this.rooms.size, connections });
     }
-    if (method === 'POST' && pathname === '/quiz/api/rooms') {
+    if (method === 'POST' && pathname === '/trivia/api/rooms') {
       if (!this.roomLimit.allow(client))
         throw new HttpError(429, 'too many games started from here; try again later');
       const body = await readJson(req);
@@ -636,10 +646,10 @@ export class Quiz {
       return sendJson(res, 201, {
         code: room.code,
         token,
-        url: `/quiz/host/${room.code}#${token}`,
+        url: `/trivia/host/${room.code}#${token}`,
       });
     }
-    if (method === 'POST' && pathname === '/quiz/api/solo') {
+    if (method === 'POST' && pathname === '/trivia/api/solo') {
       if (!this.roomLimit.allow(client))
         throw new HttpError(429, 'too many games started from here; try again later');
       const body = await readJson(req);
@@ -659,10 +669,10 @@ export class Quiz {
       return sendJson(res, 201, {
         code: room.code,
         token: joined.token,
-        url: `/quiz/solo/${room.code}#${joined.token}`,
+        url: `/trivia/solo/${room.code}#${joined.token}`,
       });
     }
-    if ((match = pathname.match(/^\/quiz\/api\/rooms\/([A-Z]{4})(\/[a-z.]+)?$/))) {
+    if ((match = pathname.match(/^\/trivia\/api\/rooms\/([A-Z]{4})(\/[a-z.]+)?$/))) {
       const code = match[1] ?? '';
       const action = match[2] ?? '';
       const room = this.room(code);
@@ -687,7 +697,7 @@ export class Quiz {
         return sendJson(res, 201, {
           token: joined.token,
           playerId: joined.playerId,
-          url: `/quiz/play/${code}#${joined.token}`,
+          url: `/trivia/play/${code}#${joined.token}`,
         });
       }
       if (method === 'POST' && action === '/watch') {
@@ -704,12 +714,12 @@ export class Quiz {
           'content-type': 'image/svg+xml',
           'cache-control': 'private, max-age=300',
         });
-        res.end(toSvg(encode(`${base}/quiz/join/${code}`, 'M')));
+        res.end(toSvg(encode(`${base}/trivia/join/${code}`, 'M')));
         return;
       }
       throw new HttpError(404, 'not found');
     }
-    if (get && pathname === '/quiz/api/practice') {
+    if (get && pathname === '/trivia/api/practice') {
       const clue = practiceClue(
         this.db,
         Math.random,
@@ -718,7 +728,7 @@ export class Quiz {
       if (!clue) throw new HttpError(404, 'no clues match');
       return sendJson(res, 200, clue);
     }
-    if (method === 'POST' && pathname === '/quiz/api/practice/check') {
+    if (method === 'POST' && pathname === '/trivia/api/practice/check') {
       const body = await readJson(req);
       const id = isObj(body) && typeof body['id'] === 'number' ? body['id'] : NaN;
       const given =
@@ -732,7 +742,7 @@ export class Quiz {
     }
 
     // ---- The editor: a board belongs to whoever holds its key.
-    if (method === 'POST' && pathname === '/quiz/api/boards') {
+    if (method === 'POST' && pathname === '/trivia/api/boards') {
       if (!this.boardLimit.allow(client))
         throw new HttpError(429, 'too many new boards from here; try again later');
       const body = await readJson(req, MAX_BOARD_BYTES);
@@ -743,9 +753,9 @@ export class Quiz {
       const key = randomBytes(24).toString('base64url');
       const id = createCustom(this.db, file.game, key);
       this.log('quiz_board_created', { board: id });
-      return sendJson(res, 201, { id, key, url: `/quiz/edit/${String(id)}#${key}` });
+      return sendJson(res, 201, { id, key, url: `/trivia/edit/${String(id)}#${key}` });
     }
-    if ((match = pathname.match(/^\/quiz\/api\/boards\/(\d{1,9})$/))) {
+    if ((match = pathname.match(/^\/trivia\/api\/boards\/(\d{1,9})$/))) {
       const id = Number(match[1]);
       const key = req.headers['x-edit-key'];
       if (typeof key !== 'string' || !keyMatches(this.db, id, key))
@@ -769,7 +779,7 @@ export class Quiz {
         return sendJson(res, 200, { ok: true });
       }
     }
-    if (get && pathname.startsWith('/quiz/')) throw new HttpError(404, 'not found');
+    if (get && pathname.startsWith('/trivia/')) throw new HttpError(404, 'not found');
     throw new HttpError(405, 'method not allowed');
   }
 

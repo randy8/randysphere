@@ -6,7 +6,7 @@ const app = document.getElementById('app');
 await loadTheme('classic');
 let library = { episodes: [] };
 try {
-  library = await api('/quiz/api/library');
+  library = await api('/trivia/api/library');
 } catch {
   // An empty list.
 }
@@ -45,7 +45,7 @@ form.addEventListener('submit', async (event) => {
       select.value === 'random'
         ? { type: 'random' }
         : { type: 'episode', id: Number(select.value) };
-    const created = await api('/quiz/api/solo', {
+    const created = await api('/trivia/api/solo', {
       method: 'POST',
       body: { source, name: name.value || 'Player' },
     });

@@ -7,7 +7,7 @@ await loadTheme('classic');
 
 let library = { episodes: [], themes: ['classic'] };
 try {
-  library = await api('/quiz/api/library');
+  library = await api('/trivia/api/library');
 } catch {
   // Shown below as an empty library.
 }
@@ -60,7 +60,7 @@ for (const board of myBoards())
     ),
   );
 choice.append(radio('link', 'A game from an editor link', 'Paste the link from the editor'));
-const linkInput = el('input', { type: 'url', placeholder: 'https://…/quiz/edit/123#…' });
+const linkInput = el('input', { type: 'url', placeholder: 'https://…/trivia/edit/123#…' });
 choice.append(el('div', { class: 'indent' }, linkInput));
 
 const number = (name, label, value, min, max, step = 1) =>
@@ -122,7 +122,7 @@ form.addEventListener('submit', async (event) => {
     source = { type: 'board', id: Number(id), key };
   }
   if (value === 'link') {
-    const match = linkInput.value.match(/\/quiz\/edit\/(\d+)#([A-Za-z0-9_-]{20,})/);
+    const match = linkInput.value.match(/\/(?:trivia|quiz)\/edit\/(\d+)#([A-Za-z0-9_-]{20,})/);
     if (!match) {
       error.textContent = 'That doesn’t look like an editor link.';
       return;
@@ -145,7 +145,7 @@ form.addEventListener('submit', async (event) => {
     },
   };
   try {
-    const created = await api('/quiz/api/rooms', { method: 'POST', body });
+    const created = await api('/trivia/api/rooms', { method: 'POST', body });
     location.href = created.url;
   } catch (failure) {
     error.textContent = failure.message;

@@ -212,12 +212,16 @@ export class Stage {
           ? el(
               'div',
               { class: 'lobby-join' },
-              el('img', { class: 'lobby-qr', src: `/quiz/api/rooms/${this.code}/qr.svg`, alt: '' }),
+              el('img', {
+                class: 'lobby-qr',
+                src: `/trivia/api/rooms/${this.code}/qr.svg`,
+                alt: '',
+              }),
               el(
                 'div',
                 { class: 'lobby-how' },
                 el('div', {}, 'Scan to play, or go to'),
-                el('div', { class: 'lobby-url' }, `${location.host}/quiz/join`),
+                el('div', { class: 'lobby-url' }, `${location.host}/trivia/join`),
                 el('div', {}, 'and enter'),
                 el('div', { class: 'lobby-code' }, this.code),
               ),

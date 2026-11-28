@@ -30,9 +30,9 @@ Not a collection: the **family chat** at `/family/` (`tools/serve/src/family/`,
 served by `tools/serve` alone; the Astro build knows nothing of it. The same
 code runs **Disc** at `/disc/` (`private/disc/`, `pnpm disc`), a separate
 chat with its own accounts that never links to Family (`family/chats.ts`).
-Also not a collection: the **quiz** at `/quiz/` (`tools/serve/src/quiz/`,
+Also not a collection: the **quiz** at `/trivia/` (`tools/serve/src/quiz/`,
 `docs/quiz.md`) — an original TV-style quiz: host console, phones as
-buzzers over WebSocket (`/quiz/ws`, the `ws` package), a TV display, an
+buzzers over WebSocket (`/trivia/ws`, the `ws` package), a TV display, an
 editor, SQLite in `private/quiz/`. Server-authoritative engine in
 `quiz/engine/` (no I/O); never recreate a specific show's name, look,
 music or episodes there (docs/decisions.md, 2026-11-28).

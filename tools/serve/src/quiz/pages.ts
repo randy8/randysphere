@@ -59,9 +59,9 @@ export function renderPage(name: PageName, data: Record<string, string> = {}): s
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#060ce9">
 <title>${escape(TITLES[name])}</title>
-<link rel="stylesheet" href="/quiz/static/quiz.css">
-<link rel="stylesheet" href="/quiz/themes/classic/theme.css" id="theme-css">
-<script type="module" src="/quiz/static/${name === 'solosetup' ? 'solo-setup' : name}.js"></script>
+<link rel="stylesheet" href="/trivia/static/quiz.css">
+<link rel="stylesheet" href="/trivia/themes/classic/theme.css" id="theme-css">
+<script type="module" src="/trivia/static/${name === 'solosetup' ? 'solo-setup' : name}.js"></script>
 </head>
 <body class="quiz quiz-${name}${STAGE.has(name) ? ' stage-page' : ''}"${attributes}>
 <noscript><p class="noscript">This game runs in the browser and needs JavaScript.</p></noscript>

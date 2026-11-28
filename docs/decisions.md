@@ -4110,3 +4110,16 @@ edit distance, plus "I was right"); Server-Sent Events for buzzes (one-way;
 every press would be a new request); mixing random clues into new
 categories (random boards draw whole categories, because a category's
 clues are written to be read together).
+
+## 2026-11-28 — Quiz: served at /trivia/ rather than /quiz/
+
+The owner asked for `/jeopardy`, then a pun on it; both declined — the
+show's name (or a near-spelling) on a page that already plays and looks
+like a television quiz turns an original game in the genre into the show
+under its own name, on a public, indexed site. `/trivia/` was chosen
+instead. Only the address moved: the code stays in `tools/serve/src/quiz/`,
+the data in `private/quiz/`, the command `pnpm quiz`. `/quiz/…` answers
+308 to the same path under `/trivia/` (method, body and query kept; the
+browser keeps the `#token` fragment), `/quiz/ws` still upgrades for a page
+loaded before the move, and a media address `/quiz/media/<file>` already
+written into a game is still accepted.

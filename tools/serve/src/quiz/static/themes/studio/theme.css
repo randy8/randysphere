@@ -1,5 +1,5 @@
 /* Studio: the same picture, different decisions — proof that a theme is only variables. */
-@import url('/quiz/themes/classic/theme.css');
+@import url('/trivia/themes/classic/theme.css');
 
 :root {
   --q-blue: #2a0d63;

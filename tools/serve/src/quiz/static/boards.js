@@ -33,7 +33,7 @@ function render() {
             {},
             el(
               'a',
-              { href: `/quiz/edit/${board.id}#${board.key}` },
+              { href: `/trivia/edit/${board.id}#${board.key}` },
               board.title || 'Untitled game',
             ),
             ' ',
@@ -57,7 +57,7 @@ function render() {
 async function create(game) {
   error.textContent = '';
   try {
-    const created = await api('/quiz/api/boards', { method: 'POST', body: game ? { game } : {} });
+    const created = await api('/trivia/api/boards', { method: 'POST', body: game ? { game } : {} });
     writeBoards([{ id: created.id, key: created.key, title: game?.title ?? '' }, ...readBoards()]);
     location.href = created.url;
   } catch (failure) {
@@ -103,12 +103,14 @@ app.append(
         class: 'row',
         onsubmit: (event) => {
           event.preventDefault();
-          const match = linkInput.value.match(/\/quiz\/edit\/(\d+)#([A-Za-z0-9_-]{20,})/);
+          const match = linkInput.value.match(
+            /\/(?:trivia|quiz)\/edit\/(\d+)#([A-Za-z0-9_-]{20,})/,
+          );
           if (!match) {
             error.textContent = 'That doesn’t look like an editor link.';
             return;
           }
-          location.href = `/quiz/edit/${match[1]}#${match[2]}`;
+          location.href = `/trivia/edit/${match[1]}#${match[2]}`;
         },
       },
       linkInput,

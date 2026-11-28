@@ -99,7 +99,7 @@ unchecked build live.) `pnpm preview` serves the local `site/dist`.
 
 ## The quiz and WebSockets
 
-`/quiz/ws` is a WebSocket on the same port (:4322). Cloudflare Tunnel
+`/trivia/ws` is a WebSocket on the same port (:4322). Cloudflare Tunnel
 carries WebSockets without configuration. A deploy that restarts the server
 tells every quiz device to reconnect, and games resume paused (docs/quiz.md,
 "Restarts and deploys"). For in-person games, `QUIZ_LAN_LISTEN=<LAN

@@ -13,13 +13,13 @@ same as the chats.
 
 ## Running a game, start to finish
 
-1. **Host:** open `/quiz/`, then **Host a game**. Pick a random board, a game
+1. **Host:** open `/trivia/`, then **Host a game**. Pick a random board, a game
    from the library, or one of your own, and press **Create the game**. You
-   land on the host console, `/quiz/host/<CODE>`. Keep that tab: its link
+   land on the host console, `/trivia/host/<CODE>`. Keep that tab: its link
    carries your host credential.
-2. **TV:** open `/quiz/display/<CODE>` on the television's browser (the host
+2. **TV:** open `/trivia/display/<CODE>` on the television's browser (the host
    console links to it). Click once for full screen and sound.
-3. **Contestants:** scan the QR code on the TV, or go to `/quiz/join` and
+3. **Contestants:** scan the QR code on the TV, or go to `/trivia/join` and
    type the code. They enter a name and get the buzzer. They don't need an
    account or an app.
 4. **Buzzer test:** press `T` on the host console. Every press flashes the
@@ -145,7 +145,7 @@ those, also press it.
 
 Set `QUIZ_LAN_LISTEN=<this machine's LAN address>:<port>` in `.env` (for
 example `192.168.1.20:4330`) and restart the server. That starts a second
-listener which serves **only** `/quiz` (everything else returns 404), so
+listener which serves **only** `/trivia` (everything else returns 404), so
 turning it on exposes nothing else of the site. The host console then shows
 a second QR code for phones on the same Wi-Fi.
 
@@ -155,8 +155,8 @@ the port in the firewall for the LAN zone only.
 
 ## Writing your own games
 
-`/quiz/edit/` → **New game**. A game you write belongs to its **edit link**
-(`/quiz/edit/<id>#<key>`). There are no accounts. Anyone with the link can
+`/trivia/edit/` → **New game**. A game you write belongs to its **edit link**
+(`/trivia/edit/<id>#<key>`). There are no accounts. Anyone with the link can
 edit or host the game, and without it nobody can. The browser remembers the
 games it made. **Copy edit link** to keep yours somewhere safe.
 
@@ -164,7 +164,7 @@ games it made. **Copy edit link** to keep yours somewhere safe.
   of wager clues to place, and the question-form rule are per round.
 - Click a cell to write its clue, correct response, alternatives (one per
   line), host notes (pronunciation, sources) and optional media: an image,
-  audio or video at an `https://` address or `/quiz/media/<file>`.
+  audio or video at an `https://` address or `/trivia/media/<file>`.
   Ctrl/⌘ + arrows move between cells.
 - **Always a wager clue here** pins a wager clue to that cell. Otherwise the
   game places them at random each time it's hosted.
@@ -267,14 +267,14 @@ page prefers categories whose title contains it.
 
 ## Single player and practice
 
-**Single player** (`/quiz/solo/`): the server hosts. The page reads each
+**Single player** (`/trivia/solo/`): the server hosts. The page reads each
 clue aloud (browser speech synthesis, toggleable), opens the buzzer when
 it's done, and judges what you type. It normalises case, accents, question
 form and articles, and allows small misspellings (engine/answer.ts). It
 never guesses synonyms. **I was right** overrules it. No language model is
 involved.
 
-**Practice** (`/quiz/practice/`): one clue at a time from listed episodes,
+**Practice** (`/trivia/practice/`): one clue at a time from listed episodes,
 optionally filtered by category.
 
 ## Themes, words and sound
@@ -288,14 +288,14 @@ code: `classic` (deep blue, gold values, condensed headings, serif clues) and
 
 Your own themes go in `private/quiz/themes/<name>/`. Use that for fonts,
 sounds or anything else you may use but not redistribute. They're served
-at `/quiz/themes/<name>/…`:
+at `/trivia/themes/<name>/…`:
 
 ```json
 {
   "terms": { "wagerClue": "Daily Gamble", "final": "Last Stand", "currency": "$" },
   "audio": {
-    "final_think": "/quiz/themes/mine/think.mp3",
-    "wager_reveal": "/quiz/themes/mine/stinger.mp3"
+    "final_think": "/trivia/themes/mine/think.mp3",
+    "wager_reveal": "/trivia/themes/mine/stinger.mp3"
   }
 }
 ```
@@ -313,7 +313,7 @@ SIL Open Font License, served from `static/fonts/` with their licences.
 ## Hardware buzzers
 
 A device is a role like any other. The host console issues a **hardware
-buzzer token**. A device connects to `/quiz/ws`, sends `{ "type": "hello",
+buzzer token**. A device connects to `/trivia/ws`, sends `{ "type": "hello",
 "code", "token" }`, answers pings, and sends `{ "type": "press", "seat": n }`
 per press, where seat 0 is the leftmost podium. The server treats it as that
 player's buzz. Hardware sees no game state, so arrival alone decides: a
@@ -369,7 +369,7 @@ network and is not a human reaction time.
 ## Operations
 
 `pnpm quiz rooms` lists live and recent rooms and who holds them.
-`/quiz/api/health` returns room and connection counts. Log lines are JSON
+`/trivia/api/health` returns room and connection counts. Log lines are JSON
 (`quiz_room_created`, `quiz_game_over`, `quiz_flush_failed`, …) and never
 include a credential. To back up, copy `private/quiz/quiz.db` (with
 `sqlite3 .backup` while running).

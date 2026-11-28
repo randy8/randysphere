@@ -31,7 +31,7 @@ if (!token) {
       { class: 'doc' },
       el('h1', {}, 'No host credential here'),
       el('p', {}, 'Open the host link you were given (it ends in #…), or start a new game.'),
-      el('a', { href: '/quiz/host/', class: 'button' }, 'Host a game'),
+      el('a', { href: '/trivia/host/', class: 'button' }, 'Host a game'),
     ),
   );
 } else {
@@ -188,7 +188,7 @@ function run() {
           'div',
           { class: 'lobby-qr-box' },
           el('img', {
-            src: `/quiz/api/rooms/${code}/qr.svg`,
+            src: `/trivia/api/rooms/${code}/qr.svg`,
             alt: `QR code for ${join}`,
             class: 'host-qr',
           }),
@@ -199,7 +199,7 @@ function run() {
               'div',
               { class: 'lobby-qr-box' },
               el('img', {
-                src: `/quiz/api/rooms/${code}/qr.svg?via=lan`,
+                src: `/trivia/api/rooms/${code}/qr.svg?via=lan`,
                 alt: `QR code for ${lan}`,
                 class: 'host-qr',
               }),
@@ -216,8 +216,8 @@ function run() {
             'Open the audience display on the TV: ',
             el(
               'a',
-              { href: `/quiz/display/${code}`, target: '_blank', rel: 'noopener' },
-              `/quiz/display/${code}`,
+              { href: `/trivia/display/${code}`, target: '_blank', rel: 'noopener' },
+              `/trivia/display/${code}`,
             ),
             ' — click it once there for full screen and sound.',
           ),

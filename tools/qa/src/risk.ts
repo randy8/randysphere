@@ -50,9 +50,9 @@ export const RULES: readonly Rule[] = [
     why: 'the family chat: accounts, live messages, notifications',
   },
   {
-    // Answers only for /quiz (and its WebSocket); its tests run their own
+    // Answers only for /trivia (and its WebSocket); its tests run their own
     // quiz server on a throwaway directory (quiz.browser.ts).
-    match: /^tools\/serve\/src\/quiz\//,
+    match: /^tools\/serve\/src\/trivia\//,
     risk: 'medium',
     areas: ['quiz'],
     why: 'the quiz: rooms, buzzers, the editor',

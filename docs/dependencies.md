@@ -226,7 +226,7 @@ pasting the caption or adding screenshots.
 
 The WebSocket server for the quiz (`tools/serve/src/quiz/`): contestants'
 buzzers, the host console and the TV display, each on one persistent
-connection to `/quiz/ws`. Node 24 ships a WebSocket _client_ but no server,
+connection to `/trivia/ws`. Node 24 ships a WebSocket _client_ but no server,
 and the buzzer needs one. Server-Sent Events, which the chats use, are one
 way: a buzz would be a separate HTTP request with its own connection setup
 behind Cloudflare. `ws` has no dependencies of its own, is the de facto Node

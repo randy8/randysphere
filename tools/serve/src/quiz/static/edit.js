@@ -63,7 +63,7 @@ if (!key) {
       { class: 'doc' },
       el('h1', {}, 'No edit key'),
       el('p', {}, 'Open this game with its full editor link (it ends in #…).'),
-      el('a', { class: 'button', href: '/quiz/edit/' }, 'Your games'),
+      el('a', { class: 'button', href: '/trivia/edit/' }, 'Your games'),
     ),
   );
 } else {
@@ -72,7 +72,7 @@ if (!key) {
 
 async function load() {
   try {
-    const loaded = await api(`/quiz/api/boards/${id}`, { headers: { 'x-edit-key': key } });
+    const loaded = await api(`/trivia/api/boards/${id}`, { headers: { 'x-edit-key': key } });
     game = loaded.game;
     remember(game.title);
     setReady(loaded.playable);
@@ -106,7 +106,7 @@ function save() {
   saving = saving.then(async () => {
     status.textContent = 'Saving…';
     try {
-      const result = await api(`/quiz/api/boards/${id}`, {
+      const result = await api(`/trivia/api/boards/${id}`, {
         method: 'PUT',
         headers: { 'x-edit-key': key },
         body: game,
@@ -170,7 +170,7 @@ function clueForm(clue, { allowWager = false, onChange = () => undefined } = {})
     ),
   );
   const mediaUrl = textInput(media?.url ?? '', () => undefined, {
-    placeholder: 'https://… or /quiz/media/file.jpg',
+    placeholder: 'https://… or /trivia/media/file.jpg',
   });
   const syncMedia = () => {
     clue.media =
@@ -248,10 +248,10 @@ function build() {
     { class: 'row' },
     el(
       'button',
-      { type: 'button', class: 'primary', onclick: () => launch('/quiz/api/rooms') },
+      { type: 'button', class: 'primary', onclick: () => launch('/trivia/api/rooms') },
       'Host this game',
     ),
-    el('button', { type: 'button', onclick: () => launch('/quiz/api/solo') }, 'Play it solo'),
+    el('button', { type: 'button', onclick: () => launch('/trivia/api/solo') }, 'Play it solo'),
     el('button', { type: 'button', onclick: exportFile }, 'Export'),
     el('button', { type: 'button', onclick: () => importInput.click() }, 'Import'),
     el('button', { type: 'button', onclick: copyLink }, 'Copy edit link'),
@@ -287,7 +287,7 @@ function build() {
       el(
         'div',
         { class: 'edit-head' },
-        el('a', { href: '/quiz/edit/' }, '← Your games'),
+        el('a', { href: '/trivia/edit/' }, '← Your games'),
         status,
         ready,
       ),
@@ -753,7 +753,7 @@ function exportFile() {
 }
 
 function copyLink() {
-  const url = `${location.origin}/quiz/edit/${id}#${key}`;
+  const url = `${location.origin}/trivia/edit/${id}#${key}`;
   navigator.clipboard?.writeText(url).then(
     () => (status.textContent = 'Edit link copied'),
     () => prompt('Your edit link:', url),
@@ -762,7 +762,7 @@ function copyLink() {
 
 async function remove() {
   if (!confirm('Delete this game for good? This cannot be undone.')) return;
-  await api(`/quiz/api/boards/${id}`, { method: 'DELETE', headers: { 'x-edit-key': key } });
+  await api(`/trivia/api/boards/${id}`, { method: 'DELETE', headers: { 'x-edit-key': key } });
   try {
     const boards = JSON.parse(storage.get('quiz:boards') ?? '[]').filter(
       (board) => board.id !== id,
@@ -771,5 +771,5 @@ async function remove() {
   } catch {
     // Nothing kept.
   }
-  location.href = '/quiz/edit/';
+  location.href = '/trivia/edit/';
 }

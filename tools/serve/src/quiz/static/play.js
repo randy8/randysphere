@@ -30,7 +30,7 @@ const app = document.getElementById('app');
 const token = takeToken(code, 'player');
 
 if (!token) {
-  location.replace(`/quiz/join/${code}`);
+  location.replace(`/trivia/join/${code}`);
 } else {
   run();
 }
@@ -371,7 +371,7 @@ function run() {
       if (next === 'refused' || next === 'gone') {
         buzzer.hidden = true;
         message.textContent = statusText(next);
-        put(panel, el('a', { href: `/quiz/join/${code}`, class: 'button' }, 'Join again'));
+        put(panel, el('a', { href: `/trivia/join/${code}`, class: 'button' }, 'Join again'));
       }
     },
   });

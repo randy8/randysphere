@@ -96,7 +96,7 @@ if (!password || !sessionSecret) {
   if (lan && !preview) {
     lanServer = createQuizOnlyServer(quiz);
     lanServer.listen(Number(lan[2]), lan[1], () =>
-      console.log(`Quiz on the LAN at http://${lanListen}/quiz/`),
+      console.log(`Quiz on the LAN at http://${lanListen}/trivia/`),
     );
   } else if (lanListen) {
     console.error(

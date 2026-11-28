@@ -91,7 +91,7 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 
 /** https anywhere, or a file in the quiz's own media directory. Nothing else is ever loaded. */
 export function safeMediaUrl(url: string): boolean {
-  if (/^\/quiz\/media\/[A-Za-z0-9._-]+$/.test(url)) return true;
+  if (/^\/(?:trivia|quiz)\/media\/[A-Za-z0-9._-]+$/.test(url)) return true;
   try {
     const parsed = new URL(url);
     return parsed.protocol === 'https:' && url.length <= 500;
@@ -109,7 +109,7 @@ function media(value: unknown, where: string): Media | null {
   }
   const url = text(value['url'], 500, `${where}.media.url`, true);
   if (!safeMediaUrl(url))
-    throw new InvalidGame(`${where}.media.url must be https:// or /quiz/media/<file>`);
+    throw new InvalidGame(`${where}.media.url must be https:// or /trivia/media/<file>`);
   return { kind, url };
 }
 

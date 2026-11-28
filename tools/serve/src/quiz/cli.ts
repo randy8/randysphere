@@ -246,7 +246,7 @@ async function bench(rounds: number): Promise<void> {
         body: JSON.stringify(body),
       })
     ).json()) as Record<string, unknown>;
-  const created = await post('/quiz/api/rooms', {
+  const created = await post('/trivia/api/rooms', {
     source: { type: 'random' },
     settings: { buzzWindowSeconds: 60 },
   });
@@ -260,7 +260,7 @@ async function bench(rounds: number): Promise<void> {
     wait: (test: (v: View) => boolean, fresh?: boolean) => Promise<number>;
   }> =>
     new Promise((resolve) => {
-      const ws = new WebSocket(`ws://${base}/quiz/ws`, { headers: { origin: `http://${base}` } });
+      const ws = new WebSocket(`ws://${base}/trivia/ws`, { headers: { origin: `http://${base}` } });
       let view: View | null = null;
       let waiters: { test: (v: View) => boolean; done: (t: number) => void }[] = [];
       ws.on('open', () => ws.send(JSON.stringify({ type: 'hello', code, token })));
@@ -293,7 +293,9 @@ async function bench(rounds: number): Promise<void> {
   const players = [];
   for (const name of ['A', 'B', 'C'])
     players.push(
-      await connectClient(String((await post(`/quiz/api/rooms/${code}/join`, { name }))['token'])),
+      await connectClient(
+        String((await post(`/trivia/api/rooms/${code}/join`, { name }))['token']),
+      ),
     );
   let n = 0;
   const act = (action: object): void =>

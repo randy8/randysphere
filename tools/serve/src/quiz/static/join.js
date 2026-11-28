@@ -41,7 +41,7 @@ function checkExisting() {
         'p',
         {},
         'This phone is already in that game. ',
-        el('a', { href: `/quiz/play/${value}`, class: 'button primary' }, 'Rejoin'),
+        el('a', { href: `/trivia/play/${value}`, class: 'button primary' }, 'Rejoin'),
       ),
     );
   }
@@ -72,13 +72,13 @@ form.addEventListener('submit', async (event) => {
     return;
   }
   try {
-    const joined = await api(`/quiz/api/rooms/${room}/join`, {
+    const joined = await api(`/trivia/api/rooms/${room}/join`, {
       method: 'POST',
       body: { name: name.value },
     });
     storage.set(`quiz:${room}:player`, joined.token);
     storage.set('quiz:name', name.value.trim());
-    location.href = `/quiz/play/${room}`;
+    location.href = `/trivia/play/${room}`;
   } catch (failure) {
     error.textContent = failure.message;
   }

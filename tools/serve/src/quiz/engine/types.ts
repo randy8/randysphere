@@ -9,7 +9,7 @@
 
 export interface Media {
   readonly kind: 'image' | 'audio' | 'video';
-  /** https:// or a path under /quiz/media/ — anything else is dropped on import (../validate.ts). */
+  /** https:// or a path under /trivia/media/ — anything else is dropped on import (../validate.ts). */
   readonly url: string;
 }
 

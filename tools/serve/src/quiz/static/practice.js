@@ -29,7 +29,7 @@ async function next() {
   input.value = '';
   try {
     clue = await api(
-      `/quiz/api/practice${filter.value.trim() ? `?q=${encodeURIComponent(filter.value.trim())}` : ''}`,
+      `/trivia/api/practice${filter.value.trim() ? `?q=${encodeURIComponent(filter.value.trim())}` : ''}`,
     );
   } catch (error) {
     put(card, el('p', {}, error.message));
@@ -51,7 +51,7 @@ async function next() {
 async function check(event) {
   event.preventDefault();
   if (!clue) return;
-  const result = await api('/quiz/api/practice/check', {
+  const result = await api('/trivia/api/practice/check', {
     method: 'POST',
     body: { id: clue.id, response: input.value },
   });

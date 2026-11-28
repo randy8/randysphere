@@ -25,7 +25,7 @@ async function spectatorToken() {
   const key = `quiz:${code}:spectator`;
   const saved = storage.get(key);
   if (saved) return saved;
-  const { token } = await api(`/quiz/api/rooms/${code}/watch`, { method: 'POST', body: {} });
+  const { token } = await api(`/trivia/api/rooms/${code}/watch`, { method: 'POST', body: {} });
   storage.set(key, token);
   return token;
 }

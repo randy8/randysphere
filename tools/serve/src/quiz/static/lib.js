@@ -116,9 +116,9 @@ export async function loadTheme(name = 'classic') {
   const safe = /^[a-z0-9-]{1,40}$/.test(name) ? name : 'classic';
   const link = document.getElementById('theme-css');
   if (link && !link.getAttribute('href').includes(`/themes/${safe}/`))
-    link.setAttribute('href', `/quiz/themes/${safe}/theme.css`);
+    link.setAttribute('href', `/trivia/themes/${safe}/theme.css`);
   try {
-    const response = await fetch(`/quiz/themes/${safe}/theme.json`);
+    const response = await fetch(`/trivia/themes/${safe}/theme.json`);
     if (response.ok) {
       const loaded = await response.json();
       theme = { ...theme, ...loaded, name: safe };
@@ -154,7 +154,7 @@ export function connect({ code, token, onWelcome, onState, onMessage, onStatus }
 
   function open() {
     const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
-    socket = new WebSocket(`${scheme}://${location.host}/quiz/ws`);
+    socket = new WebSocket(`${scheme}://${location.host}/trivia/ws`);
     status('connecting');
     socket.addEventListener('open', () => {
       socket.send(JSON.stringify({ type: 'hello', code, token }));
