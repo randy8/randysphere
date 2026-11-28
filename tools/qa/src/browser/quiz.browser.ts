@@ -141,6 +141,12 @@ browserTest(
 
       // ---- Clue 1: Grace rings in and is right; she takes the board.
       const ordinary = host.locator('.mini-cell:not(.wager):not(.played)');
+      // A misclick first: Esc puts the clue back, and the TV is back on the board.
+      await ordinary.nth(1).click();
+      await phase(host, 'reading');
+      await key(host, 'Escape');
+      await phase(host, 'board');
+      assert.equal(await host.locator('.mini-cell.played').count(), 0);
       await ordinary.first().click();
       await phase(host, 'reading');
       let response = await hostResponse(host);
@@ -321,3 +327,27 @@ browserTest('the editor: write a game, see what is missing, host it', async ({ p
   await page.locator('.edit-cell.filled').first().waitFor();
   assert.equal(await page.locator('.edit-title').inputValue(), 'Kitchen Table');
 });
+
+browserTest(
+  'convert: an outline becomes a game file, then a game in the editor',
+  async ({ page }) => {
+    await page.goto(`${origin}/trivia/convert/`);
+    await page.getByRole('button', { name: 'Example outline' }).click();
+    await page.locator('.convert-ready').waitFor();
+    assert.equal(await page.locator('.convert-game h2').innerText(), 'Friday night');
+    await page.getByRole('button', { name: 'Example spreadsheet' }).click();
+    await page.locator('.convert-status', { hasText: 'spreadsheet' }).waitFor();
+    await page.locator('.convert-source').fill('# Round 1\n## A\nclue with no response\n');
+    // A draft converts, and says what's missing.
+    await page.locator('.convert-todo', { hasText: 'needs both a clue and a response' }).waitFor();
+    await page.locator('.convert-source').fill('## A\nno round heading\n= r\n');
+    await page.locator('.panel-error', { hasText: 'line 1' }).waitFor();
+    await page.getByRole('button', { name: 'Example outline' }).click();
+    await page.locator('.convert-ready').waitFor();
+    await page.getByRole('button', { name: 'Open in the editor' }).click();
+    await page.waitForURL(/\/trivia\/edit\/\d+#/);
+    assert.equal(await page.locator('.edit-title').inputValue(), 'Friday night');
+  },
+  // The line-1 mistake is answered 400, which the browser logs.
+  { allowErrors: ['status of 400'] },
+);

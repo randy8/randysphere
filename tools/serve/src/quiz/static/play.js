@@ -135,7 +135,7 @@ function run() {
     } else if ((p === 'responding' || p === 'adjudicating') && responder === me) {
       state = 'won';
       label = 'YOU';
-      text = clue?.wager ? 'Your response' : 'You rang in first — respond aloud';
+      text = clue?.wager ? 'Your response' : 'You rang in first. Respond aloud';
     } else if ((p === 'responding' || p === 'adjudicating') && responder) {
       state = 'locked';
       text = `${nameOf(view, responder)} is responding`;
@@ -148,7 +148,7 @@ function run() {
     } else if (p === 'board') {
       text =
         view.control === me
-          ? `${terms.boardControl} — choose a clue`
+          ? `${terms.boardControl}: choose a clue`
           : `${nameOf(view, view.control)} is choosing`;
     } else if (p === 'game_over') {
       text = view.winners.includes(me)
@@ -226,7 +226,7 @@ function run() {
       note.textContent =
         view.me.finalWager === null
           ? 'Your wager is private.'
-          : `Wager locked in: ${money(view.me.finalWager)} — you can change it until the clue is shown.`;
+          : `Wager locked in: ${money(view.me.finalWager)} . You can change it until the clue is shown.`;
   }
 
   function selectionGrid() {
@@ -318,7 +318,7 @@ function run() {
       { class: 'panel-note' },
       open
         ? 'Saved as you type. Only the host sees it until it’s revealed.'
-        : 'The clue is up — writing opens when the host starts the clock.',
+        : 'The clue is up. Writing opens when the host starts the clock.',
     );
     const timer = el('div', { class: 'final-timer' });
     let saveTimer;

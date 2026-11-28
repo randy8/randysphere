@@ -49,7 +49,8 @@ import { openDatabase } from './db.ts';
 import { matches } from './engine/answer.ts';
 import type { GameData, Settings } from './engine/types.ts';
 import { DEFAULT_SETTINGS } from './engine/types.ts';
-import { parseDataset } from './importer.ts';
+import { detectFormat, parseDataset } from './importer.ts';
+import type { DatasetFormat } from './importer.ts';
 import { renderPage } from './pages.ts';
 import type { PageName } from './pages.ts';
 import { MAX_MESSAGE_BYTES, parseMessage } from './protocol.ts';
@@ -588,6 +589,7 @@ export class Quiz {
     if (get && pathname === '/trivia/solo/') return this.page(res, 'solosetup');
     if (get && pathname === '/trivia/practice/') return this.page(res, 'practice');
     if (get && pathname === '/trivia/edit/') return this.page(res, 'boards');
+    if (get && pathname === '/trivia/convert/') return this.page(res, 'convert');
     if (get && (match = pathname.match(/^\/trivia\/edit\/(\d{1,9})$/)))
       return this.page(res, 'edit', { board: match[1] ?? '' });
 
@@ -738,6 +740,34 @@ export class Quiz {
       return sendJson(res, 200, {
         correct: matches(given, answer.response, answer.accept),
         ...answer,
+      });
+    }
+
+    // ---- The converter: a spreadsheet, outline or game file in, game files out. Stores nothing.
+    if (method === 'POST' && pathname === '/trivia/api/convert') {
+      const body = await readJson(req, MAX_BOARD_BYTES);
+      const text = isObj(body) && typeof body['text'] === 'string' ? body['text'] : '';
+      const name = isObj(body) && typeof body['name'] === 'string' ? body['name'] : '';
+      const asked = isObj(body) ? body['format'] : undefined;
+      const format: DatasetFormat =
+        asked === 'json' || asked === 'csv' || asked === 'outline' ? asked : 'auto';
+      if (!text.trim()) throw new HttpError(400, 'nothing to convert');
+      const used = format === 'auto' ? detectFormat(name, text) : format;
+      let dataset;
+      try {
+        dataset = parseDataset(name, text, { format: used, draft: true });
+      } catch (error) {
+        if (error instanceof SyntaxError)
+          throw new HttpError(400, `not valid JSON: ${error.message}`);
+        throw error;
+      }
+      return sendJson(res, 200, {
+        format: used,
+        skipped: dataset.skipped,
+        games: dataset.games.map((file) => ({
+          file: toFile(file.game, file.meta),
+          playable: playable(file.game),
+        })),
       });
     }
 

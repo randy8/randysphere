@@ -48,22 +48,23 @@ same as the chats.
 
 ## Host controls
 
-| Key           | Does                                                                      |
-| ------------- | ------------------------------------------------------------------------- |
-| Space / Enter | The next step: start, next category, open buzzers, show response, next…   |
-| Arrows, Enter | Move on the board and choose a clue                                       |
-| Y / N         | Correct / incorrect (also in the final reveal)                            |
-| M             | Ask for more specific (their response time restarts)                      |
-| Q             | Question-form reminder (lenient rounds only; strict rounds rule it wrong) |
-| R             | Show the correct response                                                 |
-| S             | Skip the clue (no penalty, nobody scores)                                 |
-| W             | Type the wager for the player                                             |
-| 1–6           | Give that podium the board                                                |
-| U             | Reverse the latest ruling (corrects the score, not board control)         |
-| P             | Pause / resume (stops every clock)                                        |
-| T             | Buzzer test on / off                                                      |
-| E             | End the round now (unplayed clues stay unplayed)                          |
-| ?             | The list                                                                  |
+| Key           | Does                                                                       |
+| ------------- | -------------------------------------------------------------------------- |
+| Space / Enter | The next step: start, next category, open buzzers, show response, next…    |
+| Arrows, Enter | Move on the board and choose a clue                                        |
+| Y / N         | Correct / incorrect (also in the final reveal)                             |
+| M             | Ask for more specific (their response time restarts)                       |
+| Q             | Question-form reminder (lenient rounds only; strict rounds rule it wrong)  |
+| R             | Show the correct response                                                  |
+| Esc           | Put the chosen clue back on the board, for a misclick (until buzzers open) |
+| S             | Skip the clue (no penalty, nobody scores)                                  |
+| W             | Type the wager for the player                                              |
+| 1–6           | Give that podium the board                                                 |
+| U             | Reverse the latest ruling (corrects the score, not board control)          |
+| P             | Pause / resume (stops every clock)                                         |
+| T             | Buzzer test on / off                                                       |
+| E             | End the round now (unplayed clues stay unplayed)                           |
+| ?             | The list                                                                   |
 
 The console also lets you set any score (click it), rename or remove a
 player, issue a **rejoin link** (a new credential for a seat whose phone
@@ -174,6 +175,53 @@ games it made. **Copy edit link** to keep yours somewhere safe.
 
 Games written in the editor never appear in the public library, random
 boards or practice. To list one: `pnpm quiz list-on <id>`.
+
+### Converting from a text file or a spreadsheet
+
+`/trivia/convert/` (also linked from **Your games**) turns what you paste or
+choose into a game file. It shows the result, says whether the game is ready
+to host, and offers **Open in the editor**, **Download .json** and **Copy
+JSON**. Nothing is stored until you open it in the editor. It reads three
+things, detected automatically:
+
+- **A text outline**, the quickest way to type a game out:
+
+  ```
+  Title: Friday night
+  # Round 1
+  ## SPACE PROBES
+  note: Every answer is a NASA mission
+  Launched in 1977, this probe reached interstellar space
+  = Voyager 1 | Voyager
+  [wager] This rover landed in Jezero Crater in 2021
+  = Perseverance
+  note: Accept "Percy"
+  # Round 2
+  form: strict
+  ## OCEANS
+  It's the only ocean named for a country
+  = the Indian Ocean | Indian
+  # Final
+  ## WORLD LANDMARKS
+  Built for the 1889 World's Fair, it was meant to stand for only 20 years
+  = the Eiffel Tower
+  # Tiebreak
+  ## RIVERS
+  It flows through Cairo
+  = the Nile
+  ```
+
+  `#` starts a round (`# Final` and `# Tiebreak` are those), `##` a
+  category. A clue is one or more lines, then `=` and its response, with
+  alternatives after `|`. `[wager]` pins a wager clue. `note:` before a
+  category's first clue is the category note, after a response the host's
+  note. Under a round heading, `values:`, `wagers:` and `form:` are
+  optional; values default to 200 to 1,000, doubled in round 2. Clues fill
+  rows from the top, and a mistake names its line.
+
+- **A spreadsheet**: cells copied straight out of a sheet, or a CSV file,
+  with the columns described in "Importing a dataset" below.
+- **A game file**, to check it.
 
 ## The game file (`quiz-game/1`)
 

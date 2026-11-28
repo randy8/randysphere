@@ -17,7 +17,8 @@ export type PageName =
   | 'solo'
   | 'practice'
   | 'boards'
-  | 'edit';
+  | 'edit'
+  | 'convert';
 
 const TITLES: Record<PageName, string> = {
   home: 'Quiz',
@@ -31,6 +32,7 @@ const TITLES: Record<PageName, string> = {
   practice: 'Practice · Quiz',
   boards: 'Your games · Quiz',
   edit: 'Editor · Quiz',
+  convert: 'Convert to a game · Quiz',
 };
 
 /** Pages that are a full-screen surface rather than a document. */

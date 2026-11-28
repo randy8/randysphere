@@ -70,7 +70,7 @@ function run() {
     'button',
     { class: 'display-start', type: 'button' },
     el('span', { class: 'display-start-title' }, 'Start'),
-    el('span', {}, 'Click or press any key — for sound and narration'),
+    el('span', {}, 'Click or press any key for sound and narration'),
   );
   app.append(start);
   const begin = async () => {
@@ -148,7 +148,7 @@ function run() {
         el(
           'span',
           { class: `judged ${judged.verdict.startsWith('correct') ? 'right' : 'wrong'}` },
-          judged.text ? `“${judged.text}” — ${judged.verdict}` : judged.verdict,
+          judged.text ? `“${judged.text}”: ${judged.verdict}` : judged.verdict,
         ),
         judged.verdict === 'incorrect' && judged.text
           ? el(

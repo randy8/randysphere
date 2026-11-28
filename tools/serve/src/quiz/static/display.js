@@ -47,7 +47,7 @@ async function main() {
     'button',
     { class: 'display-start', type: 'button' },
     el('span', { class: 'display-start-title' }, 'Start the display'),
-    el('span', {}, 'Click or press any key — for full screen and sound'),
+    el('span', {}, 'Click or press any key for full screen and sound'),
   );
   app.append(start);
   const begin = async () => {

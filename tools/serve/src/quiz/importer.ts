@@ -138,7 +138,12 @@ interface Row {
   get(column: Column): string;
 }
 
-export function parseCsv(text: string): ParsedDataset {
+/** `draft` keeps a half-written game (a clue with no response yet) instead of skipping it: the converter's view. */
+export interface ParseOptions {
+  readonly draft?: boolean;
+}
+
+export function parseCsv(text: string, options: ParseOptions = {}): ParsedDataset {
   const firstLine = text.slice(0, text.indexOf('\n') === -1 ? undefined : text.indexOf('\n'));
   const delimiter = firstLine.includes('\t') ? '\t' : ',';
   const [header, ...lines] = parseDelimited(
@@ -178,7 +183,7 @@ export function parseCsv(text: string): ParsedDataset {
   const skipped: string[] = [];
   for (const [id, episodeRows] of episodes) {
     try {
-      games.push(parseGame(buildEpisode(id, episodeRows)));
+      games.push(parseGame(buildEpisode(id, episodeRows), options));
     } catch (error) {
       skipped.push(`${id}: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -289,7 +294,9 @@ function buildEpisode(id: string, rows: Row[]): Record<string, unknown> {
         ? `Show #${String(show)}`
         : isoDate
           ? `Game of ${isoDate}`
-          : `Game ${id}`,
+          : id === 'game'
+            ? 'Untitled game'
+            : `Game ${id}`,
     credit: isoDate ? `Originally aired ${isoDate}` : '',
     episode: {
       id,
@@ -305,7 +312,7 @@ function buildEpisode(id: string, rows: Row[]): Record<string, unknown> {
   };
 }
 
-export function parseJson(text: string): ParsedDataset {
+export function parseJson(text: string, options: ParseOptions = {}): ParsedDataset {
   const input = JSON.parse(text) as unknown;
   const list: unknown[] = Array.isArray(input)
     ? input
@@ -333,7 +340,7 @@ export function parseJson(text: string): ParsedDataset {
   const skipped: string[] = [];
   list.forEach((entry, index) => {
     try {
-      games.push(parseGame(entry));
+      games.push(parseGame(entry, options));
     } catch (error) {
       skipped.push(
         `game ${String(index + 1)}: ${error instanceof Error ? error.message : String(error)}`,
@@ -343,10 +350,225 @@ export function parseJson(text: string): ParsedDataset {
   return { games, skipped, source };
 }
 
-export function parseDataset(name: string, text: string): ParsedDataset {
-  return /\.json$/i.test(name) ||
-    text.trimStart().startsWith('{') ||
-    text.trimStart().startsWith('[')
-    ? parseJson(text)
-    : parseCsv(text);
+export type DatasetFormat = 'auto' | 'json' | 'csv' | 'outline';
+
+/** Which reader a text wants: JSON by its first character, an outline by a `#` heading line, else a spreadsheet. */
+export function detectFormat(name: string, text: string): Exclude<DatasetFormat, 'auto'> {
+  const start = text.trimStart();
+  if (/\.json$/i.test(name) || start.startsWith('{') || start.startsWith('[')) return 'json';
+  if (/\.(txt|md)$/i.test(name) || /^#\s*\S/m.test(text)) return 'outline';
+  return 'csv';
+}
+
+export function parseDataset(
+  name: string,
+  text: string,
+  options: ParseOptions & { format?: DatasetFormat } = {},
+): ParsedDataset {
+  const format =
+    options.format && options.format !== 'auto' ? options.format : detectFormat(name, text);
+  if (format === 'json') return parseJson(text, options);
+  if (format === 'outline') return parseOutline(text, options);
+  return parseCsv(text, options);
+}
+
+/**
+ * A game written as plain text, the quickest way to type one out:
+ *
+ *     Title: Friday night
+ *     # Round 1
+ *     values: 200 400 600 800 1000      (optional)
+ *     wagers: 1                         (optional)
+ *     form: strict                      (optional; lenient is the default)
+ *     ## SPACE PROBES
+ *     note: every answer is a NASA mission      (optional, before its first clue)
+ *     Launched in 1977, this probe left the solar system in 2012
+ *     = Voyager 1 | Voyager             (the response, then alternatives)
+ *     note: accept either Voyager       (optional host note, after a response)
+ *     [wager] A clue to pin as a wager clue
+ *     = Its response
+ *     # Final
+ *     ## WORLD LANDMARKS
+ *     …one clue…
+ *     # Tiebreak
+ *     ## OCEANS
+ *     …one clue per category…
+ *
+ * Clues fill a category's rows from the top; a clue can run over several
+ * lines until its `=` line. Blank lines and lines starting `//` are ignored.
+ */
+export function parseOutline(text: string, options: ParseOptions = {}): ParsedDataset {
+  interface Clue {
+    text: string[];
+    response: string;
+    accept: string[];
+    notes: string;
+    wager: boolean;
+  }
+  interface Category {
+    title: string;
+    note: string;
+    clues: Clue[];
+  }
+  interface Round {
+    kind: 'board' | 'final' | 'tiebreak';
+    values: number[] | null;
+    wagers: number | null;
+    form: 'strict' | 'lenient' | null;
+    categories: Category[];
+  }
+  let title = '';
+  let credit = '';
+  const rounds: Round[] = [];
+  let round: Round | null = null;
+  let category: Category | null = null;
+  let clue: Clue | null = null;
+  const fail = (line: number, message: string): never => {
+    throw new InvalidGame(`line ${String(line)}: ${message}`);
+  };
+
+  const lines = (text.charCodeAt(0) === 0xfeff ? text.slice(1) : text).split(/\r?\n/);
+  lines.forEach((raw, index) => {
+    const number = index + 1;
+    const line = raw.trim();
+    if (line === '' || line.startsWith('//')) return;
+    const setting = /^([a-z]+)\s*:\s*(.*)$/i.exec(line);
+    const name = setting?.[1]?.toLowerCase();
+    const value = setting?.[2]?.trim() ?? '';
+    if (line.startsWith('##')) {
+      if (!round) fail(number, 'a category (##) must come after a round heading (#)');
+      if (clue && !clue.response) fail(number, 'the clue above has no "=" response line');
+      category = { title: line.replace(/^#+/, '').trim(), note: '', clues: [] };
+      round?.categories.push(category);
+      clue = null;
+      return;
+    }
+    if (line.startsWith('#')) {
+      if (clue && !clue.response) fail(number, 'the clue above has no "=" response line');
+      const heading = line.replace(/^#+/, '').trim().toLowerCase();
+      const kind = heading.startsWith('final')
+        ? 'final'
+        : heading.startsWith('tie')
+          ? 'tiebreak'
+          : 'board';
+      round = { kind, values: null, wagers: null, form: null, categories: [] };
+      rounds.push(round);
+      category = null;
+      clue = null;
+      return;
+    }
+    if (!round && (name === 'title' || name === 'credit')) {
+      if (name === 'title') title = value;
+      else credit = value;
+      return;
+    }
+    if (round && !category && name === 'values') {
+      const values = value
+        .split(/[\s,]+/)
+        .filter(Boolean)
+        .map((v) => money(v));
+      if (values.length === 0 || values.some((v) => v === null))
+        fail(number, 'values are whole numbers, like "values: 200 400 600 800 1000"');
+      round.values = values as number[];
+      return;
+    }
+    if (round && !category && name === 'wagers') {
+      const wagers = Number(value);
+      if (!Number.isInteger(wagers) || wagers < 0) fail(number, 'wagers is a whole number');
+      round.wagers = wagers;
+      return;
+    }
+    if (round && !category && name === 'form') {
+      if (value !== 'strict' && value !== 'lenient') fail(number, 'form is strict or lenient');
+      round.form = value as 'strict' | 'lenient';
+      return;
+    }
+    if (category && name === 'note') {
+      if (clue?.response) clue.notes = value;
+      else if (!clue) category.note = value;
+      else fail(number, 'a note goes after the clue’s "=" response line');
+      return;
+    }
+    if (!category) fail(number, 'a clue must come under a category heading (##)');
+    if (line.startsWith('=')) {
+      if (!clue || clue.response) fail(number, 'a "=" response line must follow a clue');
+      const [response = '', ...accept] = line
+        .slice(1)
+        .split('|')
+        .map((part) => part.trim());
+      if (clue) {
+        clue.response = response;
+        clue.accept = accept.filter(Boolean);
+      }
+      return;
+    }
+    if (clue && !clue.response) {
+      clue.text.push(line);
+      return;
+    }
+    const wager = /^\[wager\]\s*/i.test(line);
+    clue = {
+      text: [line.replace(/^\[wager\]\s*/i, '')],
+      response: '',
+      accept: [],
+      notes: '',
+      wager,
+    };
+    category?.clues.push(clue);
+  });
+  if (clue && !(clue as Clue).response && !options.draft)
+    throw new InvalidGame('the last clue has no "=" response line');
+
+  const toClue = (c: Clue | undefined, wager = false): Record<string, unknown> | null =>
+    c
+      ? {
+          text: c.text.join(' '),
+          response: c.response,
+          accept: c.accept,
+          notes: c.notes,
+          ...(wager ? { wager: c.wager } : {}),
+        }
+      : null;
+  const boards = rounds.filter((r) => r.kind === 'board');
+  const final = rounds.find((r) => r.kind === 'final');
+  const out: Record<string, unknown>[] = boards.map((r, index) => {
+    const step = 200 * (index + 1);
+    const values = r.values ?? [1, 2, 3, 4, 5].map((n) => n * step);
+    for (const c of r.categories) {
+      if (c.clues.length > values.length)
+        throw new InvalidGame(
+          `${c.title || 'a category'} has ${String(c.clues.length)} clues for ${String(values.length)} values`,
+        );
+    }
+    return {
+      kind: 'board',
+      values,
+      wagers: r.wagers ?? (index === 0 ? 1 : 2),
+      questionForm: r.form ?? 'lenient',
+      categories: r.categories.map((c) => ({
+        title: c.title,
+        note: c.note,
+        clues: values.map((_, row) => toClue(c.clues[row], true)),
+      })),
+    };
+  });
+  if (final) {
+    const c = final.categories[0];
+    out.push({
+      kind: 'final',
+      category: c?.title ?? '',
+      note: c?.note ?? '',
+      clue: toClue(c?.clues[0]),
+    });
+  }
+  const game = {
+    title: title || 'Untitled game',
+    credit,
+    rounds: out,
+    tiebreakers: rounds
+      .filter((r) => r.kind === 'tiebreak')
+      .flatMap((r) => r.categories)
+      .map((c) => ({ category: c.title, clue: toClue(c.clues[0]) })),
+  };
+  return { games: [parseGame(game, options)], skipped: [], source: null };
 }

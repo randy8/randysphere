@@ -81,9 +81,7 @@ function run() {
     const ack = await socket.act(action, view.seq);
     if (!ack.ok)
       say(
-        ack.error === 'stale'
-          ? 'The game moved on — check and try again.'
-          : `Not now: ${ack.error}`,
+        ack.error === 'stale' ? 'The game moved on. Check and try again.' : `Not now: ${ack.error}`,
       );
     return ack;
   }
@@ -159,8 +157,8 @@ function run() {
             'span',
             { class: 'host-paused' },
             view.paused === 'restart'
-              ? 'PAUSED (server restarted) — P to resume'
-              : 'PAUSED — P to resume',
+              ? 'PAUSED (server restarted). P to resume'
+              : 'PAUSED. P to resume',
           )
         : null,
       el('span', { class: `host-status ${status}` }, statusText(status)),
@@ -219,7 +217,7 @@ function run() {
               { href: `/trivia/display/${code}`, target: '_blank', rel: 'noopener' },
               `/trivia/display/${code}`,
             ),
-            ' — click it once there for full screen and sound.',
+            '. Click it once there for full screen and sound.',
           ),
           el('li', {}, 'Test the buzzers (T), then start (Space).'),
         ),
@@ -301,7 +299,7 @@ function run() {
       el(
         'p',
         { class: 'fine' },
-        'The server takes the first press to arrive. A phone with a longer round trip arrives later for the same press — that difference is not compensated. For a close game, have everyone on the same Wi-Fi (the LAN link, if set up) and watch for jitter above ~30 ms.',
+        'The server takes the first press to arrive. A phone with a longer round trip arrives later for the same press, and that difference is not compensated. For a close game, have everyone on the same Wi-Fi (the LAN link, if set up) and watch for jitter above ~30 ms.',
       ),
     );
   }
@@ -348,7 +346,7 @@ function run() {
                 cursor.col === col && cursor.row === row ? 'cursor' : '',
                 current ? 'current' : '',
               ].join(' '),
-              title: info ? `${info.text}\n— ${info.response}` : '',
+              title: info ? `${info.text}\n${info.response}` : '',
               disabled: !left || view.phase !== 'board',
               onclick: () => {
                 cursor.col = col;
@@ -392,7 +390,7 @@ function run() {
           c.tiebreak
             ? terms.tiebreak
             : c.wager
-              ? `${terms.wagerClue} — ${nameOf(view, c.wagerer)}${c.wagerAmount !== null ? `, wagering ${money(c.wagerAmount)}` : ''}`
+              ? `${terms.wagerClue}: ${nameOf(view, c.wagerer)}${c.wagerAmount !== null ? `, wagering ${money(c.wagerAmount)}` : ''}`
               : money(c.value),
         ),
         c.categoryNote ? el('div', { class: 'host-note' }, `Category: ${c.categoryNote}`) : null,
@@ -487,8 +485,8 @@ function run() {
         : 'Read the clue. Space opens the buzzers.';
     if (p === 'open') text = `BUZZERS OPEN${secs}`;
     if (p === 'responding')
-      text = `${nameOf(view, view.clue?.responder)} is responding${secs} — Y correct, N incorrect, M more specific${view.host.questionForm === 'lenient' && !view.clue?.wager ? ', Q question-form reminder' : ''}`;
-    if (p === 'adjudicating') text = `Time — ${nameOf(view, view.clue?.responder)}: Y or N`;
+      text = `${nameOf(view, view.clue?.responder)} is responding${secs}. Y correct, N incorrect, M more specific${view.host.questionForm === 'lenient' && !view.clue?.wager ? ', Q question-form reminder' : ''}`;
+    if (p === 'adjudicating') text = `Time is up for ${nameOf(view, view.clue?.responder)}: Y or N`;
     if (p === 'clue_end')
       text = view.clue?.response
         ? 'Response shown. Space to return to the board.'
@@ -729,6 +727,8 @@ function run() {
           ? b('Back to the board', 'Space', () => act({ type: 'next' }), true)
           : b('Show response', 'R', () => act({ type: 'reveal' }), true),
       );
+    if (canPutBack())
+      list.push(b('Put it back (a misclick)', 'Esc', () => act({ type: 'unselect' })));
     if (['wager_reveal', 'wager', 'reading', 'open', 'responding', 'adjudicating'].includes(p))
       list.push(b('Skip clue', 'S', () => act({ type: 'skip' })));
     if (p === 'board')
@@ -935,6 +935,7 @@ function run() {
     ['M', 'More specific (restarts their response time)'],
     ['Q', 'Question-form reminder (first round only)'],
     ['R', 'Show the correct response'],
+    ['Esc', 'Put the chosen clue back on the board (before the buzzers open)'],
     ['S', 'Skip this clue'],
     ['W', 'Type the wager'],
     ['1–6', 'Give that podium the board'],
@@ -953,6 +954,13 @@ function run() {
     ),
     el('button', { type: 'button', onclick: () => help.close() }, 'Close'),
   );
+
+  /** A clue chosen by mistake can go back until the buzzers open (engine: unselect). */
+  function canPutBack() {
+    return (
+      ['wager_reveal', 'wager', 'reading'].includes(view.phase) && view.clue && !view.clue.tiebreak
+    );
+  }
 
   function primary() {
     const p = view.phase;
@@ -997,6 +1005,7 @@ function run() {
       if (key === 'q') return (act({ type: 'remind_form' }), true);
       if (key === 'r') return (act({ type: 'reveal' }), true);
       if (key === 's') return (act({ type: 'skip' }), true);
+      if (key === 'Escape' && canPutBack()) return (act({ type: 'unselect' }), true);
       if (key === 'p') return (act({ type: view.paused ? 'resume' : 'pause' }), true);
       if (key === 't')
         return (act({ type: p === 'buzzer_test' ? 'end_test' : 'start_test' }), true);

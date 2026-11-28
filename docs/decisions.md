@@ -4123,3 +4123,23 @@ the data in `private/quiz/`, the command `pnpm quiz`. `/quiz/…` answers
 browser keeps the `#token` fragment), `/quiz/ws` still upgrades for a page
 loaded before the move, and a media address `/quiz/media/<file>` already
 written into a game is still accepted.
+
+## 2026-11-28 — Quiz: a converter page, a text outline format, and Esc to put a clue back
+
+**Converter.** The owner wanted to write games outside the editor. A page,
+`/trivia/convert/`, sends the text to `POST /trivia/api/convert`, which runs
+the same importer `pnpm quiz import` uses (importer.ts), in draft mode, and
+returns game files without storing anything. Reading on the server rather
+than in the browser keeps one parser and one validator; a second, browser
+copy of the CSV and value-inference rules would drift. **Outline format**
+(`parseOutline`): headings and `=` response lines, because a clue's text can
+contain any punctuation and a line that starts with `=` is the one thing a
+clue never needs. Rejected: a grid layout (categories as columns), which
+can't hold a clue and its response in one cell without a separator inside
+the text.
+
+**Esc** (`unselect`): a host who picks the wrong clue puts it back, unplayed,
+with control unchanged. Allowed only before the buzzers open (wager reveal,
+wager, reading), because after that someone may have rung in. The clue has
+been seen on the TV by then; whether to come back to it is the host's call.
+A wager clue's count in the statistics is undone with it.

@@ -19,7 +19,7 @@ import {
   updateCustom,
 } from './catalog.ts';
 import { openDatabase } from './db.ts';
-import { parseCsv, parseDataset, parseDelimited } from './importer.ts';
+import { detectFormat, parseCsv, parseDataset, parseDelimited, parseOutline } from './importer.ts';
 import { InvalidGame, parseGame, playable, toFile } from './validate.ts';
 
 const DEMO = readFileSync(new URL('./data/demo.json', import.meta.url), 'utf8');
@@ -209,4 +209,71 @@ test('CSV: quoted fields, historical values, wager clues off the value grid, fin
   assert.equal(one.categories[0]?.clues[0]?.response, "Answer '0'");
   assert.equal(dataset.games[0]?.meta.airDate, '1999-03-01');
   assert.equal(final.category, 'FINAL CAT');
+});
+
+const OUTLINE = `Title: Friday night
+// a comment
+# Round 1
+values: 100 200
+## SPACE
+note: All NASA
+Launched in 1977,
+this probe left the solar system
+= Voyager 1 | Voyager | V1
+note: accept V-1 too
+[wager] It landed in Jezero Crater
+= Perseverance
+## BOOKS
+Twain's real surname
+= Clemens
+# Round 2
+form: strict
+## OCEANS
+Named for a country
+= the Indian Ocean
+# Final
+## LANDMARKS
+Built for 1889
+= the Eiffel Tower
+# Tiebreak
+## RIVERS
+Through Cairo
+= the Nile
+`;
+
+test('an outline becomes a game: rounds, rows from the top, alternatives, notes, wager pins, defaults', () => {
+  assert.equal(detectFormat('', OUTLINE), 'outline');
+  const [file] = parseOutline(OUTLINE, { draft: true }).games;
+  assert.ok(file);
+  const game = file.game;
+  assert.equal(game.title, 'Friday night');
+  const [first, second, final] = game.rounds;
+  assert.equal(first?.kind, 'board');
+  assert.equal(second?.kind, 'board');
+  assert.equal(final?.kind, 'final');
+  if (first?.kind !== 'board' || second?.kind !== 'board' || final?.kind !== 'final') return;
+  assert.deepEqual(first.values, [100, 200]);
+  const space = first.categories[0];
+  assert.equal(space?.note, 'All NASA');
+  assert.equal(space?.clues[0]?.text, 'Launched in 1977, this probe left the solar system');
+  assert.equal(space?.clues[0]?.response, 'Voyager 1');
+  assert.deepEqual(space?.clues[0]?.accept, ['Voyager', 'V1']);
+  assert.equal(space?.clues[0]?.notes, 'accept V-1 too');
+  assert.equal(space?.clues[1]?.wager, true);
+  assert.equal(first.categories[1]?.clues[1], null, 'a short category leaves its lower rows empty');
+  assert.deepEqual(second.values, [400, 800, 1200, 1600, 2000]);
+  assert.equal(second.questionForm, 'strict');
+  assert.equal(final.clue.response, 'the Eiffel Tower');
+  assert.equal(game.tiebreakers[0]?.clue.response, 'the Nile');
+  assert.equal(playable(game), null, 'empty cells are allowed: they are simply not on the board');
+});
+
+test('outline mistakes name their line', () => {
+  assert.throws(() => parseOutline('## NO ROUND\nclue\n= r'), /line 1: .*round heading/);
+  assert.throws(() => parseOutline('# Round 1\n## A\nclue one\n## B'), /line 4: .*no "=" response/);
+  assert.throws(() => parseOutline('# Round 1\nvalues: 1 two\n'), /line 2: values/);
+  assert.throws(
+    () => parseOutline('# Round 1\nvalues: 100\n## A\none\n= 1\ntwo\n= 2'),
+    /2 clues for 1 values/,
+  );
 });

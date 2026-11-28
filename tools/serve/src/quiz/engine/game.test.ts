@@ -520,3 +520,29 @@ test('buzzer test records presses per player', () => {
   must(state, { type: 'start_game' });
   assert.equal(state.test, null);
 });
+
+test('a misclicked clue goes back on the board until the buzzers open', () => {
+  const state = started();
+  const control = state.control;
+  must(state, { type: 'select', col: 0, row: 2 });
+  must(state, { type: 'unselect' });
+  assert.equal(state.phase, 'board');
+  assert.equal(state.current, null);
+  assert.equal(state.played[0]?.[2], false, 'unplayed again');
+  assert.equal(state.control, control, 'control is unchanged');
+  must(state, { type: 'select', col: 0, row: 2 });
+  refused(state, { type: 'unselect' }, as('p1'));
+  must(state, { type: 'open' }, HOST, 1000);
+  assert.match(refused(state, { type: 'unselect' }), /can no longer/);
+
+  // A wager clue, even with its wager in: the count of wager clues is restored.
+  const wagers = started();
+  const who = wagers.control ?? '';
+  must(wagers, { type: 'select', col: 0, row: 3 });
+  assert.equal(wagers.phase, 'wager_reveal');
+  must(wagers, { type: 'continue' });
+  must(wagers, { type: 'wager', amount: 5 }, as(who));
+  must(wagers, { type: 'unselect' });
+  assert.equal(wagers.phase, 'board');
+  assert.equal(findPlayer(wagers, who)?.stats.wagerClues, 0);
+});

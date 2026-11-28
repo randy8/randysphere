@@ -80,6 +80,7 @@ function parseAction(input: unknown): Action | null {
     case 'remind_form':
     case 'reveal':
     case 'skip':
+    case 'unselect':
     case 'next':
     case 'end_round':
     case 'pause':

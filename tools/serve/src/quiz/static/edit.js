@@ -481,7 +481,7 @@ function boardEditor(round, index) {
       el(
         'h3',
         {},
-        `${category.title || `Category ${selected.col + 1}`} — ${money(round.values[selected.row])}`,
+        `${category.title || `Category ${selected.col + 1}`}, ${money(round.values[selected.row])}`,
       ),
       clueForm(clue, { allowWager: true, onChange: () => updateCell() }),
       el(

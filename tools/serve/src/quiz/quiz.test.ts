@@ -625,3 +625,26 @@ test('the old /quiz/ address redirects to /trivia/, method, path and query kept'
   assert.equal(created.status, 201);
   assert.equal((await fetch(`${h.base}/quizzes/`)).status, 404);
 });
+
+test('the converter reads an outline, a spreadsheet and a game file, and stores nothing', async () => {
+  const h = await start();
+  const outline = await post(h, '/trivia/api/convert', {
+    text: '# Round 1\n## A\nclue\n=\n',
+  });
+  assert.equal(outline.status, 200);
+  assert.equal(outline.json['format'], 'outline');
+  const games = outline.json['games'] as { file: { format: string }; playable: string | null }[];
+  assert.equal(games[0]?.file.format, 'quiz-game/1');
+  assert.match(games[0]?.playable ?? '', /./);
+  const sheet = await post(h, '/trivia/api/convert', {
+    text: 'round\tcategory\tvalue\tclue\tresponse\n1\tA\t200\tclue\tresponse\n',
+  });
+  assert.equal(sheet.json['format'], 'csv');
+  const bad = await post(h, '/trivia/api/convert', { text: '{nope', format: 'json' });
+  assert.equal(bad.status, 400);
+  const library = (await (await fetch(`${h.base}/trivia/api/library`)).json()) as {
+    episodes: unknown[];
+  };
+  assert.equal(library.episodes.length, 2, 'nothing new in the library');
+  assert.equal((await fetch(`${h.base}/trivia/convert/`)).status, 200);
+});

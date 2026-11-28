@@ -52,6 +52,7 @@ export type Action =
   | { type: 'remind_form' }
   | { type: 'reveal' }
   | { type: 'skip' }
+  | { type: 'unselect' }
   | { type: 'next' }
   | { type: 'end_round' }
   | { type: 'adjust'; playerId: string; score: number }
@@ -685,7 +686,7 @@ export function apply(state: GameState, action: Action, actor: Actor, now: numbe
         return fail('nobody is responding');
       }
       if (round?.questionForm !== 'lenient' || current.wagerer || current.tiebreak) {
-        return fail('this round requires the form of a question — rule it');
+        return fail('this round requires the form of a question; rule it');
       }
       if (current.reminded.includes(current.responder)) return fail('already reminded');
       current.reminded.push(current.responder);
@@ -699,6 +700,29 @@ export function apply(state: GameState, action: Action, actor: Actor, now: numbe
       if (state.revealed) return fail('already revealed');
       state.revealed = true;
       bump(state);
+      return ok();
+    }
+
+    case 'unselect': {
+      // A misclick: the clue goes back on the board, unplayed, and whoever
+      // had control keeps it. Only before anyone could ring in or respond.
+      const current = state.current;
+      if (
+        !current ||
+        current.tiebreak ||
+        !['wager_reveal', 'wager', 'reading'].includes(state.phase)
+      )
+        return fail('that clue can no longer be put back');
+      const row = state.played[current.col];
+      if (row) row[current.row] = false;
+      if (current.wagerer) {
+        const player = findPlayer(state, current.wagerer);
+        if (player) player.stats.wagerClues -= 1;
+      }
+      state.current = null;
+      state.revealed = false;
+      state.deadline = null;
+      bump(state, 'board');
       return ok();
     }
 
@@ -878,7 +902,7 @@ export function apply(state: GameState, action: Action, actor: Actor, now: numbe
       const final = state.final;
       if (state.phase !== 'final_reveal' || !final || final.index < 0) return fail('not revealing');
       // Changeable until the wager is shown; after that it's a reversal.
-      if (final.step === 'wager') return fail('already scored — reverse the ruling instead');
+      if (final.step === 'wager') return fail('already scored; reverse the ruling instead');
       const playerId = final.order[final.index];
       if (!playerId) return fail('not revealing');
       final.verdicts[playerId] = action.verdict;

@@ -98,7 +98,7 @@ export class Stage {
     this.renderPodiums(view);
     this.pausedBadge.hidden = !view.paused;
     this.pausedBadge.textContent =
-      view.paused === 'restart' ? 'Paused — the server restarted' : 'Paused';
+      view.paused === 'restart' ? 'Paused: the server restarted' : 'Paused';
     const key = this.sceneOf(view);
     const scene = key.split(':')[0];
     const fresh = key !== this.sceneKey;
@@ -207,7 +207,7 @@ export class Stage {
       el('div', { class: 'lobby-title' }, view.title),
       view.credit ? el('div', { class: 'lobby-credit' }, view.credit) : null,
       testing
-        ? el('div', { class: 'lobby-test' }, 'Buzzer test — contestants, press your buzzers')
+        ? el('div', { class: 'lobby-test' }, 'Buzzer test: contestants, press your buzzers')
         : this.showJoin && this.code
           ? el(
               'div',
@@ -289,7 +289,7 @@ export class Stage {
     const banner = this.screen.querySelector('.round-banner');
     if (banner) {
       banner.hidden = view.phase !== 'round_end';
-      banner.textContent = view.roundExpired ? `Time — ${terms.roundEnd}` : terms.roundEnd;
+      banner.textContent = view.roundExpired ? `Time: ${terms.roundEnd}` : terms.roundEnd;
     }
   }
 

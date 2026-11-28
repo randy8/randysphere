@@ -1725,3 +1725,52 @@ legend {
     transition-duration: 1ms !important;
   }
 }
+
+/* ---- Convert to a game --------------------------------------------------- */
+
+.convert-source {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  margin-top: 0.75rem;
+}
+
+.convert .row select {
+  flex: 1 1 14rem;
+}
+
+.convert-status {
+  color: #b9bddb;
+  min-height: 1.2em;
+}
+
+.convert-game {
+  border-top: 2px solid #3a3f6e;
+  padding-top: 0.75rem;
+  margin-top: 1rem;
+}
+
+.convert-game h2 {
+  margin: 0 0 0.25rem;
+}
+
+.convert-ready {
+  color: #9be79b;
+}
+
+.convert-todo {
+  color: #ffd27a;
+}
+
+.convert-json {
+  max-height: 28rem;
+  overflow: auto;
+  font-size: 0.8rem;
+  background: #0f1230;
+  border: 2px solid #3a3f6e;
+  padding: 0.6rem;
+  white-space: pre;
+}
+
+.convert-help code {
+  font-size: 0.9em;
+}

@@ -87,7 +87,7 @@ app.append(
     el(
       'p',
       {},
-      'A game you write belongs to its edit link — there are no accounts. Keep the link: anyone with it can edit or host the game, and without it nobody can. Games written here are private; they never appear in the public library.',
+      'A game you write belongs to its edit link. There are no accounts. Keep the link: anyone with it can edit or host the game, and without it nobody can. Games written here are private; they never appear in the public library.',
     ),
     list,
     el(
@@ -95,6 +95,7 @@ app.append(
       { class: 'row' },
       el('button', { type: 'button', class: 'primary', onclick: () => create(null) }, 'New game'),
       el('button', { type: 'button', onclick: () => file.click() }, 'Import a game file (.json)'),
+      el('a', { class: 'button', href: '/trivia/convert/' }, 'Convert an outline or spreadsheet'),
       file,
     ),
     el(
@@ -120,7 +121,7 @@ app.append(
     el(
       'p',
       { class: 'fine' },
-      'The file format is documented in docs/quiz.md (“The game file”). CSV datasets are imported on the server with pnpm quiz import.',
+      'The file format is documented in docs/quiz.md (“The game file”). Convert writes it for you from a text outline or a spreadsheet.',
     ),
   ),
 );
