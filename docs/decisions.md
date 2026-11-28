@@ -4143,3 +4143,17 @@ with control unchanged. Allowed only before the buzzers open (wager reveal,
 wager, reading), because after that someone may have rung in. The clue has
 been seen on the TV by then; whether to come back to it is the host's call.
 A wager clue's count in the statistics is undone with it.
+
+## 2026-11-28 — /ephemera/: a portal for side projects, off the masthead
+
+The owner wanted somewhere for apps and ideas "not quite important enough"
+for the navbar, that still looks inviting. `/ephemera/` (the archive word for
+printed odds and ends) is one static page listing `site/src/ephemera.ts`, a
+hand-written array, linked from the footer beside Site status and in the
+sitemap. Deliberately not a collection: collections.ts drives the masthead
+and the /collections/ index, and these entries have no content of their own
+to build pages from; most are served by tools/serve. Each entry is a card
+(catalogue number, a kind label, an optional small drawing) that takes the
+oxblood accent only on hover, as everywhere else; an entry without `href` is
+shown as an idea not built yet. A dashed "More in the drawer" card closes the
+grid so a list of one still reads as a beginning.

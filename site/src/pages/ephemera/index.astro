@@ -1,0 +1,63 @@
+---
+import Base from '../../layouts/Base.astro';
+import { ephemera } from '../../ephemera.ts';
+
+const number = (index: number): string => String(index + 1).padStart(2, '0');
+---
+
+{
+  /*
+    A portal, not a collection: apps and ideas too small for the masthead.
+    Each is a card, like a ticket or label kept in a drawer: a catalogue
+    number, what kind of thing it is, and a way in. The last card is the
+    drawer itself, so a short list still reads as a beginning.
+  */
+}
+<Base title="Ephemera" description="Apps, games and ideas, kept off the masthead.">
+  <header class="album-header home-header ephemera-header">
+    <p class="eyebrow">Odds and ends</p>
+    <h1>Ephemera</h1>
+    <p class="lede">
+      Small apps, games and half-finished ideas. Not quite collections, kept here so they're easy to
+      find. Come in and try one.
+    </p>
+  </header>
+
+  <ul class="ephemera">
+    {
+      ephemera.map((item, index) => {
+        const inner = (
+          <>
+            <p class="ephemera-meta">
+              <span>No. {number(index)}</span>
+              <span class="ephemera-kind">{item.kind}</span>
+            </p>
+            {item.glyph === 'board' && (
+              <svg class="ephemera-glyph" viewBox="0 0 66 34" aria-hidden="true">
+                {[0, 1, 2, 3, 4, 5].map((col) =>
+                  [0, 1, 2].map((row) => (
+                    <rect x={col * 11 + 1} y={row * 11 + 1} width="9" height="9" />
+                  )),
+                )}
+              </svg>
+            )}
+            <h2>{item.title}</h2>
+            <p class="ephemera-description">{item.description}</p>
+            <p class="ephemera-action">{item.href ? 'Open' : 'An idea, not built yet'}</p>
+          </>
+        );
+        return (
+          <li class:list={['ephemera-card', { 'ephemera-idea': !item.href }]}>
+            {item.href ? <a href={item.href}>{inner}</a> : <div>{inner}</div>}
+          </li>
+        );
+      })
+    }
+    <li class="ephemera-card ephemera-drawer" aria-hidden="true">
+      <div>
+        <p class="ephemera-meta"><span>No. {number(ephemera.length)}</span></p>
+        <p class="ephemera-drawer-text">More in the drawer.</p>
+      </div>
+    </li>
+  </ul>
+</Base>

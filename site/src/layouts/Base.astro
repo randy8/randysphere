@@ -192,7 +192,10 @@ const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
             </main>
             <footer class="site-footer">
               <span>© {new Date().getFullYear()} {site.author}</span>
-              <a href="/system">Site status</a>
+              <span class="site-footer-links">
+                <a href="/ephemera/">Ephemera</a>
+                <a href="/system">Site status</a>
+              </span>
             </footer>
           </div>
         </Fragment>

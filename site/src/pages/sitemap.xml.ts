@@ -5,7 +5,7 @@ import { collections } from '../collections.ts';
 // '/' itself is a redirect (see astro.config.mjs), not a real page — list
 // the collections index it used to be instead of a URL a crawler would just
 // bounce off of.
-const STATIC_PAGES = ['/collections/'];
+const STATIC_PAGES = ['/collections/', '/ephemera/'];
 
 export function GET(context: APIContext): Response {
   const siteUrl = context.site?.href ?? 'https://randyliang.net';

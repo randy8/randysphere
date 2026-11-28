@@ -36,6 +36,9 @@ buzzers over WebSocket (`/trivia/ws`, the `ws` package), a TV display, an
 editor, SQLite in `private/quiz/`. Server-authoritative engine in
 `quiz/engine/` (no I/O); never recreate a specific show's name, look,
 music or episodes there (docs/decisions.md, 2026-11-28).
+Side projects like the quiz are listed at **`/ephemera/`** (`site/src/ephemera.ts`,
+hand-written; linked from the footer, never the masthead): apps and ideas
+too small to be collections. Adding one is an entry there, nothing else.
 
 Adding a collection: one entry in `collections.ts`, its own `src/pages/<slug>/`,
 and (if needed) its own `src/<slug>/`. `Base.astro` stays collection-agnostic,
