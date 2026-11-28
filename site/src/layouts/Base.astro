@@ -30,6 +30,12 @@ const {
   themeColor = '#f6f1e6',
 } = Astro.props;
 const { pathname } = Astro.url;
+// The masthead: every collection, then Ephemera (side projects, which is
+// not a collection: site/src/ephemera.ts, docs/decisions.md 2026-11-28).
+const sections = [
+  ...collections.map(({ slug, href, title }) => ({ slug, href, title })),
+  { slug: 'ephemera', href: '/ephemera/', title: 'Ephemera' },
+];
 const fullTitle = title === site.title ? title : `${title} — ${site.title}`;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 // `image` is an override, not opt-in — a page with no natural photo still
@@ -162,7 +168,7 @@ const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
                 </p>
                 <ul class="nameplate-list">
                   {
-                    collections.map((collection) => (
+                    sections.map((collection) => (
                       <li>
                         {pathname.startsWith(`/${collection.slug}/`) ? (
                           <a
@@ -192,10 +198,7 @@ const ogImage = image ?? new URL('/og-default.png', Astro.site).href;
             </main>
             <footer class="site-footer">
               <span>© {new Date().getFullYear()} {site.author}</span>
-              <span class="site-footer-links">
-                <a href="/ephemera/">Ephemera</a>
-                <a href="/system">Site status</a>
-              </span>
+              <a href="/system">Site status</a>
             </footer>
           </div>
         </Fragment>

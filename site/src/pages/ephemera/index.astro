@@ -3,20 +3,20 @@ import Base from '../../layouts/Base.astro';
 import { ephemera } from '../../ephemera.ts';
 
 const number = (index: number): string => String(index + 1).padStart(2, '0');
+// The board drawing: six categories of five, a few already played.
+const played = new Set(['0-0', '1-2', '2-0', '2-1', '3-4', '4-1', '5-0', '5-3']);
 ---
 
 {
   /*
-    A portal, not a collection: apps and ideas too small for the masthead.
-    Each is a card, like a ticket or label kept in a drawer: a catalogue
-    number, what kind of thing it is, and a way in. The last card is the
-    drawer itself, so a short list still reads as a beginning.
+    Side projects: a shelf of cards, each like a ticket or label kept in a
+    drawer. Almost no words; the drawing does the talking. The last card is
+    the empty slot, so a short shelf still reads as a beginning.
   */
 }
-<Base title="Ephemera" description="Little things I've made, and a few I'm still thinking about.">
-  <header class="album-header home-header ephemera-header">
+<Base title="Ephemera" description="Side projects.">
+  <header class="album-header home-header">
     <h1>Ephemera</h1>
-    <p class="lede">Little things I've made, and a few I'm still thinking about.</p>
   </header>
 
   <ul class="ephemera">
@@ -29,17 +29,21 @@ const number = (index: number): string => String(index + 1).padStart(2, '0');
               <span class="ephemera-kind">{item.kind}</span>
             </p>
             {item.glyph === 'board' && (
-              <svg class="ephemera-glyph" viewBox="0 0 66 34" aria-hidden="true">
+              <svg class="ephemera-glyph" viewBox="0 0 122 102" aria-hidden="true">
                 {[0, 1, 2, 3, 4, 5].map((col) =>
-                  [0, 1, 2].map((row) => (
-                    <rect x={col * 11 + 1} y={row * 11 + 1} width="9" height="9" />
+                  [0, 1, 2, 3, 4].map((row) => (
+                    <rect
+                      class={played.has(`${col}-${row}`) ? 'played' : undefined}
+                      x={col * 20 + 1.5}
+                      y={row * 20 + 1.5}
+                      width="18"
+                      height="18"
+                    />
                   )),
                 )}
               </svg>
             )}
             <h2>{item.title}</h2>
-            <p class="ephemera-description">{item.description}</p>
-            <p class="ephemera-action">{item.href ? 'Open' : 'Still an idea'}</p>
           </>
         );
         return (
@@ -52,7 +56,7 @@ const number = (index: number): string => String(index + 1).padStart(2, '0');
     <li class="ephemera-card ephemera-drawer" aria-hidden="true">
       <div>
         <p class="ephemera-meta"><span>No. {number(ephemera.length)}</span></p>
-        <p class="ephemera-drawer-text">More soon.</p>
+        <p class="ephemera-drawer-text">Soon.</p>
       </div>
     </li>
   </ul>

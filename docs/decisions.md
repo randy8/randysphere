@@ -4157,3 +4157,15 @@ to build pages from; most are served by tools/serve. Each entry is a card
 oxblood accent only on hover, as everywhere else; an entry without `href` is
 shown as an idea not built yet. A dashed "More in the drawer" card closes the
 grid so a list of one still reads as a beginning.
+
+## 2026-11-28 — Ephemera moves into the masthead; its page goes nearly wordless
+
+Revises the entry above the same day. The owner meant Ephemera to sit in the
+masthead next to Pictures, not in the footer, and wanted almost no text on
+the page, with character carried by the design instead. Base.astro now
+appends one fixed `Ephemera` link after the collections (a second exception
+to the layout knowing nothing beyond collections.ts, beside Saved); it is
+still not a collection, so /collections/ and the sitemap's collection URLs
+don't list it. On a phone the five links fit one line down to 360px by
+tightening the size and tracking slightly. The page is a heading and cards:
+catalogue number, kind, a drawing, a title. No intro, no descriptions.

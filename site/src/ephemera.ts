@@ -8,7 +8,6 @@ export interface Ephemeron {
   readonly title: string;
   /** One or two words: what kind of thing it is (Game, Tool, Sketch…). */
   readonly kind: string;
-  readonly description: string;
   /** Absent for an idea that isn't built yet. */
   readonly href?: string;
   /** A small drawing on the card (pages/ephemera/index.astro); absent for none. */
@@ -21,7 +20,5 @@ export const ephemera: readonly Ephemeron[] = [
     kind: 'Game',
     href: '/trivia/',
     glyph: 'board',
-    description:
-      'My take on a TV quiz night. The board goes on the TV and everyone buzzes in from their phone.',
   },
 ];
