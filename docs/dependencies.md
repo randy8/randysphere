@@ -220,6 +220,40 @@ extracting or persisting what it returns. yt-dlp is scraping, maintained by
 others, and fails whenever Instagram blocks it; every failure falls back to
 pasting the caption or adding screenshots.
 
+## `tools/serve`
+
+### `ws` — `^8.22.0` and `@types/ws` — `^8.18.2` (dev)
+
+The WebSocket server for the quiz (`tools/serve/src/quiz/`): contestants'
+buzzers, the host console and the TV display, each on one persistent
+connection to `/quiz/ws`. Node 24 ships a WebSocket _client_ but no server,
+and the buzzer needs one. Server-Sent Events, which the chats use, are one
+way: a buzz would be a separate HTTP request with its own connection setup
+behind Cloudflare. `ws` has no dependencies of its own, is the de facto Node
+implementation (it's what undici's client was tested against), and is used
+here in `noServer` mode on the existing HTTP server, so it adds no port.
+Compression is off (`perMessageDeflate: false`) because it costs latency for
+tiny frames.
+
+The alternative was writing RFC 6455 framing by hand (about 200 lines: the
+handshake, masking, fragmentation, close and ping frames). That's a protocol
+with security-relevant edge cases (masking, length fields, UTF-8
+validation) and a buzzer's fairness rests on it. Rejected for the same
+reason the pipeline doesn't hand-roll image decoding (docs/decisions.md,
+2026-11-28).
+
+**Removal cost:** the quiz's real-time path is rewritten. Its engine,
+catalog and pages don't import it; only `quiz.ts` (the server) and the
+tests and `pnpm quiz bench`/`bridge` (the client).
+
+### QR codes — not a dependency
+
+The join QR code is drawn by `quiz/qr.ts`, about 300 lines, byte mode,
+versions 1–10. It was checked module for module against Python's `qrcode`
+package in all 144 version × level × mask cases, and six of those are
+fixtures in `qr.test.ts`. The npm `qrcode` package brings `yargs`,
+`pngjs` and more for one SVG of a short URL.
+
 ---
 
 ## Rejected

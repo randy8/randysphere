@@ -97,6 +97,16 @@ production serves `site/release`, which only `pnpm deploy` writes. (Until
 2026-10-25 both were `site/dist`, and a plain `pnpm build` twice put an
 unchecked build live.) `pnpm preview` serves the local `site/dist`.
 
+## The quiz and WebSockets
+
+`/quiz/ws` is a WebSocket on the same port (:4322). Cloudflare Tunnel
+carries WebSockets without configuration. A deploy that restarts the server
+tells every quiz device to reconnect, and games resume paused (docs/quiz.md,
+"Restarts and deploys"). For in-person games, `QUIZ_LAN_LISTEN=<LAN
+address>:<port>` in `.env` adds a quiz-only HTTP listener (everything else
+returns 404). Open that port in the firewall's LAN zone only, never on the
+public interface. Quiz data is `private/quiz/quiz.db`.
+
 ## Health and the watchdog
 
 `/healthz` (tools/serve/src/health.ts) answers 200 only when the built

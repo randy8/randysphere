@@ -20,6 +20,7 @@ export const AREAS = [
   'dishes',
   'tunes',
   'family',
+  'quiz',
 ] as const;
 export type Area = (typeof AREAS)[number];
 
@@ -47,6 +48,14 @@ export const RULES: readonly Rule[] = [
     risk: 'medium',
     areas: ['family'],
     why: 'the family chat: accounts, live messages, notifications',
+  },
+  {
+    // Answers only for /quiz (and its WebSocket); its tests run their own
+    // quiz server on a throwaway directory (quiz.browser.ts).
+    match: /^tools\/serve\/src\/quiz\//,
+    risk: 'medium',
+    areas: ['quiz'],
+    why: 'the quiz: rooms, buzzers, the editor',
   },
   {
     match: /^tools\/serve\//,

@@ -4024,3 +4024,89 @@ $0.03–0.06 at list price. `RECIPE_IMPORT_MODEL=claude-haiku-5-5` is about
 - _A tag filter or search on the Dishes index._ Ten recipes, and the
   diet filter already exists (2026-10-26). Tags are recorded now so a
   filter can come when the menu needs one.
+
+## 2026-11-28 — Quiz: an original television-style quiz at /quiz/, served by tools/serve
+
+**What.** A multiplayer quiz for a living room (docs/quiz.md): a host
+console, contestants' phones as buzzers, a TV display, single player,
+practice, an editor for writing games, and an importer for datasets. Code
+in `tools/serve/src/quiz/`, data in `private/quiz/quiz.db`.
+
+**Not a recreation of a specific show.** The request was a faithful copy
+of a particular television game: its name, set, typeface, music and its
+original episodes. This builds the game's _mechanics_ (a board of
+categories and values, buzzers, wagers, a written final round), which
+belong to the genre, under its own name and look. The default theme is a
+traditional quiz-show board (deep blue, gold values, condensed capitals,
+serif clues) in fonts licensed for it (Newsreader, Oswald; OFL). Sounds are
+synthesised originals. Wording lives in the theme ("Wager Clue", "Final
+Round"), so it can be changed without touching the mechanics. No broadcast
+logos, recordings, music or clues are bundled, and nothing fetches any.
+Datasets are imported only from disk, with `--source` and `--license`
+required. Imports start unlisted. Pages carry an unofficial-fan-project
+note.
+
+**Rules, and where they came from.** Fan wikis and contestant guides
+(Wikipedia's article, the J! Archive help page, TV Insider's "rules
+contestants should know", several news reports of the 2014–2018
+tiebreaker changes) mostly agree, and these are the judgement calls:
+
+- Wager-clue maximum: the greater of the player's score and the round's top
+  value; minimum $5. Sources agree. On a custom board whose values are below
+  $5, the minimum is the round's lowest value, which is our own call.
+- Second-round first pick on a tie for lowest: sources split between the
+  leftmost lectern and the last correct responder among the tied. We use the
+  leftmost podium: deterministic and visible. It's one function
+  (`lowestScorer`).
+- Question form: lenient in the first round outside wager clues (a
+  reminder), strict elsewhere. It's set per round in the data. The host
+  enforces it, because a spoken response can't be checked by software.
+- Tiebreakers: sudden death for a non-zero tie for first. A miss reopens to
+  the other tied players. If nobody is right, another tiebreak clue follows.
+  With no clues left, the winners share it. Sources don't settle what happens
+  after a wrong first responder; this is the reading most consistent with
+  "first correct response wins".
+- The 250 ms early-press lockout and ~5 s response window are commonly
+  reported figures, not published rules. Both are host settings.
+
+**Server-authoritative buzzer, no compensation.** The first eligible press
+to _arrive_ wins, decided synchronously in the engine before any I/O. The
+database is written after the broadcast, in the same turn of the event
+loop. A client's `seq` (the state its screen showed) decides only one thing:
+a press made while the buzzers looked locked is early, however late it
+arrives. A client can lie about it only to escape a lockout it earned,
+never to beat an honest press that arrived first. Latency compensation was
+rejected: estimating each phone's one-way delay from round trips is
+guesswork on Wi-Fi, and getting it wrong is worse than server order that
+everyone can see. The buzzer test shows each phone's round trip and jitter
+instead, and the LAN listener removes Cloudflare from the path.
+
+**Where it runs.** Inside the existing `tools/serve` process on :4322,
+like the chats, with WebSocket upgrades on the same port. Cloudflare Tunnel
+carries WebSockets with no configuration. Docker Compose and a separate
+service were rejected: one more unit to deploy, monitor and restart, for
+an app whose whole state is one SQLite file and memory. The LAN listener
+(`QUIZ_LAN_LISTEN`) is a second HTTP server in the same process that serves
+only `/quiz`.
+
+**One authority per room, and restarts.** Games live in memory. A lease
+row (`rooms.owner`, `lease_until`) makes one process the authority, so a
+deploy's candidate server can't run a second copy of a live game. After a
+restart a game comes back paused, because monotonic times from another
+process mean nothing. Restoring a running clock from wall time was
+rejected: it would end a buzz window during the restart.
+
+**Credentials are capabilities, not accounts.** Every role is a random
+token for one room, carried in a URL fragment and then in the first socket
+message, never in a request line or a log. Games written in the editor
+belong to an edit key in the same way. An account system was rejected: the
+point is that a guest can host within a minute.
+
+**Rejected, also:** hand-written WebSocket framing (see
+docs/dependencies.md, `ws`); the `qrcode` npm package (qr.ts instead,
+checked against a reference); scraping or calling a trivia API at runtime;
+an LLM judge for typed responses (single player uses normalisation and
+edit distance, plus "I was right"); Server-Sent Events for buzzes (one-way;
+every press would be a new request); mixing random clues into new
+categories (random boards draw whole categories, because a category's
+clues are written to be read together).

@@ -30,6 +30,12 @@ Not a collection: the **family chat** at `/family/` (`tools/serve/src/family/`,
 served by `tools/serve` alone; the Astro build knows nothing of it. The same
 code runs **Disc** at `/disc/` (`private/disc/`, `pnpm disc`), a separate
 chat with its own accounts that never links to Family (`family/chats.ts`).
+Also not a collection: the **quiz** at `/quiz/` (`tools/serve/src/quiz/`,
+`docs/quiz.md`) — an original TV-style quiz: host console, phones as
+buzzers over WebSocket (`/quiz/ws`, the `ws` package), a TV display, an
+editor, SQLite in `private/quiz/`. Server-authoritative engine in
+`quiz/engine/` (no I/O); never recreate a specific show's name, look,
+music or episodes there (docs/decisions.md, 2026-11-28).
 
 Adding a collection: one entry in `collections.ts`, its own `src/pages/<slug>/`,
 and (if needed) its own `src/<slug>/`. `Base.astro` stays collection-agnostic,
@@ -139,6 +145,8 @@ pnpm run edit            # local editor, 127.0.0.1:4500: tags, alt, captions,
 pnpm doctor              # report drift, change nothing
 pnpm family <command>    # family chat accounts and backups (docs/family.md):
                          # list, add, passwd, revoke, backup, restore
+pnpm quiz <command>      # quiz library and records (docs/quiz.md): import, episodes,
+                         # list-on/off, export, results, rooms, bench, bridge
 pnpm describe            # optional: draft alt text via Claude (ANTHROPIC_API_KEY)
 pnpm recipes:import      # local page, 127.0.0.1:4510: Instagram Reel → reviewed draft →
                          # recipes/<slug>.yaml (ANTHROPIC_API_KEY; yt-dlp optional) —
@@ -179,7 +187,9 @@ pnpm verify              # pnpm check + the trial build —
     only after `verifySessionToken` (`/private`) or a chat session
     (`/family/`, `/disc/`, `FamilyStore.resolveSession`) — every chat route,
     photo and stream resolves the session first, against that chat's own
-    database.
+    database. The quiz reads only `private/quiz/`: its listed library and
+    practice clues for anyone, a room only through that room's role token,
+    a written game only through its edit key (quiz/quiz.ts).
 11. No new dependency without a `docs/dependencies.md` entry.
 12. `/infra` (tools/serve/src/infra.ts) is served only to the owner's own
     tailnet devices: the connection must arrive on this machine's Tailscale

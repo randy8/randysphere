@@ -1012,3 +1012,23 @@ The composer became a rich text box so that iPhone and Mac offer Genmoji and
 stickers there; they arrive in the message where they were typed, or large
 on their own as stickers. And the read line under your latest message now
 stays put and says who has read it: "Read by Harrison · 1 of 2".
+
+## 2026-11-28 — A quiz for the living room
+
+The site gained its first thing to _do_ rather than browse: `/quiz/`, a
+television-style quiz with a host at a laptop, contestants' phones as
+buzzers and the board on a TV. It's the first real-time surface here.
+Where the family chat streams one way over Server-Sent Events, the quiz
+holds a WebSocket to every device, and the server alone decides who
+buzzed first: synchronously, before anything is written down, with the
+record kept afterwards so any game can be replayed exactly.
+
+Like the chats it lives inside `tools/serve` and knows nothing of Astro.
+Like them, it has no accounts. Every role (host, player, TV, hardware
+button) is a credential for one room, and a game you write in the editor
+belongs to its edit link. It is deliberately its own game, not a copy of
+a broadcast one. The mechanics are the genre's, the look is a theme, the
+words are configurable, the sounds are synthesised, and the clues that
+ship with it are original. Historical datasets can be imported, but only
+from disk, with their source and terms recorded, and they stay unlisted
+until chosen.

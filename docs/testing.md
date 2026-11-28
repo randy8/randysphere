@@ -35,6 +35,12 @@ Astro's preview. Options: name areas (`pnpm test:browser exhibition`),
 - **tunes** — browse while it plays: the player folds into a bar, the site
   opens in a frame above it, Back walks the frame and comes home, and the
   player's iframe never reloads. YouTube is stubbed.
+- **quiz** — `/quiz/`: one complete three-contestant game in five browser
+  contexts (host, TV, three phones), run from the host's keyboard, checking
+  that no response or private wager appears on a phone or the TV before its
+  reveal; and the editor. Starts its own quiz server on a throwaway data
+  directory, like family. Unit and socket-level tests (`quiz/**/*.test.ts`)
+  cover the rules, arbitration, secrecy, restarts and leases.
 - **family** — the chats at `/family/` and `/disc/`. Unlike every other area it starts its
   own chat servers in-process, on a throwaway data directory with test
   accounts: the harness's server has no accounts, and a deploy's candidate
